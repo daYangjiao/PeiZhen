@@ -1,0 +1,799 @@
+package org.example.service.impl;
+
+import org.apache.commons.lang3.StringUtils;
+import org.example.dao.AttendantMapper;
+import org.example.dao.GuideAppointmentMapper;
+import org.example.dao.OrderMapper;
+import org.example.model.*;
+import org.example.model.request.CreateOrderRequest;
+import org.example.model.request.PaymentCallbackRequest;
+import org.example.model.response.AppointmentResponse;
+import org.example.model.response.AttendantMatchResponse;
+import org.example.model.response.CompleteOrderInfoResponse;
+import org.example.model.response.SimpleOrderDetailResponse;
+import org.example.service.AiGuideService;
+import org.example.unity.AttendantMatchAlgorithm;
+import org.example.unity.ServiceFeeCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+@Service
+public class AiGuideServiceImpl implements AiGuideService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AiGuideServiceImpl.class);
+
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private AttendantMapper attendantMapper;
+    
+    @Autowired
+    private GuideAppointmentMapper guideAppointmentMapper;
+
+    // 新增：注入匹配算法类（解决之前的编译错误）
+    @Autowired
+    private AttendantMatchAlgorithm attendantMatchAlgorithm;
+
+    // 步骤1：提交预约（移除预约ID相关逻辑）
+    @Override
+    public void submitAppointment(GuideAppointmentRequest request) {
+        logger.info("提交导诊预约信息：{}", request);
+
+        GuideAppointment appointment = new GuideAppointment();
+        appointment.setHospitalName(request.getHospital());
+        appointment.setServiceDate(request.getServiceDate());
+        appointment.setServiceStartTime(request.getServiceStartTime());
+        appointment.setServiceEndTime(request.getServiceEndTime());
+        appointment.setServiceTypeNumber(request.getServiceTypeNumber());
+        appointment.setPatientName(request.getPatientName());
+        appointment.setPatientPhone(request.getPatientPhone());
+        appointment.setSymptoms(request.getSymptoms());
+        appointment.setOtherRequirement(request.getOtherRequirement());
+
+        // 关键修复：格式化时间为标准格式（长度19）
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        appointment.setCreateTime(sdf.format(new Date())); // 替换原有的 new Date() 赋值
+
+        // 插入数据库
+        attendantMapper.insertGuideAppointment(appointment);
+    }
+
+    // 新增：从预约信息匹配陪诊师（适配新的一步式流程）
+    @Override
+    public List<MatchedAttendantVO> matchAttendantsFromAppointment(GuideAppointmentRequest request) {
+        logger.info("从预约信息匹配陪诊师，预约信息：{}", request);
+
+        // 从预约请求中提取匹配条件
+        String hospitalName = request.getHospital();
+        String serviceDate = request.getServiceDate();
+        
+        // 构造服务时段（用于数据库查询）
+        String serviceTimeSlot = request.getServiceStartTime() + "-" + request.getServiceEndTime();
+        
+        // 处理症状信息
+        List<String> symptoms = request.getSymptoms();
+        Set<String> demandTags = symptoms != null ? new HashSet<>(symptoms) : new HashSet<>();
+        
+        // 查询可用陪诊师
+        List<Attendant> attendants = attendantMapper.selectAvailableAttendants(
+                hospitalName,
+                serviceDate,
+                serviceTimeSlot,
+                null // 暂时不使用手术名称筛选
+        );
+
+        // 调用匹配算法（使用默认紧急程度）
+        return attendantMatchAlgorithm.matchAttendants(demandTags, attendants, 1);
+    }
+
+    // 步骤2：匹配陪诊师（保留原有接口）
+    @Override
+    public List<MatchedAttendantVO> matchAttendants(GuideDemandRequest request) {
+        logger.info("匹配陪诊师，需求：{}", request);
+
+        // 方案1：从预约上下文获取医院/日期/时段（推荐）
+        // 需先保存预约信息到上下文/数据库，再读取
+        String hospitalName = "中医院"; // 示例：从预约信息中获取
+        String serviceDate = "2025-11-24"; // 示例：从预约信息中获取
+        String serviceTimeSlot = "14:00-16:00"; // 示例：从预约信息中获取
+
+        // 方案2：兼容空值，放宽查询条件（兜底）
+        if (StringUtils.isEmpty(hospitalName)) {
+            hospitalName = "%"; // 匹配所有医院
+        }
+        if (StringUtils.isEmpty(serviceDate)) {
+            serviceDate = "2025-11-24"; // 默认日期
+        }
+        if (StringUtils.isEmpty(serviceTimeSlot)) {
+            serviceTimeSlot = "14:00-16:00"; // 默认时段
+        }
+
+        // 调用Mapper时传入有效参数
+        // 示例：传入空医院名称，仍能查询到所有可用陪诊师
+        List<Attendant> attendants = attendantMapper.selectAvailableAttendants(
+                "", // 空医院名称（跳过该条件）
+                "", // 空服务日期（跳过该条件）
+                "", // 空服务时段（跳过该条件）
+                request.getSurgeryName()
+        );
+
+        // 调用匹配算法
+        Set<String> demandTags = new HashSet<>(request.getSymptoms()); // 症状作为需求标签
+        return attendantMatchAlgorithm.matchAttendants(demandTags, attendants, request.getEmergencyLevel());
+    }
+
+    // 步骤3：创建订单（移除预约ID，服务类型固定，attendantId改为String）
+    @Override
+    @Transactional
+    public OrderCreateResponse createOrder(GuideOrderRequest request) {
+        logger.info("创建陪诊订单：{}", request);
+
+        // 1. 获取String类型的陪诊师ID，转换为Integer（适配Mapper的findById参数）
+        String attendantIdStr = request.getAttendantId();
+        if (StringUtils.isEmpty(attendantIdStr)) {
+            throw new RuntimeException("陪诊师ID不能为空");
+        }
+        Integer attendantId;
+        try {
+            attendantId = Integer.valueOf(attendantIdStr);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("陪诊师ID格式错误，需为数字");
+        }
+
+        // 2. 查询陪诊师信息（复用原有Mapper）
+        Attendant attendant = attendantMapper.findById( String.valueOf( attendantId ) );
+        if (attendant == null) {
+            throw new RuntimeException("陪诊师不存在，ID：" + attendantIdStr);
+        }
+
+        // 3. 服务类型处理（固定多选值，拼接为字符串存入serviceContent）
+        List<String> serviceTypes = request.getServiceTypes();
+        String serviceContent = String.join("、", serviceTypes);
+
+        // 4. 构建订单实体（复用原有Order类，attendantId存入String类型）
+        Order order = new Order();
+        order.setOrderNo("ORD" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6));
+        order.setUserId(1); // 示例用户ID，需从上下文获取
+        order.setOrderDate(new Date());
+        order.setAttendantId(attendantIdStr); // 直接存入String类型的ID
+        order.setAttendantName(attendant.getUsername());
+        order.setAttendantPhone(attendant.getPhone()); // 需Attendant有phone字段
+//        order.setPayMethod(request.getPayMethod());
+        order.setServiceContent(serviceContent); // 存储固定服务类型
+        order.setPaymentStatus(0); // 0=待支付
+        order.setOrderStatus(0); // 0=待接单
+        order.setContactPerson("示例联系人"); // 可从预约信息获取
+        order.setContactPhone("13800138000"); // 可从预约信息获取
+        order.setOrderAmount(new BigDecimal("99.00")); // 示例金额
+
+        // 5. 插入订单（复用原有Mapper）
+        orderMapper.insert(order);
+
+        // 6. 构造返回结果
+        OrderCreateResponse response = new OrderCreateResponse();
+        response.setOrderNo(order.getOrderNo());
+        response.setServiceTypes(serviceTypes);
+        response.setAttendantName(attendant.getUsername());
+        response.setPayAmount(99.0);
+        return response;
+    }
+
+
+
+    // 支付状态更新
+    @Override
+    public void updatePayStatus(String orderNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order != null) {
+            order.setPaymentStatus(1); // 1=已支付
+            orderMapper.updateByPrimaryKeySelective(order);
+        }
+    }
+
+    // 辅助方法：订单状态转换为描述
+    private String getOrderStatusDesc(Integer status) {
+        return switch (status) {
+            case 0 -> "待接单";
+            case 1 -> "已接单";
+            case 2 -> "已完成";
+            case 3 -> "已取消";
+            default -> "未知状态";
+        };
+    }
+
+    // ===== 新增四步流程实现 =====
+    
+    // 步骤1：提交需求并返回预约编号
+    @Override
+    @Transactional
+    public AppointmentResponse submitDemand(GuideAppointmentRequest request) {
+        logger.info("提交需求信息：{}", request);
+        
+        // 生成预约编号
+        String appointmentNo = "APP" + System.currentTimeMillis() + 
+                             UUID.randomUUID().toString().substring(0, 6);
+        
+        // 构建预约实体
+        GuideAppointment appointment = new GuideAppointment();
+        appointment.setAppointmentNo(appointmentNo);
+        appointment.setHospitalName(request.getHospital());
+        appointment.setServiceDate(request.getServiceDate());
+        appointment.setServiceStartTime(request.getServiceStartTime());
+        appointment.setServiceEndTime(request.getServiceEndTime());
+        appointment.setServiceTypeNumber(request.getServiceTypeNumber());
+        appointment.setPatientName(request.getPatientName());
+        appointment.setPatientPhone(request.getPatientPhone());
+        appointment.setSymptoms(request.getSymptoms());
+        appointment.setOtherRequirement(request.getOtherRequirement());
+        appointment.setCreateTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+        
+        // 保存到数据库
+        guideAppointmentMapper.insertGuideAppointment(appointment);
+        
+        // 构造响应
+        AppointmentResponse response = new AppointmentResponse();
+        response.setAppointmentNo(appointmentNo);
+        response.setMessage("需求提交成功");
+        
+        logger.info("需求提交成功，预约编号：{}", appointmentNo);
+        return response;
+    }
+
+    // 步骤2：根据预约编号匹配陪诊师
+    @Override
+    public AttendantMatchResponse matchAttendantsByAppointmentNo(String appointmentNo) {
+        logger.info("根据预约编号匹配陪诊师，预约编号：{}", appointmentNo);
+        
+        // 1. 根据预约编号查询预约信息
+        GuideAppointment appointment = guideAppointmentMapper.selectByAppointmentNo(appointmentNo);
+        if (appointment == null) {
+            throw new RuntimeException("预约信息不存在，预约编号：" + appointmentNo);
+        }
+        
+        // 2. 根据预约信息查询可用陪诊师
+        // 这里可以根据预约的具体需求进行智能匹配
+        // 目前简化处理，查询所有可用陪诊师
+        List<Attendant> availableAttendants = attendantMapper.findAll();
+        
+        // 3. 转换为响应格式
+        List<AttendantMatchResponse.AttendantInfo> attendants = new ArrayList<>();
+        for (Attendant attendant : availableAttendants) {
+            if (attendant.getStatus() != null && attendant.getStatus() == 1) { // 只返回已审核的陪诊师
+                AttendantMatchResponse.AttendantInfo info = new AttendantMatchResponse.AttendantInfo();
+                info.setId(attendant.getId());
+                info.setName(attendant.getName());
+                info.setIntroduction(attendant.getIntroduction());
+                info.setScore(attendant.getScore());
+                info.setPhoto(attendant.getAvatarUrl()); // 使用avatar_url字段
+                info.setExperienceYears(attendant.getExperienceYears());
+                info.setProfessionalField(attendant.getProfessionalField());
+                attendants.add(info);
+            }
+        }
+        
+        AttendantMatchResponse response = new AttendantMatchResponse();
+        response.setAttendants(attendants);
+        response.setAppointmentNo(appointmentNo);
+        
+        logger.info("匹配到{}个陪诊师", attendants.size());
+        return response;
+    }
+
+    // 步骤3：选择陪诊师创建订单
+    @Override
+    @Transactional
+    public OrderCreateResponse createOrderBySelection(CreateOrderRequest request) {
+        logger.info("创建订单，请求：{}", request);
+        
+        // 1. 根据预约编号查询预约信息
+        GuideAppointment appointment = guideAppointmentMapper.selectByAppointmentNo(request.getAppointmentNo());
+        if (appointment == null) {
+            throw new RuntimeException("预约信息不存在，预约编号：" + request.getAppointmentNo());
+        }
+        
+        // 2. 验证陪诊师ID
+        Integer attendantId;
+        try {
+            attendantId = Integer.valueOf(request.getAttendantId());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("陪诊师ID格式错误");
+        }
+        
+        // 3. 查询陪诊师信息
+        Attendant attendant = attendantMapper.findById(String.valueOf(attendantId));
+        if (attendant == null) {
+            throw new RuntimeException("陪诊师不存在，ID：" + request.getAttendantId());
+        }
+        
+        // 4. 计算服务时长和费用
+        double durationHours = calculateServiceDurationFromAppointment(appointment);
+        ServiceFeeCalculator.FeeCalculationResult feeResult = 
+            ServiceFeeCalculator.calculateFee(appointment.getServiceTypeNumber(), durationHours);
+        
+        // 5. 构建订单
+        Order order = new Order();
+        String orderNo = "ORD" + System.currentTimeMillis() + 
+                        UUID.randomUUID().toString().substring(0, 6);
+        order.setOrderNo(orderNo);
+        order.setUserId(1); // 示例用户ID
+        order.setOrderDate(new Date());
+        order.setAttendantId(request.getAttendantId());
+        order.setAttendantName(attendant.getName());
+        order.setAttendantPhone(attendant.getPhone());
+        order.setGuideAppointmentId(request.getAppointmentNo()); // 关联预约ID
+        order.setHospital(appointment.getHospitalName());
+        order.setPatientName(appointment.getPatientName());
+        order.setServiceContent(getServiceTypeName(appointment.getServiceTypeNumber()));
+        order.setPaymentStatus(0); // 待支付
+        order.setOrderStatus(0); // 待接单
+        order.setContactPerson(appointment.getPatientName());
+        order.setContactPhone(appointment.getPatientPhone());
+        order.setOrderAmount(feeResult.getTotalFee());
+        order.setClinicType(appointment.getServiceTypeNumber());
+        
+        // 6. 保存订单
+        orderMapper.insert(order);
+        
+        // 7. 构造响应
+        OrderCreateResponse response = new OrderCreateResponse();
+        response.setOrderNo(orderNo);
+        response.setAttendantName(attendant.getName());
+        response.setPayAmount(feeResult.getTotalFee().doubleValue());
+        
+        logger.info("订单创建成功，订单号：{}，总费用：{}元", orderNo, feeResult.getTotalFee());
+        return response;
+    }
+
+    // 步骤4：处理支付成功回调
+    @Override
+    @Transactional
+    public void handlePaymentCallback(PaymentCallbackRequest callbackRequest) {
+        logger.info("处理支付回调：{}", callbackRequest);
+        
+        // 1. 验证回调数据
+        if (callbackRequest.getOutTradeNo() == null) {
+            throw new RuntimeException("商户订单号不能为空");
+        }
+        
+        // 2. 查询订单
+        Order order = orderMapper.selectByOrderNo(callbackRequest.getOutTradeNo());
+        if (order == null) {
+            throw new RuntimeException("订单不存在：" + callbackRequest.getOutTradeNo());
+        }
+        
+        // 3. 验证支付状态
+        if (!"SUCCESS".equals(callbackRequest.getTradeState())) {
+            logger.warn("支付未成功，状态：{}", callbackRequest.getTradeState());
+            return;
+        }
+        
+        // 4. 更新订单状态
+        order.setPaymentStatus(1); // 已支付
+        orderMapper.updateByPrimaryKeySelective(order);
+        
+        logger.info("订单支付成功，订单号：{}", callbackRequest.getOutTradeNo());
+    }
+    
+    // ===== 新增：获取订单详情实现 =====
+    
+    @Override
+    public SimpleOrderDetailResponse getOrderDetail(String orderNo) {
+        logger.info("获取订单详情，订单号：{}", orderNo);
+        
+        // 1. 查询订单信息
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new RuntimeException("订单不存在，订单号：" + orderNo);
+        }
+        
+        // 2. 查询关联的预约信息（如果存在）
+        GuideAppointment appointment = null;
+        logger.info("订单中的guideAppointmentId: {}", order.getGuideAppointmentId());
+        if (order.getGuideAppointmentId() != null) {
+            logger.info("开始查询预约信息，预约编号: {}", order.getGuideAppointmentId());
+            appointment = guideAppointmentMapper.selectByAppointmentNo(order.getGuideAppointmentId());
+            logger.info("预约信息查询结果: {}", appointment != null ? "找到" : "未找到");
+            if (appointment != null) {
+                logger.info("预约信息详情 - 患者姓名: {}, 电话: {}, 日期: {}", 
+                           appointment.getPatientName(), appointment.getPatientPhone(), appointment.getServiceDate());
+            }
+        } else {
+            logger.warn("订单中没有关联的预约ID");
+        }
+        
+        // 3. 查询陪诊师信息
+        Attendant attendant = null;
+        if (order.getAttendantId() != null) {
+            try {
+                Integer attendantId = Integer.valueOf(order.getAttendantId());
+                attendant = attendantMapper.findById(String.valueOf(attendantId));
+            } catch (NumberFormatException e) {
+                logger.warn("陪诊师ID格式错误：{}", order.getAttendantId());
+            }
+        }
+        
+        // 4. 计算服务时长
+        double durationHours = calculateServiceDuration(order, appointment);
+        
+        // 5. 获取服务类型编号并计算费用
+        int serviceTypeNumber = getServiceTypeNumber(order, appointment);
+        ServiceFeeCalculator.FeeCalculationResult feeResult = 
+            ServiceFeeCalculator.calculateFee(serviceTypeNumber, durationHours);
+        
+        // 6. 构造简化版响应对象
+        SimpleOrderDetailResponse response = new SimpleOrderDetailResponse();
+        
+        // 医院名称
+        if (appointment != null) {
+            response.setHospital(appointment.getHospitalName());
+        } else {
+            response.setHospital(order.getHospital());
+        }
+        
+        // 其他需求 - 优先从预约信息获取
+        if (appointment != null && appointment.getOtherRequirement() != null) {
+            response.setOtherRequirement(appointment.getOtherRequirement());
+        } else if (order.getCustomRequirement() != null) {
+            response.setOtherRequirement(order.getCustomRequirement());
+        } else {
+            response.setOtherRequirement("无特殊要求");
+        }
+        
+        // 就诊人信息
+        if (appointment != null) {
+            response.setPatientName(appointment.getPatientName());
+            response.setPatientPhone(appointment.getPatientPhone());
+        } else {
+            response.setPatientName(order.getPatientName());
+            response.setPatientPhone(order.getUserPhone());
+        }
+        
+        // 服务日期和时间
+        if (appointment != null) {
+            response.setServiceDate(appointment.getServiceDate());
+            // 合并开始时间和结束时间为就诊时间
+            String serviceTime = appointment.getServiceStartTime() + "-" + appointment.getServiceEndTime();
+            response.setServiceTime(serviceTime);
+        } else {
+            response.setServiceDate(order.getServiceDate());
+            response.setServiceTime(order.getServiceTimeSlot());
+        }
+        
+        // 服务类型编号
+        response.setServiceTypeNumber(serviceTypeNumber);
+        
+        // 症状列表
+        if (appointment != null && appointment.getSymptoms() != null) {
+            response.setSymptoms(appointment.getSymptoms());
+        } else {
+            response.setSymptoms(List.of("无"));
+        }
+        
+        // 陪诊师信息
+        if (attendant != null) {
+            response.setAttendantName(attendant.getName());
+            response.setAttendantAvatar(attendant.getAvatarUrl());
+            response.setAttendantIntroduction(attendant.getIntroduction());
+        }
+        
+        // 价格信息
+        response.setTotalPrice(BigDecimal.valueOf(feeResult.getTotalFee().doubleValue()));
+        
+        // 价格计算说明
+        StringBuilder priceCalc = new StringBuilder();
+        priceCalc.append(getServiceTypeName(serviceTypeNumber)).append(" ");
+        priceCalc.append(String.format("%.1f小时", durationHours));
+        if (feeResult.getFeeItems().size() > 1) {
+            priceCalc.append("，包含");
+            for (int i = 0; i < feeResult.getFeeItems().size(); i++) {
+                ServiceFeeCalculator.FeeItem item = feeResult.getFeeItems().get(i);
+                priceCalc.append(item.getItemName()).append(item.getAmount()).append("元");
+                if (i < feeResult.getFeeItems().size() - 1) {
+                    priceCalc.append("+");
+                }
+            }
+        } else {
+            ServiceFeeCalculator.FeeItem item = feeResult.getFeeItems().get(0);
+            priceCalc.append("，").append(item.getDescription());
+        }
+        response.setPriceCalculation(priceCalc.toString());
+        
+        logger.info("简化版订单详情获取成功，总费用：{}元", feeResult.getTotalFee());
+        return response;
+    }
+    
+    /**
+     * 计算服务时长（小时）
+     */
+    private double calculateServiceDuration(Order order, GuideAppointment appointment) {
+        // 如果有预约信息，优先使用预约时间计算
+        if (appointment != null && 
+            appointment.getServiceStartTime() != null && 
+            appointment.getServiceEndTime() != null) {
+            try {
+                String[] startParts = appointment.getServiceStartTime().split(":");
+                String[] endParts = appointment.getServiceEndTime().split(":");
+                
+                int startHour = Integer.parseInt(startParts[0]);
+                int startMinute = Integer.parseInt(startParts[1]);
+                int endHour = Integer.parseInt(endParts[0]);
+                int endMinute = Integer.parseInt(endParts[1]);
+                
+                // 简单的时间差计算（假设同一天内）
+                double duration = (endHour * 60 + endMinute - startHour * 60 - startMinute) / 60.0;
+                return Math.max(duration, 0.5); // 最少0.5小时
+            } catch (Exception e) {
+                logger.warn("时间格式解析失败，使用默认时长2小时");
+            }
+        }
+        
+        // 默认2小时
+        return 2.0;
+    }
+    
+    /**
+     * 获取服务类型编号
+     * 优先从预约信息获取，其次从订单信息获取
+     */
+    private int getServiceTypeNumber(Order order, GuideAppointment appointment) {
+        // 优先使用预约信息中的服务类型编号
+        if (appointment != null && appointment.getServiceTypeNumber() != null) {
+            logger.info("使用预约信息中的服务类型编号: {}", appointment.getServiceTypeNumber());
+            return appointment.getServiceTypeNumber();
+        }
+        
+        // 其次使用订单中的clinicType
+        if (order.getClinicType() != null) {
+            logger.info("使用订单中的服务类型: {}", order.getClinicType());
+            return order.getClinicType();
+        }
+        
+        // 默认返回普通陪诊
+        logger.warn("未找到服务类型信息，使用默认值1(普通陪诊)");
+        return 1;
+    }
+    
+    /**
+     * 根据预约信息计算服务时长
+     */
+    private double calculateServiceDurationFromAppointment(GuideAppointment appointment) {
+        if (appointment != null && 
+            appointment.getServiceStartTime() != null && 
+            appointment.getServiceEndTime() != null) {
+            try {
+                String[] startParts = appointment.getServiceStartTime().split(":");
+                String[] endParts = appointment.getServiceEndTime().split(":");
+                
+                int startHour = Integer.parseInt(startParts[0]);
+                int startMinute = Integer.parseInt(startParts[1]);
+                int endHour = Integer.parseInt(endParts[0]);
+                int endMinute = Integer.parseInt(endParts[1]);
+                
+                // 计算时间差（小时）
+                double duration = (endHour * 60 + endMinute - startHour * 60 - startMinute) / 60.0;
+                return Math.max(duration, 0.5); // 最少0.5小时
+            } catch (Exception e) {
+                logger.warn("时间格式解析失败，使用默认时长2小时");
+            }
+        }
+        return 2.0; // 默认2小时
+    }
+    
+    /**
+     * 根据服务类型编号获取服务类型名称
+     */
+    private String getServiceTypeName(int serviceTypeNumber) {
+        return switch (serviceTypeNumber) {
+            case 1 -> "普通陪诊";
+            case 2 -> "术后护理";
+            case 3 -> "急诊陪同";
+            case 4 -> "上门陪诊";
+            default -> "未知服务类型";
+        };
+    }
+    
+    /**
+     * 构建合并的服务时间
+     */
+    private String buildServiceDateTime(Order order, GuideAppointment appointment) {
+        StringBuilder sb = new StringBuilder();
+        
+        // 日期
+        if (appointment != null && appointment.getServiceDate() != null) {
+            sb.append(appointment.getServiceDate());
+        } else if (order.getServiceDate() != null) {
+            sb.append(order.getServiceDate());
+        } else {
+            sb.append("待定");
+        }
+        
+        sb.append(" ");
+        
+        // 时间段
+        if (appointment != null && 
+            appointment.getServiceStartTime() != null && 
+            appointment.getServiceEndTime() != null) {
+            sb.append(appointment.getServiceStartTime())
+              .append("-")
+              .append(appointment.getServiceEndTime());
+        } else if (order.getServiceTimeSlot() != null) {
+            sb.append(order.getServiceTimeSlot());
+        } else {
+            sb.append("待定");
+        }
+        
+        return sb.toString();
+    }
+    
+    // ===== 新增：查询订单支付状态 =====
+    
+    @Override
+    public Map<String, Object> getOrderPaymentStatus(String orderNo) {
+        logger.info("查询订单支付状态，订单号：{}", orderNo);
+        
+        // 1. 查询订单信息
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new RuntimeException("订单不存在，订单号：" + orderNo);
+        }
+        
+        // 2. 构造返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("orderNo", orderNo);
+        result.put("paymentStatus", order.getPaymentStatus());
+        result.put("orderStatus", order.getOrderStatus());
+        result.put("totalAmount", order.getOrderAmount());
+        
+        // 3. 添加状态描述
+        String paymentStatusDesc = getOrderPaymentStatusDesc(order.getPaymentStatus());
+        String orderStatusDesc = getOrderStatusDesc(order.getOrderStatus());
+        result.put("paymentStatusDesc", paymentStatusDesc);
+        result.put("orderStatusDesc", orderStatusDesc);
+        
+        // 4. 如果已支付，返回完整订单详情
+        if (order.getPaymentStatus() != null && order.getPaymentStatus() == 1) {
+            SimpleOrderDetailResponse detail = getOrderDetail(orderNo);
+            result.put("orderDetail", detail);
+        }
+        
+        logger.info("订单支付状态查询完成，支付状态：{}，订单状态：{}", 
+                   paymentStatusDesc, orderStatusDesc);
+        return result;
+    }
+    
+    // 辅助方法：支付状态转换为描述
+    private String getOrderPaymentStatusDesc(Integer paymentStatus) {
+        if (paymentStatus == null) return "未知";
+        return switch (paymentStatus) {
+            case 0 -> "待支付";
+            case 1 -> "已支付";
+            default -> "未知状态";
+        };
+    }
+    
+    // ===== 新增：支付成功后获取完整订单信息 =====
+    
+    @Override
+    public CompleteOrderInfoResponse getCompleteOrderInfo(String orderNo) {
+        logger.info("获取完整订单信息，订单号：{}", orderNo);
+        
+        // 1. 查询订单信息
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new RuntimeException("订单不存在，订单号：" + orderNo);
+        }
+        
+        // 2. 验证支付状态（必须已支付）
+        if (order.getPaymentStatus() == null || order.getPaymentStatus() != 1) {
+            throw new RuntimeException("订单未支付，无法获取完整信息");
+        }
+        
+        // 3. 查询关联的预约信息
+        GuideAppointment appointment = null;
+        if (order.getGuideAppointmentId() != null) {
+            appointment = guideAppointmentMapper.selectByAppointmentNo(order.getGuideAppointmentId());
+        }
+        
+        // 4. 查询陪诊师信息
+        Attendant attendant = null;
+        if (order.getAttendantId() != null) {
+            try {
+                Integer attendantId = Integer.valueOf(order.getAttendantId());
+                attendant = attendantMapper.findById(String.valueOf(attendantId));
+            } catch (NumberFormatException e) {
+                logger.warn("陪诊师ID格式错误：{}", order.getAttendantId());
+            }
+        }
+        
+        // 5. 计算服务时长和费用
+        double durationHours = calculateServiceDuration(order, appointment);
+        int serviceTypeNumber = getServiceTypeNumber(order, appointment);
+        ServiceFeeCalculator.FeeCalculationResult feeResult = 
+            ServiceFeeCalculator.calculateFee(serviceTypeNumber, durationHours);
+        
+        // 6. 构造完整响应对象
+        CompleteOrderInfoResponse response = new CompleteOrderInfoResponse();
+        
+        // 订单基本信息
+        response.setOrderNo(order.getOrderNo());
+        response.setOrderStatus(order.getOrderStatus());
+        response.setOrderStatusDesc(getOrderStatusDesc(order.getOrderStatus()));
+        response.setPaymentStatus(order.getPaymentStatus());
+        response.setPaymentStatusDesc(getOrderPaymentStatusDesc(order.getPaymentStatus()));
+        response.setTotalPrice(feeResult.getTotalFee());
+        
+        // 价格计算说明
+        StringBuilder priceCalc = new StringBuilder();
+        priceCalc.append(getServiceTypeName(serviceTypeNumber)).append(" ");
+        priceCalc.append(String.format("%.1f小时", durationHours));
+        if (feeResult.getFeeItems().size() > 1) {
+            priceCalc.append("，包含");
+            for (int i = 0; i < feeResult.getFeeItems().size(); i++) {
+                ServiceFeeCalculator.FeeItem item = feeResult.getFeeItems().get(i);
+                priceCalc.append(item.getItemName()).append(item.getAmount()).append("元");
+                if (i < feeResult.getFeeItems().size() - 1) {
+                    priceCalc.append("+");
+                }
+            }
+        } else {
+            ServiceFeeCalculator.FeeItem item = feeResult.getFeeItems().get(0);
+            priceCalc.append("，").append(item.getDescription());
+        }
+        response.setPriceCalculation(priceCalc.toString());
+        
+        // 医院和时间信息
+        if (appointment != null) {
+            response.setHospital(appointment.getHospitalName());
+            response.setServiceDate(appointment.getServiceDate());
+            response.setServiceTime(appointment.getServiceStartTime() + "-" + appointment.getServiceEndTime());
+        } else {
+            response.setHospital(order.getHospital());
+            response.setServiceDate(order.getServiceDate() != null ? 
+                new SimpleDateFormat("yyyy-MM-dd").format(order.getServiceDate()) : null);
+            response.setServiceTime(order.getServiceTimeSlot());
+        }
+        response.setServiceTypeNumber(serviceTypeNumber);
+        response.setServiceTypeName(getServiceTypeName(serviceTypeNumber));
+        
+        // 患者信息
+        if (appointment != null) {
+            response.setPatientName(appointment.getPatientName());
+            response.setPatientPhone(appointment.getPatientPhone());
+            response.setSymptoms(appointment.getSymptoms());
+            response.setOtherRequirement(appointment.getOtherRequirement());
+        } else {
+            response.setPatientName(order.getPatientName());
+            response.setPatientPhone(order.getUserPhone());
+            response.setSymptoms(List.of("无"));
+            response.setOtherRequirement(order.getCustomRequirement());
+        }
+        
+        // 陪诊师信息
+        if (attendant != null) {
+            response.setAttendantId(order.getAttendantId());
+            response.setAttendantName(attendant.getName());
+            response.setAttendantAvatar(attendant.getAvatarUrl());
+            response.setAttendantIntroduction(attendant.getIntroduction());
+            response.setAttendantScore(attendant.getScore());
+            response.setProfessionalField(attendant.getProfessionalField());
+            response.setExperienceYears(attendant.getExperienceYears());
+            response.setAttendantPhone(attendant.getPhone());
+        }
+        
+        // 时间戳信息
+        if (order.getCreateTime() != null) {
+            response.setCreateTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getCreateTime()));
+        }
+        
+        logger.info("完整订单信息获取成功，订单号：{}，总费用：{}元", orderNo, feeResult.getTotalFee());
+        return response;
+    }
+}
