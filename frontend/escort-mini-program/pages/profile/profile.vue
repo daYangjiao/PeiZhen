@@ -41,7 +41,7 @@
 		<view class="menu-section">
 			<view class="menu-group">
 				<view class="menu-item" @click="navigateTo('/subpkg/profile/certification')">
-					<image class="menu-icon" src="/static/ren_1.png" mode="aspectFit"></image>
+					<image class="menu-icon" src="/static/ren_1.svg" mode="aspectFit"></image>
 					<text class="menu-text">实名认证</text>
 					<view class="menu-status verified" v-if="attendantInfo.certificate">
 						<text>已认证</text>

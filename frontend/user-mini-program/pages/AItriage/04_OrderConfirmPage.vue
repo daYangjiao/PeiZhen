@@ -1,9 +1,5 @@
 <template>
   <view class="order-confirm-page">
-    <!-- 导航栏 -->
-    <navigator url="/pages/index/index" class="back-btn">
-      <!-- <text class="iconfont icon-back"> 返回</text> -->
-    </navigator>
 
     <!-- 进度条 -->
     <view class="step-bar">
@@ -14,12 +10,12 @@
       <view class="progress-line green"></view>
       <view class="step-item completed">
         <text class="step-dot">✓</text>
-        <text class="step-text">AI陪诊师匹配</text>
+        <text class="step-text">描述症状</text>
       </view>
       <view class="progress-line green"></view>
       <view class="step-item completed">
         <text class="step-dot">✓</text>
-        <text class="step-text">选择陪诊师</text>
+        <text class="step-text">提交需求</text>
       </view>
       <view class="progress-line green"></view>
       <view class="step-item active">
@@ -65,22 +61,28 @@
     </view>
 
 
-    <!-- 费用明细 -->
+    <!-- 费用明细（预付款说明） -->
     <view v-if="!isLoading" class="card fee-detail">
       <view class="title">
         <text class="iconfont icon-list"> 费用明细</text>
         <!-- 新增：右上角的小字“查看计费规则”按钮 -->
         <button class="rule-link-button" @click="showBillingRules = true">查看计费规则</button>
       </view>
+      <view class="fee-tip">
+        <view class="fee-tip-tag">预付款说明</view>
+        <view class="fee-tip-text">
+          本次为服务预付款，服务结束后按实际时长结算，多退少补。
+        </view>
+      </view>
       <view class="fee-item">
-        陪诊服务费用
+        陪诊服务预付款
         <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
       </view>
       <view class="fee-item">优惠券
         <text class="discount">-¥0.00</text>
       </view>
       <view class="total">
-        总计
+        预付款合计
         <text class="total-price">¥{{ formatAmount(orderData.totalPrice) }}</text>
       </view>
     </view>
@@ -124,123 +126,83 @@
     <view v-if="showBillingRules" class="modal-overlay" @click="showBillingRules = false">
       <view class="modal-content" @click.stop>
         <view class="modal-header">
-          <text class="modal-title">计费规则</text>
+          <view class="modal-header-left">
+            <text class="modal-title">计费规则</text>
+            <text class="modal-subtitle">按实际服务时长结算，多退少补</text>
+          </view>
           <text class="close-btn" @click="showBillingRules = false">×</text>
         </view>
         <scroll-view class="modal-body" scroll-y="true">
-          <text class="rule-text">
-            陪诊服务费用定价与计算规则说明<br/>
-            一、定价原则<br/>
-            本次陪诊服务定价遵循成本导向+市场适配原则：以陪诊师服务时长、人力成本、交通成本为核心核算基础，结合本地医疗陪诊行业的市场均价，同时兼顾不同服务场景的特殊性（如急诊的加急调配、上门服务的里程成本），制定差异化定价方案，确保费用透明、性价比合理。<br/><br/>
+          <view class="rules-card">
+            <view class="rules-banner">
+              <text class="rules-banner-title">费用如何计算？</text>
+              <text class="rules-banner-desc">下单时先支付预付款，服务结束后按实际时长结算，多退少补。</text>
+            </view>
 
-            二、分类型费用计算规则<br/>
-            （一）普通陪诊（基础核心服务）<br/>
-            1. 服务定位：医院内基础陪诊（挂号、缴费、取药、就诊引导等），覆盖日常就医高频需求；<br/>
-            2. 优化后定价规则：<br/>
-            &nbsp;&nbsp;a. 起步价： 50 元（ 对应 2 小时最低起约时长，不足 2 小时按 2 小时计费，与原规则一致）；<br/>
-            &nbsp;&nbsp;b. 延长费：由 50 元 / 小时调整为30 元 / 小时（不足 1 小时按 1 小时计），降低长时长服务用户成本；<br/>
-            &nbsp;&nbsp;c. 市场对比优势：调整后长时长服务性价比突出，如 6 小时陪诊费用 = 50+30×4=170 元，较本地同类平台（180-220 元）低 5%-23%；<br/>
-            &nbsp;&nbsp;d. 新增多次卡套餐（参考天鹅到家会员体系逻辑）：<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;| 套餐类型 | 包含服务次数 | 套餐价格 | 单次折合价 | 额外权益 | 适用人群 |<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;| --- | --- | --- | --- | --- | --- |<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;| 基础体验卡 | 3 次 | 199 元 | 66.3 元 | 免费病历整理 1 次、改期 1 次 | 偶尔就医、首次尝试陪诊用户 |<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;| 高频复查卡 | 10 次 | 599 元 | 59.9 元 | 免费病历整理 3 次、优先匹配陪诊师 | 慢性病复查、定期产检用户 |<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;| 年度尊享卡 | 20 次 | 1099 元 | 54.9 元 | 免费病历整理 5 次、家属远程同步服务 | 长期就医、老年独居用户 |<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;套餐规则：多次卡有效期 1 年，支持转赠，未使用次数可申请退款（按套餐价折算剩余价值）。<br/><br/>
+            <view class="rules-section">
+              <view class="rules-section-title">服务类型与单价</view>
 
-            （二）术后护理（专业照护服务）<br/>
-            1. 服务定位：术后康复照护（伤口观察、用药提醒、生活协助等），需专业技能支撑；<br/>
-            2. 新增昼夜差异化定价：<br/>
-            &nbsp;&nbsp;| 计费模式 | 时段划分 | 定价标准 | 约束规则 |<br/>
-            &nbsp;&nbsp;| --- | --- | --- | --- |<br/>
-            &nbsp;&nbsp;| 按天计费 | 白天（08:00-20:00） | 180 元 / 天 | 不足 1 天按 1 天计，含基础护理用品 |<br/>
-            &nbsp;&nbsp;| 按天计费 | 夜间（20:00-08:00） | 240 元 / 天 | 含夜间起夜照料（≤3 次）、应急响应 |<br/>
-            &nbsp;&nbsp;| 按小时计费 | 白天（08:00-20:00） | 45 元 / 小时 | 不足 1 小时按 1 小时计，2 小时起约 |<br/>
-            &nbsp;&nbsp;| 按小时计费 | 夜间（20:00-08:00） | 60 元 / 小时 | 夜间最低起约 4 小时，含应急处理 |<br/>
-            3. 新增多次卡套餐：<br/>
-            &nbsp;&nbsp;| 套餐类型 | 套餐有效期 | 包含服务内容 | 套餐价格（元） | 折合单价 | 比单次预约节省金额 | 额外权益 | 适配场景 |<br/>
-            &nbsp;&nbsp;| --- | --- | --- | --- | --- | --- | --- | --- |<br/>
-            &nbsp;&nbsp;| 术后体验卡 | 90 天（3 个月） | 10 小时白天护理（可拆分） | 419 | 41.9 元 / 小时 | 31 元（约 7%） | 免费上门评估 1 次、护理指导 1 次 | 轻度术后恢复、短期复查护理 |<br/>
-            &nbsp;&nbsp;| 康复进阶卡 | 180 天（6 个月） | 30 小时白天护理（可拆分） | 1259 | 41.97 元 / 小时 | 191 元（约 13%） | 免费上门评估 1 次、康复方案 1 份 | 中度术后康复、定期护理需求 |<br/>
-            &nbsp;&nbsp;| 全天照护卡 | 180 天（6 个月） | 5 天白天全天照护（8 小时 / 天） | 1699 | 42.48 元 / 小时 | 161 元（约 9%） | 免费护理用品 1 套、改期 2 次 | 重度术后集中照护、无人照料场景 |<br/>
-            &nbsp;&nbsp;| 昼夜组合卡 | 180 天（6 个月） | 15 小时白天 + 5 小时夜间护理 | 1199 | 白天 39.9 元 / 小时、夜间 60 元 / 小时 | 151 元（约 11%） | 免费护理用品 1 套、紧急优先响应 | 术后昼夜交替照护、应急需求 |<br/>
-            &nbsp;&nbsp;| 年度尊享卡 | 365 天（1 年） | 80 小时白天护理（可拆分） | 3199 | 39.99 元 / 小时 | 801 元（约 20%） | 免费上门评估 2 次、专属客服对接 | 长期居家术后康复、慢性病术后护理 |<br/>
-            4. 核心说明：<br/>
-            &nbsp;&nbsp;a. 定价适配性：按小时计费的白天单价（45 元 / 小时）、夜间单价（60 元 / 小时），与普通陪诊 “超时 30 元 / 小时” 形成合理梯度（术后护理含专业技能，溢价 50%-100%，符合市场认知），无明显价格断层；<br/>
-            &nbsp;&nbsp;b. 套餐性价比：多次卡折合单价统一在 39.99-42.48 元 / 小时区间，既保持 “多买多省” 优势（最高省 20%），又与普通陪诊（30 元 / 小时）形成合理专业溢价；<br/>
-            &nbsp;&nbsp;c. 市场贴合度：夜间溢价 30%-40%，低于一线城市 50% 的溢价水平，兼顾性价比与服务成本，同时支持服务拆分、转赠，提升用户使用灵活性。<br/><br/>
+              <view class="rule-item">
+                <view class="rule-dot"></view>
+                <view class="rule-main">
+                  <text class="rule-name">普通陪诊</text>
+                  <text class="rule-desc">起步价 ¥50（含 2 小时），超出部分 ¥30/小时；不足 1 小时按 1 小时计。</text>
+                </view>
+              </view>
 
-            （三）急诊陪同（紧急响应服务）<br/>
-            1. 服务定位：突发疾病急诊就医协助，需快速调配资源；<br/>
-            2. 新增昼夜差异化定价：<br/>
-            &nbsp;&nbsp;| 费用构成 | 时段划分 | 定价标准 | 说明 |<br/>
-            &nbsp;&nbsp;| --- | --- | --- | --- |<br/>
-            &nbsp;&nbsp;| 加急费 | 白天（08:00-20:00） | 100 元（固定） | 覆盖紧急调配成本 |<br/>
-            &nbsp;&nbsp;| | 夜间（20:00-08:00） | 150 元（固定） | 夜间人力调度难度增加 |<br/>
-            &nbsp;&nbsp;| 时长费 | 全天通用 | 同普通陪诊（2 小时起步 50 元，延长 30 元 / 小时） | 无起约时长限制，按实际服务时长计 |<br/>
-            3. 示例：夜间急诊陪诊 3 小时，费用 = 150（夜间加急费）+50（2 小时起步）+30（1 小时延长）=230 元；<br/>
-            4. 规则说明：急诊服务支持 “2 小时内紧急响应”，夜间服务需提前 1 小时预约，未按时抵达可减免 20% 加急费。<br/><br/>
+              <view class="rule-item">
+                <view class="rule-dot"></view>
+                <view class="rule-main">
+                  <text class="rule-name">术后护理</text>
+                  <text class="rule-desc">¥45/小时，不足 1 小时按 1 小时计。</text>
+                </view>
+              </view>
 
-            （四）上门陪诊（上门服务场景）<br/>
-            1. 服务定位：上门问诊协助、取药送药、居家护理指导，覆盖行动不便用户；<br/>
-            2. 定价规则（维持原逻辑，补充套餐关联）：<br/>
-            &nbsp;&nbsp;a. 里程费：3 公里内免费，超 3 公里后 5 元 / 公里（不足 1 公里按 1 公里计）；<br/>
-            &nbsp;&nbsp;b. 时长费：同普通陪诊（2 小时起步 50 元，延长 30 元 / 小时）；<br/>
-            &nbsp;&nbsp;c. 套餐适配：普通陪诊多次卡可直接用于上门陪诊，仅需额外支付里程费。<br/>
-            3. 费用管理核心补充说明昼夜时段界定：所有服务的昼夜划分以预约服务开始时间为准，跨时段服务按实际时长拆分计费（如 19:00-21:00 服务，1 小时按白天价、1 小时按夜间价）；<br/>
-            4. 套餐权益叠加：多次卡用户可同时享受平台优惠活动（如节日满减），但不可与其他套餐叠加使用；<br/>
-            5. 动态调整机制：夜间服务定价、多次卡套餐内容可根据用户需求反馈、市场成本变化，通过后台配置灵活调整；<br/>
-            6. 透明化展示：订单页实时显示 “基础费 + 时段溢价 + 里程费 - 套餐抵扣” 明细，多次卡用户同步展示剩余次数 / 时长，无隐藏收费。<br/><br/>
+              <view class="rule-item">
+                <view class="rule-dot"></view>
+                <view class="rule-main">
+                  <text class="rule-name">急诊陪同</text>
+                  <text class="rule-desc">在普通陪诊基础上加收加急费 ¥100。</text>
+                </view>
+              </view>
 
-            （五）服务进行中取消订单规则<br/>
-            1. 核心前提说明：<br/>
-            &nbsp;&nbsp;a. 定金定义：所有术后护理订单支付时，需缴纳订单总金额的 20% 作为定金（最低 50 元，最高 200 元），剩余费用服务开始前结清；<br/>
-            &nbsp;&nbsp;b. 取消权限：用户可在服务开始前及服务进行中发起取消申请，平台结合 “取消时间阶梯” 与 “取消原因” 双维度判定定金扣除比例；<br/>
-            &nbsp;&nbsp;c. 定金用途：覆盖陪诊师交通成本、服务准备成本及资源占用损失，未扣除部分将与剩余服务费一同原路退还。<br/><br/>
+              <view class="rule-item">
+                <view class="rule-dot"></view>
+                <view class="rule-main">
+                  <text class="rule-name">上门陪诊</text>
+                  <text class="rule-desc">在普通陪诊基础上加收上门费 ¥30。</text>
+                </view>
+              </view>
+            </view>
 
-            2. 取消时间阶梯与定金扣除基础规则：<br/>
-            &nbsp;&nbsp;| 取消时间节点 | 定金扣除比例 | 补充说明 |<br/>
-            &nbsp;&nbsp;| --- | --- | --- |<br/>
-            &nbsp;&nbsp;| 服务开始前 2 小时以上取消 | 0%（全额退定金） | 支持免费取消，方便用户灵活调整行程，无任何费用损失 |<br/>
-            &nbsp;&nbsp;| 服务开始前 1-2 小时内取消 | 20%（退 80% 定金） | 陪诊师已启动服务准备（如路线规划、工具准备），扣除部分成本补偿 |<br/>
-            &nbsp;&nbsp;| 服务开始前 30 分钟 - 1 小时内取消 | 30%（退 70% 定金） | 陪诊师可能已出发前往服务地点，扣费弥补行程调整与资源占用损失 |<br/>
-            &nbsp;&nbsp;| 服务开始前 30 分钟内取消 | 50%（退 50% 定金） | 临近服务启动，对服务安排影响显著，平衡平台与陪诊师损失 |<br/>
-            &nbsp;&nbsp;| 服务开始后取消 | 100%（不退定金） | 陪诊师已提供实质服务，定金全额扣除，剩余服务费按实际未服务时长折算退还 |<br/><br/>
+            <view class="rules-section">
+              <view class="rules-section-title">示例（便于理解）</view>
+              <view class="example-item">
+                <text class="example-name">普通陪诊 3 小时</text>
+                <text class="example-desc">¥50 + ¥30 × 1 = ¥80</text>
+              </view>
+              <view class="example-item">
+                <text class="example-name">急诊陪同 3 小时</text>
+                <text class="example-desc">普通陪诊 ¥80 + 加急费 ¥100 = ¥180</text>
+              </view>
+              <view class="example-item">
+                <text class="example-name">上门陪诊 3 小时</text>
+                <text class="example-desc">普通陪诊 ¥80 + 上门费 ¥30 = ¥110</text>
+              </view>
+              <view class="example-item">
+                <text class="example-name">术后护理 1.5 小时</text>
+                <text class="example-desc">按 2 小时计：¥45 × 2 = ¥90</text>
+              </view>
+            </view>
 
-            3. 取消原因分级调整规则（叠加时间阶梯规则）：<br/>
-            &nbsp;&nbsp;| 取消原因分类 | 具体取消原因 | 对定金扣除比例的调整方式 | 补充说明 |<br/>
-            &nbsp;&nbsp;| --- | --- | --- | --- |<br/>
-            &nbsp;&nbsp;| 不可抗因素（用户方） | 1. 突发疾病 / 急诊需紧急就医<br/>2. 直系亲属突发状况需陪同<br/>3. 自然灾害等不可预见情况（需提供证明） | 在时间阶梯比例基础上减免 100%（即全额退定金） | 需上传相关证明（如急诊单、灾害预警），平台 1 小时内审核通过后执行 |<br/>
-            &nbsp;&nbsp;| 合理调整（用户方） | 1. 服务时间与个人行程冲突（非主观故意）<br/>2. 对服务内容理解偏差（平台未明确说明）<br/>3. 临时更换就医方案 / 医院 | 按时间阶梯比例执行，无额外调整 | 无需额外证明，平台直接根据原因与时间节点判定 |<br/>
-            &nbsp;&nbsp;| 主观违约（用户方） | 1. 单纯不想继续服务<br/>2. 找到其他更便宜的术后护理服务<br/>3. 无正当理由临时取消 | 按时间阶梯比例执行，服务开始后取消额外扣除 10% 服务费 | 定金按规则扣除，用于补偿陪诊师已产生的全部成本 |<br/>
-            &nbsp;&nbsp;| 服务违规（平台 / 陪诊师方） | 1. 陪诊师迟到超 30 分钟 未说明<br/>2. 陪诊师服务不专业（未按约定提供护理、态度恶劣）<br/>3. 陪诊师资质不符、临时更换未告知 | 全额退定金 + 双倍定金赔付 | 需上传证据（照片、聊天记录），审核通过后退还全部费用，额外补偿订单总金额 10% 的优惠券 |<br/>
-            &nbsp;&nbsp;| 客观条件变更（非双方原因） | 1. 医院临时停诊 / 调整就诊流程<br/>2. 服务地点突发管控无法抵达<br/>3. 其他非双方可控的客观因素 | 在时间阶梯比例基础上减免 100%（即全额退定金） | 可选择全额退款或免费改期，改期无额外费用 |<br/><br/>
-
-            4. 特殊人群与场景优待规则：<br/>
-            &nbsp;&nbsp;a. 新用户优待：首次使用平台下单的新用户，在服务开始前 1 小时内取消订单，定金扣除比例减半（如原扣 30%，现扣 15%），降低新用户尝试服务的顾虑；<br/>
-            &nbsp;&nbsp;b. 多次卡用户优待：多次卡用户取消订单时，仅按对应规则扣除单次服务的定金，剩余服务次数正常保留，不影响套餐整体有效性；<br/>
-            &nbsp;&nbsp;c. 长期套餐用户保障：年度尊享卡、全天照护卡用户，每年可享受 1 次 “服务开始前 30 分钟内免费取消” 权益，需提前 24 小时申请激活。<br/><br/>
-
-            5. 服务取消操作流程：<br/>
-            &nbsp;&nbsp;a. 发起申请：用户进入 “订单详情页”，点击底部对应按钮（服务前显示 “取消预约”，服务中显示 “紧急取消”），选择具体取消原因，按要求上传证明材料（如需）；<br/>
-            &nbsp;&nbsp;b. 规则告知与二次确认：<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;i. 点击取消按钮后，系统弹出确认弹窗，明确展示 “取消时间节点 + 对应扣除比例 + 最终退款金额”，例如 “您距离服务开始仅剩 25 分钟，取消将扣除 50% 定金，预计退款 XX 元，是否继续？”；<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;ii. 弹窗同时标注规则查询入口，方便用户即时核对详细条款；<br/>
-            &nbsp;&nbsp;c. 平台审核：客服 30 分钟内完成审核（需核验证明的场景 1 小时内），审核结果通过 APP 弹窗 + 短信通知用户；<br/>
-            &nbsp;&nbsp;d. 费用结算：审核通过后，1-3 个工作日内完成退款（平台托管账户优先结算），退款金额 =（总服务费 - 已服务时长费用）+（定金 - 扣除定金）；<br/>
-            &nbsp;&nbsp;e. 服务终止：确认取消后，陪诊师停止后续服务（已开始的护理步骤需完成），并提交服务记录备案。<br/><br/>
-
-            6. 规则透明化展示机制：<br/>
-            &nbsp;&nbsp;a. 页面标注：在预约确认页、订单详情页的取消按钮旁，用灰色小字清晰标注核心规则，如 “取消规则：2 小时前免费，1-2 小时扣 20% 定金，30 分钟内扣 50% 定金”；<br/>
-            &nbsp;&nbsp;b. 规则查询入口：在平台 “帮助中心”“服务协议” 板块设置专门页面，详细展示完整取消规则、阶梯比例及特殊场景说明，用户可随时查阅；<br/>
-            &nbsp;&nbsp;c. 订单通知同步：下单成功后，通过短信 / APP 推送订单确认信息，附带取消规则简要提示，确保用户提前知晓权益与责任。<br/><br/>
-
-            7. 争议处理机制：<br/>
-            &nbsp;&nbsp;若用户对取消结果、定金扣除比例有异议，可在审核结果出具后 24 小时内申请平台仲裁，仲裁结果以陪诊师服务记录、用户提交的证据及本规则为准，仲裁期间不影响退款流程推进。<br/>
-          </text>
+            <view class="rules-note">
+              <text class="note-title">温馨提示</text>
+              <text class="note-desc">若实际服务时长与预估不一致，将在服务结束后进行差额补付或自动退款。</text>
+            </view>
+          </view>
         </scroll-view>
         <view class="modal-footer">
-          <button class="close-modal-btn" @click="showBillingRules = false">关闭</button>
+          <button class="close-modal-btn" @click="showBillingRules = false">我知道了</button>
         </view>
       </view>
     </view>
@@ -362,9 +324,18 @@ const handlePaymentResult = async (isPaid) => {
     if (isPaid) {
       uni.showToast({ title: '支付成功，跳转中...', icon: 'none' });
       setTimeout(() => {
-        uni.navigateTo({
-          url: `/pages/AItriage/05_PaymentSuccessPage?orderNo=${encodeURIComponent(orderNo.value)}`
-        });
+        // 先重置到订单列表作为栈底，避免支付成功页返回到订单确认页
+        const o = encodeURIComponent(orderNo.value)
+        uni.reLaunch({
+          url: '/pages/order/order',
+          success() {
+            setTimeout(() => {
+              uni.navigateTo({
+                url: `/pages/AItriage/05_PaymentSuccessPage?orderNo=${o}`
+              })
+            }, 150)
+          }
+        })
       }, 1000);
     } else {
       uni.showToast({ title: '支付未完成', icon: 'none' });
@@ -378,9 +349,17 @@ const handlePaymentResult = async (isPaid) => {
     console.error('【调用支付状态接口失败】', error);
     // 即使接口报错，也根据用户点击的结果进行跳转
     if (isPaid) {
-        uni.navigateTo({
-          url: `/pages/AItriage/05_PaymentSuccessPage?orderNo=${encodeURIComponent(orderNo.value)}`
-        });
+        const o = encodeURIComponent(orderNo.value)
+        uni.reLaunch({
+          url: '/pages/order/order',
+          success() {
+            setTimeout(() => {
+              uni.navigateTo({
+                url: `/pages/AItriage/05_PaymentSuccessPage?orderNo=${o}`
+              })
+            }, 150)
+          }
+        })
     } else {
         uni.navigateTo({
           url: `/pages/AItriage/PaymentFailedPage?orderNo=${encodeURIComponent(orderNo.value)}`
@@ -599,6 +578,33 @@ const formatDate = (dateStr) => {
   font-size: 36rpx;
 }
 
+.fee-tip {
+  margin-bottom: 16rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 14rpx;
+  background: #f0f7ff;
+  border: 1rpx solid #d6eaff;
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.fee-tip-tag {
+  font-size: 22rpx;
+  color: #1890FF;
+  font-weight: 600;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: #e6f3ff;
+  flex-shrink: 0;
+}
+
+.fee-tip-text {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
 .payment-option {
   display: flex;
   align-items: center;
@@ -704,10 +710,21 @@ const formatDate = (dateStr) => {
   background-color: #f8f9fa;
 }
 
+.modal-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
 .modal-title {
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
+}
+
+.modal-subtitle {
+  font-size: 24rpx;
+  color: #666;
 }
 
 .close-btn {
@@ -730,6 +747,131 @@ const formatDate = (dateStr) => {
 .rule-text {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.rules-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+}
+
+.rules-banner {
+  padding: 18rpx 20rpx;
+  border-radius: 14rpx;
+  background: #f0f7ff;
+  border: 1rpx solid #d6eaff;
+  margin-bottom: 22rpx;
+}
+
+.rules-banner-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #007aff;
+  margin-bottom: 8rpx;
+}
+
+.rules-banner-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.rules-section {
+  margin-top: 18rpx;
+}
+
+.rules-section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #333;
+  margin: 6rpx 0 14rpx;
+}
+
+.rule-item {
+  display: flex;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.rule-item:last-child {
+  border-bottom: none;
+}
+
+.rule-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #007aff;
+  margin-top: 10rpx;
+  flex-shrink: 0;
+}
+
+.rule-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6rpx;
+}
+
+.rule-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.example-item {
+  padding: 12rpx 0;
+  border-bottom: 1rpx dashed #eef2f7;
+}
+
+.example-item:last-child {
+  border-bottom: none;
+}
+
+.example-name {
+  display: block;
+  font-size: 24rpx;
+  color: #111827;
+  font-weight: 600;
+  margin-bottom: 6rpx;
+}
+
+.example-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #4b5563;
+}
+
+.rules-note {
+  margin-top: 20rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.note-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8rpx;
+}
+
+.note-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.6;
 }
 
 .modal-footer {

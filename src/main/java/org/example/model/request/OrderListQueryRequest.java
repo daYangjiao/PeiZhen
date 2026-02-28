@@ -4,6 +4,8 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 订单列表查询请求参数
  */
@@ -40,4 +42,10 @@ public class OrderListQueryRequest {
 
     @ApiModelProperty(value = "结束日期（yyyy-MM-dd）", example = "2025-12-31")
     private String endDate;
+
+    @ApiModelProperty(value = "预计时长下限（小时），如2表示大于2小时", example = "2")
+    private Integer expectedDurationMinHours;
+
+    @ApiModelProperty(value = "基础费用上限（元），如80表示小于80元", example = "80")
+    private BigDecimal orderAmountMax;
 }

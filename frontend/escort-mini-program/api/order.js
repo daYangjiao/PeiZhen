@@ -49,6 +49,17 @@ export const cancelOrder = (orderId, reason) => {
 	})
 }
 
+// 陪诊师端取消订单（待核销/待服务状态）
+export const cancelAttendantOrder = (orderId, payload = {}) => {
+	const params = []
+	if (payload.reason) params.push(`reason=${encodeURIComponent(payload.reason)}`)
+	if (payload.penaltyAmount !== undefined) params.push(`penaltyAmount=${encodeURIComponent(payload.penaltyAmount)}`)
+	if (payload.refundAmount !== undefined) params.push(`refundAmount=${encodeURIComponent(payload.refundAmount)}`)
+	if (payload.penaltyRate !== undefined) params.push(`penaltyRate=${encodeURIComponent(payload.penaltyRate)}`)
+	const query = params.length ? `?${params.join('&')}` : ''
+	return post(`/attendant/orders/${orderId}/cancel${query}`)
+}
+
 // 更新订单状态
 export const updateOrderStatus = (orderId, status, data = {}) => {
 	return put(`/orders/${orderId}/status`, {

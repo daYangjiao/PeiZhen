@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -23,10 +24,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/common")
 @Api(tags = "文件上传接口")
-@RequiredArgsConstructor
 public class FileUploadController {
 
-    private static final String UPLOAD_DIR = "D:/NSU/lab/houduan2026.02.10/peizhen/src/main/resources/static/uploads/";
+    @Value("${app.upload-dir:D:/NSU/lab/2026.02.15houduan/src/main/resources/static/uploads}")
+    private String uploadDirBase;
+
+    private String getUploadDir() {
+        String dir = uploadDirBase == null ? "" : uploadDirBase.replace("\\", "/");
+        return dir.endsWith("/") ? dir : dir + "/";
+    }
 
     @PostMapping("/upload")
     @ApiOperation("上传文件")
@@ -43,9 +49,10 @@ public class FileUploadController {
             }
 
             // 创建上传目录（如果不存在）
-            File uploadDir = new File(UPLOAD_DIR);
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
+            String uploadDir = getUploadDir();
+            File uploadDirFile = new File(uploadDir);
+            if (!uploadDirFile.exists()) {
+                uploadDirFile.mkdirs();
             }
 
             // 生成唯一的文件名
@@ -54,7 +61,7 @@ public class FileUploadController {
             String fileName = generateUniqueFileName(fileExtension);
 
             // 保存文件
-            Path filePath = Paths.get(UPLOAD_DIR, fileName);
+            Path filePath = Paths.get(uploadDir, fileName);
             Files.copy(file.getInputStream(), filePath);
 
             // 返回文件访问URL

@@ -12,6 +12,7 @@
         <result column="create_time" property="createTime"/>
         <result column="sender_name" property="senderName"/>
         <result column="sender_avatar" property="senderAvatar"/>
+        <result column="unread_count" property="unreadCount"/>
     </resultMap>
 
     <insert id="insert" parameterType="org.example.model.ChatMessage" useGeneratedKeys="true" keyProperty="id">

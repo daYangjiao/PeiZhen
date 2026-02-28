@@ -6,8 +6,11 @@
           <text class="back-text">←</text>
         </view>
         <view class="header-title">
-          <text class="title-text">{{ targetName }}</text>
-          <view class="online-dot"></view>
+          <view class="title-row">
+            <text class="title-text">{{ targetName }}</text>
+            <view class="online-dot"></view>
+          </view>
+          <text class="subtitle-text">{{ headerSubtitle }}</text>
         </view>
         <view class="header-placeholder-right"></view>
       </view>
@@ -53,13 +56,15 @@
                 <image v-else-if="msg.msgType === 2" class="image" :src="getImageUrl(msg.content)" mode="widthFix" @click="previewImage(getImageUrl(msg.content))"></image>
                 <!-- 语音 -->
                 <view v-else-if="msg.msgType === 3" class="voice-content" @click="playVoice(msg.content)">
-                    <text class="voice-icon">🔊</text>
-                    <text class="voice-text">语音消息</text>
+                  <image class="voice-icon-img" src="/static/icons/voice.png" mode="aspectFit"></image>
+                  <text class="voice-text">语音消息</text>
                 </view>
                 <!-- 位置 -->
                 <view v-else-if="msg.msgType === 4" class="location-content" @click="openLocation(msg.content)">
-                    <text class="location-icon">📍</text>
-                    <text class="location-text">{{ parseLocation(msg.content).name || '位置信息' }}</text>
+                  <image class="location-icon-img" src="/static/icons/location.png" mode="aspectFit"></image>
+                  <view class="location-text-wrap">
+                    <text class="location-name">{{ parseLocation(msg.content).name || '位置信息' }}</text>
+                  </view>
                 </view>
                 <!-- 其他 -->
                 <text v-else class="text">[未知消息类型]</text>
@@ -192,6 +197,8 @@ const innerAudioContext = uni.createInnerAudioContext()
 const processedMessages = new Set()
 
 const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🤠','🤡','🥳','🥴','🥺','🤥','🤫','🤭','🧐','🤓','😈','👿']
+
+const headerSubtitle = computed(() => '患者 · 在线沟通中')
 
 onLoad((options) => {
   uni.stopPullDownRefresh()
@@ -569,7 +576,12 @@ $primary-color: #2979ff; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
 .chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background-color: #fff; padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03); }
 .header-content { height: 88rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; }
 .header-back { width: 60rpx; height: 60rpx; display: flex; align-items: center; .back-text { font-size: 44rpx; color: #333; font-weight: 300; } }
-.header-title { display: flex; align-items: center; gap: 10rpx; .title-text { font-size: 32rpx; font-weight: 600; color: $text-main; } .online-dot { width: 12rpx; height: 12rpx; background: #07c160; border-radius: 50%; } }
+.header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4rpx;
+  .title-row { display: flex; align-items: center; gap: 10rpx; }
+  .title-text { font-size: 32rpx; font-weight: 600; color: $text-main; }
+  .online-dot { width: 12rpx; height: 12rpx; background: #07c160; border-radius: 50%; }
+  .subtitle-text { font-size: 22rpx; color: #999; }
+}
 .header-placeholder-right { width: 60rpx; }
 .header-placeholder { width: 100%; height: calc(88rpx + var(--status-bar-height)); flex-shrink: 0; }
 
@@ -593,6 +605,29 @@ $primary-color: #2979ff; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
   background: $bubble-other; color: $text-main;
   .self & { background: $bubble-self; color: #fff; }
   .image { max-width: 300rpx; border-radius: 8rpx; display: block; }
+}
+
+.voice-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.voice-icon-img {
+  width: 32rpx;
+  height: 32rpx;
+}
+.location-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.location-icon-img {
+  width: 32rpx;
+  height: 32rpx;
+}
+.location-name {
+  font-size: 28rpx;
+  color: $text-main;
 }
 
 .bottom-placeholder { height: 140rpx; transition: height 0.3s; }

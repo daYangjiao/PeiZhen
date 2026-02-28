@@ -63,9 +63,18 @@ public class OrderListResponse {
     @ApiModelProperty(value = "陪诊师头像", example = "/uploads/avatar.jpg")
     private String attendantAvatar;
 
+    @ApiModelProperty(value = "下单用户头像（仅接单后返回）")
+    private String userAvatar;
+
     @ApiModelProperty(value = "创建时间", example = "2025-02-10 15:30:00")
     private Date createTime;
 
     @ApiModelProperty(value = "预约时间", example = "2025-12-01 09:00:00")
     private Date appointmentTime;
+
+    @ApiModelProperty(value = "症状描述（与用户端一致，逗号分隔）", example = "发热,咳嗽")
+    private String specialRequirements;
+
+    @ApiModelProperty(value = "其他需求（与用户端一致）", example = "需要轮椅协助")
+    private String customRequirement;
 }

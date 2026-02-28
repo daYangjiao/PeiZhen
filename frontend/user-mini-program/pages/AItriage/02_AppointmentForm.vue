@@ -152,7 +152,7 @@
 
 		<!-- 预约按钮 -->
 		<view class="confirm-section">
-			<button class="confirm-btn" @click="confirmAppointment">
+			<button class="confirm-btn" :class="{ disabled: !isFormComplete }" @click="confirmAppointment">
 				确认预约
 			</button>
 		</view>
@@ -371,6 +371,25 @@ const validatePhone = () => {
 	}
 }
 
+const isValidPhone = computed(() => {
+	const phoneRegex = /^1[3-9]\d{9}$/
+	return !!phoneNumber.value && phoneRegex.test(String(phoneNumber.value).trim())
+})
+
+// 除“其他需求”外，其余都必须填写/选择（含症状至少选择1项）
+const isFormComplete = computed(() => {
+	return (
+		!!selectedDate.value &&
+		!!startTime.value &&
+		!!endTime.value &&
+		!!String(hospitalAddress.value || '').trim() &&
+		!!String(patientName.value || '').trim() &&
+		isValidPhone.value &&
+		Array.isArray(selectedSymptoms.value) &&
+		selectedSymptoms.value.length > 0
+	)
+})
+
 // --- 获取服务图标路径 ---
 const getServiceIcon = (typeNumber) => {
 	// 根据服务类型数字返回对应的图标路径
@@ -439,43 +458,20 @@ const confirmAddSymptom = () => {
 // --- 确认预约 ---
 const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 
-	// 验证必填字段
-	if (!selectedDate.value) {
-		uni.showToast({
-			title: '请选择服务日期',
-			icon: 'none'
-		})
-		return
-	}
+	// 聚合校验：除其他需求外均需填写/选择
+	const missing = []
+	if (!selectedDate.value) missing.push('服务日期')
+	if (!startTime.value || !endTime.value) missing.push('服务时段')
+	if (!String(hospitalAddress.value || '').trim()) missing.push('医院地址')
+	if (!selectedSymptoms.value || selectedSymptoms.value.length === 0) missing.push('症状（至少选择1项）')
+	if (!String(patientName.value || '').trim()) missing.push('姓名')
+	if (!String(phoneNumber.value || '').trim()) missing.push('手机号')
 
-	if (!startTime.value || !endTime.value) {
-		uni.showToast({
-			title: '请选择服务时间',
-			icon: 'none'
-		})
-		return
-	}
-
-	if (!hospitalAddress.value) {
-		uni.showToast({
-			title: '请输入医院地址',
-			icon: 'none'
-		})
-		return
-	}
-
-	if (!patientName.value) {
-		uni.showToast({
-			title: '请输入患者姓名',
-			icon: 'none'
-		})
-		return
-	}
-
-	if (!phoneNumber.value) {
-		uni.showToast({
-			title: '请输入联系电话',
-			icon: 'none'
+	if (missing.length > 0) {
+		uni.showModal({
+			title: '提示',
+			content: `请先完善：${missing.join('、')}，全部输入完成后才能点击确认预约`,
+			showCancel: false
 		})
 		return
 	}
@@ -490,6 +486,16 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 		return
 	}
 
+	// 时间段合法性：结束时间必须晚于开始时间
+	const toMinutes = (t) => {
+		const [h, m] = String(t).split(':').map(Number)
+		return (h || 0) * 60 + (m || 0)
+	}
+	if (toMinutes(endTime.value) <= toMinutes(startTime.value)) {
+		uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' })
+		return
+	}
+
 	// --- 构建提交需求的数据 ---
 	const demandData = {
 		// 服务类型信息
@@ -500,10 +506,10 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 		serviceStartTime: startTime.value, // HH:mm
 		serviceEndTime: endTime.value, // HH:mm
 		// 医院信息
-		hospital: hospitalAddress.value,
+		hospital: String(hospitalAddress.value || '').trim(),
 		// 联系人信息
-		patientName: patientName.value,
-		patientPhone: phoneNumber.value,
+		patientName: String(patientName.value || '').trim(),
+		patientPhone: String(phoneNumber.value || '').trim(),
 		// --- 新增：症状和需求 ---
 		// 症状 (确保是一个数组)
 		symptoms: selectedSymptoms.value.map(i => symptoms.value[i]), // 将索引转换为实际症状文本
@@ -981,6 +987,12 @@ onMounted(async () => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+.confirm-btn.disabled {
+	background: #d9d9d9;
+	color: #ffffff;
+	opacity: 0.85;
 }
 
 /* 弹窗样式 */

@@ -57,6 +57,39 @@ public class OrderController {
         return ResponseResult.success(rows);
     }
 
+    @PostMapping("/{orderId}/confirm-time-fee")
+    @ApiOperation("用户确认服务时长与费用（多退少补）")
+    public ResponseResult<String> confirmTimeAndFee(@PathVariable Integer orderId) {
+        try {
+            String result = orderService.userConfirmTimeAndFee(orderId);
+            if (result.startsWith("确认成功")) {
+                return ResponseResult.success(result);
+            }
+            return ResponseResult.error(result);
+        } catch (Exception e) {
+            log.error("确认时长与费用失败，orderId={}", orderId, e);
+            return ResponseResult.error("确认时长与费用失败");
+        }
+    }
+
+    @PostMapping("/{orderId}/dispute-time-fee")
+    @ApiOperation("用户不认可时长与费用，提交申诉")
+    public ResponseResult<String> disputeTimeAndFee(
+            @PathVariable Integer orderId,
+            @RequestParam(required = false) java.math.BigDecimal userDuration,
+            @RequestParam(required = false) String reason) {
+        try {
+            String result = orderService.userDisputeTimeAndFee(orderId, userDuration, reason);
+            if (result.startsWith("申诉已提交")) {
+                return ResponseResult.success(result);
+            }
+            return ResponseResult.error(result);
+        } catch (Exception e) {
+            log.error("提交时长费用申诉失败，orderId={}", orderId, e);
+            return ResponseResult.error("提交申诉失败");
+        }
+    }
+
     @GetMapping("/user-orders")
     @ApiOperation("查询当前用户订单列表")
     public ResponseResult<PagedResponse<OrderListResponse>> getCurrentUserOrders(
@@ -77,6 +110,54 @@ public class OrderController {
         } catch (Exception e) {
             log.error("查询用户订单列表失败", e);
             return ResponseResult.error("查询失败");
+        }
+    }
+
+    @PutMapping("/{orderId}/cancel")
+    @ApiOperation("用户取消订单")
+    public ResponseResult<String> cancelOrder(
+            @PathVariable Integer orderId,
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) java.math.BigDecimal penaltyAmount,
+            @RequestParam(required = false) java.math.BigDecimal refundAmount,
+            @RequestParam(required = false) java.math.BigDecimal penaltyRate,
+            HttpServletRequest request) {
+        try {
+            log.info("用户取消订单请求，orderId={}, reason={}, penaltyAmount={}, refundAmount={}, penaltyRate={}",
+                    orderId, reason, penaltyAmount, refundAmount, penaltyRate);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            Order order = orderService.getOrderById(orderId);
+            if (order == null) {
+                return ResponseResult.error("订单不存在");
+            }
+            if (order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
+                return ResponseResult.unauthorized("无权限操作该订单");
+            }
+            if (order.getOrderStatus() != null && (order.getOrderStatus() == 6 || order.getOrderStatus() == 7)) {
+                return ResponseResult.error("订单已完成或已取消，无法重复取消");
+            }
+            if (order.getOrderStatus() != null && order.getOrderStatus() == 3) {
+                return ResponseResult.error("服务中订单不允许取消");
+            }
+
+            java.math.BigDecimal orderAmount = order.getOrderAmount() == null ? java.math.BigDecimal.ZERO : order.getOrderAmount();
+            java.math.BigDecimal finalRate = penaltyRate != null ? penaltyRate : java.math.BigDecimal.ZERO;
+            java.math.BigDecimal finalPenalty = penaltyAmount != null ? penaltyAmount : orderAmount.multiply(finalRate);
+            java.math.BigDecimal finalRefund = refundAmount != null ? refundAmount : orderAmount;
+            order.setOrderStatus(7); // 已取消
+            order.setCancelReason(reason != null ? reason.trim() : null);
+            order.setCancelTime(new java.util.Date());
+            order.setCancelBy(0); // 0=用户
+            order.setPenaltyRate(finalRate);
+            order.setPenaltyAmount(finalPenalty);
+            order.setRefundAmount(finalRefund);
+            orderService.updateOrder(order);
+            // 发送系统消息通知用户订单已取消
+            orderService.notifyUserOrderCancelled(order);
+            return ResponseResult.success("订单已取消");
+        } catch (Exception e) {
+            log.error("取消订单失败，orderId={}", orderId, e);
+            return ResponseResult.error("取消订单失败");
         }
     }
 }

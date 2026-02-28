@@ -117,49 +117,19 @@ onUnmounted(() => {
 // 已处理的消息ID集合，防止重复处理
 const processedMessages = new Set()
 
-// 处理新的WebSocket消息
+// 处理新的WebSocket消息（store 更新由 App 全局监听处理，本页仅刷新列表）
 const handleNewMessage = (msg) => {
-  console.log('收到新消息:', msg)
-  
-  // 防止重复处理同一消息
-  if (msg && msg.id) {
-    if (processedMessages.has(msg.id)) {
-      console.log('消息已处理过，跳过:', msg.id)
-      return
-    }
-    processedMessages.add(msg.id)
-    // 限制集合大小，避免内存泄漏
-    if (processedMessages.size > 100) {
-      const firstKey = processedMessages.values().next().value
-      processedMessages.delete(firstKey)
-    }
+  if (!msg) return
+  const msgKey = msg.id || `${msg.senderId}-${msg.receiverId}-${msg.createTime}`
+  if (processedMessages.has(msgKey)) return
+  processedMessages.add(msgKey)
+  if (processedMessages.size > 100) {
+    const arr = Array.from(processedMessages).slice(-50)
+    processedMessages.clear()
+    arr.forEach(k => processedMessages.add(k))
   }
-  
-  // 严格区分已读回执消息和普通消息
-  const isReadReceipt = (msg.type === 'READ_RECEIPT' || msg.content === 'READ_RECEIPT' || msg.msgType == 3) && 
-                       msg.senderId && msg.receiverId;
-  
-  if (isReadReceipt) {
-    console.log('收到已读回执消息，处理已读状态同步');
-    // 已读回执：减少对应的未读计数
-    const currentUserId = uni.getStorageSync('userInfo').id;
-    if (msg.receiverId === currentUserId) {
-      // 这是发给我自己的已读回执，说明对方已读了我的消息
-      // 需要减少我发给对方的未读计数
-      const contactId = msg.senderId; // 对方ID就是联系人ID
-      console.log('处理已读回执，减少联系人未读数:', contactId);
-      messageStore.decrementUnread(contactId);
-    }
-    return; // 已读回执不按普通消息处理
-  }
-  
-  // 普通消息处理
-  if (msg && msg.senderId) {
-    // 使用正确的联系人ID逻辑
-    const currentUserId = uni.getStorageSync('userInfo').id
-    const contactId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId
-    console.log('处理新消息，联系人ID:', contactId, '发送者ID:', msg.senderId, '消息ID:', msg.id)
-    messageStore.incrementUnread(contactId)
+  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !(msg.msgType == 3 || msg.content === 'READ_RECEIPT')) {
+    loadContacts()
   }
 }
 
@@ -187,6 +157,7 @@ const loadContacts = async () => {
         messageStore.systemUnreadCount = systemUnread
         console.log('设置系统未读数:', systemUnread, '原始数据:', sysMsg)
       } else {
+        lastSystemMsg.value = {}
         messageStore.systemUnreadCount = 0
         console.log('未找到系统消息')
       }
@@ -241,13 +212,14 @@ const getContactUnreadCount = (contact) => {
   return unreadCount
 }
 
-const openSystemChat = () => {
-  // 立即重置系统未读状态
+const openSystemChat = async () => {
+  try {
+    await post('/api/chat/read?senderId=0')
+  } catch (e) {
+    console.error('标记系统消息已读失败', e)
+  }
   messageStore.resetSystemUnread()
-  
-  // 立即更新UI显示
   messageStore.updateTabBarBadge()
-  
   uni.navigateTo({
     url: `/subpkg/system-message/system-message`
   })

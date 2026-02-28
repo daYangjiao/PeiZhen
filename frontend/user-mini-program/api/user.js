@@ -1,6 +1,6 @@
 // 用户信息管理相关API
 import { get, post, put, upload } from '../utils/api.js'
-import { setUserInfo } from '../utils/auth.js'
+import { setUserInfo, getUserInfo as getAuthUserInfo } from '../utils/auth.js'
 import { useUserStore } from '../stores/user'
 
 // 获取个人信息
@@ -49,6 +49,7 @@ export const updateUserInfo = (data) => {
 	if (data.age !== undefined) requestData.age = data.age
 	if (data.phone !== undefined) requestData.phone = data.phone
 	if (data.password !== undefined) requestData.password = data.password
+	if (data.avatar !== undefined) requestData.avatar = data.avatar
 	
 	// 保留原有字段（如果后端支持）
 	if (data.nickname !== undefined) requestData.nickname = data.nickname
@@ -72,21 +73,26 @@ export const updateUserInfo = (data) => {
 	})
 }
 
-// 上传头像
-export const uploadAvatar = (filePath) => {
-	return upload('/customer/user/avatar', filePath).then(response => {
-		// 更新本地用户信息中的头像
-		if (response.data?.avatarUrl) {
-			const userInfo = getUserInfo()
-			if (userInfo) {
-				setUserInfo({
-					...userInfo,
-					avatar: response.data.avatarUrl
-				})
-			}
-		}
-		return response
-	})
+// 上传头像（与陪诊师端一致：先上传图片得到路径，再更新用户 avatar 字段）
+export const uploadAvatar = async (filePath) => {
+	const userInfo = getAuthUserInfo()
+	const userId = userInfo?.id || userInfo?.userId
+	if (!userId) {
+		return Promise.reject(new Error('请先登录'))
+	}
+	// 1. 上传图片到通用接口，后端返回 /uploads/xxx
+	const uploadRes = await upload('/api/common/upload-image', filePath, {}, 'file')
+	const avatarPath = uploadRes.data
+	if (!avatarPath) {
+		return Promise.reject(new Error('上传失败'))
+	}
+	// 2. 更新用户头像字段
+	await put(`/api/users/${userId}`, { avatar: avatarPath })
+	// 3. 同步到本地 store 和 storage
+	if (userInfo) {
+		setUserInfo({ ...userInfo, avatar: avatarPath })
+	}
+	return { code: 200, data: { avatarUrl: avatarPath } }
 }
 
 // 更新用户位置

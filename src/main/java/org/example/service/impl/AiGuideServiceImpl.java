@@ -12,7 +12,6 @@ import org.example.model.response.CompleteOrderInfoResponse;
 import org.example.model.response.SimpleOrderDetailResponse;
 import org.example.service.AiGuideService;
 import org.example.service.AttendantService;
-import org.example.service.OrderService;
 import org.example.unity.ServiceFeeCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class AiGuideServiceImpl implements AiGuideService {
@@ -41,9 +39,6 @@ public class AiGuideServiceImpl implements AiGuideService {
 
     @Autowired
     private ChatMessageMapper chatMessageMapper;
-
-    @Autowired
-    private OrderService orderService;
 
     @Autowired
     private AttendantService attendantService;
@@ -98,10 +93,21 @@ public class AiGuideServiceImpl implements AiGuideService {
         }
 
         order.setOrderAmount(feeResult.getTotalFee());
+        order.setCreateTime(new Date());
         order.setPaymentStatus(0);
         order.setOrderStatus(0);
 
         orderMapper.insert(order);
+
+        // 下单成功系统消息：提醒用户在15分钟内完成预付款
+        try {
+            if (order.getUserId() != null) {
+                String msg = "您已成功创建订单 " + orderNo + "，请在15分钟内完成预付款，逾期系统将自动取消订单。";
+                sendSystemMessage(order.getUserId(), msg);
+            }
+        } catch (Exception e) {
+            logger.error("发送下单成功系统消息失败, orderNo={}", orderNo, e);
+        }
 
         OrderCreateResponse response = new OrderCreateResponse();
         response.setOrderNo(orderNo);
@@ -142,16 +148,40 @@ public class AiGuideServiceImpl implements AiGuideService {
         response.setPaymentStatusDesc(getOrderPaymentStatusDesc(order.getPaymentStatus()));
         response.setTotalPrice(order.getOrderAmount());
 
+        // 创建/支付/更新时间（用于前端倒计时与服务记录）
+        SimpleDateFormat dtf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        if (order.getCreateTime() != null) {
+            response.setCreateTime(dtf.format(order.getCreateTime()));
+        }
+        if (order.getPaymentTime() != null) {
+            response.setPaymentTime(dtf.format(order.getPaymentTime()));
+        }
+        if (order.getAppointmentTime() != null) {
+            response.setUpdateTime(dtf.format(order.getAppointmentTime()));
+        }
+
         // 补充核销二维码和状态信息
         response.setQrCodeUrl(order.getQrCodeUrl());
         response.setActualDuration(order.getActualDuration());
+        response.setEstimatedDuration(order.getEstimatedDuration());
         response.setBalanceAmount(order.getBalanceAmount());
+        response.setCancelReason(order.getCancelReason());
+        response.setCancelBy(order.getCancelBy());
+        response.setPenaltyRate(order.getPenaltyRate());
+        response.setPenaltyAmount(order.getPenaltyAmount());
+        response.setRefundAmount(order.getRefundAmount());
         if (order.getServiceStartTime() != null) {
             response.setServiceStartTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getServiceStartTime()));
         }
         if (order.getServiceEndTime() != null) {
             response.setServiceEndTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getServiceEndTime()));
         }
+        if (order.getCancelTime() != null) {
+            response.setCancelTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(order.getCancelTime()));
+        }
+
+        // 服务进度
+        response.setServiceProgressStep(order.getServiceProgressStep());
 
         response.setHospital(order.getHospital());
         response.setServiceDate(order.getServiceDate());
@@ -169,6 +199,8 @@ public class AiGuideServiceImpl implements AiGuideService {
         response.setServiceTypeName(order.getServiceContent());
 
         if (order.getAttendantId() != null) {
+            // 回传陪诊师ID，便于用户端跳转在线聊天
+            response.setAttendantId(String.valueOf(order.getAttendantId()));
             User attendantUser = userMapper.findById(order.getAttendantId());
             if (attendantUser != null) {
                 response.setAttendantName(attendantUser.getName());
@@ -304,8 +336,10 @@ public class AiGuideServiceImpl implements AiGuideService {
         return switch (status) {
             case 0 -> "待支付";
             case 1 -> "待接单";
-            case 2 -> "已接单";
+            case 2 -> "待服务";
             case 3 -> "服务中";
+            case 4 -> "待确认时长费用";
+            case 5 -> "时长费用有争议";
             case 6 -> "已完成";
             case 7 -> "已取消";
             default -> "未知";
@@ -314,10 +348,6 @@ public class AiGuideServiceImpl implements AiGuideService {
 
     private String getOrderPaymentStatusDesc(Integer status) {
         return status != null && status == 1 ? "已支付" : "待支付";
-    }
-
-    private String getSafeString(String val, String def) {
-        return val == null || val.isEmpty() ? def : val;
     }
 
     // 辅助方法：发送系统消息

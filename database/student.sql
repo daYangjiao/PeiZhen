@@ -11,7 +11,7 @@
  Target Server Version : 80043 (8.0.43)
  File Encoding         : 65001
 
- Date: 14/02/2026 15:45:07
+ Date: 28/02/2026 16:20:55
 */
 
 SET NAMES utf8mb4;
@@ -34,7 +34,7 @@ CREATE TABLE `ai_medical_qa`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_conversation_id`(`conversation_id` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI医疗问答记录表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI医疗问答记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of ai_medical_qa
@@ -85,53 +85,112 @@ CREATE TABLE `chat_message`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_sender_receiver`(`sender_id` ASC, `receiver_id` ASC) USING BTREE,
   INDEX `idx_receiver_read`(`receiver_id` ASC, `is_read` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 43 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '聊天消息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 367 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '聊天消息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of chat_message
 -- ----------------------------
-INSERT INTO `chat_message` VALUES (1, 0, 15, '您的订单 ORD1770966931301a7ae31 已被陪诊师 李怀 接单，请保持电话畅通。', 1, 0, '2026-02-13 15:16:00');
-INSERT INTO `chat_message` VALUES (2, 0, 15, '您的订单 ORD1770966931301a7ae31 服务已开始。', 1, 0, '2026-02-13 15:17:18');
-INSERT INTO `chat_message` VALUES (3, 0, 15, '您的订单 ORD1770966931301a7ae31 服务已结束，请确认服务时长并评价。', 1, 0, '2026-02-13 15:21:58');
-INSERT INTO `chat_message` VALUES (4, 0, 15, '您的订单 ORD17709675931199747d2 已被陪诊师 李怀 接单，请保持电话畅通。', 1, 0, '2026-02-13 15:26:45');
-INSERT INTO `chat_message` VALUES (5, 0, 15, '您的订单 ORD17709675931199747d2 服务已开始。', 1, 0, '2026-02-13 15:26:52');
-INSERT INTO `chat_message` VALUES (6, 0, 15, '您的订单 ORD177096940247987dfd3 支付成功，等待接单中。', 1, 0, '2026-02-13 15:56:43');
-INSERT INTO `chat_message` VALUES (7, 0, 15, '您的订单 ORD177096940247987dfd3 已被陪诊师 李怀 接单，请保持电话畅通。', 1, 0, '2026-02-13 15:56:48');
-INSERT INTO `chat_message` VALUES (8, 0, 15, '您的订单 ORD177096940247987dfd3 服务已开始。', 1, 0, '2026-02-13 16:16:38');
-INSERT INTO `chat_message` VALUES (9, 0, 21, '您已开始为订单 ORD177096940247987dfd3 提供服务，请按时完成服务。', 1, 0, '2026-02-13 16:16:38');
-INSERT INTO `chat_message` VALUES (10, 0, 15, '您的订单 ORD17709706212501c860c 支付成功，等待接单中。', 1, 0, '2026-02-13 16:17:02');
-INSERT INTO `chat_message` VALUES (11, 0, 15, '您的订单 ORD17709706212501c860c 已被陪诊师 李怀 接单，请保持电话畅通。', 1, 0, '2026-02-13 16:17:29');
-INSERT INTO `chat_message` VALUES (12, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-13 16:17:29');
-INSERT INTO `chat_message` VALUES (13, 21, 15, '你好', 1, 1, '2026-02-13 16:52:43');
-INSERT INTO `chat_message` VALUES (14, 15, 21, '你好', 1, 1, '2026-02-13 19:08:48');
-INSERT INTO `chat_message` VALUES (15, 21, 15, '你好', 1, 1, '2026-02-13 20:51:31');
-INSERT INTO `chat_message` VALUES (16, 15, 21, '你好', 1, 1, '2026-02-13 20:51:39');
-INSERT INTO `chat_message` VALUES (17, 21, 15, '你好1', 1, 1, '2026-02-13 20:51:55');
-INSERT INTO `chat_message` VALUES (18, 21, 15, '你好', 1, 1, '2026-02-13 21:06:18');
-INSERT INTO `chat_message` VALUES (19, 15, 21, '我不好', 1, 1, '2026-02-13 21:06:21');
-INSERT INTO `chat_message` VALUES (20, 21, 15, '11', 1, 1, '2026-02-13 21:09:41');
-INSERT INTO `chat_message` VALUES (21, 15, 21, '22', 1, 1, '2026-02-13 21:09:47');
-INSERT INTO `chat_message` VALUES (22, 21, 15, '11', 1, 1, '2026-02-13 21:12:03');
-INSERT INTO `chat_message` VALUES (23, 15, 21, '11', 1, 1, '2026-02-13 21:12:06');
-INSERT INTO `chat_message` VALUES (24, 21, 15, '2', 1, 1, '2026-02-13 21:13:19');
-INSERT INTO `chat_message` VALUES (25, 21, 15, '1', 1, 1, '2026-02-13 21:16:23');
-INSERT INTO `chat_message` VALUES (26, 21, 15, '2', 1, 1, '2026-02-13 21:16:36');
-INSERT INTO `chat_message` VALUES (27, 21, 15, 'q', 1, 1, '2026-02-13 21:19:08');
-INSERT INTO `chat_message` VALUES (28, 21, 15, '1', 1, 1, '2026-02-13 21:20:05');
-INSERT INTO `chat_message` VALUES (29, 15, 21, '22', 1, 1, '2026-02-13 21:20:12');
-INSERT INTO `chat_message` VALUES (30, 21, 15, '2', 1, 1, '2026-02-13 21:20:17');
-INSERT INTO `chat_message` VALUES (31, 15, 21, '1', 1, 1, '2026-02-14 15:37:24');
-INSERT INTO `chat_message` VALUES (32, 21, 15, '2', 1, 1, '2026-02-14 15:37:30');
-INSERT INTO `chat_message` VALUES (33, 15, 21, '1', 1, 1, '2026-02-14 15:38:05');
-INSERT INTO `chat_message` VALUES (34, 21, 15, '2', 1, 1, '2026-02-14 15:38:09');
-INSERT INTO `chat_message` VALUES (35, 21, 15, '1', 1, 1, '2026-02-14 15:38:33');
-INSERT INTO `chat_message` VALUES (36, 21, 15, '22', 1, 1, '2026-02-14 15:38:37');
-INSERT INTO `chat_message` VALUES (37, 15, 21, '2', 1, 1, '2026-02-14 15:38:39');
-INSERT INTO `chat_message` VALUES (38, 15, 21, '2', 1, 1, '2026-02-14 15:38:41');
-INSERT INTO `chat_message` VALUES (39, 21, 15, '3', 1, 1, '2026-02-14 15:38:43');
-INSERT INTO `chat_message` VALUES (40, 15, 21, '2', 1, 1, '2026-02-14 15:43:14');
-INSERT INTO `chat_message` VALUES (41, 21, 15, '2', 1, 1, '2026-02-14 15:43:20');
-INSERT INTO `chat_message` VALUES (42, 15, 21, '3', 1, 1, '2026-02-14 15:43:33');
+INSERT INTO `chat_message` VALUES (266, 0, 15, '恭喜您!订单No.ORD17720940252105599f3支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-26 16:20:27');
+INSERT INTO `chat_message` VALUES (267, 0, 15, '您预约的(02月26日)12:30-18:00有成都市人民医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-26 16:20:36');
+INSERT INTO `chat_message` VALUES (268, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-26 16:20:36');
+INSERT INTO `chat_message` VALUES (269, 0, 15, '您的订单No.ORD17720940252105599f3服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-26 16:21:00');
+INSERT INTO `chat_message` VALUES (270, 0, 21, '您已开始为订单 ORD17720940252105599f3 提供服务，请按时完成服务。', 1, 1, '2026-02-26 16:21:00');
+INSERT INTO `chat_message` VALUES (271, 0, 15, '您的陪诊服务(订单No.ORD17720940252105599f3)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-26 16:21:35');
+INSERT INTO `chat_message` VALUES (272, 0, 21, '您已结束订单 ORD17720940252105599f3 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-26 16:21:35');
+INSERT INTO `chat_message` VALUES (273, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-26 16:21:41');
+INSERT INTO `chat_message` VALUES (274, 0, 21, '用户已确认订单 ORD17720940252105599f3 的时长与费用，订单已完成。', 1, 1, '2026-02-26 16:21:41');
+INSERT INTO `chat_message` VALUES (275, 0, 15, '恭喜您!订单No.ORD17720947028516784c9支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-26 16:31:44');
+INSERT INTO `chat_message` VALUES (276, 0, 15, '您预约的(02月27日)08:00-14:00有成都市中医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-26 16:32:08');
+INSERT INTO `chat_message` VALUES (277, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-26 16:32:08');
+INSERT INTO `chat_message` VALUES (278, 0, 15, '您的订单No.ORD17720947028516784c9服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-26 16:32:35');
+INSERT INTO `chat_message` VALUES (279, 0, 21, '您已开始为订单 ORD17720947028516784c9 提供服务，请按时完成服务。', 1, 1, '2026-02-26 16:32:35');
+INSERT INTO `chat_message` VALUES (280, 0, 15, '您的陪诊服务(订单No.ORD17720947028516784c9)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-26 16:32:59');
+INSERT INTO `chat_message` VALUES (281, 0, 21, '您已结束订单 ORD17720947028516784c9 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-26 16:32:59');
+INSERT INTO `chat_message` VALUES (282, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-26 16:33:07');
+INSERT INTO `chat_message` VALUES (283, 0, 21, '用户已确认订单 ORD17720947028516784c9 的时长与费用，订单已完成。', 1, 1, '2026-02-26 16:33:07');
+INSERT INTO `chat_message` VALUES (284, 0, 15, '恭喜您!订单No.ORD1772167293352229bec支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 12:43:16');
+INSERT INTO `chat_message` VALUES (285, 0, 15, '您已成功创建订单 ORD1772168983757104052，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:09:43');
+INSERT INTO `chat_message` VALUES (286, 0, 15, '您已成功创建订单 ORD17721696183899bc4ab，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:20:18');
+INSERT INTO `chat_message` VALUES (287, 0, 15, '您已成功创建订单 ORD177216971527054773c，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:21:55');
+INSERT INTO `chat_message` VALUES (288, 0, 15, '您已成功创建订单 ORD1772170307910028ccb，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:31:47');
+INSERT INTO `chat_message` VALUES (289, 0, 15, '您的订单ORD17721684470500a92ae已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 14:55:56');
+INSERT INTO `chat_message` VALUES (290, 0, 15, '您已成功创建订单 ORD177217538128245f6c9，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 14:56:21');
+INSERT INTO `chat_message` VALUES (291, 0, 15, '恭喜您!订单No.ORD177217538128245f6c9支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 14:56:36');
+INSERT INTO `chat_message` VALUES (292, 0, 15, '您已成功创建订单 ORD17721767672500e0d4f，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:19:27');
+INSERT INTO `chat_message` VALUES (293, 0, 15, '恭喜您!订单No.ORD17721767672500e0d4f支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:19:29');
+INSERT INTO `chat_message` VALUES (294, 0, 15, '您已成功创建订单 ORD17721772386768f50f7，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:27:18');
+INSERT INTO `chat_message` VALUES (295, 0, 15, '恭喜您!订单No.ORD17721772386768f50f7支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:27:20');
+INSERT INTO `chat_message` VALUES (296, 0, 15, '您已成功创建订单 ORD1772177339845b88d27，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:28:59');
+INSERT INTO `chat_message` VALUES (297, 0, 15, '恭喜您!订单No.ORD1772177339845b88d27支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:29:02');
+INSERT INTO `chat_message` VALUES (298, 0, 15, '您已成功创建订单 ORD1772184911870ee26b8，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:35:11');
+INSERT INTO `chat_message` VALUES (299, 0, 15, '恭喜您!订单No.ORD1772184911870ee26b8支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:35:13');
+INSERT INTO `chat_message` VALUES (300, 0, 15, '您预约的(02月27日)08:00-12:30有cda的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 17:36:37');
+INSERT INTO `chat_message` VALUES (301, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 17:36:37');
+INSERT INTO `chat_message` VALUES (302, 0, 15, '您的订单No.ORD1772184911870ee26b8服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 17:36:52');
+INSERT INTO `chat_message` VALUES (303, 0, 21, '您已开始为订单 ORD1772184911870ee26b8 提供服务，请按时完成服务。', 1, 1, '2026-02-27 17:36:52');
+INSERT INTO `chat_message` VALUES (304, 0, 15, '您的陪诊服务(订单No.ORD1772184911870ee26b8)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 17:37:02');
+INSERT INTO `chat_message` VALUES (305, 0, 21, '您已结束订单 ORD1772184911870ee26b8 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 17:37:02');
+INSERT INTO `chat_message` VALUES (306, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 17:37:39');
+INSERT INTO `chat_message` VALUES (307, 0, 21, '用户已确认订单 ORD1772184911870ee26b8 的时长与费用，订单已完成。', 1, 1, '2026-02-27 17:37:39');
+INSERT INTO `chat_message` VALUES (308, 0, 15, '您已成功创建订单 ORD17721851897289aebd7，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:39:49');
+INSERT INTO `chat_message` VALUES (309, 0, 15, '恭喜您!订单No.ORD17721851897289aebd7支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:39:52');
+INSERT INTO `chat_message` VALUES (310, 0, 15, '您已成功创建订单 ORD1772185891805b1f712，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:51:31');
+INSERT INTO `chat_message` VALUES (311, 0, 15, '恭喜您!订单No.ORD1772185891805b1f712支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:51:32');
+INSERT INTO `chat_message` VALUES (312, 0, 15, '您预约的(02月27日)08:00-12:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 17:54:55');
+INSERT INTO `chat_message` VALUES (313, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 17:54:55');
+INSERT INTO `chat_message` VALUES (314, 0, 15, '您的订单No.ORD17721851897289aebd7服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 17:55:17');
+INSERT INTO `chat_message` VALUES (315, 0, 21, '您已开始为订单 ORD17721851897289aebd7 提供服务，请按时完成服务。', 1, 0, '2026-02-27 17:55:17');
+INSERT INTO `chat_message` VALUES (316, 0, 15, '您的陪诊服务(订单No.ORD17721851897289aebd7)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 17:55:22');
+INSERT INTO `chat_message` VALUES (317, 0, 21, '您已结束订单 ORD17721851897289aebd7 的服务，请提醒用户确认时长与费用。', 1, 0, '2026-02-27 17:55:22');
+INSERT INTO `chat_message` VALUES (318, 0, 15, '您已成功创建订单 ORD17721864203592d5f4c，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:00:20');
+INSERT INTO `chat_message` VALUES (319, 0, 15, '恭喜您!订单No.ORD17721864203592d5f4c支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 18:00:21');
+INSERT INTO `chat_message` VALUES (320, 0, 15, '您已成功创建订单 ORD17721864910689bda5e，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:01:31');
+INSERT INTO `chat_message` VALUES (321, 0, 15, '您已成功创建订单 ORD1772186820885b73960，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:07:00');
+INSERT INTO `chat_message` VALUES (322, 0, 15, '您已成功创建订单 ORD17721883993729bc4e8，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:33:19');
+INSERT INTO `chat_message` VALUES (323, 0, 15, '恭喜您!订单No.ORD17721883993729bc4e8支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 18:33:26');
+INSERT INTO `chat_message` VALUES (324, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:34:08');
+INSERT INTO `chat_message` VALUES (325, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:34:08');
+INSERT INTO `chat_message` VALUES (326, 0, 15, '您的订单No.ORD17721883993729bc4e8服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:34:14');
+INSERT INTO `chat_message` VALUES (327, 0, 21, '您已开始为订单 ORD17721883993729bc4e8 提供服务，请按时完成服务。', 1, 0, '2026-02-27 18:34:14');
+INSERT INTO `chat_message` VALUES (328, 0, 15, '您的陪诊服务(订单No.ORD17721883993729bc4e8)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 18:34:17');
+INSERT INTO `chat_message` VALUES (329, 0, 21, '您已结束订单 ORD17721883993729bc4e8 的服务，请提醒用户确认时长与费用。', 1, 0, '2026-02-27 18:34:17');
+INSERT INTO `chat_message` VALUES (330, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 18:34:33');
+INSERT INTO `chat_message` VALUES (331, 0, 21, '用户已确认订单 ORD17721883993729bc4e8 的时长与费用，订单已完成。', 1, 0, '2026-02-27 18:34:33');
+INSERT INTO `chat_message` VALUES (332, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:35:52');
+INSERT INTO `chat_message` VALUES (333, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:35:52');
+INSERT INTO `chat_message` VALUES (334, 0, 15, '您的订单No.ORD17721864203592d5f4c服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:36:00');
+INSERT INTO `chat_message` VALUES (335, 0, 21, '您已开始为订单 ORD17721864203592d5f4c 提供服务，请按时完成服务。', 1, 0, '2026-02-27 18:36:00');
+INSERT INTO `chat_message` VALUES (336, 0, 15, '您预约的(02月27日)08:00-12:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:36:35');
+INSERT INTO `chat_message` VALUES (337, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:36:35');
+INSERT INTO `chat_message` VALUES (338, 0, 15, '您的订单No.ORD1772185891805b1f712服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:36:44');
+INSERT INTO `chat_message` VALUES (339, 0, 21, '您已开始为订单 ORD1772185891805b1f712 提供服务，请按时完成服务。', 1, 0, '2026-02-27 18:36:44');
+INSERT INTO `chat_message` VALUES (340, 0, 15, '您的陪诊服务(订单No.ORD1772185891805b1f712)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 18:41:33');
+INSERT INTO `chat_message` VALUES (341, 0, 21, '您已结束订单 ORD1772185891805b1f712 的服务，请提醒用户确认时长与费用。', 1, 0, '2026-02-27 18:41:33');
+INSERT INTO `chat_message` VALUES (342, 0, 15, '您的订单ORD1772186820885b73960已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 18:41:39');
+INSERT INTO `chat_message` VALUES (343, 0, 15, '您的订单ORD17721864910689bda5e已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 18:41:42');
+INSERT INTO `chat_message` VALUES (344, 0, 15, '您已成功创建订单 ORD1772191228942f306f5，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-27 19:20:28');
+INSERT INTO `chat_message` VALUES (345, 0, 15, '恭喜您!订单No.ORD1772191228942f306f5支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 19:20:32');
+INSERT INTO `chat_message` VALUES (346, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 19:21:31');
+INSERT INTO `chat_message` VALUES (347, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 19:21:31');
+INSERT INTO `chat_message` VALUES (348, 0, 15, '您的订单No.ORD1772191228942f306f5服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 19:21:38');
+INSERT INTO `chat_message` VALUES (349, 0, 21, '您已开始为订单 ORD1772191228942f306f5 提供服务，请按时完成服务。', 1, 0, '2026-02-27 19:21:38');
+INSERT INTO `chat_message` VALUES (350, 0, 15, '您的陪诊服务(订单No.ORD1772191228942f306f5)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 19:26:06');
+INSERT INTO `chat_message` VALUES (351, 0, 21, '您已结束订单 ORD1772191228942f306f5 的服务，请提醒用户确认时长与费用。', 1, 0, '2026-02-27 19:26:06');
+INSERT INTO `chat_message` VALUES (352, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 19:29:33');
+INSERT INTO `chat_message` VALUES (353, 0, 21, '用户已确认订单 ORD1772191228942f306f5 的时长与费用，订单已完成。', 1, 0, '2026-02-27 19:29:33');
+INSERT INTO `chat_message` VALUES (354, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-28 01:06:12');
+INSERT INTO `chat_message` VALUES (355, 0, 21, '用户已确认订单 ORD1772185891805b1f712 的时长与费用，订单已完成。', 1, 0, '2026-02-28 01:06:12');
+INSERT INTO `chat_message` VALUES (356, 0, 15, '您预约的(02月27日)08:00-10:30有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-28 01:08:44');
+INSERT INTO `chat_message` VALUES (357, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-28 01:08:44');
+INSERT INTO `chat_message` VALUES (358, 0, 15, '您的陪诊服务(订单No.ORD17721864203592d5f4c)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-28 01:08:57');
+INSERT INTO `chat_message` VALUES (359, 0, 21, '您已结束订单 ORD17721864203592d5f4c 的服务，请提醒用户确认时长与费用。', 1, 0, '2026-02-28 01:08:57');
+INSERT INTO `chat_message` VALUES (360, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-28 01:19:10');
+INSERT INTO `chat_message` VALUES (361, 0, 21, '用户已确认订单 ORD17721864203592d5f4c 的时长与费用，订单已完成。', 1, 0, '2026-02-28 01:19:10');
+INSERT INTO `chat_message` VALUES (362, 0, 15, '您已成功创建订单 ORD1772262390131755423，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-28 15:06:30');
+INSERT INTO `chat_message` VALUES (363, 0, 15, '恭喜您!订单No.ORD1772262390131755423支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-28 15:06:41');
+INSERT INTO `chat_message` VALUES (364, 0, 15, '您的订单ORD1772262390131755423已取消。取消原因：计划有变，暂不就诊', 1, 1, '2026-02-28 15:52:07');
+INSERT INTO `chat_message` VALUES (365, 0, 15, '您的订单No.ORD1772177339845b88d27服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-28 15:52:58');
+INSERT INTO `chat_message` VALUES (366, 0, 21, '您已开始为订单 ORD1772177339845b88d27 提供服务，请按时完成服务。', 1, 0, '2026-02-28 15:52:58');
 
 -- ----------------------------
 -- Table structure for guide_appointment
@@ -153,18 +212,24 @@ CREATE TABLE `guide_appointment`  (
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_appt_no`(`appointment_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 27 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI导诊需求单' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 60 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI导诊需求单' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of guide_appointment
 -- ----------------------------
-INSERT INTO `guide_appointment` VALUES (20, 'APP1770922235116a8fb22', NULL, '范涵伶', '15520765697', '[\"胸痛\", \"发热\"]', '成都市中医院', 1, '2026-02-13', '08:00', '11:30', '', '2026-02-13 02:50:35');
-INSERT INTO `guide_appointment` VALUES (21, 'APP1770922278998e189ef', NULL, '范涵伶', '15520765697', '[\"发热\", \"呼吸困难\"]', '成都市中医院', 2, '2026-02-13', '08:00', '12:30', '', '2026-02-13 02:51:19');
-INSERT INTO `guide_appointment` VALUES (22, 'APP1770922397654d36ae2', NULL, '范涵伶', '15520765697', '[\"发热\", \"呼吸困难\"]', '成都市中医院', 2, '2026-02-13', '08:00', '11:30', '', '2026-02-13 02:53:18');
-INSERT INTO `guide_appointment` VALUES (23, 'APP17709669312087f92fe', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-13', '08:00', '12:30', '', '2026-02-13 15:15:31');
-INSERT INTO `guide_appointment` VALUES (24, 'APP1770967593071c3a251', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-13', '08:00', '12:00', '', '2026-02-13 15:26:33');
-INSERT INTO `guide_appointment` VALUES (25, 'APP177096940242960a46b', NULL, '范涵伶', '15520765697', '[\"头晕\"]', '成都', 1, '2026-02-13', '08:00', '09:30', '', '2026-02-13 15:56:42');
-INSERT INTO `guide_appointment` VALUES (26, 'APP1770970621187010b5b', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-13', '08:00', '12:30', '', '2026-02-13 16:17:01');
+INSERT INTO `guide_appointment` VALUES (47, 'APP177217538122848db2c', NULL, '范涵伶', '15520765697', '[\"发热\"]', '成都市', 3, '2026-02-27', '08:00', '10:30', '', '2026-02-27 14:56:21');
+INSERT INTO `guide_appointment` VALUES (48, 'APP1772176767195ecf6f7', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:00', '', '2026-02-27 15:19:27');
+INSERT INTO `guide_appointment` VALUES (49, 'APP17721772386522ac459', NULL, '范涵伶', '15520765697', '[]', '成都', 1, '2026-02-27', '08:00', '09:30', '', '2026-02-27 15:27:19');
+INSERT INTO `guide_appointment` VALUES (50, 'APP1772177339818d6120c', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:30', '', '2026-02-27 15:29:00');
+INSERT INTO `guide_appointment` VALUES (51, 'APP1772184911807e9d59e', NULL, '范涵伶', '15520765697', '[\"恶心呕吐\"]', 'cda', 1, '2026-02-27', '08:00', '12:30', '', '2026-02-27 17:35:12');
+INSERT INTO `guide_appointment` VALUES (52, 'APP17721851896979a985d', NULL, '范涵伶', '15520765697', '[]', '成都市', 1, '2026-02-27', '08:00', '12:00', '', '2026-02-27 17:39:50');
+INSERT INTO `guide_appointment` VALUES (53, 'APP1772185891746594f49', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '12:00', '', '2026-02-27 17:51:32');
+INSERT INTO `guide_appointment` VALUES (54, 'APP177218642031426bb39', NULL, '范涵伶', '15520765697', '[\"腹痛\"]', '成都市', 1, '2026-02-27', '08:00', '11:00', '', '2026-02-27 18:00:20');
+INSERT INTO `guide_appointment` VALUES (55, 'APP1772186491023186247', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:00', '', '2026-02-27 18:01:31');
+INSERT INTO `guide_appointment` VALUES (56, 'APP1772186820807f55fd5', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:30', '', '2026-02-27 18:07:01');
+INSERT INTO `guide_appointment` VALUES (57, 'APP1772188399298b3f3bb', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 3, '2026-02-27', '08:00', '11:00', '', '2026-02-27 18:33:19');
+INSERT INTO `guide_appointment` VALUES (58, 'APP17721912288718621a7', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 3, '2026-02-27', '08:00', '11:00', '', '2026-02-27 19:20:29');
+INSERT INTO `guide_appointment` VALUES (59, 'APP17722623900267c0721', NULL, '范涵伶', '15520765697', '[\"发热\"]', '成都市', 4, '2026-02-28', '08:00', '11:00', '', '2026-02-28 15:06:30');
 
 -- ----------------------------
 -- Table structure for order
@@ -192,25 +257,43 @@ CREATE TABLE `order`  (
   `order_amount` decimal(10, 2) NOT NULL DEFAULT 0.00,
   `payment_status` int NULL DEFAULT 0 COMMENT '0=待支付, 1=已支付',
   `payment_time` datetime NULL DEFAULT NULL,
-  `order_status` int NULL DEFAULT 0 COMMENT '0=待支付, 1=待接单, 2=待服务, 3=服务中, 6=已完成, 7=已取消',
+  `order_status` int NULL DEFAULT 0 COMMENT '0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长费用, 5=时长费用有争议, 6=已完成, 7=已取消',
+  `cancel_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '取消原因',
+  `cancel_time` datetime NULL DEFAULT NULL COMMENT '取消时间',
+  `cancel_by` tinyint NULL DEFAULT NULL COMMENT '取消方：0用户 1陪诊师 2系统',
+  `penalty_rate` decimal(5, 2) NULL DEFAULT NULL COMMENT '违约金比例(0-1)',
+  `penalty_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '违约金金额',
+  `refund_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '退款金额',
   `qr_code_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '核销二维码URL',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `service_start_time` datetime NULL DEFAULT NULL COMMENT '服务开始时间',
   `service_end_time` datetime NULL DEFAULT NULL COMMENT '服务结束时间',
-  `actual_duration` decimal(5, 2) NULL DEFAULT NULL COMMENT '实际服务时长',
-  `balance_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '差价金额',
+  `service_progress_step` tinyint NULL DEFAULT NULL COMMENT '服务进度：1=已到院, 2=候诊中, 3=检查中, 4=就诊完成',
+  `estimated_duration` decimal(5, 2) NULL DEFAULT NULL COMMENT '预估服务时长(小时)',
+  `actual_duration` decimal(5, 2) NULL DEFAULT NULL COMMENT '实际服务时长(小时)',
+  `balance_amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '差价金额（正数需补付，负数自动退款）',
+  `time_dispute_user_duration` decimal(5, 2) NULL DEFAULT NULL COMMENT '用户申诉的实际时长(小时)',
+  `time_dispute_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '用户申诉说明',
   PRIMARY KEY (`order_id`) USING BTREE,
   UNIQUE INDEX `uk_order_no`(`order_no` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '正式订单表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 58 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '正式订单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of order
 -- ----------------------------
-INSERT INTO `order` VALUES (20, 'ORD1770922397749e14950', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市中医院', '术后护理', 2, '2026-02-13', '08:00-11:30', '发热,呼吸困难', '无', 180.00, 1, '2026-02-13 02:53:20', 6, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_20', '2026-02-13 02:53:18', '2026-02-13 02:54:49', '2026-02-13 02:55:22', 2.00, NULL);
-INSERT INTO `order` VALUES (21, 'ORD1770966931301a7ae31', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-13', '08:00-12:30', '胸痛', '无', 140.00, 1, '2026-02-13 15:15:33', 6, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_21', '2026-02-13 15:15:31', '2026-02-13 15:17:18', '2026-02-13 15:21:59', 2.00, NULL);
-INSERT INTO `order` VALUES (22, 'ORD17709675931199747d2', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-13', '08:00-12:00', '胸痛', '无', 110.00, 1, '2026-02-13 15:26:35', 3, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_22', '2026-02-13 15:26:33', '2026-02-13 15:26:52', NULL, NULL, NULL);
-INSERT INTO `order` VALUES (23, 'ORD177096940247987dfd3', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都', '普通陪诊', 1, '2026-02-13', '08:00-09:30', '头晕', '无', 50.00, 1, '2026-02-13 15:56:44', 3, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_23', '2026-02-13 15:56:42', '2026-02-13 16:16:38', NULL, NULL, NULL);
-INSERT INTO `order` VALUES (24, 'ORD17709706212501c860c', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-13', '08:00-12:30', '胸痛', '无', 140.00, 1, '2026-02-13 16:17:03', 2, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_24', '2026-02-13 16:17:01', NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (45, 'ORD177217538128245f6c9', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-10:30', '发热', '无', 180.00, 1, '2026-02-27 14:56:37', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-27 14:56:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (46, 'ORD17721767672500e0d4f', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:00', '胸痛', '无', 50.00, 1, '2026-02-27 15:19:29', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-27 15:19:27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (47, 'ORD17721772386768f50f7', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都', '普通陪诊', 1, '2026-02-27', '08:00-09:30', NULL, '无', 50.00, 1, '2026-02-27 15:27:20', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-27 15:27:19', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (48, 'ORD1772177339845b88d27', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:30', '胸痛', '无', 80.00, 1, '2026-02-27 15:29:02', 3, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_48', '2026-02-27 15:29:00', '2026-02-28 15:52:59', NULL, 4, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (49, 'ORD1772184911870ee26b8', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', 'cda', '普通陪诊', 1, '2026-02-27', '08:00-12:30', '恶心呕吐', '无', 170.00, 1, '2026-02-27 17:35:13', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_49', '2026-02-27 17:35:12', '2026-02-27 17:36:53', '2026-02-27 17:37:02', 4, 4.50, 5.50, 30.00, NULL, NULL);
+INSERT INTO `order` VALUES (50, 'ORD17721851897289aebd7', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-12:00', NULL, '无', 110.00, 1, '2026-02-27 17:39:52', 4, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_50', '2026-02-27 17:39:50', '2026-02-27 17:55:17', '2026-02-27 17:55:23', 4, 4.00, 4.50, 30.00, NULL, NULL);
+INSERT INTO `order` VALUES (51, 'ORD1772185891805b1f712', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-12:00', '胸痛', '无', 140.00, 1, '2026-02-27 17:51:40', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_51', '2026-02-27 17:51:32', '2026-02-27 18:36:45', '2026-02-27 18:41:34', 4, 4.00, 4.50, 30.00, NULL, NULL);
+INSERT INTO `order` VALUES (52, 'ORD17721864203592d5f4c', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-11:00', '腹痛', '无', 140.00, 1, '2026-02-27 18:00:22', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_52', '2026-02-27 18:00:20', '2026-02-27 18:36:01', '2026-02-28 01:08:57', 4, 3.00, 4.50, 60.00, NULL, NULL);
+INSERT INTO `order` VALUES (53, 'ORD17721864910689bda5e', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:00', '胸痛', '无', 50.00, 0, NULL, 7, '超时未支付自动取消', '2026-02-27 18:41:43', 0, 0.00, 0.00, 50.00, NULL, '2026-02-27 18:01:31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (54, 'ORD1772186820885b73960', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:30', '胸痛', '无', 80.00, 0, NULL, 7, '超时未支付自动取消', '2026-02-27 18:41:40', 0, 0.00, 0.00, 80.00, NULL, '2026-02-27 18:07:01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `order` VALUES (55, 'ORD17721883993729bc4e8', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-11:00', '胸痛', '无', 210.00, 1, '2026-02-27 18:33:27', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_55', '2026-02-27 18:33:19', '2026-02-27 18:34:14', '2026-02-27 18:34:18', NULL, 3.00, 4.00, 30.00, NULL, NULL);
+INSERT INTO `order` VALUES (56, 'ORD1772191228942f306f5', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-11:00', '胸痛', '无', 150.00, 1, '2026-02-27 19:20:33', 6, NULL, NULL, NULL, NULL, NULL, 30.00, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_56', '2026-02-27 19:20:29', '2026-02-27 19:21:38', '2026-02-27 19:26:06', 4, 3.00, 2.00, -30.00, NULL, NULL);
+INSERT INTO `order` VALUES (57, 'ORD1772262390131755423', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '上门陪诊', 4, '2026-02-28', '08:00-11:00', '发热', '无', 110.00, 1, '2026-02-28 15:06:41', 7, '计划有变，暂不就诊', '2026-02-28 15:52:07', 0, 0.00, 0.00, 110.00, NULL, '2026-02-28 15:06:30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- ----------------------------
 -- Table structure for service_type_mapping
@@ -269,7 +352,7 @@ INSERT INTO `user` VALUES (9, '小明', 'testpassword', '小明', '13987654321',
 INSERT INTO `user` VALUES (10, '小小', '123456', '小小', '13765432109', '女', 36, NULL, 1, 'oabc123def456', '2026-02-12 01:55:08');
 INSERT INTO `user` VALUES (11, '小王', '123456', '小王', '13698765432', '男', 25, '', 1, 'odef789ghi012', '2026-02-12 01:55:08');
 INSERT INTO `user` VALUES (13, 'liufang', 'liufang', '刘芳', '13806580001', '女', 32, NULL, 1, NULL, '2026-02-12 01:55:08');
-INSERT INTO `user` VALUES (15, 'fanfan', '123456', '范涵伶', '15520765697', '男', 22, NULL, 0, NULL, '2026-02-12 01:55:08');
+INSERT INTO `user` VALUES (15, 'fanfan', '123456', '范涵伶', '15520765697', '男', 22, '/uploads/user1.jpg', 0, NULL, '2026-02-12 01:55:08');
 INSERT INTO `user` VALUES (20, 'patient_test', '123456', '张三', '13800138001', '男', 30, NULL, 0, NULL, '2026-02-12 01:55:08');
 INSERT INTO `user` VALUES (21, 'lihuai', '123456', '李怀', '13900139002', '男', 35, '/uploads/03_Medicalcompanion.jpg', 1, NULL, '2026-02-12 01:55:08');
 INSERT INTO `user` VALUES (22, 'attendant002', '加密后的密码2', '李四', '13800138002', '女', 28, '/uploads/01_Medicalcompanion.jpg', 1, NULL, '2025-07-01 10:06:05');

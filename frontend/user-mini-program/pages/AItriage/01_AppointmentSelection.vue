@@ -191,7 +191,7 @@ const goToNext = () => {
 	min-height: 100vh;
 	background-color: #f5f5f5;
 	padding: 20rpx;
-	padding-bottom: 120rpx;
+	padding-bottom: 40rpx; /* 与底部按钮高度匹配，避免内容露到按钮下方 */
 }
 
 .header {
@@ -307,7 +307,7 @@ const goToNext = () => {
 /* 底部按钮 */
 .bottom-button {
 	position: fixed;
-	bottom: 0;
+	bottom: 60rpx; /* 紧贴在底部菜单正上方 */
 	left: 0;
 	right: 0;
 	padding: 30rpx;

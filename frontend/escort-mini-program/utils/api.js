@@ -123,6 +123,7 @@ export const request = (options) => {
 
 export const get = (url, params = {}) => request({ url, method: 'GET', data: params })
 export const post = (url, data = {}) => request({ url, method: 'POST', data })
+export const put = (url, data = {}) => request({ url, method: 'PUT', data })
 
 // 文件上传方法
 export const upload = (url, filePath, formData = {}, name = 'file') => {
@@ -162,4 +163,4 @@ export const upload = (url, filePath, formData = {}, name = 'file') => {
     })
 }
 
-export default { config, getToken, setToken, clearToken, request, get, post, upload }
+export default { config, getToken, setToken, clearToken, request, get, post, put, upload }

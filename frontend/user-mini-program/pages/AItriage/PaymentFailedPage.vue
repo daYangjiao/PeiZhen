@@ -22,7 +22,8 @@
 export default {
   data() {
     return {
-      orderNo: ''
+      orderNo: '',
+      scene: 'normal'
     };
   },
 
@@ -30,19 +31,30 @@ export default {
     if (options.orderNo) {
       this.orderNo = decodeURIComponent(options.orderNo);
     }
+    if (options.scene) {
+      this.scene = options.scene;
+    }
   },
 
   methods: {
-    // 重新支付：跳转回订单确认页
+    // 重新支付
     retryPayment() {
-      if (this.orderNo) {
-        uni.redirectTo({
-          url: `/pages/AItriage/04_OrderConfirmPage?orderNo=${encodeURIComponent(this.orderNo)}`
-        });
-      } else {
+      if (!this.orderNo) {
         uni.showToast({
           title: '缺少订单号',
           icon: 'none'
+        });
+        return;
+      }
+
+      // 补付失败：回到订单详情页继续补付；首付款失败：回订单确认页
+      if (this.scene === 'balance') {
+        uni.redirectTo({
+          url: `/pages/OrderDetailPage/OrderDetailPage?orderNo=${encodeURIComponent(this.orderNo)}`
+        });
+      } else {
+        uni.redirectTo({
+          url: `/pages/AItriage/04_OrderConfirmPage?orderNo=${encodeURIComponent(this.orderNo)}`
         });
       }
     },

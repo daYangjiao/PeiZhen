@@ -67,8 +67,27 @@ public class Order {
     @ApiModelProperty(value = "支付时间")
     private Date paymentTime;
 
-    @ApiModelProperty(value = "订单状态：0=待支付, 1=待接单, 2=待服务, 3=服务中, 6=已完成, 7=已取消")
+    @ApiModelProperty(value = "订单状态：0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长费用, 5=时长费用有争议, 6=已完成, 7=已取消")
     private Integer orderStatus;
+
+    @ApiModelProperty(value = "取消原因")
+    private String cancelReason;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "取消时间")
+    private Date cancelTime;
+
+    @ApiModelProperty(value = "取消方：0=用户, 1=陪诊师, 2=系统")
+    private Integer cancelBy;
+
+    @ApiModelProperty(value = "违约金比例(0-1)")
+    private BigDecimal penaltyRate;
+
+    @ApiModelProperty(value = "违约金金额")
+    private BigDecimal penaltyAmount;
+
+    @ApiModelProperty(value = "退款金额")
+    private BigDecimal refundAmount;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty(value = "创建时间")
@@ -82,15 +101,27 @@ public class Order {
     @ApiModelProperty(value = "服务开始时间")
     private Date serviceStartTime;
     
-    @ApiModelProperty(value = "实际服务时长")
-    private BigDecimal actualDuration;
-    
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty(value = "服务结束时间")
     private Date serviceEndTime;
+
+    @ApiModelProperty(value = "服务进度：1=已到院, 2=候诊中, 3=检查中, 4=就诊完成")
+    private Integer serviceProgressStep;
+
+    @ApiModelProperty(value = "预估服务时长(小时)")
+    private BigDecimal estimatedDuration;
     
-    @ApiModelProperty(value = "差价金额")
+    @ApiModelProperty(value = "实际服务时长(小时)")
+    private BigDecimal actualDuration;
+    
+    @ApiModelProperty(value = "差价金额（正数需补付，负数自动退款）")
     private BigDecimal balanceAmount;
+    
+    @ApiModelProperty(value = "用户申诉的实际时长(小时)")
+    private BigDecimal timeDisputeUserDuration;
+    
+    @ApiModelProperty(value = "用户申诉说明")
+    private String timeDisputeReason;
     
     @ApiModelProperty(value = "选中选项列表")
     private java.util.List<Integer> selectedOptions;
@@ -124,6 +155,10 @@ public class Order {
 
     @ApiModelProperty(value = "关联导诊单号")
     private String guideAppointmentId;
+
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    @ApiModelProperty(value = "下单用户头像（仅接单后返回，待接单不返回）")
+    private String userAvatar;
 
     // 业务方法
     public BigDecimal calculateBalance() {

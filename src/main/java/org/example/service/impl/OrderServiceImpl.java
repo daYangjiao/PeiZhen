@@ -13,15 +13,18 @@ import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
 import org.example.service.OrderService;
+import org.example.unity.ServiceFeeCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -148,14 +151,16 @@ public class OrderServiceImpl implements OrderService {
         }
 
         try {
-            // 插入系统消息
-            // 格式：您明天(06月15日)上午10:00有XX医院的就诊安排...
-            SimpleDateFormat sdf = new SimpleDateFormat("MM月dd日");
+            // 插入系统消息（serviceDate 为 String 如 "2026-02-22"，需解析后格式化）
             String dateStr = "";
-            if (order.getServiceDate() != null) {
-                dateStr = sdf.format(order.getServiceDate());
+            if (order.getServiceDate() != null && !order.getServiceDate().isEmpty()) {
+try {
+                dateStr = new SimpleDateFormat("MM月dd日").format(new SimpleDateFormat("yyyy-MM-dd").parse(order.getServiceDate().trim()));
+            } catch (Exception parseEx) {
+                    dateStr = order.getServiceDate();
+                }
             }
-            String msgContent = "您预约的(" + dateStr + ")" + order.getServiceTimeSlot() + "有" + order.getHospital() + "的就诊安排，陪诊师" + attendantUser.getName() + "已接单。请携带身份证、医保卡及相关检查报告。";
+            String msgContent = "您预约的(" + dateStr + ")" + (order.getServiceTimeSlot() != null ? order.getServiceTimeSlot() : "") + "有" + (order.getHospital() != null ? order.getHospital() : "") + "的就诊安排，陪诊师" + attendantUser.getName() + "已接单。请携带身份证、医保卡及相关检查报告。";
             sendSystemMessage(order.getUserId(), msgContent);
             
             log.info("已向用户 {} 发送系统消息", order.getUserId());
@@ -224,14 +229,58 @@ public class OrderServiceImpl implements OrderService {
     public String endService(Integer orderId, BigDecimal actualDuration) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
-        if (order.getOrderStatus() != 3) return "订单当前状态无法结束服务";
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 3) return "订单当前状态无法结束服务";
 
-        order.setOrderStatus(6);
+        // 记录结束时间与实际时长
         order.setServiceEndTime(new Date());
         order.setActualDuration(actualDuration);
+
+        // 若预估时长为空，尝试从 consultationDuration 或 service_time_slot 推导
+        if (order.getEstimatedDuration() == null) {
+            BigDecimal estimated = null;
+            if (order.getConsultationDuration() != null) {
+                estimated = order.getConsultationDuration();
+            } else if (order.getServiceTimeSlot() != null) {
+                try {
+                    String slot = order.getServiceTimeSlot();
+                    String[] parts = slot.split("-");
+                    if (parts.length == 2) {
+                        SimpleDateFormat fmt = new SimpleDateFormat("HH:mm");
+                        Date start = fmt.parse(parts[0].trim());
+                        Date end = fmt.parse(parts[1].trim());
+                        long minutes = (end.getTime() - start.getTime()) / 60000;
+                        if (minutes > 0) {
+                            estimated = BigDecimal.valueOf(minutes / 60.0).setScale(1, RoundingMode.HALF_UP);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("解析 service_time_slot 计算预估时长失败, slot={}", order.getServiceTimeSlot(), e);
+                }
+            }
+            order.setEstimatedDuration(estimated);
+        }
+
+        // 计算基于实际时长的应收费用（不改变原 orderAmount，先存差额）
+        BigDecimal balance = BigDecimal.ZERO;
+        try {
+            int serviceType = order.getClinicType() != null ? order.getClinicType() : 1;
+            ServiceFeeCalculator.FeeCalculationResult feeResult =
+                    ServiceFeeCalculator.calculateFee(serviceType, actualDuration.doubleValue(), false);
+            BigDecimal expectedTotal = feeResult.getTotalFee();
+            BigDecimal originalAmount = order.getOrderAmount() != null ? order.getOrderAmount() : BigDecimal.ZERO;
+            balance = expectedTotal.subtract(originalAmount);
+            // 四舍五入到两位
+            balance = balance.setScale(2, RoundingMode.HALF_UP);
+            order.setBalanceAmount(balance);
+        } catch (Exception e) {
+            log.error("按实际时长计算费用失败，orderId={}", orderId, e);
+        }
+
+        // 状态改为：4=待确认时长费用
+        order.setOrderStatus(4);
         orderMapper.updateByPrimaryKeySelective(order);
 
-        // 发送 WebSocket 消息
+        // 通知用户：服务已结束，请确认时长和费用
         try {
             String message = String.format("{\"type\":\"SERVICE_COMPLETED\",\"orderId\":%d}", orderId);
             webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), message);
@@ -239,18 +288,200 @@ public class OrderServiceImpl implements OrderService {
             log.error("发送服务结束 WebSocket 消息失败", e);
         }
 
-        // 插入系统消息（用户）
-        // 格式：您的陪诊服务(订单No.****8765)已完成，感谢您使用我们的服务!请对本次服务进行评价...
-        String msgContent = "您的陪诊服务(订单No." + order.getOrderNo() + ")已完成，感谢您使用我们的服务!请对本次服务进行评价，帮助我们持续改进服务质量。";
+        String msgContent = "您的陪诊服务(订单No." + order.getOrderNo() + ")已结束，请确认本次服务时长和费用（多退少补）。";
         sendSystemMessage(order.getUserId(), msgContent);
+        sendSystemMessage(order.getAttendantId(), "您已结束订单 " + order.getOrderNo() + " 的服务，请提醒用户确认时长与费用。");
 
-        // 插入系统消息（陪诊师）
-        sendSystemMessage(order.getAttendantId(), "您已完成订单 " + order.getOrderNo() + " 的服务，请提醒用户确认服务时长并评价。");
-
-        return "服务结束成功";
+        return "服务结束成功，待用户确认时长费用";
     }
 
-    // 辅助方法：发送系统消息
+    @Override
+    @Transactional
+    public String updateServiceProgress(Integer orderId, Integer step) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) return "订单不存在";
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 3) {
+            return "仅服务中状态可更新服务进度";
+        }
+        if (step == null || step < 1 || step > 4) {
+            return "无效的服务进度步骤";
+        }
+        order.setServiceProgressStep(step);
+        orderMapper.updateByPrimaryKeySelective(order);
+
+        // 通过 WebSocket 通知用户和陪诊师，便于前端实时刷新
+        try {
+            String wsMsg = String.format("{\"type\":\"SERVICE_PROGRESS_UPDATED\",\"orderId\":%d,\"step\":%d}",
+                    orderId, step);
+            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            if (order.getAttendantId() != null) {
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
+            }
+        } catch (Exception e) {
+            log.error("发送服务进度 WebSocket 消息失败, orderId={}", orderId, e);
+        }
+
+        return "服务进度已更新";
+    }
+
+    @Override
+    @Transactional
+    public String userConfirmTimeAndFee(Integer orderId) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) return "订单不存在";
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 4) {
+            return "当前状态不允许确认时长费用";
+        }
+
+        BigDecimal originalAmount = order.getOrderAmount() != null ? order.getOrderAmount() : BigDecimal.ZERO;
+        BigDecimal balance = order.getBalanceAmount() != null ? order.getBalanceAmount() : BigDecimal.ZERO;
+        BigDecimal finalAmount = originalAmount.add(balance).setScale(2, RoundingMode.HALF_UP);
+
+        // 更新订单金额与状态
+        order.setOrderAmount(finalAmount);
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            // 退款场景：记录退款金额（正数）
+            order.setRefundAmount(balance.abs());
+        }
+        order.setOrderStatus(6);
+        orderMapper.updateByPrimaryKeySelective(order);
+
+        // 消息通知
+        sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，订单已完成。");
+        sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，订单已完成。");
+
+        // 通过 WebSocket 推送订单状态变更（方便前端实时刷新列表和详情）
+        try {
+            String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderStatus\":6}",
+                    orderId);
+            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            if (order.getAttendantId() != null) {
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
+            }
+        } catch (Exception e) {
+            log.error("发送订单完成状态 WebSocket 消息失败, orderId={}", orderId, e);
+        }
+
+        return "确认成功，订单已完成";
+    }
+
+    @Override
+    @Transactional
+    public String userDisputeTimeAndFee(Integer orderId, BigDecimal userDuration, String reason) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) return "订单不存在";
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 4) {
+            return "当前状态不允许发起申诉";
+        }
+
+        order.setTimeDisputeUserDuration(userDuration);
+        order.setTimeDisputeReason(reason);
+        order.setOrderStatus(5); // 时长费用有争议
+        orderMapper.updateByPrimaryKeySelective(order);
+
+        sendSystemMessage(order.getAttendantId(),
+                "用户对订单 " + order.getOrderNo() + " 的服务时长与费用提出异议，请关注平台处理结果。");
+
+        // WebSocket 推送争议状态，前端可实时更新为“时长费用有争议”
+        try {
+            String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderStatus\":5}",
+                    orderId);
+            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            if (order.getAttendantId() != null) {
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
+            }
+        } catch (Exception e) {
+            log.error("发送订单争议状态 WebSocket 消息失败, orderId={}", orderId, e);
+        }
+
+        return "申诉已提交，等待平台处理";
+    }
+
+    @Override
+    @Transactional
+    public String attendantCancelOrder(Integer orderId, String reason, BigDecimal penaltyAmount,
+                                       BigDecimal refundAmount, BigDecimal penaltyRate) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) return "订单不存在";
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 2) {
+            return "仅待服务状态可取消订单";
+        }
+        if (reason == null || reason.trim().isEmpty()) return "请输入取消原因";
+
+        Date appointmentStart = parseAppointmentStartTime(order.getServiceDate(), order.getServiceTimeSlot());
+        Date now = new Date();
+        boolean beforeStart = (appointmentStart != null && now.before(appointmentStart));
+
+        if (beforeStart) {
+            // 预约开始前：释放回接单大厅，不扣违约金，通知用户
+            int rows = orderMapper.releaseOrderBackToHall(orderId, reason.trim(), now);
+            if (rows <= 0) {
+                log.error("释放订单回接单大厅失败，orderId={}", orderId);
+                return "操作失败，请重试";
+            }
+            String userMsg = "您的订单" + order.getOrderNo() + "因陪诊师取消已重新进入接单大厅，将为您重新匹配合诊师。取消原因：" + reason.trim();
+            sendSystemMessage(order.getUserId(), userMsg);
+            try {
+                String wsMsg = String.format("{\"type\":\"ORDER_RELEASED_BY_ATTENDANT\",\"orderId\":%d,\"orderNo\":\"%s\",\"reason\":\"%s\"}",
+                        orderId, order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "", reason.trim().replace("\"", "\\\""));
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            } catch (Exception e) {
+                log.error("发送订单释放 WebSocket 消息失败", e);
+            }
+            return "订单已释放回接单大厅，将重新为您匹配合诊师";
+        }
+
+        // 预约开始后或无法解析时间：按已取消处理，扣违约金
+        BigDecimal orderAmount = order.getOrderAmount() == null ? BigDecimal.ZERO : order.getOrderAmount();
+        BigDecimal finalRate = penaltyRate != null ? penaltyRate : BigDecimal.ZERO;
+        BigDecimal finalPenalty = penaltyAmount != null ? penaltyAmount : orderAmount.multiply(finalRate);
+        BigDecimal finalRefund = refundAmount != null ? refundAmount : orderAmount;
+        order.setOrderStatus(7);
+        order.setCancelReason(reason.trim());
+        order.setCancelTime(now);
+        order.setCancelBy(1);
+        order.setPenaltyRate(finalRate);
+        order.setPenaltyAmount(finalPenalty);
+        order.setRefundAmount(finalRefund);
+        orderMapper.updateByPrimaryKeySelective(order);
+        return "订单已取消";
+    }
+
+    @Override
+    public void notifyUserOrderCancelled(Order order) {
+        if (order == null || order.getUserId() == null) {
+            return;
+        }
+        String reason = order.getCancelReason() != null ? order.getCancelReason() : "订单已取消";
+        String msg = "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "")
+                + "已取消。取消原因：" + reason;
+        sendSystemMessage(order.getUserId(), msg);
+    }
+
+    /**
+     * 解析预约开始时间：serviceDate 如 "2026-02-22"，serviceTimeSlot 如 "08:00-10:30" 或 "08:00"
+     */
+    private Date parseAppointmentStartTime(String serviceDate, String serviceTimeSlot) {
+        if (serviceDate == null || serviceDate.trim().isEmpty()) return null;
+        String timePart = "00:00";
+        if (serviceTimeSlot != null && !serviceTimeSlot.trim().isEmpty()) {
+            String slot = serviceTimeSlot.trim();
+            int dash = slot.indexOf('-');
+            String first = dash > 0 ? slot.substring(0, dash).trim() : slot;
+            if (Pattern.compile("\\d{1,2}:\\d{2}").matcher(first).find()) {
+                timePart = first.length() >= 5 ? first.substring(0, 5) : first;
+            }
+        }
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            return sdf.parse(serviceDate.trim() + " " + timePart);
+        } catch (Exception e) {
+            log.warn("解析预约开始时间失败: serviceDate={}, serviceTimeSlot={}", serviceDate, serviceTimeSlot, e);
+            return null;
+        }
+    }
+
+    // 辅助方法：发送系统消息（写入 DB 并 WebSocket 推送，用户端可实时收到未读提示）
     private void sendSystemMessage(Integer receiverId, String content) {
         try {
             ChatMessage sysMsg = new ChatMessage();
@@ -261,6 +492,7 @@ public class OrderServiceImpl implements OrderService {
             sysMsg.setIsRead(false);
             sysMsg.setCreateTime(new Date());
             chatMessageMapper.insert(sysMsg);
+            chatWebSocketHandler.sendMessageToUser(receiverId, sysMsg);
         } catch (Exception e) {
             log.error("发送系统消息失败", e);
         }
@@ -314,6 +546,8 @@ public class OrderServiceImpl implements OrderService {
             res.setPaymentStatus(order.getPaymentStatus());
             res.setServiceTypeName(order.getServiceContent());
             res.setCreateTime(order.getCreateTime());
+            res.setSpecialRequirements(order.getSpecialRequirements());
+            res.setCustomRequirement(order.getCustomRequirement());
 
             if (order.getAttendantId() != null) {
                 User attendantUser = userMapper.findById(order.getAttendantId());

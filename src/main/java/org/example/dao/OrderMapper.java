@@ -77,4 +77,14 @@ public interface OrderMapper {
      * 根据状态查询订单
      */
     List<Order> findOrdersByStatus(@Param("status") Integer status);
+
+    /**
+     * 将订单释放回接单大厅：状态改为待接单，清空陪诊师与二维码，记录取消原因与时间（供用户端展示）
+     */
+    int releaseOrderBackToHall(@Param("orderId") Integer orderId, @Param("reason") String reason, @Param("cancelTime") java.util.Date cancelTime);
+
+    /**
+     * 查询超过支付时限仍未支付的订单（用于系统自动取消）
+     */
+    List<Order> findExpiredUnpaidOrders(@Param("deadline") java.util.Date deadline);
 }

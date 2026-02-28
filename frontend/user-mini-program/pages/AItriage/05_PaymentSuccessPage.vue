@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get } from '@/utils/api.js';
 
@@ -160,15 +160,28 @@ const getSymptomDescription = () => {
 
 /**
  * 跳转到订单详情页
+ * 先重启到“订单列表”作为栈底，再从订单页进入详情，
+ * 确保从详情页返回时回到订单列表，而不是回到下单/支付页。
  */
 const goToOrderDetail = () => {
-  if (orderData.value.orderNo) {
-    uni.redirectTo({
-      url: `/pages/OrderDetailPage/OrderDetailPage?orderNo=${encodeURIComponent(orderData.value.orderNo)}`
-    });
-  } else {
+  if (!orderData.value.orderNo) {
     uni.showToast({ title: '无法跳转：缺少订单号', icon: 'none' });
+    return;
   }
+
+  const targetOrderNo = encodeURIComponent(orderData.value.orderNo);
+
+  // 先重启到订单列表，再从订单页跳转到详情，保证返回时回到订单列表
+  uni.reLaunch({
+    url: '/pages/order/order',
+    success() {
+      setTimeout(() => {
+        uni.navigateTo({
+          url: `/pages/OrderDetailPage/OrderDetailPage?orderNo=${targetOrderNo}`
+        });
+      }, 150);
+    }
+  });
 };
 </script>
 

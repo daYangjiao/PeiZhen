@@ -40,4 +40,7 @@ public class ChatMessage {
 
     @ApiModelProperty(value = "发送者头像")
     private String senderAvatar;
+
+    @ApiModelProperty(value = "未读数量（仅联系人列表接口返回）")
+    private Integer unreadCount;
 }

@@ -2,6 +2,7 @@
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
 const stores_user = require("../../stores/user.js");
+const api_user = require("../../api/user.js");
 const _sfc_main = {
   __name: "profile",
   setup(__props) {
@@ -67,14 +68,12 @@ const _sfc_main = {
     const fetchUserDetail = async () => {
       if (userStore.value && userStore.value.isLoggedIn && userStore.value.userInfo && userStore.value.userInfo.userId) {
         try {
-          const { getUserById } = require("@/api/user.js");
-          const userDetailResponse = await getUserById(userStore.value.userInfo.userId);
+          const userDetailResponse = await api_user.getUserById(userStore.value.userInfo.userId);
           if (userDetailResponse.data) {
             const updatedUserInfo = {
               ...userStore.value.userInfo,
               name: userDetailResponse.data.name,
               username: userDetailResponse.data.username
-              // 可以根据需要更新更多字段
             };
             userStore.value.setUserInfo(updatedUserInfo);
           }

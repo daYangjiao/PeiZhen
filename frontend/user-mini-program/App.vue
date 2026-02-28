@@ -1,8 +1,37 @@
 <script>
-	import { connectChatSocket } from '@/utils/chat-websocket.js'
+	import { connectChatSocket, addChatListener } from '@/utils/chat-websocket.js'
 	import { connectSocket } from '@/utils/websocket.js'
 	import { startupTokenCheck, startPeriodicTokenCheck } from '@/utils/token-validator.js'
 	import { useMessageStore } from '@/stores/message.js'
+
+	// 全局聊天消息监听：无论当前在哪个页面，收到消息都更新 store 和 TabBar 红点
+	function setupGlobalChatListener() {
+		addChatListener((msg) => {
+			if (!msg) return
+			const userInfo = uni.getStorageSync('userInfo')
+			const currentUserId = userInfo?.id
+			if (!currentUserId) return
+
+			const isReadReceipt = (msg.type === 'READ_RECEIPT' || msg.content === 'READ_RECEIPT' || msg.msgType == 3) && msg.senderId && msg.receiverId
+			if (isReadReceipt) {
+				if (msg.receiverId === currentUserId) {
+					useMessageStore().decrementUnread(msg.senderId)
+				}
+				return
+			}
+
+			if (msg.senderId === 0 && msg.receiverId === currentUserId) {
+				useMessageStore().incrementSystemUnread()
+				return
+			}
+			if (msg.senderId && msg.receiverId) {
+				const contactId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId
+				if (contactId && contactId > 0) {
+					useMessageStore().incrementUnread(contactId)
+				}
+			}
+		})
+	}
 
 	export default {
 		onLaunch: async function() {
@@ -19,19 +48,24 @@
 			const messageStore = useMessageStore()
 			await messageStore.initMessageStatus()
 			
-			// 连接WebSocket
+			// 连接WebSocket 并注册全局监听（保证非消息页也能收到未读更新）
 			connectSocket()
 			connectChatSocket()
+			setupGlobalChatListener()
 			
 			// 启动定期token检查（每30分钟检查一次）
 			startPeriodicTokenCheck(30 * 60 * 1000)
 		},
-		onShow: function() {
+		onShow: async function() {
 			console.log('App Show')
 			connectSocket()
 			connectChatSocket()
-			// 不在app显示时自动刷新消息状态，避免红点消失
-			console.log('App显示，保持当前消息状态')
+			try {
+				const messageStore = useMessageStore()
+				await messageStore.refreshUnreadCounts()
+			} catch (e) {
+				console.error('刷新未读消息失败', e)
+			}
 		},
 		onHide: function() {
 			console.log('App Hide')

@@ -171,10 +171,9 @@ export const useMessageStore = defineStore('message', {
     
     // 强制刷新tabBar显示
     forceRefreshTabBar() {
-      // 先清除再重新设置
       uni.removeTabBarBadge({
-        index: 3
-      }).finally(() => {
+        index: 2
+      }).catch(() => {}).finally(() => {
         this.updateTabBarBadge()
       })
     },

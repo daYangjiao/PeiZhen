@@ -3,8 +3,7 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "陪诊服务",
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "陪诊服务"
 			}
 		},
 		{
@@ -77,6 +76,12 @@
 			"path": "pages/AItriage/05_PaymentSuccessPage",
 			"style": {
 				"navigationBarTitleText": "支付成功"
+			}
+		},
+		{
+			"path": "pages/AItriage/PaymentFailedPage",
+			"style": {
+				"navigationBarTitleText": "支付失败"
 			}
 		},
 		{
@@ -160,8 +165,7 @@
 				{
 					"path": "appointment-time",
 					"style": {
-						"navigationBarTitleText": "选择服务时间",
-						"navigationStyle": "custom"
+						"navigationBarTitleText": "选择服务时间"
 					}
 				}
 			]
@@ -195,11 +199,8 @@
 					"path": "chat",
 					"style": {
 						"navigationBarTitleText": "咨询陪诊师",
-						"navigationStyle": "custom",
 						"enablePullDownRefresh": false,
-						"app-plus": {
-							"titleNView": false
-						}
+						"navigationStyle": "custom"
 					}
 				}
 			]

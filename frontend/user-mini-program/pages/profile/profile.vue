@@ -3,12 +3,13 @@
 		<!-- 用户信息区域 -->
 		<view class="user-section">
 			<!-- 已登录状态 -->
-			<view v-if="userStore && userStore.isLoggedIn" class="user-info">
+			<view v-if="userStore.isLoggedIn" class="user-info">
 				<view class="user-avatar">
 					<image 
 						class="avatar-img" 
-						:src="userStore.avatar || '/static/user-placeholder.png'" 
+						:src="avatarDisplayUrl" 
 						mode="aspectFill"
+						@error="onAvatarError"
 					></image>
 				</view>
 				<view class="user-details">
@@ -81,7 +82,7 @@
 						<text class="item-title">帮助与反馈</text>
 						<text class="item-arrow">〉</text>
 					</view>
-					<view v-if="userStore && userStore.isLoggedIn" class="menu-item" @click="handleLogout">
+					<view v-if="userStore.isLoggedIn" class="menu-item" @click="handleLogout">
 						<view class="item-icon">
 							<image src="/static/wode_2.png" mode="aspectFit"></image>
 						</view>
@@ -95,11 +96,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
+import { config } from '@/utils/api.js'
+import { getUserById } from '@/api/user.js'
 
-// 响应式数据
-const userStore = ref(null)
+// 占位图（本地静态资源，一定可显示）
+const PLACEHOLDER_AVATAR = '/static/user-placeholder.png'
+
+// 直接使用 store，保证头像等字段响应式更新
+const userStore = useUserStore()
+const avatarLoadFailed = ref(false)
+
+// 与陪诊师端一致：数据库存 /uploads/xxx.jpg → 完整 URL http://localhost:8080/uploads/xxx.jpg
+const getFullAvatarUrl = (relativePath) => {
+	if (!relativePath || typeof relativePath !== 'string') return PLACEHOLDER_AVATAR
+	const path = String(relativePath).trim()
+	if (!path) return PLACEHOLDER_AVATAR
+	if (path.startsWith('http')) return path
+	const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
+	const normalized = path.startsWith('/') ? path.substring(1) : path
+	return baseUrl + normalized
+}
+
+// 实际展示的头像地址：有头像且未加载失败时用完整 URL，否则用占位图
+const avatarDisplayUrl = computed(() => {
+	if (avatarLoadFailed.value) return PLACEHOLDER_AVATAR
+	const avatar = userStore.avatar || userStore.userInfo?.avatar || ''
+	return getFullAvatarUrl(avatar)
+})
+
+const onAvatarError = () => {
+	avatarLoadFailed.value = true
+}
+
+// 头像来源变化时重置加载失败状态（例如上传新头像或从接口拉取到头像后）
+watch(() => userStore.avatar, () => {
+	avatarLoadFailed.value = false
+})
 
 // 方法
 // 跳转到登录页面
@@ -119,7 +154,7 @@ const editProfile = () => {
 
 // 跳转到订单页面
 const goToOrders = () => {
-	if (!userStore.value.checkLoginStatus('/pages/order/order')) {
+	if (!userStore.checkLoginStatus('/pages/order/order')) {
 		return
 	}
 	uni.switchTab({
@@ -129,7 +164,7 @@ const goToOrders = () => {
 
 // 跳转到预约页面
 const goToAppointments = () => {
-	if (!userStore.value.checkLoginStatus('/pages/appointment/appointment')) {
+	if (!userStore.checkLoginStatus('/pages/appointment/appointment')) {
 		return
 	}
 	uni.switchTab({
@@ -139,7 +174,7 @@ const goToAppointments = () => {
 
 // 跳转到消息页面
 const goToMessages = () => {
-	if (!userStore.value.checkLoginStatus('/pages/message/message')) {
+	if (!userStore.checkLoginStatus('/pages/message/message')) {
 		return
 	}
 	uni.switchTab({
@@ -170,58 +205,44 @@ const handleLogout = () => {
 		content: '确定要退出登录吗？',
 		success: (res) => {
 			if (res.confirm) {
-				userStore.value.logout()
+				userStore.logout()
 			}
 		}
 	})
 }
 
-// 获取用户详细信息
+// 获取用户详细信息（含头像），拉取后 store 会更新，头像会自动刷新
 const fetchUserDetail = async () => {
-	if (userStore.value && userStore.value.isLoggedIn && userStore.value.userInfo && userStore.value.userInfo.userId) {
-		try {
-			// 导入getUserById方法
-			const { getUserById } = require('@/api/user.js');
-			
-			// 获取详细用户信息
-			const userDetailResponse = await getUserById(userStore.value.userInfo.userId);
-			
-			if (userDetailResponse.data) {
-				// 更新用户信息
-				const updatedUserInfo = {
-					...userStore.value.userInfo,
-					name: userDetailResponse.data.name,
-					username: userDetailResponse.data.username
-					// 可以根据需要更新更多字段
-				};
-				
-				// 更新store中的用户信息
-				userStore.value.setUserInfo(updatedUserInfo);
+	const uid = userStore.userInfo?.id ?? userStore.userInfo?.userId
+	if (!userStore.isLoggedIn || !uid) return
+	try {
+		const userDetailResponse = await getUserById(uid)
+		if (userDetailResponse.data) {
+			const updatedUserInfo = {
+				...userStore.userInfo,
+				name: userDetailResponse.data.name,
+				username: userDetailResponse.data.username,
+				avatar: userDetailResponse.data.avatar
 			}
-		} catch (error) {
-			console.error('获取用户详细信息失败:', error);
+			userStore.setUserInfo(updatedUserInfo)
 		}
+	} catch (error) {
+		console.error('获取用户详细信息失败:', error)
 	}
-};
+}
 
 // 生命周期
 onMounted(() => {
-	// 初始化用户store
-	userStore.value = useUserStore()
-	// 从本地存储恢复状态
-	userStore.value.restoreFromStorage()
-	// 获取用户详细信息
+	userStore.restoreFromStorage()
 	fetchUserDetail()
 })
 
-// 页面显示时检查登录状态并更新用户信息
-const onShow = () => {
-	if (userStore.value) {
-		userStore.value.restoreFromStorage()
-		// 每次页面显示时获取最新用户信息
-		fetchUserDetail()
-	}
-}
+// 页面显示时刷新用户信息（从编辑页返回或切 Tab 回来时能看到最新头像）
+onShow(() => {
+	userStore.restoreFromStorage()
+	avatarLoadFailed.value = false
+	fetchUserDetail()
+})
 </script>
 
 <style>

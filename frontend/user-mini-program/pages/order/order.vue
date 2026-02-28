@@ -85,7 +85,13 @@
                 </view>
                 <view class="attendant-wrapper" v-else>
                   <image class="doctor-avatar" src="/static/default-avatar.jpg" mode="aspectFill"></image>
-                  <text class="doctor-name text-gray">待分配</text>
+                  <text class="doctor-name text-gray">
+                    {{
+                      order.orderStatus === 7
+                        ? '已取消'
+                        : (order.paymentStatus === 0 ? '待支付' : '待分配')
+                    }}
+                  </text>
                 </view>
 
                 <view class="action-buttons">
@@ -118,13 +124,15 @@ const statusBarHeight = ref(0);
 const searchKeyword = ref('');
 
 // 状态映射：后端状态码 -> 前端Tab值
-// 0:待支付, 1:待接单, 2:待服务, 3:服务中, 6:已完成, 7:已取消
+// 0:待支付, 1:待接单, 2:待服务, 3:服务中, 4:待确认, 5:待补款, 6:已完成, 7:已取消
 const statusTabs = ref([
   { name: '全部', value: null },
   { name: '待支付', value: 0 },
   { name: '待接单', value: 1 },
   { name: '待服务', value: 2 },
   { name: '服务中', value: 3 },
+  { name: '待确认', value: 4 },
+  { name: '待补款', value: 5 },
   { name: '已完成', value: 6 },
   { name: '已取消', value: 7 }
 ]);
@@ -222,6 +230,8 @@ const getStatusClass = (status) => {
     1: 'status-waiting',
     2: 'status-accepted',
     3: 'status-service',
+    4: 'status-confirm',
+    5: 'status-balance',
     6: 'status-completed',
     7: 'status-cancelled'
   };
@@ -264,7 +274,8 @@ const handleSocketMessage = (message) => {
   if (message.type === 'ORDER_ACCEPTED' || 
       message.type === 'SERVICE_STARTED' || 
       message.type === 'SERVICE_COMPLETED' ||
-      message.type === 'ORDER_STATUS_CHANGED') {
+      message.type === 'ORDER_STATUS_CHANGED' ||
+      message.type === 'SERVICE_PROGRESS_UPDATED') {
     
     console.log('检测到订单状态变更，刷新订单列表');
     // 延迟一小段时间后再刷新，确保数据库已更新
@@ -292,7 +303,12 @@ const startPolling = () => {
   
   // 每10秒轮询一次
   pollTimer = setInterval(() => {
-    if (orders.value.some(order => order.orderStatus === 1)) { // 如果有待接单的订单
+    // 有“实时变化可能”的订单时启用轮询：未支付倒计时/待接单/服务中/待确认等
+    const shouldPoll = orders.value.some(order =>
+      (order.paymentStatus === 0 && order.orderStatus !== 7) ||
+      [1, 2, 3, 4, 5].includes(order.orderStatus)
+    );
+    if (shouldPoll) {
       loadOrders();
     }
   }, 10000);
@@ -429,6 +445,8 @@ onUnmounted(() => {
 .status-waiting { background: #e6f7ff; color: #1890ff; }
 .status-accepted { background: #f6ffed; color: #52c41a; }
 .status-service { background: #f9f0ff; color: #722ed1; }
+.status-confirm { background: #e6f4ff; color: #1677ff; }
+.status-balance { background: #fff0f6; color: #c41d7f; }
 .status-completed { background: #f5f5f5; color: #8c8c8c; }
 .status-cancelled { background: #fff1f0; color: #f5222d; }
 

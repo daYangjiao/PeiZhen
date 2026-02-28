@@ -5,7 +5,7 @@
 			<view class="avatar-upload">
 				<image 
 					class="avatar-img" 
-					:src="userForm.avatar || originalUserData.avatar || '/static/user-placeholder.png'" 
+					:src="getFullAvatarUrl(userForm.avatar || originalUserData.avatar)" 
 					mode="aspectFill"
 					@click="isEditing ? chooseAvatar : null"
 				></image>
@@ -81,6 +81,16 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '../../api/user.js'
+import { config } from '../../utils/api.js'
+
+// 与陪诊师端一致：将数据库头像路径转为完整 URL
+const getFullAvatarUrl = (relativePath) => {
+	if (!relativePath) return '/static/user-placeholder.png'
+	if (relativePath.startsWith('http')) return relativePath
+	const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
+	const path = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath
+	return baseUrl + path
+}
 
 // 响应式数据
 const userStore = ref(null)
@@ -177,26 +187,21 @@ const chooseAvatar = () => {
 	})
 }
 
-// 上传头像
+// 上传头像（上传后后端已更新用户 avatar，并已同步到 store）
 const uploadUserAvatar = async (filePath) => {
 	try {
 		uni.showLoading({ title: '上传中...' })
 		const response = await uploadAvatar(filePath)
 		uni.hideLoading()
-		
-		if (response.data && response.data.avatarUrl) {
-			userForm.value.avatar = response.data.avatarUrl
-			uni.showToast({
-				title: '头像上传成功',
-				icon: 'success'
-			})
+		const avatarUrl = response?.data?.avatarUrl || response?.data
+		if (avatarUrl) {
+			userForm.value.avatar = avatarUrl
+			originalUserData.value.avatar = avatarUrl
+			uni.showToast({ title: '头像上传成功', icon: 'success' })
 		}
 	} catch (error) {
 		uni.hideLoading()
-		uni.showToast({
-			title: '头像上传失败',
-			icon: 'none'
-		})
+		uni.showToast({ title: '头像上传失败', icon: 'none' })
 	}
 }
 
