@@ -1,0 +1,28 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆角卡片 -->
+  <rect x="6" y="10" width="52" height="44" rx="12" fill="#F5F9FF"/>
+
+  <!-- 顶部小进度条背景 -->
+  <rect x="14" y="20" width="36" height="6" rx="3" fill="#E6F3FF"/>
+
+  <!-- 已完成部分 -->
+  <rect x="14" y="20" width="22" height="6" rx="3" fill="#1890FF"/>
+
+  <!-- 四个阶段点位（底层灰） -->
+  <circle cx="18" cy="23" r="3" fill="#B3D7FF"/>
+  <circle cx="28" cy="23" r="3" fill="#B3D7FF"/>
+  <circle cx="38" cy="23" r="3" fill="#B3D7FF"/>
+  <circle cx="48" cy="23" r="3" fill="#B3D7FF"/>
+
+  <!-- 已完成阶段高亮 -->
+  <circle cx="18" cy="23" r="3" fill="#1890FF"/>
+  <circle cx="28" cy="23" r="3" fill="#1890FF"/>
+
+  <!-- 左上小勾 -->
+  <path d="M18 16 L21 19 L26 13" stroke="#1890FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 下方三条浅灰占位线，表示文字 -->
+  <rect x="14" y="32" width="22" height="4" rx="2" fill="#E0E0E0"/>
+  <rect x="14" y="40" width="28" height="4" rx="2" fill="#E0E0E0"/>
+  <rect x="14" y="48" width="18" height="4" rx="2" fill="#E0E0E0"/>
+</svg>
