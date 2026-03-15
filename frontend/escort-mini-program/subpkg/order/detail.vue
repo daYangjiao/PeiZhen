@@ -464,7 +464,6 @@
 
 <script>
 import { get, post, config } from '@/utils/api.js'
-import { cancelAttendantOrder } from '@/api/order.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 
 function fullAvatarUrl(path) {

@@ -9,7 +9,7 @@
 		
 		<!-- Logo和标题 -->
 		<view class="logo-section">
-			<image class="logo" src="/static/mynewlogo.png" mode="aspectFit"></image>
+			<image class="logo" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit"></image>
 			<text class="app-name">愈安伴</text>
 			<text class="app-desc">专业贴心的医疗陪护服务</text>
 		</view>
@@ -72,6 +72,7 @@
 <script>
 import { useUserStore } from '@/stores/user'
 import { login } from '@/api/auth'
+import { getBackendImageUrl } from '@/utils/api.js'
 
 export default {
 	data() {
@@ -110,6 +111,9 @@ export default {
 	},
 	
 	methods: {
+		// 获取后端图片 URL
+		getBackendImageUrl,
+		
 		// 账号密码登录
 		async handleLogin() {
 			// 表单验证

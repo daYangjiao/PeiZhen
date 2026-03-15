@@ -131,12 +131,12 @@ const _sfc_main = {
           break;
       }
       common_vendor.index.navigateTo({
-        url: "/pages/AItriage/02_AppointmentForm?serviceTypeNumber=" + serviceTypeNumber + "&serviceTypeName=" + encodeURIComponent(serviceTypeName)
+        url: "/subpkg/appointment-flow/02_AppointmentForm?serviceTypeNumber=" + serviceTypeNumber + "&serviceTypeName=" + encodeURIComponent(serviceTypeName)
       });
     };
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_assets._imports_0$3,
+        a: common_assets._imports_0$1,
         b: selectedService.value === "general" ? 1 : "",
         c: common_vendor.o(($event) => selectService("general")),
         d: common_assets._imports_1$2,
@@ -145,7 +145,7 @@ const _sfc_main = {
         g: common_assets._imports_2$1,
         h: selectedService.value === "emergency" ? 1 : "",
         i: common_vendor.o(($event) => selectService("emergency")),
-        j: common_assets._imports_3$1,
+        j: common_assets._imports_3,
         k: selectedService.value === "home" ? 1 : "",
         l: common_vendor.o(($event) => selectService("home")),
         m: selectedService.value

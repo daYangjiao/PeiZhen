@@ -136,6 +136,12 @@ export const post = (url, data = {}) => request({ url, method: 'POST', data })
 export const put = (url, data = {}) => request({ url, method: 'PUT', data })
 export const del = (url, data = {}) => request({ url, method: 'DELETE', data })
 
+// 获取后端图片 URL
+export const getBackendImageUrl= (imageName) => {
+	const baseUrl= config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL
+	return `${baseUrl}/uploads/frontend-images/${imageName}`
+}
+
 // 文件上传方法
 export const upload = (url, filePath, formData = {}, name = 'file') => {
     return new Promise((resolve, reject) => {

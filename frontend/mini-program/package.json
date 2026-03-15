@@ -1,0 +1,9 @@
+{
+  "name": "mini-program",
+  "version": "1.0.0",
+  "description": "合并后的陪诊小程序（用户端+陪诊师端）",
+  "main": "main.js",
+  "dependencies": {
+    "pinia": "^3.0.3"
+  }
+}

@@ -84,6 +84,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/users/login",
             "/api/users/register",
             "/api/users/checkUsername",
+            "/api/chat/contacts",  // 获取联系人列表（允许未登录用户访问）
+            "/attendant/recommended",  // 获取推荐陪诊师（允许未登录用户访问）
             "/swagger-ui",
             "/v2/api-docs",
             "/webjars",

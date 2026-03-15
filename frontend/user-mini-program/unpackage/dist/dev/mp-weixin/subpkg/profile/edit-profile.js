@@ -2,9 +2,19 @@
 const common_vendor = require("../../common/vendor.js");
 const stores_user = require("../../stores/user.js");
 const api_user = require("../../api/user.js");
+const utils_api = require("../../utils/api.js");
 const _sfc_main = {
   __name: "edit-profile",
   setup(__props) {
+    const getFullAvatarUrl = (relativePath) => {
+      if (!relativePath)
+        return "/static/user-placeholder.png";
+      if (relativePath.startsWith("http"))
+        return relativePath;
+      const baseUrl = utils_api.config.baseURL.endsWith("/") ? utils_api.config.baseURL : utils_api.config.baseURL + "/";
+      const path = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+      return baseUrl + path;
+    };
     const userStore = common_vendor.ref(null);
     const isEditing = common_vendor.ref(false);
     const originalUserData = common_vendor.ref({
@@ -58,7 +68,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: "获取用户信息失败", icon: "none" });
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/profile/edit-profile.vue:159", "获取用户信息失败:", error);
+        common_vendor.index.__f__("error", "at subpkg/profile/edit-profile.vue:169", "获取用户信息失败:", error);
         common_vendor.index.showToast({ title: "网络错误", icon: "none" });
       }
     };
@@ -75,23 +85,20 @@ const _sfc_main = {
       });
     };
     const uploadUserAvatar = async (filePath) => {
+      var _a;
       try {
         common_vendor.index.showLoading({ title: "上传中..." });
         const response = await api_user.uploadAvatar(filePath);
         common_vendor.index.hideLoading();
-        if (response.data && response.data.avatarUrl) {
-          userForm.value.avatar = response.data.avatarUrl;
-          common_vendor.index.showToast({
-            title: "头像上传成功",
-            icon: "success"
-          });
+        const avatarUrl = ((_a = response == null ? void 0 : response.data) == null ? void 0 : _a.avatarUrl) || (response == null ? void 0 : response.data);
+        if (avatarUrl) {
+          userForm.value.avatar = avatarUrl;
+          originalUserData.value.avatar = avatarUrl;
+          common_vendor.index.showToast({ title: "头像上传成功", icon: "success" });
         }
       } catch (error) {
         common_vendor.index.hideLoading();
-        common_vendor.index.showToast({
-          title: "头像上传失败",
-          icon: "none"
-        });
+        common_vendor.index.showToast({ title: "头像上传失败", icon: "none" });
       }
     };
     const startEditing = () => {
@@ -197,7 +204,7 @@ const _sfc_main = {
         }
       } catch (error) {
         common_vendor.index.hideLoading();
-        common_vendor.index.__f__("error", "at subpkg/profile/edit-profile.vue:349", "更新用户信息失败:", error);
+        common_vendor.index.__f__("error", "at subpkg/profile/edit-profile.vue:354", "更新用户信息失败:", error);
         common_vendor.index.showToast({
           title: "保存失败，请重试",
           icon: "none"
@@ -206,7 +213,7 @@ const _sfc_main = {
     };
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: userForm.value.avatar || originalUserData.value.avatar || "/static/user-placeholder.png",
+        a: getFullAvatarUrl(userForm.value.avatar || originalUserData.value.avatar),
         b: common_vendor.o(($event) => isEditing.value ? chooseAvatar : null),
         c: isEditing.value
       }, isEditing.value ? {} : {}, {

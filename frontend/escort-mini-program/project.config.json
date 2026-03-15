@@ -12,7 +12,8 @@
       "outputPath": ""
     },
     "useCompilerPlugins": false,
-    "minifyWXML": true
+    "minifyWXML": true,
+   "lazyCodeLoading": "requiredComponents"
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
@@ -20,6 +21,6 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wxc4969d63f7401618",
+  "appid": "wx93c4e986bbcbd674",
   "editorSetting": {}
 }

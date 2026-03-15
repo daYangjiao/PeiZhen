@@ -20,7 +20,7 @@
       <swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="3000" duration="500">
         <swiper-item>
           <view class="banner-item">
-            <image class="banner-bg" src="/static/banner.jpg"></image>
+            <image class="banner-bg" :src="getBackendImageUrl('banner.jpg')"></image>
             <view class="banner-content">
               <text class="banner-title">专业医疗陪诊服务</text>
               <text class="banner-subtitle">让您的医疗就诊更加便捷</text>
@@ -102,7 +102,7 @@
       @mouseleave="isDragging = false"
       @click.stop="navigateToAIaks"
     >
-      <image class="floating-icon" src="/static/mynewlogo.png" mode="aspectFit" />
+      <image class="floating-icon" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit" />
     </view>
   </view>
 </template>
@@ -110,15 +110,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getRecommendedAttendants } from '../../api/attendant.js'
-import { config } from '../../utils/api.js'
+import { config, getBackendImageUrl } from '../../utils/api.js'
 
 // 响应式数据
 const searchKeyword = ref('')
 const categories = ref([
-  { name: '门诊陪诊', icon: '/static/category1.jpg' },
-  { name: '住院陪护', icon: '/static/category2.jpg' },
-  { name: '专家会诊', icon: '/static/category3.jpg' },
-  { name: '检查陪同', icon: '/static/category4.jpg' }
+  { name: '门诊陪诊', icon: getBackendImageUrl('category1.jpg') },
+  { name: '住院陪护', icon: getBackendImageUrl('category2.jpg') },
+  { name: '专家会诊', icon: getBackendImageUrl('category3.jpg') },
+  { name: '检查陪同', icon: getBackendImageUrl('category4.jpg') }
 ])
 const services = ref([
   { name: '预约服务', icon: '/static/yvyue_2.png' },
@@ -212,7 +212,7 @@ const handleSearch = () => {
 
 // 获取完整头像URL
 const getFullAvatarUrl = (relativePath) => {
-  if (!relativePath) return '/static/default-avatar.jpg';
+  if (!relativePath) return getBackendImageUrl('default-avatar.jpg');
   if (relativePath.startsWith('http')) return relativePath;
   const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/';
   const avatarPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
@@ -244,7 +244,6 @@ onMounted(() => {
 .container {
   min-height: 100vh;
   background-color: #f5f5f5;
-  margin-top: 150rpx;
   position: relative;
 }
 
@@ -269,7 +268,7 @@ onMounted(() => {
 
 .header {
   background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
-  padding: 20rpx 30rpx 30rpx;
+  padding: 0 30rpx 30rpx;
 }
 .search-box {
   background-color: #f5f5f5;

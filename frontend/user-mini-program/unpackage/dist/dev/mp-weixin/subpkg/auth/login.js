@@ -2,7 +2,7 @@
 const common_vendor = require("../../common/vendor.js");
 const stores_user = require("../../stores/user.js");
 const api_auth = require("../../api/auth.js");
-const common_assets = require("../../common/assets.js");
+const utils_api = require("../../utils/api.js");
 const _sfc_main = {
   data() {
     return {
@@ -31,6 +31,8 @@ const _sfc_main = {
     }
   },
   methods: {
+    // 获取后端图片 URL
+    getBackendImageUrl: utils_api.getBackendImageUrl,
     // 账号密码登录
     async handleLogin() {
       if (!this.formData.username) {
@@ -58,44 +60,26 @@ const _sfc_main = {
       this.isSubmitting = true;
       try {
         const response = await api_auth.login(this.formData);
+        common_vendor.index.__f__("log", "at subpkg/auth/login.vue:153", "登录响应数据:", JSON.stringify(response));
         if (response.data && response.data.token) {
+          const userInfo = response.data.userInfo;
+          if (userInfo.userType === 1) {
+            common_vendor.index.showToast({
+              title: "陪诊师请使用陪诊师端登录",
+              icon: "none",
+              duration: 2e3
+            });
+            return;
+          }
           common_vendor.index.showToast({
             title: "登录成功",
             icon: "success"
           });
-          const userInfo = {
-            ...response.data.userInfo,
-            token: response.data.token
-          };
-          if (userInfo.userId) {
-            try {
-              const { getUserById } = require("@/api/user.js");
-              const userDetailResponse = await getUserById(userInfo.userId);
-              common_vendor.index.__f__("log", "at subpkg/auth/login.vue:171", "用户详细信息响应:", JSON.stringify(userDetailResponse));
-              if (userDetailResponse.data) {
-                userInfo.name = userDetailResponse.data.name;
-                userInfo.username = userDetailResponse.data.username;
-                if (userDetailResponse.data.username) {
-                  userInfo.nickName = userDetailResponse.data.username;
-                  common_vendor.index.__f__("log", "at subpkg/auth/login.vue:181", "设置用户昵称:", userInfo.nickName);
-                } else if (userDetailResponse.data.name) {
-                  userInfo.nickName = userDetailResponse.data.name;
-                  common_vendor.index.__f__("log", "at subpkg/auth/login.vue:184", "使用name作为昵称:", userInfo.nickName);
-                } else {
-                  userInfo.nickName = this.formData.username;
-                  common_vendor.index.__f__("log", "at subpkg/auth/login.vue:188", "使用登录用户名作为昵称:", userInfo.nickName);
-                }
-                common_vendor.index.__f__("log", "at subpkg/auth/login.vue:191", "完整用户信息:", JSON.stringify(userInfo));
-              }
-            } catch (detailError) {
-              common_vendor.index.__f__("error", "at subpkg/auth/login.vue:195", "获取用户详细信息失败:", detailError);
-              userInfo.nickName = this.formData.username;
-              common_vendor.index.__f__("log", "at subpkg/auth/login.vue:198", "使用登录用户名作为昵称(错误情况):", userInfo.nickName);
-            }
-          } else {
-            userInfo.nickName = this.formData.username;
-            common_vendor.index.__f__("log", "at subpkg/auth/login.vue:203", "使用登录用户名作为昵称(无userId):", userInfo.nickName);
+          common_vendor.index.setStorageSync("token", response.data.token);
+          if (userInfo) {
+            userInfo.token = response.data.token;
           }
+          common_vendor.index.__f__("log", "at subpkg/auth/login.vue:182", "准备保存的用户信息:", JSON.stringify(userInfo));
           this.userStore.setUserInfo(userInfo);
           setTimeout(() => {
             this.navigateToHome();
@@ -104,9 +88,20 @@ const _sfc_main = {
           throw new Error(response.message || "登录失败");
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/auth/login.vue:217", "登录失败:", error);
+        common_vendor.index.__f__("error", "at subpkg/auth/login.vue:195", "登录失败:", error);
+        let errorMsg = "登录失败";
+        if (error.message) {
+          errorMsg = error.message;
+        } else if (error.statusCode === 401 || error.data && error.data.code === 401) {
+          errorMsg = "用户名或密码错误";
+        } else if (error.statusCode >= 500 || error.data && error.data.code >= 500) {
+          errorMsg = "服务器错误，请稍后重试";
+        } else if (error.statusCode) {
+          errorMsg = `请求失败 (${error.statusCode})`;
+        }
+        common_vendor.index.__f__("log", "at subpkg/auth/login.vue:209", "显示错误信息:", errorMsg);
         common_vendor.index.showToast({
-          title: error.message || "登录失败，请检查账号密码",
+          title: errorMsg,
           icon: "none"
         });
       } finally {
@@ -152,7 +147,7 @@ const _sfc_main = {
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
-    a: common_assets._imports_0$1,
+    a: $options.getBackendImageUrl("mynewlogo.png"),
     b: $data.formData.username,
     c: common_vendor.o(($event) => $data.formData.username = $event.detail.value),
     d: $data.formData.password,

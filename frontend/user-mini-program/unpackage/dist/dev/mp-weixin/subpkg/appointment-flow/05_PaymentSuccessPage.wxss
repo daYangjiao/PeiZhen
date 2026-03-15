@@ -1,0 +1,79 @@
+
+.payment-success-page.data-v-2d299dfd {
+  background-color: #f5f5f5;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+  min-height: 100vh;
+}
+.card.data-v-2d299dfd {
+  background-color: white;
+  border-radius: 16rpx;
+  padding: 60rpx 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  width: 100%;
+  box-sizing: border-box;
+}
+.success-card.data-v-2d299dfd {
+  text-align: center;
+}
+.icon.data-v-2d299dfd {
+  width: 80rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 50%;
+  background-color: #00d46c;
+  color: white;
+  font-size: 48rpx;
+  margin: 0 auto 20rpx;
+}
+.main-title.data-v-2d299dfd {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin: 20rpx 0 16rpx;
+}
+.desc.data-v-2d299dfd {
+  color: #666;
+  font-size: 28rpx;
+  line-height: 1.5;
+  padding: 0 20rpx;
+  margin-bottom: 100rpx;
+}
+.view-order-btn.data-v-2d299dfd {
+  width: 240rpx;
+  height: 60rpx;
+  background-color: #ffffff;
+  color: #007AFF;
+  border: 1rpx solid #007AFF;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  line-height: 60rpx;
+  margin: 20rpx auto 0;
+  display: block;
+}
+.card .title.data-v-2d299dfd {
+  font-weight: bold;
+  font-size: 32rpx;
+  margin-bottom: 30rpx;
+  display: flex;
+  align-items: center;
+  color: #333;
+}
+.info-item.data-v-2d299dfd {
+  display: flex;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+.info-item.data-v-2d299dfd:last-child {
+  border-bottom: none;
+}
+.label.data-v-2d299dfd {
+  color: #666;
+}
+.value.data-v-2d299dfd {
+  color: #333;
+  font-weight: 500;
+}

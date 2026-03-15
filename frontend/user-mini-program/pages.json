@@ -13,6 +13,12 @@
 			}
 		},
 		{
+			"path": "pages/AItriage/01_AppointmentSelection",
+			"style": {
+				"navigationBarTitleText": "预约类型选择"
+			}
+		},
+		{
 			"path": "pages/message/message",
 			"style": {
 				"navigationBarTitleText": "消息中心"
@@ -25,75 +31,9 @@
 			}
 		},
 		{
-			"path": "pages/AIaks/AIaks",
-			"style": {
-				"navigationBarTitleText": "AI助手"
-			}
-		},
-		{
 			"path": "pages/OrderDetailPage/OrderDetailPage",
 			"style": {
 				"navigationBarTitleText": "订单详情"
-			}
-		},
-		{
-			"path": "pages/Evaluate/Evaluate",
-			"style": {
-				"navigationBarTitleText": "服务评价"
-			}
-		},
-		{
-			"path": "pages/InviteAttendant/InviteAttendant",
-			"style": {
-				"navigationBarTitleText": "邀请陪诊师接单"
-			}
-		},
-		{
-			"path": "pages/AItriage/01_AppointmentSelection",
-			"style": {
-				"navigationBarTitleText": "预约类型选择"
-			}
-		},
-		{
-			"path": "pages/AItriage/02_AppointmentForm",
-			"style": {
-				"navigationBarTitleText": "服务预约"
-			}
-		},
-		{
-			"path": "pages/AItriage/03_AICareMatchPage",
-			"style": {
-				"navigationBarTitleText": "AI智能推荐陪诊师"
-			}
-		},
-		{
-			"path": "pages/AItriage/04_OrderConfirmPage",
-			"style": {
-				"navigationBarTitleText": "确认订单"
-			}
-		},
-		{
-			"path": "pages/AItriage/05_PaymentSuccessPage",
-			"style": {
-				"navigationBarTitleText": "支付成功"
-			}
-		},
-		{
-			"path": "pages/AItriage/PaymentFailedPage",
-			"style": {
-				"navigationBarTitleText": "支付失败"
-			}
-		},
-		{
-			"path": "pages/test/test-login",
-			"style": {
-				"navigationBarTitleText": "登录测试"
-			}
-		},
-		{
-			"path": "pages/test/token-debug",
-			"style": {
-				"navigationBarTitleText": "Token调试"
 			}
 		}
 	],
@@ -201,6 +141,74 @@
 						"navigationBarTitleText": "咨询陪诊师",
 						"enablePullDownRefresh": false,
 						"navigationStyle": "custom"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/appointment-flow",
+			"pages": [
+				{
+					"path": "02_AppointmentForm",
+					"style": {
+						"navigationBarTitleText": "服务预约"
+					}
+				},
+				{
+					"path": "03_AICareMatchPage",
+					"style": {
+						"navigationBarTitleText": "AI智能推荐陪诊师"
+					}
+				},
+				{
+					"path": "04_OrderConfirmPage",
+					"style": {
+						"navigationBarTitleText": "确认订单"
+					}
+				},
+				{
+					"path": "05_PaymentSuccessPage",
+					"style": {
+						"navigationBarTitleText": "支付成功"
+					}
+				},
+				{
+					"path": "PaymentFailedPage",
+					"style": {
+						"navigationBarTitleText": "支付失败"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/ai",
+			"pages": [
+				{
+					"path": "AIaks",
+					"style": {
+						"navigationBarTitleText": "AI助手"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/evaluate",
+			"pages": [
+				{
+					"path": "Evaluate",
+					"style": {
+						"navigationBarTitleText": "服务评价"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/attendant",
+			"pages": [
+				{
+					"path": "InviteAttendant",
+					"style": {
+						"navigationBarTitleText": "邀请陪诊师接单"
 					}
 				}
 			]

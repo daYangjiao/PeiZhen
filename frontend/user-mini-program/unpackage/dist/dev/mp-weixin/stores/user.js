@@ -45,12 +45,16 @@ const useUserStore = common_vendor.defineStore("user", {
         this.userInfo.nickName = this.userInfo.username;
         common_vendor.index.__f__("log", "at stores/user.js:50", "在store中设置nickName:", this.userInfo.nickName);
       }
+      if (userInfo.token) {
+        common_vendor.index.setStorageSync("token", userInfo.token);
+        common_vendor.index.__f__("log", "at stores/user.js:56", "Token已存储");
+      }
       common_vendor.index.setStorageSync("userInfo", this.userInfo);
       common_vendor.index.setStorageSync("isLoggedIn", true);
       common_vendor.index.setStorageSync("loginTime", this.loginTime);
       common_vendor.index.removeStorageSync("isGuestMode");
-      common_vendor.index.__f__("log", "at stores/user.js:59", "保存后的用户信息:", JSON.stringify(this.userInfo));
-      common_vendor.index.__f__("log", "at stores/user.js:60", "displayName:", this.displayName);
+      common_vendor.index.__f__("log", "at stores/user.js:65", "保存后的用户信息:", JSON.stringify(this.userInfo));
+      common_vendor.index.__f__("log", "at stores/user.js:66", "displayName:", this.displayName);
     },
     // 设置游客模式
     setGuestMode() {
@@ -73,6 +77,7 @@ const useUserStore = common_vendor.defineStore("user", {
       common_vendor.index.removeStorageSync("isLoggedIn");
       common_vendor.index.removeStorageSync("isGuestMode");
       common_vendor.index.removeStorageSync("loginTime");
+      common_vendor.index.removeStorageSync("token");
     },
     // 从本地存储恢复状态
     restoreFromStorage() {
@@ -81,22 +86,22 @@ const useUserStore = common_vendor.defineStore("user", {
         const isLoggedIn = common_vendor.index.getStorageSync("isLoggedIn");
         const isGuestMode = common_vendor.index.getStorageSync("isGuestMode");
         const loginTime = common_vendor.index.getStorageSync("loginTime");
-        common_vendor.index.__f__("log", "at stores/user.js:99", "从存储恢复的用户信息:", JSON.stringify(userInfo));
+        common_vendor.index.__f__("log", "at stores/user.js:106", "从存储恢复的用户信息:", JSON.stringify(userInfo));
         if (userInfo && isLoggedIn) {
           this.userInfo = userInfo;
           if (!this.userInfo.nickName && this.userInfo.username) {
             this.userInfo.nickName = this.userInfo.username;
-            common_vendor.index.__f__("log", "at stores/user.js:107", "恢复时设置nickName:", this.userInfo.nickName);
+            common_vendor.index.__f__("log", "at stores/user.js:114", "恢复时设置nickName:", this.userInfo.nickName);
             common_vendor.index.setStorageSync("userInfo", this.userInfo);
           }
           this.isLoggedIn = true;
           this.loginTime = loginTime || Date.now();
-          common_vendor.index.__f__("log", "at stores/user.js:114", "恢复后的displayName:", this.displayName);
+          common_vendor.index.__f__("log", "at stores/user.js:121", "恢复后的displayName:", this.displayName);
         } else if (isGuestMode) {
           this.isGuestMode = true;
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at stores/user.js:119", "恢复用户状态失败:", error);
+        common_vendor.index.__f__("error", "at stores/user.js:126", "恢复用户状态失败:", error);
       }
     },
     // 微信登录
@@ -120,7 +125,7 @@ const useUserStore = common_vendor.defineStore("user", {
         });
         return true;
       } catch (error) {
-        common_vendor.index.__f__("error", "at stores/user.js:152", "微信登录失败:", error);
+        common_vendor.index.__f__("error", "at stores/user.js:159", "微信登录失败:", error);
         common_vendor.index.showToast({
           title: "登录失败，请重试",
           icon: "none"
@@ -144,7 +149,7 @@ const useUserStore = common_vendor.defineStore("user", {
         }
         return null;
       } catch (error) {
-        common_vendor.index.__f__("error", "at stores/user.js:179", "获取用户信息失败:", error);
+        common_vendor.index.__f__("error", "at stores/user.js:186", "获取用户信息失败:", error);
         return null;
       }
     },

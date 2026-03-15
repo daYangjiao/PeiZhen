@@ -57,7 +57,13 @@ function clearUserInfo() {
     common_vendor.index.__f__("error", "at utils/auth.js:118", "清除用户信息失败:", error);
   }
 }
+function navigateToLogin() {
+  common_vendor.index.navigateTo({
+    url: "/subpkg/auth/login"
+  });
+}
 exports.clearUserInfo = clearUserInfo;
 exports.getUserInfo = getUserInfo;
+exports.navigateToLogin = navigateToLogin;
 exports.setUserInfo = setUserInfo;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/utils/auth.js.map

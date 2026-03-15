@@ -258,7 +258,7 @@ const handleDetailClick = (order) => {
 
 const handlePay = (order) => {
     uni.navigateTo({
-        url: `/pages/AItriage/04_OrderConfirmPage?orderNo=${order.orderNo}`
+        url: `/subpkg/appointment-flow/04_OrderConfirmPage?orderNo=${order.orderNo}`
     });
 };
 

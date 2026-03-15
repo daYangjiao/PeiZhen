@@ -1,1045 +1,486 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
+const utils_api = require("../../utils/api.js");
+const utils_chatWebsocket = require("../../utils/chat-websocket.js");
+const pageSize = 20;
 const _sfc_main = {
   __name: "chat",
   setup(__props) {
-    const chatUser = common_vendor.ref({
-      id: "",
-      name: "",
-      avatar: "/static/avatar1.png"
-    });
-    const myAvatar = common_vendor.ref("/static/doctor-avatar.png");
-    const messageList = common_vendor.ref([]);
-    const chatId = common_vendor.ref("");
-    const syncTimer = common_vendor.ref(null);
-    const lastSyncTime = common_vendor.ref(0);
-    const isOnline = common_vendor.ref(true);
-    const isConnecting = common_vendor.ref(false);
-    const retryCount = common_vendor.ref(0);
-    const maxRetries = common_vendor.ref(3);
-    const showMenu = common_vendor.ref(false);
-    const menuPosition = common_vendor.ref({ x: 0, y: 0 });
-    const selectedMessage = common_vendor.ref(null);
-    const isLoadingMore = common_vendor.ref(false);
-    const hasMoreMessages = common_vendor.ref(true);
-    const pageSize = common_vendor.ref(20);
-    const currentPage = common_vendor.ref(1);
-    const showSearchBar = common_vendor.ref(false);
-    const searchKeyword = common_vendor.ref("");
-    const searchResults = common_vendor.ref([]);
-    const showEmojiPanel = common_vendor.ref(false);
-    const showQuickReply = common_vendor.ref(false);
-    const isTyping = common_vendor.ref(false);
-    const typingTimer = common_vendor.ref(null);
+    var _a;
+    const currentUserId = common_vendor.ref(((_a = common_vendor.index.getStorageSync("userInfo")) == null ? void 0 : _a.id) || 0);
+    const targetUserId = common_vendor.ref(null);
+    const targetName = common_vendor.ref("陪诊师");
+    const targetAvatar = common_vendor.ref("/static/doctor-avatar.png");
+    const messages = common_vendor.ref([]);
     const inputText = common_vendor.ref("");
-    const inputFocus = common_vendor.ref(false);
-    const isVoiceInput = common_vendor.ref(false);
-    const isRecording = common_vendor.ref(false);
     const scrollTop = common_vendor.ref(0);
-    const recorderManager = common_vendor.ref(null);
-    const innerAudioContext = common_vendor.ref(null);
-    common_vendor.onMounted(() => {
-      const pages = getCurrentPages();
-      const currentPage2 = pages[pages.length - 1];
-      const options = currentPage2.options;
-      if (options.userId) {
-        chatUser.value.id = options.userId;
+    const scrollIntoView = common_vendor.ref("");
+    const loadingMore = common_vendor.ref(false);
+    const hasMoreHistory = common_vendor.ref(true);
+    const currentPage = common_vendor.ref(1);
+    const isVoiceMode = common_vendor.ref(false);
+    const showPanel = common_vendor.ref(false);
+    const panelType = common_vendor.ref("");
+    const keyboardHeight = common_vendor.ref(0);
+    const recording = common_vendor.ref(false);
+    const recorderManager = common_vendor.index.getRecorderManager();
+    const innerAudioContext = common_vendor.index.createInnerAudioContext();
+    const processedMessages = /* @__PURE__ */ new Set();
+    const emojiList = ["😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "🥰", "😗", "😙", "😚", "🙂", "🤗", "🤩", "🤔", "🤨", "😐", "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝", "🤤", "😒", "😓", "😔", "😕", "🙃", "🤑", "😲", "☹️", "🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩", "🤯", "😬", "😰", "😱", "🥵", "🥶", "😳", "🤪", "😵", "😡", "😠", "🤬", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "😇", "🤠", "🤡", "🥳", "🥴", "🥺", "🤥", "🤫", "🤭", "🧐", "🤓", "😈", "👿"];
+    const headerSubtitle = common_vendor.computed(() => "患者 · 在线沟通中");
+    common_vendor.onLoad((options) => {
+      common_vendor.index.stopPullDownRefresh();
+      if (!options.userId && !options.attendantId) {
+        common_vendor.index.navigateBack();
+        return;
       }
-      if (options.name) {
-        chatUser.value.name = decodeURIComponent(options.name);
-      }
-      common_vendor.index.onNetworkStatusChange((res) => {
-        isOnline.value = res.isConnected;
-        if (res.isConnected) {
-          common_vendor.index.showToast({
-            title: "网络已连接",
-            icon: "success",
-            duration: 1500
-          });
-          startMessageSync();
-          retryFailedMessages();
+      targetUserId.value = parseInt(options.userId || options.attendantId);
+      targetName.value = options.name || "陪诊师";
+      if (options.avatar)
+        targetAvatar.value = getImageUrl(options.avatar);
+      utils_chatWebsocket.connectChatSocket();
+      loadHistory();
+      common_vendor.index.onKeyboardHeightChange((res) => {
+        if (res.height > 0) {
+          keyboardHeight.value = res.height;
+          showPanel.value = false;
+          scrollToBottom();
         } else {
-          common_vendor.index.showToast({
-            title: "网络连接断开",
-            icon: "none",
-            duration: 2e3
-          });
-          stopMessageSync();
+          keyboardHeight.value = 0;
         }
       });
-      common_vendor.index.getNetworkType({
-        success: (res) => {
-          isOnline.value = res.networkType !== "none";
+      recorderManager.onStop((res) => {
+        if (recording.value) {
+          sendVoice(res.tempFilePath);
+          recording.value = false;
         }
       });
-      initChat();
-      startMessageSync();
-      common_vendor.nextTick$1(() => {
-        scrollToBottom();
-      });
     });
-    common_vendor.onUnmounted(() => {
-      stopMessageSync();
-    });
-    const goBack = () => {
-      common_vendor.index.navigateBack();
-    };
-    const makeCall = () => {
-      common_vendor.index.makePhoneCall({
-        phoneNumber: "138****8888"
-      });
-    };
-    const showTimeDivider = (index) => {
+    common_vendor.onMounted(() => utils_chatWebsocket.addChatListener(handleNewMessage));
+    common_vendor.onUnmounted(() => utils_chatWebsocket.removeChatListener(handleNewMessage));
+    const shouldShowTime = (index) => {
       if (index === 0)
         return true;
-      const current = messageList.value[index];
-      const previous = messageList.value[index - 1];
-      return current.timestamp - previous.timestamp > 3e5;
+      const prevTime = new Date(messages.value[index - 1].createTime).getTime();
+      const currTime = new Date(messages.value[index].createTime).getTime();
+      return currTime - prevTime > 5 * 60 * 1e3;
     };
-    const formatTime = (timestamp) => {
-      const date = new Date(timestamp);
-      const now = /* @__PURE__ */ new Date();
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-      } else {
-        return date.toLocaleString("zh-CN", {
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
+    const loadHistory = async () => {
+      try {
+        const res = await utils_api.get(`/api/chat/history?targetUserId=${targetUserId.value}&page=1&pageSize=${pageSize}`);
+        if (res.code === 200) {
+          messages.value = res.data;
+          hasMoreHistory.value = res.data.length === pageSize;
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      } catch (e) {
       }
     };
-    const sendTextMessage = () => {
+    const loadMoreHistory = async () => {
+      if (loadingMore.value || !hasMoreHistory.value)
+        return;
+      loadingMore.value = true;
+      try {
+        currentPage.value++;
+        const res = await utils_api.get(`/api/chat/history?targetUserId=${targetUserId.value}&page=${currentPage.value}&pageSize=${pageSize}`);
+        if (res.code === 200 && res.data.length > 0) {
+          messages.value = [...res.data.reverse(), ...messages.value];
+          hasMoreHistory.value = res.data.length === pageSize;
+        } else {
+          hasMoreHistory.value = false;
+        }
+      } catch (e) {
+        currentPage.value--;
+      } finally {
+        loadingMore.value = false;
+      }
+    };
+    const handleNewMessage = (msg) => {
+      common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:271", "处理新消息:", msg);
+      const msgKey = `${msg.senderId}-${msg.receiverId}-${msg.createTime}-${msg.content}`;
+      if (processedMessages.has(msgKey)) {
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:276", "消息已处理，跳过:", msgKey);
+        return;
+      }
+      processedMessages.add(msgKey);
+      const isNormalChatMsg = [1, 2, 3, 4].includes(Number(msg.msgType)) && msg.content !== "READ_RECEIPT" && msg.type !== "READ_RECEIPT" && msg.type !== "MESSAGE_STATUS_UPDATE";
+      if (isNormalChatMsg && (msg.senderId == targetUserId.value || msg.receiverId == targetUserId.value)) {
+        if (msg.senderId == targetUserId.value) {
+          const newMsg = { ...msg };
+          if (!newMsg.senderAvatar || newMsg.senderAvatar === "/static/user-placeholder.png") {
+            newMsg.senderAvatar = targetAvatar.value || "/static/user-placeholder.png";
+            common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:296", "设置发送者头像:", newMsg.senderAvatar);
+          }
+          if (!messages.value.some((m) => m.id == newMsg.id)) {
+            messages.value.push(newMsg);
+            scrollToBottom();
+            markAsRead();
+          }
+        } else if (msg.receiverId == targetUserId.value) {
+          if (!messages.value.some((m) => m.id == msg.id)) {
+            messages.value.push(msg);
+            scrollToBottom();
+          }
+        }
+      }
+      if ((msg.type === "READ_RECEIPT" || msg.content === "READ_RECEIPT") && msg.msgType == 3) {
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:316", "收到已读回执，更新消息状态");
+        const updatedMessages = messages.value.map((m) => {
+          if (m.senderId == currentUserId.value && m.isRead !== 1) {
+            common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:320", "标记消息为已读:", m.id);
+            return { ...m, isRead: 1 };
+          }
+          return m;
+        });
+        messages.value = updatedMessages;
+        common_vendor.nextTick$1(() => {
+          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:331", "已读状态更新完成");
+        });
+        return;
+      }
+      if (msg.type === "MESSAGE_STATUS_UPDATE") {
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:338", "收到消息状态更新:", msg);
+        const messageId = msg.messageId || msg.id;
+        if (messageId) {
+          messages.value = messages.value.map((m) => {
+            if (m.id == messageId) {
+              return { ...m, ...msg.updates };
+            }
+            return m;
+          });
+        }
+        return;
+      }
+    };
+    const sendMessage = async (content, type) => {
+      const userInfo = common_vendor.index.getStorageSync("userInfo");
+      const tempMsg = {
+        id: "temp-" + Date.now(),
+        senderId: currentUserId.value,
+        receiverId: targetUserId.value,
+        content,
+        msgType: type,
+        senderName: (userInfo == null ? void 0 : userInfo.name) || "我",
+        senderAvatar: userInfo == null ? void 0 : userInfo.avatar,
+        createTime: /* @__PURE__ */ new Date(),
+        status: "sending",
+        isRead: 0
+      };
+      messages.value.push(tempMsg);
+      scrollToBottom();
+      const tempIndex = messages.value.length - 1;
+      try {
+        const res = await utils_api.post("/api/chat/send", { receiverId: targetUserId.value, content, msgType: type });
+        if (res.code === 200)
+          messages.value[tempIndex] = { ...res.data, status: "sent" };
+        else
+          throw new Error("Failed");
+      } catch (e) {
+        messages.value[tempIndex].status = "failed";
+      }
+    };
+    const sendText = () => {
       if (!inputText.value.trim())
         return;
-      const message = {
-        id: Date.now(),
-        type: "text",
-        content: inputText.value.trim(),
-        isMine: true,
-        timestamp: Date.now(),
-        status: "sending"
-        // 发送状态
-      };
-      messageList.value.push(message);
+      sendMessage(inputText.value, 1);
       inputText.value = "";
-      saveMessagesToLocal();
-      sendMessageToServer(message);
-      common_vendor.nextTick$1(() => {
-        scrollToBottom();
-      });
     };
-    const sendMessageToServer = async (message) => {
-      await sendMessageToServerEnhanced(message);
-    };
-    const toggleVoiceInput = () => {
-      isVoiceInput.value = !isVoiceInput.value;
-      inputFocus.value = !isVoiceInput.value;
-    };
-    const startRecord = () => {
-      isRecording.value = true;
-      if (!recorderManager.value) {
-        recorderManager.value = common_vendor.index.getRecorderManager();
-        recorderManager.value.onStart(() => {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:459", "录音开始");
-        });
-        recorderManager.value.onStop((res) => {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:463", "录音结束", res);
-          if (res.duration > 1e3) {
-            sendVoiceMessage(res.tempFilePath, Math.floor(res.duration / 1e3));
-          } else {
-            common_vendor.index.showToast({
-              title: "录音时间太短",
-              icon: "none"
-            });
-          }
-        });
-        recorderManager.value.onError((err) => {
-          common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:475", "录音错误", err);
-          common_vendor.index.showToast({
-            title: "录音失败",
-            icon: "none"
-          });
-          isRecording.value = false;
-        });
-      }
-      recorderManager.value.start({
-        duration: 6e4,
-        // 最长60秒
-        sampleRate: 16e3,
-        numberOfChannels: 1,
-        encodeBitRate: 96e3,
-        format: "mp3"
-      });
-    };
-    const stopRecord = () => {
-      isRecording.value = false;
-      if (recorderManager.value) {
-        recorderManager.value.stop();
-      }
-    };
-    const cancelRecord = () => {
-      isRecording.value = false;
-      if (recorderManager.value) {
-        recorderManager.value.stop();
-      }
-      common_vendor.index.showToast({
-        title: "录音取消",
-        icon: "none"
-      });
-    };
-    const chooseImage = () => {
+    const chooseImage = (sourceType) => {
       common_vendor.index.chooseImage({
         count: 1,
-        sourceType: ["album", "camera"],
-        sizeType: ["compressed"],
-        // 压缩图片
-        success: (res) => {
-          const tempFilePath = res.tempFilePaths[0];
-          common_vendor.index.showLoading({
-            title: "图片处理中..."
-          });
-          common_vendor.index.compressImage({
-            src: tempFilePath,
-            quality: 80,
-            // 压缩质量
-            success: (compressRes) => {
-              common_vendor.index.hideLoading();
-              const message = {
-                id: Date.now(),
-                type: "image",
-                content: compressRes.tempFilePath,
-                isMine: true,
-                timestamp: Date.now(),
-                status: "sending"
-                // 发送状态
-              };
-              messageList.value.push(message);
-              saveMessagesToLocal();
-              common_vendor.nextTick$1(() => {
-                scrollToBottom();
-              });
-              uploadImage(message, compressRes.tempFilePath);
-            },
-            fail: (err) => {
-              common_vendor.index.hideLoading();
-              common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:558", "图片压缩失败", err);
-              const message = {
-                id: Date.now(),
-                type: "image",
-                content: tempFilePath,
-                isMine: true,
-                timestamp: Date.now(),
-                status: "sending"
-              };
-              messageList.value.push(message);
-              saveMessagesToLocal();
-              common_vendor.nextTick$1(() => {
-                scrollToBottom();
-              });
-              uploadImage(message);
+        sourceType: sourceType ? [sourceType] : ["album", "camera"],
+        success: async (res) => {
+          const path = res.tempFilePaths[0];
+          try {
+            const uploadRes = await utils_api.upload("/common/upload", path);
+            if (uploadRes.code === 200) {
+              sendMessage(uploadRes.url, 2);
             }
-          });
-        },
-        fail: (err) => {
-          common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:584", "选择图片失败", err);
-          common_vendor.index.showToast({
-            title: "选择图片失败",
-            icon: "none"
-          });
+          } catch (e) {
+            common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:388", e);
+          }
         }
       });
     };
-    const uploadImage = (message, filePath) => {
-      setTimeout(() => {
-        const index = messageList.value.findIndex((m) => m.id === message.id);
-        if (index !== -1) {
-          messageList.value[index].status = "sent";
+    const sendVoice = async (path) => {
+      try {
+        const uploadRes = await utils_api.upload("/common/upload", path);
+        if (uploadRes.code === 200) {
+          sendMessage(uploadRes.url, 3);
         }
-        common_vendor.index.showToast({
-          title: "图片发送成功",
-          icon: "success"
-        });
-      }, 2e3);
+      } catch (e) {
+        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:399", e);
+      }
     };
-    const sendLocation = () => {
+    const chooseLocation = () => {
       common_vendor.index.chooseLocation({
         success: (res) => {
-          const message = {
-            id: Date.now(),
-            type: "location",
-            locationName: res.name,
-            locationAddress: res.address,
+          const locationData = JSON.stringify({
+            name: res.name,
+            address: res.address,
             latitude: res.latitude,
-            longitude: res.longitude,
-            isMine: true,
-            timestamp: Date.now(),
-            status: "sending"
-          };
-          messageList.value.push(message);
-          saveMessagesToLocal();
-          sendMessageToServer(message);
-          common_vendor.nextTick$1(() => {
-            scrollToBottom();
+            longitude: res.longitude
           });
+          sendMessage(locationData, 4);
         }
       });
     };
-    const getStatusText = (status) => {
-      switch (status) {
-        case "sending":
-          return "发送中";
-        case "sent":
-          return "已发送";
-        case "read":
-          return "已读";
-        case "failed":
-          return "发送失败";
-        default:
-          return "";
-      }
+    const sendEmergency = () => {
+      sendMessage("【紧急求助】请立即联系我！", 1);
     };
-    const handleStatusClick = (message) => {
-      if (message.status === "failed") {
-        retryMessage(message);
-      }
+    const videoCall = () => {
+      common_vendor.index.showToast({ title: "视频通话功能开发中", icon: "none" });
     };
-    const retryMessage = async (message) => {
-      try {
-        const index = messageList.value.findIndex((m) => m.id === message.id);
-        if (index !== -1) {
-          messageList.value[index].status = "sending";
-          saveMessagesToLocal();
-        }
-        await sendMessageToServerEnhanced(message);
-        common_vendor.index.showToast({
-          title: "重新发送中...",
-          icon: "loading"
-        });
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:684", "重试发送失败:", error);
-      }
+    const voiceCall = () => {
+      common_vendor.index.showToast({ title: "语音通话功能开发中", icon: "none" });
     };
-    const showMessageMenu = (message, event) => {
-      selectedMessage.value = message;
-      const touch = event.touches ? event.touches[0] : event;
-      menuPosition.value = {
-        x: touch.clientX || touch.pageX || 0,
-        y: touch.clientY || touch.pageY || 0
-      };
-      const screenWidth = common_vendor.index.getSystemInfoSync().windowWidth;
-      const screenHeight = common_vendor.index.getSystemInfoSync().windowHeight;
-      const menuWidth = 200;
-      const menuHeight = 150;
-      if (menuPosition.value.x + menuWidth > screenWidth) {
-        menuPosition.value.x = screenWidth - menuWidth - 20;
-      }
-      if (menuPosition.value.y + menuHeight > screenHeight) {
-        menuPosition.value.y = menuPosition.value.y - menuHeight - 20;
-      }
-      showMenu.value = true;
-    };
-    const hideMessageMenu = () => {
-      showMenu.value = false;
-      selectedMessage.value = null;
-    };
-    const copyMessage = () => {
-      if (selectedMessage.value && selectedMessage.value.type === "text") {
-        common_vendor.index.setClipboardData({
-          data: selectedMessage.value.content,
-          success: () => {
-            common_vendor.index.showToast({
-              title: "复制成功",
-              icon: "success"
-            });
-          }
+    const switchVoiceMode = () => {
+      isVoiceMode.value = !isVoiceMode.value;
+      if (isVoiceMode.value) {
+        showPanel.value = false;
+        common_vendor.index.hideKeyboard();
+      } else {
+        common_vendor.nextTick$1(() => {
         });
       }
-      hideMessageMenu();
     };
-    const canRecall = (message) => {
-      const now = Date.now();
-      const messageTime = message.timestamp;
-      return now - messageTime < 2 * 60 * 1e3;
-    };
-    const recallMessage = async () => {
-      if (!selectedMessage.value)
-        return;
-      try {
-        const index = messageList.value.findIndex((m) => m.id === selectedMessage.value.id);
-        if (index !== -1) {
-          messageList.value[index] = {
-            ...messageList.value[index],
-            type: "system",
-            content: "你撤回了一条消息",
-            isRecalled: true
-          };
-          saveMessagesToLocal();
-        }
-        common_vendor.index.showToast({
-          title: "撤回成功",
-          icon: "success"
-        });
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:775", "撤回失败:", error);
-        common_vendor.index.showToast({
-          title: "撤回失败",
-          icon: "none"
-        });
-      }
-      hideMessageMenu();
-    };
-    const deleteMessage = () => {
-      if (!selectedMessage.value)
-        return;
-      common_vendor.index.showModal({
-        title: "确认删除",
-        content: "确定要删除这条消息吗？",
-        success: (res) => {
-          if (res.confirm) {
-            const index = messageList.value.findIndex((m) => m.id === selectedMessage.value.id);
-            if (index !== -1) {
-              messageList.value.splice(index, 1);
-              saveMessagesToLocal();
-              common_vendor.index.showToast({
-                title: "删除成功",
-                icon: "success"
-              });
-            }
-          }
-        }
-      });
-      hideMessageMenu();
-    };
-    const previewImage = (url) => {
-      common_vendor.index.previewImage({
-        urls: [url]
-      });
-    };
-    const sendVoiceMessage = (filePath, duration) => {
-      const message = {
-        id: Date.now(),
-        type: "voice",
-        content: filePath,
-        duration,
-        isMine: true,
-        timestamp: Date.now(),
-        status: "sending"
-      };
-      messageList.value.push(message);
-      saveMessagesToLocal();
-      sendMessageToServer(message);
-      common_vendor.nextTick$1(() => {
+    const toggleEmoji = () => {
+      if (panelType.value === "emoji" && showPanel.value) {
+        showPanel.value = false;
+      } else {
+        panelType.value = "emoji";
+        showPanel.value = true;
+        isVoiceMode.value = false;
+        common_vendor.index.hideKeyboard();
         scrollToBottom();
-      });
-    };
-    const playVoice = (message) => {
-      if (!innerAudioContext.value) {
-        innerAudioContext.value = common_vendor.index.createInnerAudioContext();
-        innerAudioContext.value.onPlay(() => {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:850", "开始播放语音");
-        });
-        innerAudioContext.value.onStop(() => {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:854", "停止播放语音");
-        });
-        innerAudioContext.value.onEnded(() => {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:858", "语音播放结束");
-        });
-        innerAudioContext.value.onError((err) => {
-          common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:862", "语音播放错误", err);
-          common_vendor.index.showToast({
-            title: "播放失败",
-            icon: "none"
-          });
-        });
       }
-      innerAudioContext.value.src = message.content;
-      innerAudioContext.value.play();
-      common_vendor.index.showToast({
-        title: "正在播放语音",
-        icon: "none"
-      });
     };
-    const openLocation = (message) => {
-      common_vendor.index.openLocation({
-        latitude: message.latitude,
-        longitude: message.longitude,
-        name: message.locationName,
-        address: message.locationAddress
-      });
+    const toggleMore = () => {
+      if (panelType.value === "more" && showPanel.value) {
+        showPanel.value = false;
+      } else {
+        panelType.value = "more";
+        showPanel.value = true;
+        isVoiceMode.value = false;
+        common_vendor.index.hideKeyboard();
+        scrollToBottom();
+      }
+    };
+    const closePanel = () => {
+      showPanel.value = false;
+      common_vendor.index.hideKeyboard();
+    };
+    const onInputFocus = (e) => {
+      showPanel.value = false;
+      keyboardHeight.value = e.detail.height;
+      scrollToBottom();
+    };
+    const onInputBlur = () => {
+      keyboardHeight.value = 0;
+    };
+    const addEmoji = (emoji) => {
+      inputText.value += emoji;
+    };
+    const startRecord = () => {
+      recording.value = true;
+      recorderManager.start();
+    };
+    const stopRecord = () => {
+      recorderManager.stop();
+    };
+    const cancelRecord = () => {
+      recording.value = false;
+      recorderManager.stop();
+    };
+    const playVoice = (url) => {
+      innerAudioContext.src = getImageUrl(url);
+      innerAudioContext.play();
+    };
+    const openLocation = (content) => {
+      try {
+        const loc = JSON.parse(content);
+        common_vendor.index.openLocation({
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          name: loc.name,
+          address: loc.address
+        });
+      } catch (e) {
+      }
+    };
+    const parseLocation = (content) => {
+      try {
+        return JSON.parse(content);
+      } catch (e) {
+        return {};
+      }
+    };
+    const markAsRead = () => {
+      utils_api.post(`/api/chat/read?senderId=${targetUserId.value}`);
+    };
+    const navigateBack = () => {
+      common_vendor.index.$emit("chat:return", { targetUserId: targetUserId.value });
+      common_vendor.index.navigateBack();
     };
     const scrollToBottom = () => {
-      scrollTop.value = 999999;
-    };
-    const initChat = async () => {
-      try {
-        chatId.value = `chat_${chatUser.value.id}_${Date.now()}`;
-        const recentMessages = await loadHistoryMessages(1);
-        if (recentMessages && recentMessages.length > 0) {
-          messageList.value = recentMessages;
-          currentPage.value = 1;
-          lastSyncTime.value = Math.max(...recentMessages.map((m) => m.timestamp));
-          if (recentMessages.length < pageSize.value) {
-            hasMoreMessages.value = false;
-          }
-        } else {
-          const welcomeMessage = {
-            id: Date.now(),
-            type: "text",
-            content: "您好，我是您的陪诊师，请问您现在在哪里？",
-            isMine: true,
-            timestamp: Date.now(),
-            status: "read"
-          };
-          messageList.value = [welcomeMessage];
-          saveMessagesToLocal();
-          hasMoreMessages.value = false;
-        }
-        await syncMessagesFromServer();
-        common_vendor.nextTick$1(() => {
-          scrollToBottom();
-        });
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:933", "初始化聊天失败:", error);
-        common_vendor.index.showToast({
-          title: "聊天初始化失败",
-          icon: "none"
-        });
-      }
-    };
-    const startMessageSync = () => {
-      syncTimer.value = setInterval(async () => {
-        await syncMessagesFromServer();
-      }, 5e3);
-    };
-    const stopMessageSync = () => {
-      if (syncTimer.value) {
-        clearInterval(syncTimer.value);
-        syncTimer.value = null;
-      }
-    };
-    const syncMessagesFromServer = async () => {
-      try {
-        if (!isOnline.value) {
-          common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:962", "网络未连接，跳过同步");
-          return;
-        }
-        isConnecting.value = true;
-        const mockResponse = {
-          data: {
-            success: true,
-            messages: [],
-            // 新消息列表
-            updatedMessages: []
-            // 更新的消息状态
-          }
-        };
-        const { messages: newMessages, updatedMessages } = mockResponse.data;
-        if (newMessages && newMessages.length > 0) {
-          newMessages.forEach((message) => {
-            const existingIndex = messageList.value.findIndex((m) => m.id === message.id);
-            if (existingIndex === -1) {
-              messageList.value.push(message);
-              lastSyncTime.value = Math.max(lastSyncTime.value, message.timestamp);
-            }
-          });
-          messageList.value.sort((a, b) => a.timestamp - b.timestamp);
-          common_vendor.nextTick$1(() => {
-            scrollToBottom();
-          });
-        }
-        if (updatedMessages && updatedMessages.length > 0) {
-          updatedMessages.forEach((update) => {
-            const messageIndex = messageList.value.findIndex((m) => m.id === update.id);
-            if (messageIndex !== -1) {
-              messageList.value[messageIndex] = { ...messageList.value[messageIndex], ...update };
-            }
-          });
-        }
-        saveMessagesToLocal();
-        retryCount.value = 0;
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1027", "同步消息失败:", error);
-        retryCount.value++;
-        if (retryCount.value < maxRetries.value) {
-          setTimeout(() => {
-            syncMessagesFromServer();
-          }, 5e3 * retryCount.value);
-        } else {
-          common_vendor.index.showToast({
-            title: "同步失败，请检查网络",
-            icon: "none",
-            duration: 2e3
-          });
-        }
-      } finally {
-        isConnecting.value = false;
-      }
-    };
-    const saveMessagesToLocal = () => {
-      try {
-        common_vendor.index.setStorageSync(`messages_${chatUser.value.id}`, messageList.value);
-        common_vendor.index.setStorageSync(`lastSyncTime_${chatUser.value.id}`, lastSyncTime.value);
-        saveToAllMessages();
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1059", "保存消息到本地失败:", error);
-      }
-    };
-    const saveToAllMessages = () => {
-      try {
-        const allMessages = common_vendor.index.getStorageSync(`all_messages_${chatUser.value.id}`) || [];
-        const mergedMessages = [...allMessages];
-        messageList.value.forEach((message) => {
-          const existingIndex = mergedMessages.findIndex((m) => m.id === message.id);
-          if (existingIndex === -1) {
-            mergedMessages.push(message);
-          } else {
-            mergedMessages[existingIndex] = message;
-          }
-        });
-        mergedMessages.sort((a, b) => a.timestamp - b.timestamp);
-        const maxHistoryMessages = 1e3;
-        if (mergedMessages.length > maxHistoryMessages) {
-          mergedMessages.splice(0, mergedMessages.length - maxHistoryMessages);
-        }
-        common_vendor.index.setStorageSync(`all_messages_${chatUser.value.id}`, mergedMessages);
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1095", "保存到全部历史消息失败:", error);
-      }
-    };
-    const retryFailedMessages = async () => {
-      const failedMessages = messageList.value.filter((m) => m.isMine && m.status === "failed");
-      for (const message of failedMessages) {
-        await sendMessageToServerEnhanced(message);
-      }
-    };
-    const loadMoreMessages = async () => {
-      if (isLoadingMore.value || !hasMoreMessages.value) {
-        return;
-      }
-      isLoadingMore.value = true;
-      try {
-        const moreMessages = await loadHistoryMessages(currentPage.value + 1);
-        if (moreMessages && moreMessages.length > 0) {
-          messageList.value.unshift(...moreMessages);
-          currentPage.value++;
-          if (moreMessages.length < pageSize.value) {
-            hasMoreMessages.value = false;
-          }
-          common_vendor.index.showToast({
-            title: `加载了 ${moreMessages.length} 条历史消息`,
-            icon: "success",
-            duration: 1500
-          });
-        } else {
-          hasMoreMessages.value = false;
-          common_vendor.index.showToast({
-            title: "没有更多历史消息了",
-            icon: "none",
-            duration: 1500
-          });
-        }
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1143", "加载历史消息失败:", error);
-        common_vendor.index.showToast({
-          title: "加载失败，请重试",
-          icon: "none"
-        });
-      } finally {
-        isLoadingMore.value = false;
-      }
-    };
-    const onRefresh = async () => {
-      await loadMoreMessages();
-    };
-    const loadHistoryMessages = async (page) => {
-      try {
-        const allMessages = common_vendor.index.getStorageSync(`all_messages_${chatUser.value.id}`) || [];
-        allMessages.sort((a, b) => b.timestamp - a.timestamp);
-        const startIndex = (page - 1) * pageSize.value;
-        const endIndex = startIndex + pageSize.value;
-        const pageMessages = allMessages.slice(startIndex, endIndex);
-        return pageMessages.reverse();
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1177", "从本地存储加载历史消息失败:", error);
-        return [];
-      }
-    };
-    const clearChatHistory = () => {
-      common_vendor.index.showModal({
-        title: "确认清空",
-        content: "确定要清空所有聊天记录吗？此操作不可恢复。",
-        success: (res) => {
-          if (res.confirm) {
-            messageList.value = [];
-            try {
-              common_vendor.index.removeStorageSync(`messages_${chatUser.value.id}`);
-              common_vendor.index.removeStorageSync(`all_messages_${chatUser.value.id}`);
-              common_vendor.index.removeStorageSync(`lastSyncTime_${chatUser.value.id}`);
-              lastSyncTime.value = 0;
-              currentPage.value = 1;
-              hasMoreMessages.value = true;
-              common_vendor.index.showToast({
-                title: "聊天记录已清空",
-                icon: "success"
-              });
-            } catch (error) {
-              common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1208", "清空聊天记录失败:", error);
-              common_vendor.index.showToast({
-                title: "清空失败",
-                icon: "none"
-              });
-            }
-          }
-        }
+      common_vendor.nextTick$1(() => {
+        scrollIntoView.value = "msg-" + (messages.value.length - 1);
       });
     };
-    const toggleSearch = () => {
-      showSearchBar.value = !showSearchBar.value;
-      if (!showSearchBar.value) {
-        searchKeyword.value = "";
-        searchResults.value = [];
+    const getAvatar = (msg) => {
+      var _a2;
+      if (msg.senderId === currentUserId.value) {
+        const currentUserAvatar = (_a2 = common_vendor.index.getStorageSync("userInfo")) == null ? void 0 : _a2.avatar;
+        const avatarUrl = currentUserAvatar || "/static/user-placeholder.png";
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:534", "当前陪诊师头像:", avatarUrl);
+        return getImageUrl(avatarUrl);
       }
-    };
-    const closeSearch = () => {
-      showSearchBar.value = false;
-      searchKeyword.value = "";
-      searchResults.value = [];
-    };
-    const onSearchInput = () => {
-      if (searchKeyword.value.trim()) {
-        searchMessages();
-      } else {
-        searchResults.value = [];
+      if (msg.senderAvatar && msg.senderAvatar !== "/static/user-placeholder.png" && msg.senderAvatar !== "/static/doctor-avatar.png") {
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:540", "使用消息中的用户头像:", msg.senderAvatar);
+        return getImageUrl(msg.senderAvatar);
       }
-    };
-    const searchMessages = () => {
-      if (!searchKeyword.value.trim()) {
-        return;
+      if (targetAvatar.value && targetAvatar.value !== "/static/user-placeholder.png" && targetAvatar.value !== "/static/doctor-avatar.png") {
+        common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:546", "使用预加载用户头像:", targetAvatar.value);
+        return targetAvatar.value;
       }
-      try {
-        const allMessages = common_vendor.index.getStorageSync(`all_messages_${chatUser.value.id}`) || [];
-        const results = allMessages.filter((message) => {
-          if (message.type === "text") {
-            return message.content.toLowerCase().includes(searchKeyword.value.toLowerCase());
-          }
-          return false;
-        });
-        searchResults.value = results;
-        if (results.length > 0) {
-          common_vendor.index.showToast({
-            title: `找到 ${results.length} 条相关消息`,
-            icon: "success"
-          });
-        } else {
-          common_vendor.index.showToast({
-            title: "未找到相关消息",
-            icon: "none"
-          });
-        }
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1273", "搜索消息失败:", error);
-        common_vendor.index.showToast({
-          title: "搜索失败",
-          icon: "none"
-        });
-      }
+      common_vendor.index.__f__("log", "at subpkg/chat/chat.vue:551", "使用默认用户头像");
+      return "/static/user-placeholder.png";
     };
-    const insertEmoji = (emoji) => {
-      inputText.value += emoji;
-      showEmojiPanel.value = false;
+    const getImageUrl = (url) => {
+      if (!url)
+        return "/static/user-placeholder.png";
+      if (url.startsWith("http") || url.startsWith("wxfile"))
+        return url;
+      const baseUrl = utils_api.config.baseURL.endsWith("/") ? utils_api.config.baseURL.slice(0, -1) : utils_api.config.baseURL;
+      return baseUrl + (url.startsWith("/") ? url : "/" + url);
     };
-    const sendQuickReply = (text) => {
-      inputText.value = text;
-      showQuickReply.value = false;
-      sendTextMessage();
+    const previewImage = (url) => common_vendor.index.previewImage({ urls: [url], current: url });
+    const handleAvatarError = (e) => {
+      common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:561", "头像加载失败:", e.detail.errMsg);
     };
-    const onInputChange = () => {
-      isTyping.value = true;
-      if (typingTimer.value) {
-        clearTimeout(typingTimer.value);
-      }
-      typingTimer.value = setTimeout(() => {
-        isTyping.value = false;
-      }, 2e3);
-    };
-    const exportChatHistory = () => {
-      try {
-        const allMessages = common_vendor.index.getStorageSync(`all_messages_${chatUser.value.id}`) || [];
-        if (allMessages.length === 0) {
-          common_vendor.index.showToast({
-            title: "暂无聊天记录",
-            icon: "none"
-          });
-          return;
-        }
-        let exportText = `聊天记录 - ${chatUser.value.name}
-`;
-        exportText += `导出时间: ${(/* @__PURE__ */ new Date()).toLocaleString()}
-`;
-        exportText += `消息总数: ${allMessages.length}
-`;
-        exportText += "\n" + "=".repeat(50) + "\n\n";
-        allMessages.forEach((message) => {
-          const time = new Date(message.timestamp).toLocaleString();
-          const sender = message.isMine ? "我" : chatUser.value.name;
-          let content = "";
-          switch (message.type) {
-            case "text":
-              content = message.content;
-              break;
-            case "image":
-              content = "[图片]";
-              break;
-            case "voice":
-              content = `[语音 ${message.duration}秒]`;
-              break;
-            case "location":
-              content = `[位置] ${message.locationName}`;
-              break;
-            case "system":
-              content = `[系统消息] ${message.content}`;
-              break;
-            default:
-              content = "[未知消息类型]";
-          }
-          exportText += `[${time}] ${sender}: ${content}
-`;
-        });
-        common_vendor.index.setClipboardData({
-          data: exportText,
-          success: () => {
-            common_vendor.index.showToast({
-              title: "聊天记录已复制到剪贴板",
-              icon: "success",
-              duration: 2e3
-            });
-          },
-          fail: () => {
-            common_vendor.index.showToast({
-              title: "导出失败",
-              icon: "none"
-            });
-          }
-        });
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1375", "导出聊天记录失败:", error);
-        common_vendor.index.showToast({
-          title: "导出失败",
-          icon: "none"
-        });
-      }
-    };
-    const sendMessageToServerEnhanced = async (message) => {
-      try {
-        if (!isOnline.value) {
-          throw new Error("网络未连接");
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1e3));
-        const index = messageList.value.findIndex((m) => m.id === message.id);
-        if (index !== -1) {
-          messageList.value[index].status = "sent";
-          messageList.value[index].serverMessageId = `server_${message.id}`;
-          saveMessagesToLocal();
-          setTimeout(() => {
-            if (messageList.value[index]) {
-              messageList.value[index].status = "read";
-              saveMessagesToLocal();
-            }
-          }, 3e3);
-        }
-        return { success: true };
-      } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/chat/chat.vue:1425", "发送消息失败:", error);
-        const index = messageList.value.findIndex((m) => m.id === message.id);
-        if (index !== -1) {
-          messageList.value[index].status = "failed";
-          saveMessagesToLocal();
-        }
-        let errorMessage = "发送失败，请重试";
-        if (error.message === "网络未连接") {
-          errorMessage = "网络未连接，消息将在网络恢复后重试";
-        } else if (error.message.includes("timeout")) {
-          errorMessage = "网络超时，请检查网络连接";
-        }
-        common_vendor.index.showToast({
-          title: errorMessage,
-          icon: "none",
-          duration: 2e3
-        });
-        return { success: false, error };
-      }
+    const formatTimeCenter = (time) => {
+      if (!time)
+        return "";
+      const d = new Date(time);
+      const now = /* @__PURE__ */ new Date();
+      if (d.toDateString() === now.toDateString())
+        return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+      return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
     };
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_assets._imports_0$4,
-        b: common_vendor.o(goBack),
-        c: common_vendor.t(chatUser.value.name),
-        d: common_vendor.t(isConnecting.value ? "连接中..." : isOnline.value ? "在线" : "离线"),
-        e: !isOnline.value ? 1 : "",
-        f: isConnecting.value ? 1 : "",
-        g: common_assets._imports_1$2,
-        h: common_vendor.o(makeCall),
-        i: isLoadingMore.value
-      }, isLoadingMore.value ? {} : !hasMoreMessages.value && messageList.value.length > pageSize.value ? {} : {}, {
-        j: !hasMoreMessages.value && messageList.value.length > pageSize.value,
-        k: isConnecting.value
-      }, isConnecting.value ? {} : {}, {
-        l: !isOnline.value
-      }, !isOnline.value ? {} : {}, {
-        m: isTyping.value
-      }, isTyping.value ? {
-        n: common_vendor.t(chatUser.value.name)
-      } : {}, {
-        o: common_vendor.f(messageList.value, (message, index, i0) => {
+        a: common_vendor.o(navigateBack),
+        b: common_vendor.t(targetName.value),
+        c: common_vendor.t(headerSubtitle.value),
+        d: loadingMore.value
+      }, loadingMore.value ? {} : {}, {
+        e: common_vendor.f(messages.value, (msg, index, i0) => {
           return common_vendor.e({
-            a: showTimeDivider(index)
-          }, showTimeDivider(index) ? {
-            b: common_vendor.t(formatTime(message.timestamp))
+            a: shouldShowTime(index)
+          }, shouldShowTime(index) ? {
+            b: common_vendor.t(formatTimeCenter(msg.createTime))
           } : {}, {
-            c: message.isMine ? myAvatar.value : chatUser.value.avatar,
-            d: message.type === "text"
-          }, message.type === "text" ? {
-            e: common_vendor.t(message.content)
-          } : message.type === "image" ? {
-            g: message.content,
-            h: common_vendor.o(($event) => previewImage(message.content), index)
-          } : message.type === "voice" ? {
-            j: common_assets._imports_2$2,
-            k: common_vendor.t(message.duration),
-            l: common_vendor.o(($event) => playVoice(message), index)
-          } : message.type === "location" ? {
-            n: common_assets._imports_3$3,
-            o: common_vendor.t(message.locationName),
-            p: common_vendor.t(message.locationAddress),
-            q: common_vendor.o(($event) => openLocation(message), index)
-          } : message.type === "system" ? {
-            s: common_vendor.t(message.content)
+            c: getAvatar(msg),
+            d: common_vendor.o(handleAvatarError, msg.id || index),
+            e: msg.senderId !== currentUserId.value
+          }, msg.senderId !== currentUserId.value ? {
+            f: common_vendor.t(msg.senderName || targetName.value)
           } : {}, {
-            f: message.type === "image",
-            i: message.type === "voice",
-            m: message.type === "location",
-            r: message.type === "system",
-            t: message.isMine && message.status
-          }, message.isMine && message.status ? common_vendor.e({
-            v: common_vendor.t(getStatusText(message.status)),
-            w: common_vendor.n(message.status),
-            x: message.status === "sending"
-          }, message.status === "sending" ? {} : message.status === "sent" ? {} : message.status === "read" ? {} : message.status === "failed" ? {} : {}, {
-            y: message.status === "sent",
-            z: message.status === "read",
-            A: message.status === "failed",
-            B: common_vendor.n(message.status),
-            C: common_vendor.o(($event) => handleStatusClick(message), index)
-          }) : {}, {
-            D: message.isMine ? 1 : "",
-            E: index,
-            F: common_vendor.o(($event) => showMessageMenu(message, $event), index)
+            g: msg.senderId === currentUserId.value && msg.status !== "sending" && msg.status !== "failed"
+          }, msg.senderId === currentUserId.value && msg.status !== "sending" && msg.status !== "failed" ? {
+            h: common_vendor.t(msg.isRead ? "已读" : "未读"),
+            i: msg.isRead ? 1 : ""
+          } : {}, {
+            j: msg.senderId === currentUserId.value && msg.status === "sending"
+          }, msg.senderId === currentUserId.value && msg.status === "sending" ? {} : {}, {
+            k: msg.senderId === currentUserId.value && msg.status === "failed"
+          }, msg.senderId === currentUserId.value && msg.status === "failed" ? {} : {}, {
+            l: msg.msgType === 1
+          }, msg.msgType === 1 ? {
+            m: common_vendor.t(msg.content)
+          } : msg.msgType === 2 ? {
+            o: getImageUrl(msg.content),
+            p: common_vendor.o(($event) => previewImage(getImageUrl(msg.content)), msg.id || index)
+          } : msg.msgType === 3 ? {
+            r: common_assets._imports_0$5,
+            s: common_vendor.o(($event) => playVoice(msg.content), msg.id || index)
+          } : msg.msgType === 4 ? {
+            v: common_assets._imports_1$3,
+            w: common_vendor.t(parseLocation(msg.content).name || "位置信息"),
+            x: common_vendor.o(($event) => openLocation(msg.content), msg.id || index)
+          } : {}, {
+            n: msg.msgType === 2,
+            q: msg.msgType === 3,
+            t: msg.msgType === 4,
+            y: msg.msgType === 3 ? 1 : "",
+            z: msg.senderId === currentUserId.value ? 1 : "",
+            A: msg.id || index,
+            B: "msg-" + index
           });
         }),
-        p: scrollTop.value,
-        q: common_vendor.o(loadMoreMessages),
-        r: isLoadingMore.value,
-        s: common_vendor.o(onRefresh),
-        t: showMenu.value
-      }, showMenu.value ? common_vendor.e({
-        v: selectedMessage.value && selectedMessage.value.type === "text"
-      }, selectedMessage.value && selectedMessage.value.type === "text" ? {
-        w: common_vendor.o(copyMessage)
-      } : {}, {
-        x: selectedMessage.value && selectedMessage.value.isMine && canRecall(selectedMessage.value)
-      }, selectedMessage.value && selectedMessage.value.isMine && canRecall(selectedMessage.value) ? {
-        y: common_vendor.o(recallMessage)
-      } : {}, {
-        z: selectedMessage.value
-      }, selectedMessage.value ? {
-        A: common_vendor.o(deleteMessage)
-      } : {}, {
-        B: menuPosition.value.x + "px",
-        C: menuPosition.value.y + "px",
-        D: common_vendor.o(hideMessageMenu)
-      }) : {}, {
-        E: showMenu.value
-      }, showMenu.value ? {
-        F: common_vendor.o(hideMessageMenu)
-      } : {}, {
-        G: common_vendor.o(toggleSearch),
-        H: common_vendor.o(clearChatHistory),
-        I: common_vendor.o(exportChatHistory),
-        J: showSearchBar.value
-      }, showSearchBar.value ? {
-        K: common_vendor.o([($event) => searchKeyword.value = $event.detail.value, onSearchInput]),
-        L: common_vendor.o(searchMessages),
-        M: searchKeyword.value,
-        N: common_vendor.o(searchMessages),
-        O: common_vendor.o(closeSearch)
-      } : {}, {
-        P: showQuickReply.value
-      }, showQuickReply.value ? {
-        Q: common_vendor.o(($event) => showQuickReply.value = false),
-        R: common_vendor.o(($event) => sendQuickReply("好的")),
-        S: common_vendor.o(($event) => sendQuickReply("收到")),
-        T: common_vendor.o(($event) => sendQuickReply("谢谢")),
-        U: common_vendor.o(($event) => sendQuickReply("稍等")),
-        V: common_vendor.o(($event) => sendQuickReply("没问题")),
-        W: common_vendor.o(($event) => sendQuickReply("辛苦了"))
-      } : {}, {
-        X: showEmojiPanel.value
-      }, showEmojiPanel.value ? {
-        Y: common_vendor.o(($event) => showEmojiPanel.value = false),
-        Z: common_vendor.o(($event) => insertEmoji("😀")),
-        aa: common_vendor.o(($event) => insertEmoji("😃")),
-        ab: common_vendor.o(($event) => insertEmoji("😄")),
-        ac: common_vendor.o(($event) => insertEmoji("😁")),
-        ad: common_vendor.o(($event) => insertEmoji("😆")),
-        ae: common_vendor.o(($event) => insertEmoji("😅")),
-        af: common_vendor.o(($event) => insertEmoji("😂")),
-        ag: common_vendor.o(($event) => insertEmoji("🤣")),
-        ah: common_vendor.o(($event) => insertEmoji("😊")),
-        ai: common_vendor.o(($event) => insertEmoji("😇")),
-        aj: common_vendor.o(($event) => insertEmoji("🙂")),
-        ak: common_vendor.o(($event) => insertEmoji("🙃")),
-        al: common_vendor.o(($event) => insertEmoji("😉")),
-        am: common_vendor.o(($event) => insertEmoji("😌")),
-        an: common_vendor.o(($event) => insertEmoji("😍")),
-        ao: common_vendor.o(($event) => insertEmoji("🥰")),
-        ap: common_vendor.o(($event) => insertEmoji("😘")),
-        aq: common_vendor.o(($event) => insertEmoji("😗")),
-        ar: common_vendor.o(($event) => insertEmoji("😙")),
-        as: common_vendor.o(($event) => insertEmoji("😚")),
-        at: common_vendor.o(($event) => insertEmoji("😋")),
-        av: common_vendor.o(($event) => insertEmoji("😛")),
-        aw: common_vendor.o(($event) => insertEmoji("😝")),
-        ax: common_vendor.o(($event) => insertEmoji("😜"))
-      } : {}, {
-        ay: common_vendor.o(($event) => showQuickReply.value = !showQuickReply.value),
-        az: common_vendor.o(($event) => showEmojiPanel.value = !showEmojiPanel.value),
-        aA: common_assets._imports_2$2,
-        aB: common_vendor.o(toggleVoiceInput),
-        aC: !isVoiceInput.value
-      }, !isVoiceInput.value ? {
-        aD: common_vendor.o(sendTextMessage),
-        aE: inputFocus.value,
-        aF: common_vendor.o([($event) => inputText.value = $event.detail.value, onInputChange]),
-        aG: inputText.value
+        f: (showPanel.value ? 500 : 0) + 140 + "rpx",
+        g: scrollTop.value,
+        h: scrollIntoView.value,
+        i: common_vendor.o(loadMoreHistory),
+        j: common_vendor.o(closePanel),
+        k: isVoiceMode.value ? "/static/icons/keyboard.png" : "/static/icons/voice.png",
+        l: common_vendor.o(switchVoiceMode),
+        m: isVoiceMode.value
+      }, isVoiceMode.value ? {
+        n: common_vendor.t(recording.value ? "松开 结束" : "按住 说话"),
+        o: recording.value ? 1 : "",
+        p: common_vendor.o(startRecord),
+        q: common_vendor.o(stopRecord),
+        r: common_vendor.o(cancelRecord)
       } : {
-        aH: common_vendor.t(isRecording.value ? "松开发送" : "按住说话"),
-        aI: common_vendor.o(startRecord),
-        aJ: common_vendor.o(stopRecord),
-        aK: common_vendor.o(cancelRecord)
+        s: common_vendor.o(sendText),
+        t: common_vendor.o(onInputFocus),
+        v: common_vendor.o(onInputBlur),
+        w: inputText.value,
+        x: common_vendor.o(($event) => inputText.value = $event.detail.value)
       }, {
-        aL: common_assets._imports_4$2,
-        aM: common_vendor.o(chooseImage),
-        aN: common_assets._imports_3$3,
-        aO: common_vendor.o(sendLocation),
-        aP: inputText.value.trim() && !isVoiceInput.value
-      }, inputText.value.trim() && !isVoiceInput.value ? {
-        aQ: common_vendor.o(sendTextMessage)
-      } : {});
+        y: common_assets._imports_2$4,
+        z: common_vendor.o(toggleEmoji),
+        A: inputText.value.trim() && !isVoiceMode.value
+      }, inputText.value.trim() && !isVoiceMode.value ? {
+        B: common_vendor.o(sendText)
+      } : {
+        C: common_assets._imports_3$3,
+        D: common_vendor.o(toggleMore)
+      }, {
+        E: showPanel.value
+      }, showPanel.value ? common_vendor.e({
+        F: panelType.value === "emoji"
+      }, panelType.value === "emoji" ? {
+        G: common_vendor.f(emojiList, (emoji, index, i0) => {
+          return {
+            a: common_vendor.t(emoji),
+            b: index,
+            c: common_vendor.o(($event) => addEmoji(emoji), index)
+          };
+        })
+      } : {}, {
+        H: panelType.value === "more"
+      }, panelType.value === "more" ? {
+        I: common_assets._imports_4$2,
+        J: common_vendor.o(($event) => chooseImage("album")),
+        K: common_assets._imports_5$1,
+        L: common_vendor.o(($event) => chooseImage("camera")),
+        M: common_assets._imports_1$3,
+        N: common_vendor.o(chooseLocation),
+        O: common_assets._imports_6$1,
+        P: common_vendor.o(sendEmergency),
+        Q: common_assets._imports_7$1,
+        R: common_vendor.o(videoCall),
+        S: common_assets._imports_8$1,
+        T: common_vendor.o(voiceCall)
+      } : {}) : {}, {
+        U: keyboardHeight.value + "px"
+      });
     };
   }
 };
-wx.createPage(_sfc_main);
+const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["__scopeId", "data-v-4fc73bec"]]);
+wx.createPage(MiniProgramPage);
 //# sourceMappingURL=../../../.sourcemap/mp-weixin/subpkg/chat/chat.js.map

@@ -2,15 +2,16 @@
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
 const api_attendant = require("../../api/attendant.js");
+const utils_api = require("../../utils/api.js");
 const _sfc_main = {
   __name: "index",
   setup(__props) {
     const searchKeyword = common_vendor.ref("");
     const categories = common_vendor.ref([
-      { name: "门诊陪诊", icon: "/static/category1.jpg" },
-      { name: "住院陪护", icon: "/static/category2.jpg" },
-      { name: "专家会诊", icon: "/static/category3.jpg" },
-      { name: "检查陪同", icon: "/static/category4.jpg" }
+      { name: "门诊陪诊", icon: utils_api.getBackendImageUrl("category1.jpg") },
+      { name: "住院陪护", icon: utils_api.getBackendImageUrl("category2.jpg") },
+      { name: "专家会诊", icon: utils_api.getBackendImageUrl("category3.jpg") },
+      { name: "检查陪同", icon: utils_api.getBackendImageUrl("category4.jpg") }
     ]);
     const services = common_vendor.ref([
       { name: "预约服务", icon: "/static/yvyue_2.png" },
@@ -42,26 +43,11 @@ const _sfc_main = {
       const deltaY = touch.clientY - startY.value;
       updatePosition(startLeft.value + deltaX, startTop.value + deltaY);
     };
-    const handleMouseDown = (e) => {
-      startX.value = e.clientX;
-      startY.value = e.clientY;
-      startLeft.value = btnLeft.value;
-      startTop.value = btnTop.value;
-      isDragging.value = true;
-    };
-    const handleMouseMove = (e) => {
-      if (!isDragging.value)
-        return;
-      const deltaX = e.clientX - startX.value;
-      const deltaY = e.clientY - startY.value;
-      updatePosition(startLeft.value + deltaX, startTop.value + deltaY);
-    };
     const updatePosition = (x, y) => {
       const sysInfo = common_vendor.index.getSystemInfoSync();
       const windowWidth = sysInfo.windowWidth;
       const windowHeight = sysInfo.windowHeight;
-      const rpxToPx = windowWidth / 750;
-      const btnSizePx = 60 * rpxToPx;
+      const btnSizePx = 60 * (windowWidth / 750);
       x = Math.max(0, Math.min(windowWidth - btnSizePx, x));
       y = Math.max(0, Math.min(windowHeight - btnSizePx, y));
       btnLeft.value = x;
@@ -71,59 +57,54 @@ const _sfc_main = {
       const sysInfo = common_vendor.index.getSystemInfoSync();
       const windowWidth = sysInfo.windowWidth;
       const windowHeight = sysInfo.windowHeight;
-      const rpxToPx = windowWidth / 750;
-      const btnSizePx = 60 * rpxToPx;
-      const initialLeft = windowWidth - btnSizePx;
-      const initialTop = windowHeight - btnSizePx;
-      btnLeft.value = initialLeft;
-      btnTop.value = initialTop;
+      const btnSizePx = 60 * (windowWidth / 750);
+      btnLeft.value = windowWidth - btnSizePx;
+      btnTop.value = windowHeight - btnSizePx;
     };
     const navigateToAIaks = () => {
-      common_vendor.index.navigateTo({
-        url: "/pages/AIaks/AIaks"
-      });
+      common_vendor.index.navigateTo({ url: "/pages/AIaks/AIaks" });
     };
     const navigateToAppointmentForm = () => {
-      common_vendor.index.navigateTo({
-        url: "/pages/AItriage/01_AppointmentSelection"
+      common_vendor.index.switchTab({
+        url: "/pages/AItriage/01_AppointmentSelection",
+        // tabbar页面路径
+        success: () => {
+          common_vendor.index.__f__("log", "at pages/index/index.vue:191", "跳转到tabbar页面成功");
+        },
+        fail: (err) => {
+          common_vendor.index.__f__("error", "at pages/index/index.vue:194", "跳转失败", err);
+        }
       });
     };
-    const navigateToCategory = (category) => {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:224", "点击分类:", category.name);
-      common_vendor.index.switchTab({ url: "/pages/appointment/appointment" });
-    };
     const navigateToCompanion = (companion) => {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:229", "点击陪诊员:", companion.name, "陪诊员ID:", companion.id);
       common_vendor.index.showToast({ title: "陪诊师详情功能暂未开放", icon: "none" });
     };
     const handleSearch = () => {
       if (searchKeyword.value.trim()) {
-        common_vendor.index.__f__("log", "at pages/index/index.vue:235", "搜索关键词:", searchKeyword.value);
         common_vendor.index.showToast({ title: `搜索"${searchKeyword.value}"`, icon: "none" });
       } else {
         common_vendor.index.showToast({ title: "请输入搜索内容", icon: "none" });
       }
     };
+    const getFullAvatarUrl = (relativePath) => {
+      if (!relativePath)
+        return utils_api.getBackendImageUrl("default-avatar.jpg");
+      if (relativePath.startsWith("http"))
+        return relativePath;
+      const baseUrl = utils_api.config.baseURL.endsWith("/") ? utils_api.config.baseURL : utils_api.config.baseURL + "/";
+      const avatarPath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+      return baseUrl + avatarPath;
+    };
     const fetchAttendants = async () => {
       try {
-        const res = await api_attendant.getAllAttendants();
-        common_vendor.index.__f__("log", "at pages/index/index.vue:251", "陪诊师列表:", res);
+        const res = await api_attendant.getRecommendedAttendants();
         if (res.code === 200 && res.data) {
-          companions.value = res.data.map((item) => ({
-            id: item.id,
-            name: item.name || "陪诊师" + item.id,
-            specialty: item.certificate || "专业陪诊",
-            experience: item.introduction || "专业陪诊服务",
-            rating: 4.8,
-            serviceCount: 100,
-            avatar: "/static/provider" + (item.id % 2 + 1) + ".jpg"
-          }));
+          companions.value = res.data;
         } else {
           common_vendor.index.showToast({ title: "获取陪诊师列表失败", icon: "none" });
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:266", "获取陪诊师列表出错:", error);
-        common_vendor.index.showToast({ title: "网络错误，请稍后重试", icon: "none" });
+        common_vendor.index.__f__("error", "at pages/index/index.vue:232", "获取陪诊师列表出错:", error);
       }
     };
     common_vendor.onMounted(() => {
@@ -136,14 +117,14 @@ const _sfc_main = {
         b: common_vendor.o(handleSearch),
         c: searchKeyword.value,
         d: common_vendor.o(($event) => searchKeyword.value = $event.detail.value),
-        e: common_assets._imports_1,
+        e: common_vendor.unref(utils_api.getBackendImageUrl)("banner.jpg"),
         f: common_vendor.o(navigateToAppointmentForm),
         g: common_vendor.f(categories.value, (item, index, i0) => {
           return {
             a: item.icon,
             b: common_vendor.t(item.name),
             c: index,
-            d: common_vendor.o(($event) => navigateToCategory(item), index)
+            d: common_vendor.o(($event) => _ctx.navigateToCategory(item), index)
           };
         }),
         h: common_vendor.f(services.value, (item, index, i0) => {
@@ -155,24 +136,24 @@ const _sfc_main = {
         }),
         i: common_vendor.f(companions.value, (companion, index, i0) => {
           return {
-            a: companion.avatar,
+            a: getFullAvatarUrl(companion.avatar),
             b: common_vendor.t(companion.name),
-            c: common_vendor.t(companion.specialty),
-            d: common_vendor.t(companion.experience),
-            e: common_vendor.t(companion.rating),
-            f: common_vendor.t(companion.serviceCount),
+            c: common_vendor.t(companion.professionalField),
+            d: common_vendor.t(companion.experienceYears),
+            e: common_vendor.t(companion.score),
+            f: common_vendor.t(companion.serviceCount || 0),
             g: index,
-            h: common_vendor.o(($event) => navigateToCompanion(companion), index)
+            h: common_vendor.o(($event) => navigateToCompanion(), index)
           };
         }),
-        j: common_assets._imports_0$1,
+        j: common_vendor.unref(utils_api.getBackendImageUrl)("mynewlogo.png"),
         k: btnLeft.value + "px",
         l: btnTop.value + "px",
         m: common_vendor.o(handleTouchStart),
         n: common_vendor.o(handleTouchMove),
         o: common_vendor.o(($event) => isDragging.value = false),
-        p: common_vendor.o(handleMouseDown),
-        q: common_vendor.o(handleMouseMove),
+        p: common_vendor.o((...args) => _ctx.handleMouseDown && _ctx.handleMouseDown(...args)),
+        q: common_vendor.o((...args) => _ctx.handleMouseMove && _ctx.handleMouseMove(...args)),
         r: common_vendor.o(($event) => isDragging.value = false),
         s: common_vendor.o(($event) => isDragging.value = false),
         t: common_vendor.o(navigateToAIaks)

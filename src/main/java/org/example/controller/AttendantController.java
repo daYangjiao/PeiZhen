@@ -209,11 +209,24 @@ public class AttendantController {
      */
     @GetMapping("/orders")
     @ApiOperation("获取陪诊师订单列表")
-    public ResponseResult<PagedResponse<OrderListResponse>> getAttendantOrders(
-            @ApiParam("陪诊师ID") @RequestParam Integer attendantId,
+  public ResponseResult<PagedResponse<OrderListResponse>> getAttendantOrders(
+            @ApiParam("陪诊师 ID") @RequestParam Integer attendantId,
             @ApiParam("页码") @RequestParam(defaultValue = "0") Integer page,
             @ApiParam("每页大小") @RequestParam(defaultValue = "10") Integer size,
-            @ApiParam("订单状态") @RequestParam(required = false) Integer orderStatus) {
+            @ApiParam("订单状态") @RequestParam(required = false) String orderStatusStr) {
+        
+        // 处理前端传来的 "null" 字符串
+       Integer orderStatus= null;
+      if (orderStatusStr != null && !"null".equals(orderStatusStr)) {
+            try {
+              orderStatus = Integer.valueOf(orderStatusStr);
+            } catch (NumberFormatException e) {
+                log.warn("无效的 orderStatus 值：{}", orderStatusStr);
+            }
+        }
+        
+        // 使用 final 变量供 lambda 表达式使用
+       final Integer finalOrderStatus = orderStatus;
         
         OrderListQueryRequest queryRequest = new OrderListQueryRequest();
         queryRequest.setPage(page);
@@ -222,10 +235,10 @@ public class AttendantController {
         
         try {
             List<Order> allMatchingOrders = orderService.findAllOrders(); // 获取所有订单
-            List<OrderListResponse> filteredList = allMatchingOrders.stream()
-                .filter(o -> {
+           List<OrderListResponse> filteredList = allMatchingOrders.stream()
+               .filter(o -> {
                     // 状态过滤
-                    if (orderStatus != null && !o.getOrderStatus().equals(orderStatus)) return false;
+                  if (finalOrderStatus != null && !o.getOrderStatus().equals(finalOrderStatus)) return false;
                     // 陪诊师过滤
                     return o.getAttendantId() != null && o.getAttendantId().equals(attendantId);
                 })

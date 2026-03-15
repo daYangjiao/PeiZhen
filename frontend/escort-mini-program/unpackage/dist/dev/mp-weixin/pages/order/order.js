@@ -1,137 +1,208 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
+const utils_api = require("../../utils/api.js");
+const utils_chatWebsocket = require("../../utils/chat-websocket.js");
 const _sfc_main = {
   __name: "order",
   setup(__props) {
-    const currentTab = common_vendor.ref(0);
-    const tabs = common_vendor.ref([
-      { name: "全部", status: "all", count: 0 },
-      { name: "已接单", status: "accepted", count: 0 },
-      { name: "进行中", status: "in_progress", count: 0 },
-      { name: "已完成", status: "completed", count: 0 },
-      { name: "已取消", status: "cancelled", count: 0 }
+    const statusBarHeight = common_vendor.ref(0);
+    const searchKeyword = common_vendor.ref("");
+    const statusTabs = common_vendor.ref([
+      { name: "全部", value: null },
+      { name: "待核销", value: 2 },
+      { name: "服务中", value: 3 },
+      { name: "待确认", value: 4 },
+      { name: "已完成", value: 6 },
+      { name: "已取消", value: 7 }
     ]);
-    const orderList = common_vendor.ref([]);
-    const filteredOrders = common_vendor.computed(() => {
-      if (currentTab.value === 0) {
-        return orderList.value;
-      }
-      return orderList.value.filter((order) => order.status === tabs.value[currentTab.value].status);
+    const activeStatus = common_vendor.ref(null);
+    const orders = common_vendor.ref([]);
+    const loading = common_vendor.ref(false);
+    let socketListener = null;
+    let pollTimer = null;
+    common_vendor.onMounted(() => {
+      const systemInfo = common_vendor.index.getSystemInfoSync();
+      statusBarHeight.value = systemInfo.statusBarHeight || 0;
+      loadOrders();
+      setupWebSocketListener();
+      startPolling();
     });
-    const updateOrderCounts = () => {
-      tabs.value[0].count = orderList.value.length;
-      tabs.value[1].count = orderList.value.filter((order) => order.status === "accepted").length;
-      tabs.value[2].count = orderList.value.filter((order) => order.status === "in_progress").length;
-      tabs.value[3].count = orderList.value.filter((order) => order.status === "completed").length;
-      tabs.value[4].count = orderList.value.filter((order) => order.status === "cancelled").length;
+    common_vendor.onShow(() => {
+      loadOrders();
+    });
+    const switchTab = (status) => {
+      activeStatus.value = status;
+      loadOrders();
     };
-    const loadAcceptedOrders = () => {
-      const acceptedOrders = common_vendor.index.getStorageSync("acceptedOrders") || [];
-      orderList.value = acceptedOrders.map((order) => {
-        let createTime = order.createTime || order.acceptTime;
-        if (!createTime) {
-          const now = /* @__PURE__ */ new Date();
-          const year = now.getFullYear();
-          const month = String(now.getMonth() + 1).padStart(2, "0");
-          const day = String(now.getDate()).padStart(2, "0");
-          const hours = String(now.getHours()).padStart(2, "0");
-          const minutes = String(now.getMinutes()).padStart(2, "0");
-          createTime = `${year}/${month}/${day} ${hours}:${minutes}`;
-        }
-        return {
-          ...order,
-          orderNo: order.orderNo || `PZ${Date.now()}`,
-          createTime,
-          distance: order.distance || "未知"
+    const handleSearch = () => {
+      loadOrders();
+    };
+    const loadOrders = async () => {
+      const userInfo = common_vendor.index.getStorageSync("userInfo");
+      if (!userInfo || !userInfo.id) {
+        orders.value = [];
+        return;
+      }
+      loading.value = true;
+      try {
+        const params = {
+          attendantId: userInfo.id,
+          page: 0,
+          size: 50
         };
-      });
-      updateOrderCounts();
+        if (activeStatus.value !== null) {
+          params.orderStatus = activeStatus.value;
+        }
+        const res = await utils_api.get("/attendant/orders", params);
+        if (res.code === 200 && res.data && res.data.content) {
+          orders.value = res.data.content;
+        } else {
+          orders.value = [];
+        }
+      } catch (e) {
+        common_vendor.index.__f__("error", "at pages/order/order.vue:182", "获取陪诊师订单失败:", e);
+        orders.value = [];
+      } finally {
+        loading.value = false;
+      }
     };
-    const switchTab = (index) => {
-      currentTab.value = index;
+    const filteredOrders = common_vendor.computed(() => {
+      if (!searchKeyword.value)
+        return orders.value;
+      const kw = searchKeyword.value.trim();
+      if (!kw)
+        return orders.value;
+      return orders.value.filter(
+        (o) => o.patientName && o.patientName.includes(kw) || o.hospital && o.hospital.includes(kw) || o.serviceContent && o.serviceContent.includes(kw) || o.serviceTypeName && o.serviceTypeName.includes(kw)
+      );
+    });
+    const formatAmount = (amount) => {
+      if (!amount)
+        return "0.00";
+      return Number(amount).toFixed(2);
+    };
+    const getAttendantIncome = (orderAmount) => {
+      const raw = Number(orderAmount || 0);
+      return raw * 0.9;
     };
     const getStatusText = (status) => {
-      switch (status) {
-        case "accepted":
-          return "已接单";
-        case "in_progress":
-          return "进行中";
-        case "completed":
-          return "已完成";
-        case "cancelled":
-          return "已取消";
-        default:
-          return "未知状态";
+      const map = {
+        1: "待接单",
+        2: "待核销",
+        3: "服务中",
+        4: "待确认",
+        5: "待补款",
+        6: "已完成",
+        7: "已取消"
+      };
+      return map[status] || "未知";
+    };
+    const getStatusClass = (status) => {
+      const map = {
+        1: "status-waiting",
+        2: "status-accepted",
+        3: "status-service",
+        4: "status-confirm",
+        6: "status-completed",
+        7: "status-cancelled"
+      };
+      return map[status] || "status-default";
+    };
+    const getPatientAvatar = (order) => {
+      const placeholder = "/static/user-placeholder.png";
+      if (!order || !order.userAvatar)
+        return placeholder;
+      const path = order.userAvatar;
+      if (path.startsWith("http"))
+        return path;
+      const base = utils_api.config.baseURL.replace(/\/$/, "");
+      if (path.startsWith("/"))
+        return base + path;
+      return base + "/" + path;
+    };
+    const goToDetail = (order) => {
+      common_vendor.index.navigateTo({
+        url: `/subpkg/order/detail?orderId=${order.orderId}`
+      });
+    };
+    const handleSocketMessage = (message) => {
+      common_vendor.index.__f__("log", "at pages/order/order.vue:255", "陪诊师订单页收到WebSocket消息:", message);
+      if (message.type === "NEW_ORDER" || message.type === "ORDER_ACCEPTED" || message.type === "SERVICE_STARTED" || message.type === "SERVICE_COMPLETED" || message.type === "ORDER_STATUS_CHANGED") {
+        setTimeout(() => {
+          loadOrders();
+        }, 1e3);
       }
     };
-    const goToDetail = (orderId) => {
-      common_vendor.index.navigateTo({
-        url: `/subpkg/order/detail?orderId=${orderId}`
-      });
+    const setupWebSocketListener = () => {
+      if (socketListener) {
+        utils_chatWebsocket.removeChatListener(socketListener);
+      }
+      socketListener = handleSocketMessage;
+      utils_chatWebsocket.addChatListener(socketListener);
     };
-    common_vendor.onMounted(() => {
-      common_vendor.index.$on("orderStatusUpdated", (data) => {
-        const { orderId, status } = data;
-        const order = orderList.value.find((item) => item.id === orderId);
-        if (order) {
-          order.status = status;
-          updateOrderCounts();
-        }
-      });
-      common_vendor.index.$on("orderAccepted", (acceptedOrder) => {
-        orderList.value.unshift(acceptedOrder);
-        updateOrderCounts();
-      });
-      loadAcceptedOrders();
-    });
+    const startPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+      pollTimer = setInterval(() => {
+        loadOrders();
+      }, 15e3);
+    };
     common_vendor.onUnmounted(() => {
-      common_vendor.index.$off("orderStatusUpdated");
-      common_vendor.index.$off("orderAccepted");
+      if (socketListener) {
+        utils_chatWebsocket.removeChatListener(socketListener);
+        socketListener = null;
+      }
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.f(tabs.value, (tab, index, i0) => {
+        a: common_assets._imports_0,
+        b: common_vendor.o(handleSearch),
+        c: searchKeyword.value,
+        d: common_vendor.o(($event) => searchKeyword.value = $event.detail.value),
+        e: common_vendor.f(statusTabs.value, (tab, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(tab.name),
-            b: tab.count > 0
-          }, tab.count > 0 ? {
-            c: common_vendor.t(tab.count)
-          } : {}, {
-            d: currentTab.value === index ? 1 : "",
-            e: index,
-            f: common_vendor.o(($event) => switchTab(index), index)
+            b: activeStatus.value === tab.value
+          }, activeStatus.value === tab.value ? {} : {}, {
+            c: index,
+            d: activeStatus.value === tab.value ? 1 : "",
+            e: common_vendor.o(($event) => switchTab(tab.value), index)
           });
         }),
-        b: common_vendor.f(filteredOrders.value, (order, k0, i0) => {
-          return common_vendor.e({
+        f: loading.value
+      }, loading.value ? {} : {}, {
+        g: !loading.value && filteredOrders.value.length > 0
+      }, !loading.value && filteredOrders.value.length > 0 ? {
+        h: common_vendor.f(filteredOrders.value, (order, k0, i0) => {
+          return {
             a: common_vendor.t(order.orderNo),
-            b: common_vendor.t(order.createTime),
-            c: common_vendor.t(getStatusText(order.status)),
-            d: common_vendor.n(order.status),
-            e: order.userAvatar,
-            f: common_vendor.t(order.userName),
-            g: common_vendor.t(order.serviceType),
-            h: common_vendor.t(order.hospitalName),
-            i: common_vendor.t(order.distance),
-            j: common_vendor.t(order.price),
-            k: order.status !== "cancelled"
-          }, order.status !== "cancelled" ? {
-            l: common_vendor.t(order.appointmentTime)
-          } : {}, {
-            m: order.status === "cancelled" && order.cancelReason
-          }, order.status === "cancelled" && order.cancelReason ? {
-            n: common_vendor.t(order.cancelReason)
-          } : {}, {
-            o: order.id,
-            p: common_vendor.o(($event) => goToDetail(order.id), order.id)
-          });
+            b: common_vendor.t(getStatusText(order.orderStatus)),
+            c: common_vendor.n(getStatusClass(order.orderStatus)),
+            d: common_vendor.t(order.serviceContent || order.serviceTypeName),
+            e: common_vendor.t(order.hospital),
+            f: common_vendor.t(order.serviceDate),
+            g: common_vendor.t(order.serviceTimeSlot || ""),
+            h: common_vendor.t(formatAmount(getAttendantIncome(order.orderAmount))),
+            i: getPatientAvatar(order),
+            j: common_vendor.t(order.patientName || order.contactPerson),
+            k: common_vendor.o(($event) => goToDetail(order), order.orderId),
+            l: order.orderId,
+            m: common_vendor.o(($event) => goToDetail(order), order.orderId)
+          };
         }),
-        c: filteredOrders.value.length === 0
-      }, filteredOrders.value.length === 0 ? {
-        d: common_assets._imports_0,
-        e: common_vendor.t(tabs.value[currentTab.value].name)
-      } : {});
+        i: common_assets._imports_2$2
+      } : !loading.value ? {
+        k: common_assets._imports_2
+      } : {}, {
+        j: !loading.value,
+        l: statusBarHeight.value + "px"
+      });
     };
   }
 };

@@ -1,7 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const api_auth = require("../../api/auth.js");
-const common_assets = require("../../common/assets.js");
+const utils_api = require("../../utils/api.js");
 const _sfc_main = {
   data() {
     return {
@@ -34,6 +34,8 @@ const _sfc_main = {
     }
   },
   methods: {
+    // 获取后端图片 URL
+    getBackendImageUrl: utils_api.getBackendImageUrl,
     // 验证用户名
     validateUsername() {
       if (!this.formData.username) {
@@ -131,7 +133,7 @@ const _sfc_main = {
             const { getUserById } = require("@/api/user.js");
             const userDetailResponse = await getUserById(response.data.userId);
             if (userDetailResponse.data) {
-              common_vendor.index.__f__("log", "at subpkg/auth/register.vue:261", "获取到用户详细信息:", userDetailResponse.data);
+              common_vendor.index.__f__("log", "at subpkg/auth/register.vue:265", "获取到用户详细信息:", userDetailResponse.data);
               const userInfo = {
                 userId: response.data.userId,
                 name: userDetailResponse.data.name,
@@ -141,7 +143,7 @@ const _sfc_main = {
               common_vendor.index.setStorageSync("lastRegisteredUser", userInfo);
             }
           } catch (detailError) {
-            common_vendor.index.__f__("error", "at subpkg/auth/register.vue:275", "获取用户详细信息失败:", detailError);
+            common_vendor.index.__f__("error", "at subpkg/auth/register.vue:279", "获取用户详细信息失败:", detailError);
           }
         }
         setTimeout(() => {
@@ -150,7 +152,7 @@ const _sfc_main = {
           });
         }, 1500);
       } catch (error) {
-        common_vendor.index.__f__("error", "at subpkg/auth/register.vue:286", "注册失败:", error);
+        common_vendor.index.__f__("error", "at subpkg/auth/register.vue:290", "注册失败:", error);
         common_vendor.index.showToast({
           title: error.message || "注册失败，请重试",
           icon: "none"
@@ -185,7 +187,7 @@ const _sfc_main = {
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
-    a: common_assets._imports_0$1,
+    a: $options.getBackendImageUrl("mynewlogo.png"),
     b: common_vendor.o((...args) => $options.validateUsername && $options.validateUsername(...args)),
     c: $data.formData.username,
     d: common_vendor.o(($event) => $data.formData.username = $event.detail.value),

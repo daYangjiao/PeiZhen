@@ -9,19 +9,28 @@
     {
       "root": "subpkg/auth",
       "pages": [
-        "login"
+        "login",
+        "register"
       ]
     },
     {
       "root": "subpkg/order",
       "pages": [
-        "detail"
+        "detail",
+        "prepare",
+        "submit-time-fee"
       ]
     },
     {
       "root": "subpkg/chat",
       "pages": [
         "chat"
+      ]
+    },
+    {
+      "root": "subpkg/system-message",
+      "pages": [
+        "system-message"
       ]
     }
   ],

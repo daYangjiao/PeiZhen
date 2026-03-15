@@ -1,274 +1,236 @@
-/**
- * 这里是uni-app内置的常用样式变量
- *
- * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
- * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
- *
- */
-/**
- * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
- *
- * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
- */
-/* 颜色变量 */
-/* 行为相关颜色 */
-/* 文字基本颜色 */
-/* 背景颜色 */
-/* 边框颜色 */
-/* 尺寸变量 */
-/* 文字尺寸 */
-/* 图片尺寸 */
-/* Border Radius */
-/* 水平间距 */
-/* 垂直间距 */
-/* 透明度 */
-/* 文章场景相关 */
-.container.data-v-93207a4f {
+
+.order-page.data-v-93207a4f {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
+  padding-bottom: 40rpx;
 }
-.custom-navbar.data-v-93207a4f {
+.header.data-v-93207a4f {
+  padding: 20rpx 30rpx;
+  background-color: #fff;
   position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #ffffff;
-  border-bottom: 1px solid #f0f0f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  padding-top: 8px;
 }
-.custom-navbar .navbar-content.data-v-93207a4f {
+.search-box.data-v-93207a4f {
+  background-color: #f5f7fa;
+  border-radius: 40rpx;
+  padding: 16rpx 30rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 44px;
-  padding: 0 16px;
 }
-.custom-navbar .navbar-content .nav-left.data-v-93207a4f, .custom-navbar .navbar-content .nav-right.data-v-93207a4f {
-  width: 60px;
+.search-icon.data-v-93207a4f {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 20rpx;
+  opacity: 0.5;
 }
-.custom-navbar .navbar-content .nav-title.data-v-93207a4f {
+.search-input.data-v-93207a4f {
   flex: 1;
-  text-align: center;
-  font-size: 18px;
-  font-weight: 500;
-  color: #333333;
+  font-size: 28rpx;
+  color: #333;
 }
 .status-tabs.data-v-93207a4f {
-  display: flex;
-  background: #ffffff;
-  padding: 0;
-  border-bottom: 1px solid #f0f0f0;
-  position: -webkit-sticky;
-  position: sticky;
-  top: 52px;
-  z-index: 99;
+  background-color: #fff;
+  padding: 0 10rpx;
+  margin-bottom: 20rpx;
 }
-.status-tabs .tab-item.data-v-93207a4f {
-  flex: 1;
-  height: 44px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-size: 15px;
-  color: #666666;
-  transition: all 0.3s ease;
-  font-weight: 400;
+.tabs-scroll.data-v-93207a4f {
+  white-space: nowrap;
+  width: 100%;
+}
+.tabs-container.data-v-93207a4f {
   display: flex;
+  padding: 0 10rpx;
+}
+.tab-item.data-v-93207a4f {
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding: 24rpx 30rpx;
+  position: relative;
+  flex-shrink: 0;
 }
-.status-tabs .tab-item.active.data-v-93207a4f {
+.tab-text.data-v-93207a4f {
+  font-size: 28rpx;
+  color: #666;
+  transition: all 0.3s;
+}
+.tab-item.active .tab-text.data-v-93207a4f {
   color: #4A90E2;
-  border-bottom-color: #4A90E2;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 30rpx;
 }
-.status-tabs .tab-item .tab-count.data-v-93207a4f {
-  margin-left: 4px;
-  font-size: 12px;
-  opacity: 0.8;
+.active-line.data-v-93207a4f {
+  width: 40rpx;
+  height: 4rpx;
+  background-color: #4A90E2;
+  border-radius: 2rpx;
+  position: absolute;
+  bottom: 10rpx;
+}
+.content-wrapper.data-v-93207a4f {
+  padding: 0 24rpx;
+}
+.loading-state.data-v-93207a4f {
+  padding: 40rpx 0;
+  text-align: center;
+}
+.loading-text.data-v-93207a4f {
+  font-size: 26rpx;
+  color: #999;
 }
 .order-list.data-v-93207a4f {
-  padding: 12px 16px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  height: calc(100vh - var(--status-bar-height) - 88px);
 }
-.order-wrapper.data-v-93207a4f {
-  background: #ffffff;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f0f0f0;
+.order-card.data-v-93207a4f {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04);
 }
-.order-wrapper .order-header.data-v-93207a4f {
+.order-header.data-v-93207a4f {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-.order-wrapper .order-header .order-no.data-v-93207a4f {
-  font-size: 14px;
-  color: #333333;
-  font-weight: 500;
-}
-.order-wrapper .order-header .order-time.data-v-93207a4f {
-  font-size: 12px;
-  color: #999999;
-  margin-top: 2px;
-}
-.order-wrapper .order-header .status-tag.data-v-93207a4f {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 400;
-}
-.order-wrapper .order-header .status-tag.accepted.data-v-93207a4f {
-  background: #E3F2FD;
-  color: #1976D2;
-}
-.order-wrapper .order-header .status-tag.in_progress.data-v-93207a4f {
-  background: #E8F5E8;
-  color: #4CAF50;
-}
-.order-wrapper .order-header .status-tag.completed.data-v-93207a4f {
-  background: #F3E5F5;
-  color: #9C27B0;
-}
-.order-wrapper .order-header .status-tag.cancelled.data-v-93207a4f {
-  background: #FFEBEE;
-  color: #F44336;
-}
-.order-wrapper .order-content .user-info.data-v-93207a4f {
-  display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 24rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f5f7fa;
 }
-.order-wrapper .order-content .user-info .user-avatar.data-v-93207a4f {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  margin-right: 12px;
-  border: none;
+.order-number.data-v-93207a4f {
+  font-size: 24rpx;
+  color: #999;
 }
-.order-wrapper .order-content .user-info .user-details.data-v-93207a4f {
-  flex: 1;
+.status-badge.data-v-93207a4f {
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
 }
-.order-wrapper .order-content .user-info .user-details .user-name.data-v-93207a4f {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333333;
-  margin-bottom: 4px;
-  display: block;
+.status-pending.data-v-93207a4f { background: #fff7e6; color: #fa8c16;
 }
-.order-wrapper .order-content .user-info .user-details .service-type.data-v-93207a4f {
-  font-size: 14px;
-  color: #666666;
-  display: block;
+.status-waiting.data-v-93207a4f { background: #e6f7ff; color: #1890ff;
 }
-.order-wrapper .order-content .order-info.data-v-93207a4f {
+.status-accepted.data-v-93207a4f { background: #f6ffed; color: #52c41a;
+}
+.status-service.data-v-93207a4f { background: #f9f0ff; color: #722ed1;
+}
+.status-completed.data-v-93207a4f { background: #f5f5f5; color: #8c8c8c;
+}
+.status-cancelled.data-v-93207a4f { background: #fff1f0; color: #f5222d;
+}
+.service-row.data-v-93207a4f {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 12px 0;
-  border-top: 1px solid #f5f5f5;
+  align-items: center;
+  margin-bottom: 16rpx;
 }
-.order-wrapper .order-content .order-info .info-item.data-v-93207a4f {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  flex: 1;
-}
-.order-wrapper .order-content .order-info .info-item .info-label.data-v-93207a4f {
-  font-size: 12px;
-  color: #999999;
-  margin-bottom: 4px;
-}
-.order-wrapper .order-content .order-info .info-item .info-value.data-v-93207a4f {
-  font-size: 14px;
-  color: #333333;
+.service-type.data-v-93207a4f {
+  font-size: 32rpx;
   font-weight: 400;
+  color: #333;
 }
-.order-wrapper .order-content .order-info .info-item .info-value.price.data-v-93207a4f {
-  color: #FF6B35;
-  font-weight: 600;
-  font-size: 16px;
+.hospital-name.data-v-93207a4f {
+  font-size: 26rpx;
+  color: #666;
 }
-.order-wrapper .order-content .appointment-time.data-v-93207a4f {
-  margin-top: 8px;
-  padding: 8px 0;
-  border-top: 1px solid #f5f5f5;
+.order-meta.data-v-93207a4f {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+.time-row.data-v-93207a4f {
   display: flex;
   align-items: center;
+  gap: 8rpx;
 }
-.order-wrapper .order-content .appointment-time .time-label.data-v-93207a4f {
-  font-size: 12px;
-  color: #999999;
-  margin-right: 8px;
-}
-.order-wrapper .order-content .appointment-time .time-value.data-v-93207a4f {
-  font-size: 14px;
-  color: #333333;
-  font-weight: 400;
-}
-.order-wrapper .order-content .cancel-reason.data-v-93207a4f {
-  margin-top: 8px;
-  padding: 8px 0;
-  border-top: 1px solid #f5f5f5;
-}
-.order-wrapper .order-content .cancel-reason .reason-label.data-v-93207a4f {
-  font-size: 12px;
-  color: #999999;
-  margin-right: 8px;
-  font-weight: 400;
-}
-.order-wrapper .order-content .cancel-reason .reason-value.data-v-93207a4f {
-  font-size: 14px;
-  color: #F44336;
-  line-height: 1.4;
-}
-.empty-state.data-v-93207a4f {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px var(--spacing-xl);
-  color: var(--text-placeholder);
-  background: var(--bg-primary);
-  border-radius: var(--radius-medium);
-  margin-top: var(--spacing-xl);
-  box-shadow: var(--shadow-light);
-}
-.empty-state .empty-icon.data-v-93207a4f {
-  width: 80px;
-  height: 80px;
-  margin-bottom: var(--spacing-lg);
+.meta-icon.data-v-93207a4f {
+  width: 28rpx;
+  height: 28rpx;
   opacity: 0.6;
 }
-.empty-state .empty-text.data-v-93207a4f {
-  font-size: 14px;
+.service-time.data-v-93207a4f {
+  font-size: 26rpx;
+  color: #666;
+}
+.price.data-v-93207a4f {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #ff4d4f;
+}
+.divider.data-v-93207a4f {
+  height: 1rpx;
+  background-color: #f5f7fa;
+  margin: 0 -30rpx 24rpx;
+}
+.doctor-info.data-v-93207a4f {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.attendant-wrapper.data-v-93207a4f {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.doctor-avatar.data-v-93207a4f {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+}
+.doctor-name.data-v-93207a4f {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 400;
+}
+.text-gray.data-v-93207a4f {
+  color: #999;
+}
+.action-buttons.data-v-93207a4f {
+  display: flex;
+  gap: 16rpx;
+}
+.btn.data-v-93207a4f {
+  font-size: 24rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 30rpx;
+  margin: 0;
   line-height: 1.5;
-  text-align: center;
-  max-width: 200px;
-  font-weight: 500;
 }
-@media (max-width: 375px) {
-.status-tabs.data-v-93207a4f {
-    padding: var(--spacing-md);
-    gap: var(--spacing-sm);
+.detail-btn.data-v-93207a4f {
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background-color: #fff;
+  color: #666;
+  border: 1rpx solid #ddd;
 }
-.status-tabs .tab-item.data-v-93207a4f {
-    height: 36px;
-    font-size: 13px;
+.detail-btn .btn-icon.data-v-93207a4f {
+  width: 24rpx;
+  height: 24rpx;
 }
-.order-list.data-v-93207a4f {
-    padding: var(--spacing-md);
+.pay-btn.data-v-93207a4f {
+  background-color: #4A90E2;
+  color: #fff;
+  border: 1rpx solid #4A90E2;
 }
 .empty-state.data-v-93207a4f {
-    padding: 40px var(--spacing-lg);
-    margin-top: var(--spacing-lg);
+  padding-top: 100rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.empty-state .empty-icon.data-v-93207a4f {
-    width: 60px;
-    height: 60px;
+.empty-icon.data-v-93207a4f {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.5;
 }
+.empty-text.data-v-93207a4f {
+  font-size: 28rpx;
+  color: #999;
 }

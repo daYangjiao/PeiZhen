@@ -2,22 +2,10 @@
   "pages": [
     "pages/index/index",
     "pages/order/order",
+    "pages/AItriage/01_AppointmentSelection",
     "pages/message/message",
     "pages/profile/profile",
-    "pages/appointment/appointment",
-    "pages/AIaks/AIaks",
-    "pages/AppointmentForm/AppointmentForm",
-    "pages/AICareMatchPage/AICareMatchPage",
-    "pages/ServiceCompanionSelect/ServiceCompanionSelect",
-    "pages/OrderConfirmPage/OrderConfirmPage",
-    "pages/PaymentSuccessPage/PaymentSuccessPage",
-    "pages/OrderDetailPage/OrderDetailPage",
-    "pages/Evaluate/Evaluate",
-    "pages/AItriage/01_AppointmentSelection",
-    "pages/AItriage/02_AppointmentForm",
-    "pages/AItriage/03_AICareMatchPage",
-    "pages/AItriage/04_OrderConfirmPage",
-    "pages/AItriage/05_PaymentSuccessPage"
+    "pages/OrderDetailPage/OrderDetailPage"
   ],
   "subPackages": [
     {
@@ -37,6 +25,46 @@
       "root": "subpkg/profile",
       "pages": [
         "edit-profile"
+      ]
+    },
+    {
+      "root": "subpkg/system-message",
+      "pages": [
+        "system-message"
+      ]
+    },
+    {
+      "root": "subpkg/chat",
+      "pages": [
+        "chat"
+      ]
+    },
+    {
+      "root": "subpkg/appointment-flow",
+      "pages": [
+        "02_AppointmentForm",
+        "03_AICareMatchPage",
+        "04_OrderConfirmPage",
+        "05_PaymentSuccessPage",
+        "PaymentFailedPage"
+      ]
+    },
+    {
+      "root": "subpkg/ai",
+      "pages": [
+        "AIaks"
+      ]
+    },
+    {
+      "root": "subpkg/evaluate",
+      "pages": [
+        "Evaluate"
+      ]
+    },
+    {
+      "root": "subpkg/attendant",
+      "pages": [
+        "InviteAttendant"
       ]
     }
   ],
@@ -65,7 +93,7 @@
         "selectedIconPath": "static/order_active.png"
       },
       {
-        "pagePath": "pages/appointment/appointment",
+        "pagePath": "pages/AItriage/01_AppointmentSelection",
         "text": "预约",
         "iconPath": "static/yvyue_2.png",
         "selectedIconPath": "static/yvyue_2_active.png"

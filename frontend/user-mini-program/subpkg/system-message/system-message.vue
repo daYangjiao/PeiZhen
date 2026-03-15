@@ -161,7 +161,7 @@ const handleAction = (msg) => {
         const orderNo = extractOrderNo(msg.content);
         if (orderNo && !orderNo.includes('*')) {
              // 如果能提取到未脱敏的订单号，尝试跳转到评价页
-             uni.navigateTo({ url: `/pages/Evaluate/Evaluate?orderId=${orderNo}` })
+             uni.navigateTo({ url: `/subpkg/evaluate/Evaluate?orderId=${orderNo}` })
         } else {
              // 否则跳转到订单列表页
              uni.switchTab({ url: '/pages/order/order' })

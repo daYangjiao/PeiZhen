@@ -6,12 +6,16 @@ const stores_user = require("../stores/user.js");
 const getUserInfo = (userId) => {
   return utils_api.get(`/api/users/${userId}`);
 };
+const getUserById = (userId) => {
+  common_vendor.index.__f__("log", "at api/user.js:15", "获取用户详细信息，用户ID:", userId);
+  return utils_api.get(`/api/users/${userId}`);
+};
 const updateUserInfo = (data) => {
   const userId = data.userId || data.id || data.yonghuid || (stores_user.useUserStore().userInfo ? stores_user.useUserStore().userInfo.userId || stores_user.useUserStore().userInfo.id || stores_user.useUserStore().userInfo.yonghuid : null);
   if (!userId) {
     return Promise.reject(new Error("用户ID不存在"));
   }
-  common_vendor.index.__f__("log", "at api/user.js:30", "更新用户信息，用户ID:", userId, "请求数据:", JSON.stringify(data));
+  common_vendor.index.__f__("log", "at api/user.js:36", "更新用户信息，用户ID:", userId, "请求数据:", JSON.stringify(data));
   const requestData = {
     // 确保请求体中包含id字段
     id: userId,
@@ -29,6 +33,8 @@ const updateUserInfo = (data) => {
     requestData.phone = data.phone;
   if (data.password !== void 0)
     requestData.password = data.password;
+  if (data.avatar !== void 0)
+    requestData.avatar = data.avatar;
   if (data.nickname !== void 0)
     requestData.nickname = data.nickname;
   if (data.gender !== void 0)
@@ -56,21 +62,24 @@ const updateUserInfo = (data) => {
     return response;
   });
 };
-const uploadAvatar = (filePath) => {
-  return utils_api.upload("/customer/user/avatar", filePath).then((response) => {
-    var _a;
-    if ((_a = response.data) == null ? void 0 : _a.avatarUrl) {
-      const userInfo = getUserInfo();
-      if (userInfo) {
-        utils_auth.setUserInfo({
-          ...userInfo,
-          avatar: response.data.avatarUrl
-        });
-      }
-    }
-    return response;
-  });
+const uploadAvatar = async (filePath) => {
+  const userInfo = utils_auth.getUserInfo();
+  const userId = (userInfo == null ? void 0 : userInfo.id) || (userInfo == null ? void 0 : userInfo.userId);
+  if (!userId) {
+    return Promise.reject(new Error("请先登录"));
+  }
+  const uploadRes = await utils_api.upload("/api/common/upload-image", filePath, {}, "file");
+  const avatarPath = uploadRes.data;
+  if (!avatarPath) {
+    return Promise.reject(new Error("上传失败"));
+  }
+  await utils_api.put(`/api/users/${userId}`, { avatar: avatarPath });
+  if (userInfo) {
+    utils_auth.setUserInfo({ ...userInfo, avatar: avatarPath });
+  }
+  return { code: 200, data: { avatarUrl: avatarPath } };
 };
+exports.getUserById = getUserById;
 exports.getUserInfo = getUserInfo;
 exports.updateUserInfo = updateUserInfo;
 exports.uploadAvatar = uploadAvatar;

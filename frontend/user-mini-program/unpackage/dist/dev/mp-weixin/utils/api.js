@@ -2,18 +2,14 @@
 const common_vendor = require("../common/vendor.js");
 const utils_auth = require("./auth.js");
 const config = {
-  // 开发环境API地址 - 微信开发工具中需要在「详情」-「本地设置」-「不校验合法域名」选项打勾
+  // 开发环境API地址
   baseURL: "http://localhost:8080",
-  // 生产环境API地址
-  // baseURL: 'https://your-api-domain.com',
-  // baseURL:'http://172.16.3.77:8080' ,
   // 请求超时时间
   timeout: 1e4,
   // 请求头配置
   headers: {
     "Content-Type": "application/json",
     "User-Type": "customer"
-    // 标识为用户端
   }
 };
 const getToken = () => {
@@ -23,72 +19,60 @@ const getToken = () => {
 const clearToken = () => {
   common_vendor.index.removeStorageSync("token");
 };
+const forceLogout = () => {
+  common_vendor.index.__f__("log", "at utils/api.js:43", "执行强制登出逻辑");
+  utils_auth.clearUserInfo();
+  clearToken();
+  common_vendor.index.showToast({
+    title: "登录已过期，请重新登录",
+    icon: "none",
+    duration: 2e3
+  });
+  setTimeout(() => {
+    common_vendor.index.reLaunch({
+      url: "/subpkg/auth/login"
+    });
+  }, 1500);
+};
 const requestInterceptor = (options) => {
   const token = getToken();
+  const headers = {
+    "Content-Type": "application/json",
+    "User-Type": "customer"
+  };
   if (token) {
-    const safeToken = encodeURIComponent(token);
-    options.header = {
-      ...options.header,
-      "Authorization": `Bearer ${safeToken}`
-    };
+    headers["Authorization"] = `Bearer ${token}`;
   }
   options.url = config.baseURL + options.url;
   options.timeout = config.timeout;
-  const safeHeaders = {};
-  {
-    safeHeaders["Content-Type"] = config.headers["Content-Type"];
-  }
-  for (const key in config.headers) {
-    if (config.headers.hasOwnProperty(key) && key !== "Content-Type") {
-      const value = config.headers[key];
-      safeHeaders[key] = typeof value === "string" ? encodeURIComponent(value) : value;
-    }
-  }
-  for (const key in options.header) {
-    if (options.header.hasOwnProperty(key)) {
-      const value = options.header[key];
-      if (key === "Content-Type") {
-        safeHeaders[key] = value;
-      } else {
-        safeHeaders[key] = typeof value === "string" ? encodeURIComponent(value) : value;
-      }
-    }
-  }
-  options.header = safeHeaders;
+  options.header = headers;
   return options;
 };
 const responseInterceptor = (response) => {
   const { statusCode, data } = response;
+  common_vendor.index.__f__("log", "at utils/api.js:82", "响应拦截器 - 状态码:", statusCode, "数据:", JSON.stringify(data));
+  if (statusCode === 401) {
+    common_vendor.index.__f__("log", "at utils/api.js:86", "检测到 HTTP 401，准备强制登出");
+    forceLogout();
+    return Promise.reject(data);
+  }
+  if (data && data.code === 401) {
+    common_vendor.index.__f__("log", "at utils/api.js:93", "检测到业务 401，准备强制登出");
+    forceLogout();
+    return Promise.reject(data);
+  }
   if (statusCode >= 200 && statusCode < 300) {
-    if (data.code === 200) {
-      return Promise.resolve(data);
-    } else if (data && typeof data === "object" && !data.hasOwnProperty("code")) {
-      return Promise.resolve({ code: 200, data });
-    } else if (data.code === 401) {
-      utils_auth.clearUserInfo();
-      clearToken();
-      common_vendor.index.showToast({
-        title: "登录已过期，请重新登录",
-        icon: "none"
-      });
-      setTimeout(() => {
-        common_vendor.index.navigateTo({
-          url: "/subpkg/auth/login"
-        });
-      }, 1500);
-      return Promise.reject(data);
-    } else {
-      common_vendor.index.showToast({
-        title: data.message || "请求失败",
-        icon: "none"
-      });
-      return Promise.reject(data);
+    if (data.code !== void 0) {
+      if (data.code === 200) {
+        return Promise.resolve(data);
+      } else {
+        common_vendor.index.showToast({ title: data.message || "请求失败", icon: "none" });
+        return Promise.reject(data);
+      }
     }
+    return Promise.resolve({ code: 200, data });
   } else {
-    common_vendor.index.showToast({
-      title: "网络请求失败",
-      icon: "none"
-    });
+    common_vendor.index.showToast({ title: "网络请求失败", icon: "none" });
     return Promise.reject(response);
   }
 };
@@ -101,75 +85,49 @@ const request = (options) => {
         responseInterceptor(response).then(resolve).catch(reject);
       },
       fail: (error) => {
-        common_vendor.index.showToast({
-          title: "网络连接失败",
-          icon: "none"
-        });
+        common_vendor.index.showToast({ title: "网络连接失败", icon: "none" });
         reject(error);
       }
     });
   });
 };
-const get = (url, params = {}) => {
-  return request({
-    url,
-    method: "GET",
-    data: params
-  });
+const get = (url, params = {}) => request({ url, method: "GET", data: params });
+const post = (url, data = {}) => request({ url, method: "POST", data });
+const put = (url, data = {}) => request({ url, method: "PUT", data });
+const getBackendImageUrl = (imageName) => {
+  const baseUrl = config.baseURL.endsWith("/") ? config.baseURL.slice(0, -1) : config.baseURL;
+  return `${baseUrl}/uploads/frontend-images/${imageName}`;
 };
-const post = (url, data = {}) => {
-  return request({
-    url,
-    method: "POST",
-    data,
-    header: {
-      "Content-Type": "application/json"
-    }
-  });
-};
-const put = (url, data = {}) => {
-  return request({
-    url,
-    method: "PUT",
-    data
-  });
-};
-const upload = (url, filePath, formData = {}) => {
+const upload = (url, filePath, formData = {}, name = "file") => {
   return new Promise((resolve, reject) => {
     const token = getToken();
-    const safeToken = token ? encodeURIComponent(token) : "";
+    const headers = {
+      "Authorization": token ? `Bearer ${token}` : ""
+    };
     common_vendor.index.uploadFile({
       url: config.baseURL + url,
       filePath,
-      name: "file",
+      name,
       formData,
-      header: {
-        "Authorization": safeToken ? `Bearer ${safeToken}` : "",
-        "User-Type": encodeURIComponent("customer"),
-        // 文件上传需要设置正确的Content-Type
-        "Content-Type": "multipart/form-data"
-      },
+      header: headers,
       success: (response) => {
         try {
-          const data = JSON.parse(response.data);
-          if (data.code === 200) {
+          const data = typeof response.data === "string" ? JSON.parse(response.data) : response.data;
+          if (data.code === 200 || data.code === 0) {
             resolve(data);
           } else {
-            common_vendor.index.showToast({
-              title: data.message || "上传失败",
-              icon: "none"
-            });
+            common_vendor.index.showToast({ title: data.message || "上传失败", icon: "none" });
             reject(data);
           }
-        } catch (error) {
-          reject(error);
+        } catch (e) {
+          common_vendor.index.__f__("error", "at utils/api.js:169", "上传响应解析失败:", e, response.data);
+          common_vendor.index.showToast({ title: "上传失败", icon: "none" });
+          reject(response);
         }
       },
       fail: (error) => {
-        common_vendor.index.showToast({
-          title: "上传失败",
-          icon: "none"
-        });
+        common_vendor.index.__f__("error", "at utils/api.js:175", "文件上传失败:", error);
+        common_vendor.index.showToast({ title: "上传失败", icon: "none" });
         reject(error);
       }
     });
@@ -177,6 +135,8 @@ const upload = (url, filePath, formData = {}) => {
 };
 exports.config = config;
 exports.get = get;
+exports.getBackendImageUrl = getBackendImageUrl;
+exports.getToken = getToken;
 exports.post = post;
 exports.put = put;
 exports.upload = upload;

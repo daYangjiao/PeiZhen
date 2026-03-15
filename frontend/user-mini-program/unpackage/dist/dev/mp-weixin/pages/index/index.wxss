@@ -2,11 +2,8 @@
 .container {
   min-height: 100vh;
   background-color: #f5f5f5;
-  margin-top: 150rpx;
-  position: relative; /* 为悬浮按钮提供定位上下文 */
+  position: relative;
 }
-
-/* ========== 新增：悬浮按钮样式 ========== */
 .floating-btn {
   position: fixed;
   width: 60px;
@@ -19,24 +16,14 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   z-index: 9999;
   cursor: grab;
-  -webkit-user-select: none;
-          user-select: none;
-}
-.floating-btn:active {
-  cursor: grabbing;
 }
 .floating-icon {
   width: 40px;
   height: 40px;
-  pointer-events: none; /* 防止图标拦截点击 */
 }
-
-/* ========== 以下是你原有的样式（保持不变） ========== */
-/* 顶部区域 */
 .header {
   background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
-  padding: 20rpx 30rpx 30rpx;
-  color: white;
+  padding: 0 30rpx 30rpx;
 }
 .search-box {
   background-color: #f5f5f5;
@@ -54,18 +41,7 @@
   color: #333;
   font-size: 28rpx;
   flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
 }
-.search-input::-webkit-input-placeholder {
-  color: #999;
-}
-.search-input::placeholder {
-  color: #999;
-}
-
-/* 轮播图 */
 .banner-section {
   margin: 30rpx;
 }
@@ -117,8 +93,6 @@
   font-size: 24rpx;
   font-weight: bold;
 }
-
-/* 服务分类 */
 .category-section {
   margin: 30rpx;
   background-color: white;
@@ -148,8 +122,6 @@
   color: #333;
   text-align: center;
 }
-
-/* 服务流程 */
 .service-section {
   margin: 30rpx;
   background-color: white;
@@ -158,8 +130,6 @@
 }
 .section-title {
   margin-bottom: 30rpx;
-}
-.title-text {
   font-size: 32rpx;
   font-weight: bold;
   color: #333;
@@ -184,8 +154,6 @@
   color: #666;
   text-align: center;
 }
-
-/* 推荐陪诊员 */
 .companion-section {
   margin: 30rpx;
   background-color: white;
@@ -193,15 +161,7 @@
   padding: 40rpx 30rpx;
 }
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 30rpx;
-}
-.section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
 }
 .companion-scroll {
   width: 100%;

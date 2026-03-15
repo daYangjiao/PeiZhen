@@ -6,7 +6,7 @@
     "versionCode" : "100",
     "transformPx" : false,
     "vueVersion" : "3",
-    /* 5+App特有相关 */
+    /* 5+App 特有相关 */
     "app-plus" : {
         "usingComponents" : true,
         "nvueStyleCompiler" : "uni-app",
@@ -21,7 +21,7 @@
         "modules" : {},
         /* 应用发布信息 */
         "distribute" : {
-            /* android打包配置 */
+            /* android 打包配置 */
             "android" : {
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
@@ -41,9 +41,9 @@
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ]
             },
-            /* ios打包配置 */
+            /* ios 打包配置 */
             "ios" : {},
-            /* SDK配置 */
+            /* SDK 配置 */
             "sdkConfigs" : {}
         }
     },
@@ -53,7 +53,8 @@
     "mp-weixin" : {
         "appid" : "wxc4969d63f7401618",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "lazyCodeLoading": "requiredComponents"
         },
         "usingComponents" : true
     },
@@ -68,6 +69,7 @@
     },
     "uniStatistics" : {
         "enable" : false
-    },
-    "vueVersion" : "3"
+    }
 }
+
+

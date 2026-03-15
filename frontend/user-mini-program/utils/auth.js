@@ -270,6 +270,17 @@ export function logout() {
 }
 
 /**
+ * 清除 Token
+ */
+export function clearToken() {
+	try {
+		uni.removeStorageSync(STORAGE_KEYS.TOKEN);
+	} catch (error) {
+		console.error('清除 Token 失败:', error);
+	}
+}
+
+/**
  * 格式化用户显示名称
  * @param {object} userInfo 用户信息
  * @returns {string} 显示名称
@@ -320,5 +331,6 @@ export default {
 	getUserProfile,
 	logout,
 	getDisplayName,
-	needUpdateUserInfo
+	needUpdateUserInfo,
+	clearToken
 };

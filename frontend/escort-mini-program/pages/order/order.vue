@@ -155,26 +155,32 @@ const handleSearch = () => {
 const loadOrders = async () => {
   const userInfo = uni.getStorageSync('userInfo')
   if (!userInfo || !userInfo.id) {
-    orders.value = []
+   orders.value = []
     return
   }
 
   loading.value = true
   try {
-    const res = await get('/attendant/orders', {
-      attendantId: userInfo.id,
-      orderStatus: activeStatus.value,
+    // 处理 null 值：当 activeStatus.value 为 null 时不传递该参数或传递空字符串
+    const params = {
+     attendantId: userInfo.id,
       page: 0,
       size: 50
-    })
-    if (res.code === 200 && res.data && res.data.content) {
-      orders.value = res.data.content
+    }
+    // 仅当 orderStatus 不为 null 时才添加
+   if (activeStatus.value !== null) {
+      params.orderStatus = activeStatus.value
+    }
+
+    const res = await get('/attendant/orders', params)
+   if (res.code === 200 && res.data && res.data.content) {
+     orders.value = res.data.content
     } else {
-      orders.value = []
+     orders.value = []
     }
   } catch (e) {
     console.error('获取陪诊师订单失败:', e)
-    orders.value = []
+   orders.value = []
   } finally {
     loading.value = false
   }

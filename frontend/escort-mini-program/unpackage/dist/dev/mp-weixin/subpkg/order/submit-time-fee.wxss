@@ -1,0 +1,163 @@
+/**
+ * 这里是uni-app内置的常用样式变量
+ *
+ * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
+ * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
+ *
+ */
+/**
+ * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
+ *
+ * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
+ */
+/* 颜色变量 */
+/* 行为相关颜色 */
+/* 文字基本颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 尺寸变量 */
+/* 文字尺寸 */
+/* 图片尺寸 */
+/* Border Radius */
+/* 水平间距 */
+/* 垂直间距 */
+/* 透明度 */
+/* 文章场景相关 */
+.container.data-v-2be58cfe {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+.custom-navbar.data-v-2be58cfe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding-top: var(--status-bar-height);
+  background-color: #4A90E2;
+}
+.custom-navbar .navbar-content.data-v-2be58cfe {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+}
+.custom-navbar .navbar-content .nav-left.data-v-2be58cfe, .custom-navbar .navbar-content .nav-right.data-v-2be58cfe {
+  width: 60px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+}
+.custom-navbar .navbar-content .back-icon.data-v-2be58cfe {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
+}
+.custom-navbar .navbar-content .nav-title.data-v-2be58cfe {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+.content.data-v-2be58cfe {
+  padding-top: calc(var(--status-bar-height) + 44px);
+  padding-bottom: 90px;
+}
+.card.data-v-2be58cfe {
+  background: #fff;
+  margin: 12px 15px;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.card-title.data-v-2be58cfe {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+.time-row.data-v-2be58cfe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.time-row .label.data-v-2be58cfe {
+  font-size: 14px;
+  color: #666;
+}
+.time-row .value.data-v-2be58cfe {
+  font-size: 14px;
+  color: #333;
+}
+.time-row .value.diff.data-v-2be58cfe {
+  font-weight: 600;
+}
+.time-row .value.more.data-v-2be58cfe {
+  color: #ff4d4f;
+}
+.time-row .value.less.data-v-2be58cfe {
+  color: #52c41a;
+}
+.duration-input.data-v-2be58cfe {
+  display: flex;
+  align-items: center;
+}
+.duration-input .step-btn.data-v-2be58cfe {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  border: 1px solid #4A90E2;
+  color: #4A90E2;
+  font-size: 18px;
+  line-height: 30px;
+  text-align: center;
+  background: #fff;
+}
+.duration-input .duration-text.data-v-2be58cfe {
+  margin: 0 10px;
+  font-size: 14px;
+  color: #333;
+}
+.rule-text.data-v-2be58cfe {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+}
+.desc-input.data-v-2be58cfe {
+  width: 100%;
+  min-height: 80px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.desc-count.data-v-2be58cfe {
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+.bottom-actions.data-v-2be58cfe {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 15px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+.main-btn.data-v-2be58cfe {
+  width: 100%;
+  height: 44px;
+  line-height: 44px;
+  background: #4A90E2;
+  color: #fff;
+  border-radius: 22px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+}
