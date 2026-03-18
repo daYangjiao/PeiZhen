@@ -63031,3 +63031,8 @@ Unconditional classes:
 2026-03-18 18:32:11.605 DEBUG 66010 --- [pool-2-thread-1] o.e.d.O.findExpiredUnpaidOrders          : ==>  Preparing: SELECT * FROM `order` WHERE payment_status = 0 AND order_status = 0 AND create_time <= ? ORDER BY create_time ASC
 2026-03-18 18:32:11.609 DEBUG 66010 --- [pool-2-thread-1] o.e.d.O.findExpiredUnpaidOrders          : ==> Parameters: 2026-03-18 18:17:11.602(Timestamp)
 2026-03-18 18:32:11.632 DEBUG 66010 --- [pool-2-thread-1] o.e.d.O.findExpiredUnpaidOrders          : <==      Total: 0
+2026-03-18 18:32:57.411 DEBUG 66010 --- [SpringApplicationShutdownHook] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed from ACCEPTING_TRAFFIC to REFUSING_TRAFFIC
+2026-03-18 18:32:57.411 DEBUG 66010 --- [SpringApplicationShutdownHook] ConfigServletWebServerApplicationContext : Closing org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@2bb3058, started on Wed Mar 18 17:52:09 CST 2026
+2026-03-18 18:32:57.411 DEBUG 66010 --- [SpringApplicationShutdownHook] ySourcesPropertyResolver$DefaultResolver : Found key 'spring.liveBeansView.mbeanDomain' in PropertySource 'systemProperties' with value of type String
+2026-03-18 18:32:57.437  INFO 66010 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-18 18:32:57.439  INFO 66010 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
