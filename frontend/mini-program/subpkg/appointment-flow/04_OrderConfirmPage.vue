@@ -406,10 +406,11 @@ const formatDate = (dateStr) => {
 
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 /* 保持原有样式不变 */
 .order-confirm-page {
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   padding: 40rpx;
   font-size: 28rpx;
   min-height: 100vh;
@@ -477,7 +478,7 @@ const formatDate = (dateStr) => {
 }
 
 .step-item.active .step-dot {
-  background-color: #007aff;
+  background-color: #66A6FF;
   color: white;
 }
 
@@ -486,7 +487,7 @@ const formatDate = (dateStr) => {
 }
 
 .step-item.active .step-text {
-  color: #007aff;
+  color: #66A6FF;
 }
 
 .progress-line {
@@ -519,7 +520,7 @@ const formatDate = (dateStr) => {
 
 .title .iconfont {
   margin-right: 10rpx;
-  color: #007aff;
+  color: #66A6FF;
 }
 
 .info-item {
@@ -562,7 +563,7 @@ const formatDate = (dateStr) => {
 }
 
 .discount {
-  color: #007aff;
+  color: #66A6FF;
   font-weight: 500;
 }
 
@@ -571,7 +572,7 @@ const formatDate = (dateStr) => {
   justify-content: space-between;
   padding: 20rpx 0;
   font-weight: bold;
-  color: #007aff;
+  color: #66A6FF;
 }
 
 .total-price {
@@ -591,7 +592,7 @@ const formatDate = (dateStr) => {
 
 .fee-tip-tag {
   font-size: 22rpx;
-  color: #1890FF;
+  color: #66A6FF;
   font-weight: 600;
   padding: 4rpx 10rpx;
   border-radius: 999rpx;
@@ -643,7 +644,7 @@ const formatDate = (dateStr) => {
 }
 
 .price {
-  color: #007aff;
+  color: #66A6FF;
   font-weight: bold;
   font-size: 32rpx;
 }
@@ -651,7 +652,7 @@ const formatDate = (dateStr) => {
 .confirm-btn {
   width: 200rpx;
   height: 60rpx;
-  background-color: #007aff;
+  background-color: #66A6FF;
   color: white;
   border-radius: 30rpx;
   font-size: 28rpx;
@@ -666,7 +667,7 @@ const formatDate = (dateStr) => {
   padding: 0;
   border: none;
   background: none;
-  color: #007aff;
+  color: #66A6FF;
   font-size: 24rpx;
   text-decoration: underline;
   cursor: pointer;
@@ -768,7 +769,7 @@ const formatDate = (dateStr) => {
   display: block;
   font-size: 28rpx;
   font-weight: 700;
-  color: #007aff;
+  color: #66A6FF;
   margin-bottom: 8rpx;
 }
 
@@ -805,7 +806,7 @@ const formatDate = (dateStr) => {
   width: 14rpx;
   height: 14rpx;
   border-radius: 50%;
-  background: #007aff;
+  background: #66A6FF;
   margin-top: 10rpx;
   flex-shrink: 0;
 }

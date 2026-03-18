@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :class="roleClass">
     <view class="tabs-container">
       <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
         <view class="tabs-wrapper">
@@ -53,6 +53,8 @@ const scrollTop = ref(0)
 const scrollIntoView = ref('')
 const currentTab = ref(0)
 const tabs = ['全部', '订单状态', '服务提醒', '平台公告', '账户相关']
+const role = ref(uni.getStorageSync('role') || 'user')
+const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 
 onLoad(() => {
   loadSystemMessages()
@@ -134,14 +136,19 @@ const getMessageTitle = (msg) => msg.title || '系统通知'
 const getActionText = (msg) => msg.action
 
 const handleAction = (msg) => {
+  const orderTab = role.value === 'escort' ? '/pages/role-escort/order' : '/pages/role-user/order'
   if (msg.action === '查看订单') {
-    uni.switchTab({ url: '/pages/role-user/order' })
+    uni.switchTab({ url: orderTab })
   } else if (msg.action === '去评价') {
-    const orderNo = extractOrderNo(msg.content)
-    if (orderNo && !orderNo.includes('*')) {
-      uni.navigateTo({ url: `/subpkg/evaluate/Evaluate?orderNo=${orderNo}` })
+    if (role.value === 'escort') {
+      uni.switchTab({ url: orderTab })
     } else {
-      uni.switchTab({ url: '/pages/role-user/order' })
+      const orderNo = extractOrderNo(msg.content)
+      if (orderNo && !orderNo.includes('*')) {
+        uni.navigateTo({ url: `/subpkg/evaluate/Evaluate?orderNo=${orderNo}` })
+      } else {
+        uni.switchTab({ url: orderTab })
+      }
     }
   } else if (msg.action === '去充值') {
     uni.showToast({ title: '功能开发中', icon: 'none' })
@@ -168,11 +175,17 @@ const formatTime = (timeStr) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
+@import '@/styles/escort-ui.scss';
 .container {
+  --msg-primary: #{$user-color-primary};
   min-height: 100vh;
   background-color: #f5f7fa;
   display: flex;
   flex-direction: column;
+}
+.container.role-escort {
+  --msg-primary: #{$escort-color-primary};
 }
 .tabs-container {
   background-color: #fff;
@@ -195,7 +208,7 @@ const formatTime = (timeStr) => {
   position: relative;
 }
 .tab-item.active .tab-text {
-  color: #4A90E2;
+  color: var(--msg-primary);
   font-weight: 600;
   font-size:22rpx;
 }
@@ -207,7 +220,7 @@ const formatTime = (timeStr) => {
 .tab-line {
   width: 40rpx;
   height: 6rpx;
-  background-color: #4A90E2;
+  background-color: var(--msg-primary);
   border-radius: 3rpx;
   position: absolute;
   bottom: 6rpx;
@@ -252,7 +265,7 @@ const formatTime = (timeStr) => {
   text-align: justify;
 }
 .message-footer {
-  border-top: 1rpx solid #f5f5f5;
+  border-top: 1rpx solid #f5f7fa;
   padding-top: 20rpx;
   display: flex;
   justify-content: space-between;
@@ -260,7 +273,7 @@ const formatTime = (timeStr) => {
 }
 .action-text {
   font-size: 28rpx;
-  color: #4A90E2;
+  color: var(--msg-primary);
   font-weight: 500;
 }
 .action-arrow {
@@ -285,4 +298,3 @@ const formatTime = (timeStr) => {
   font-size: 28rpx;
 }
 </style>
-

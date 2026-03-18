@@ -116,7 +116,8 @@ const handleNewMessage = (msg) => {
     processedMessages.clear()
     arr.forEach(k => processedMessages.add(k))
   }
-  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !(msg.msgType == 3 || msg.content === 'READ_RECEIPT')) {
+  const isReadReceipt = msg.msgType === 3 || msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
+  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !isReadReceipt) {
     loadContacts()
   }
 }
@@ -239,6 +240,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .container {
   min-height: 100vh;
   background-color: #f5f7fa;
@@ -259,7 +261,7 @@ onUnmounted(() => {
 }
 .system-card {
   background: linear-gradient(to right, #ffffff, #f0f7ff);
-  border-left: 6rpx solid #4A90E2;
+  border-left: 6rpx solid #66A6FF;
 }
 .avatar-container {
   position: relative;
@@ -318,7 +320,7 @@ onUnmounted(() => {
   max-width: 300rpx;
 }
 .system-name {
-  color: #4A90E2;
+  color: #66A6FF;
 }
 .time {
   font-size: 20rpx;
@@ -360,4 +362,3 @@ onUnmounted(() => {
   font-size: 22rpx;
 }
 </style>
-

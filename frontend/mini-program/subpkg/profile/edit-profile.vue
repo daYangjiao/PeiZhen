@@ -360,10 +360,11 @@ const saveProfile = async () => {
 }
 </script>
 
-<style>
+<style lang="scss">
+@import '@/styles/user-ui.scss';
 .container {
     min-height: 100vh;
-    background-color: #f5f5f5;
+    background-color: #f5f7fa;
     padding-bottom: 120rpx;
 }
 
@@ -394,7 +395,7 @@ const saveProfile = async () => {
 
 .upload-text {
     font-size: 24rpx;
-    color: #4A90E2;
+    color: #66A6FF;
 }
 
 /* 表单样式 */
@@ -481,7 +482,7 @@ const saveProfile = async () => {
 }
 
 .radio-circle.checked {
-    border-color: #4A90E2;
+    border-color: #66A6FF;
     background-color: #ffffff;
 }
 
@@ -491,7 +492,7 @@ const saveProfile = async () => {
     width: 24rpx;
     height: 24rpx;
     border-radius: 12rpx;
-    background-color: #4A90E2;
+    background-color: #66A6FF;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -523,7 +524,7 @@ const saveProfile = async () => {
     width: 100%;
     height: 80rpx;
     line-height: 80rpx;
-    background-color: #007aff;
+    background-color: #66A6FF;
     color: #fff;
     border-radius: 40rpx;
     font-size: 30rpx;
@@ -533,7 +534,7 @@ const saveProfile = async () => {
 .save-btn {
     width: 45%;
     height: 90rpx;
-    background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
     color: #ffffff;
     border-radius: 45rpx;
     font-size: 32rpx;
@@ -547,7 +548,7 @@ const saveProfile = async () => {
     width: 45%;
     height: 80rpx;
     line-height: 80rpx;
-    background-color: #f5f5f5;
+    background-color: #f5f7fa;
     color: #666;
     border-radius: 40rpx;
     font-size: 30rpx;

@@ -16,7 +16,10 @@
 					</view>
 				</view>
 			</view>
-			<text class="price">¥{{ orderData.price }}</text>
+			<view class="income-chip">
+				<text class="income-label">预计收入</text>
+				<text class="income-value">¥{{ orderData.price }}</text>
+			</view>
 		</view>
 
 		<view class="service-info">
@@ -142,133 +145,276 @@ const handleMainAction = () => {
 <style lang="scss" scoped>
 .order-card {
 	background: #ffffff;
-	border-radius: 20rpx;
-	padding: 30rpx;
-	margin-bottom: 24rpx;
-	box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+	border-radius: 16rpx;
+	padding: 22rpx;
+	margin-bottom: 18rpx;
+	box-shadow: 0 10rpx 22rpx rgba(31, 41, 55, 0.08);
 	position: relative;
-	transition: all 0.3s ease;
-	border: 1rpx solid #f0f0f0;
+	border: 1rpx solid #e8edf4;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	animation: cardIn 0.24s ease both;
 	&:active {
-		transform: scale(0.98);
-		box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+		transform: scale(0.986);
+		box-shadow: 0 12rpx 28rpx rgba(31, 41, 55, 0.12);
 	}
 }
+
 .card-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 12px;
+	margin-bottom: 14rpx;
 	.user-info {
 		display: flex;
 		align-items: center;
 		flex: 1;
 		.avatar {
-			width: 48px;
-			height: 48px;
-			border-radius: 24px;
-			margin-right: 12px;
+			width: 78rpx;
+			height: 78rpx;
+			border-radius: 39rpx;
+			margin-right: 14rpx;
 			border: none;
 			overflow: hidden;
 		}
 		.user-details {
 			flex: 1;
+			min-width: 0;
 			.name-row {
 				display: flex;
 				align-items: center;
-				margin-bottom: 6px;
+				margin-bottom: 8rpx;
 				.username {
-					font-size: 16px;
+					font-size: 28rpx;
 					font-weight: 600;
-					color: #333333;
-					margin-right: 8px;
+					color: #1f2937;
+					margin-right: 8rpx;
+					max-width: 210rpx;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
 				}
 				.tags {
 					display: flex;
-					gap: 4px;
+					gap: 6rpx;
 					.tag {
-						font-size: 10px;
-						padding: 1px 4px;
-						border-radius: 4px;
-						&.age { background-color: #e6f7ff; color: #1890ff; }
-						&.gender { background-color: #fff0f6; color: #eb2f96; }
+						font-size: 19rpx;
+						padding: 3rpx 9rpx;
+						border-radius: 999rpx;
+						&.age {
+							background-color: #eef5ff;
+							color: #66a6ff;
+						}
+						&.gender {
+							background-color: #fff1f5;
+							color: #e85d88;
+						}
 					}
 				}
 			}
 			.service-type-box {
-				display: inline-block;
-				border-radius: 6px;
-				padding: 3px 10px;
+				display: inline-flex;
+				align-items: center;
+				border-radius: 999rpx;
+				padding: 5rpx 12rpx;
 				border: 1px solid transparent;
-				.service-type { font-size: 12px; font-weight: 500; }
-				&.type-normal { background: #e6f7ff; border-color: #91d5ff; .service-type { color: #1890ff; } }
-				&.type-postop { background: #f9f0ff; border-color: #d3adf7; .service-type { color: #722ed1; } }
-				&.type-emergency { background: #fff7e6; border-color: #ffd591; .service-type { color: #fa8c16; } }
-				&.type-home { background: #e6fffb; border-color: #87e8de; .service-type { color: #13c2c2; } }
-				&.type-default { background: #f5f5f5; border-color: #d9d9d9; .service-type { color: #8c8c8c; } }
+				.service-type {
+					font-size: 21rpx;
+					font-weight: 500;
+				}
+				&.type-normal {
+					background: #eef5ff;
+					border-color: #b6d4ff;
+					.service-type { color: #66a6ff; }
+				}
+				&.type-postop {
+					background: #f5f0ff;
+					border-color: #d8c4ff;
+					.service-type { color: #6f4acc; }
+				}
+				&.type-emergency {
+					background: #fff3e8;
+					border-color: #ffd3ad;
+					.service-type { color: #f08a1f; }
+				}
+				&.type-home {
+					background: #e8fbf6;
+					border-color: #a8eddc;
+					.service-type { color: #18a17f; }
+				}
+				&.type-default {
+					background: #f2f4f7;
+					border-color: #dbe1ea;
+					.service-type { color: #6b7280; }
+				}
 			}
 		}
 	}
-	.price { font-size: 18px; font-weight: 700; color: #ff4d4f; }
 }
+
+.income-chip {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 3rpx;
+	margin-left: 10rpx;
+	background: #f3f8ff;
+	border: 1rpx solid #d9e9ff;
+	border-radius: 10rpx;
+	padding: 9rpx 11rpx;
+	flex-shrink: 0;
+}
+
+.income-label {
+	font-size: 19rpx;
+	color: #6c7e96;
+	line-height: 1;
+}
+
+.income-value {
+	font-size: 31rpx;
+	font-weight: 700;
+	color: #2f74d7;
+	line-height: 1.1;
+}
+
 .service-info {
-	margin-bottom: 12px;
+	margin-bottom: 12rpx;
 	.info-row {
 		display: flex;
-		align-items: flex-start;
-		margin-bottom: 8px;
-		&:last-child { margin-bottom: 0; }
-		.info-icon { width: 16px; height: 16px; margin-right: 8px; opacity: 0.8; }
-		.info-text { flex: 1; font-size: 14px; color: #334155; line-height: 1.4; }
-		&:first-child .info-text { font-size: 15px; font-weight: 600; color: #111827; }
-		&:nth-child(2) .info-text { color: #4A90E2; }
+		align-items: center;
+		margin-bottom: 8rpx;
+		&:last-child {
+			margin-bottom: 0;
+		}
+		.info-icon {
+			width: 24rpx;
+			height: 24rpx;
+			margin-right: 8rpx;
+			opacity: 0.8;
+		}
+		.info-text {
+			flex: 1;
+			font-size: 23rpx;
+			color: #334155;
+			line-height: 1.4;
+		}
 	}
 }
+
 .special-needs {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	margin-bottom: 12px;
-	.needs-item {
-		display: flex;
-		align-items: flex-start;
-		gap: 10px;
-		background: #f8fafc;
-		border: 1px solid #e2e8f0;
-		border-radius: 10px;
-		padding: 10px 12px;
-	}
-	.needs-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
-	.needs-content { flex: 1; min-width: 0; }
-	.needs-label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
-	.needs-value { font-size: 13px; color: #334155; line-height: 1.4; word-break: break-all; }
+	gap: 8rpx;
+	margin-bottom: 12rpx;
 }
+
+.needs-item {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	padding: 9rpx 10rpx;
+	border-radius: 10rpx;
+	background: #f7fbff;
+	border: 1rpx solid #e2eefb;
+}
+
+.needs-icon {
+	width: 24rpx;
+	height: 24rpx;
+	opacity: 0.75;
+	flex-shrink: 0;
+}
+
+.needs-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.needs-label {
+	display: block;
+	font-size: 18rpx;
+	color: #8090a8;
+	margin-bottom: 2rpx;
+}
+
+.needs-value {
+	flex: 1;
+	font-size: 22rpx;
+	color: #4b5a70;
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .card-actions {
 	display: flex;
-	gap: 12px;
-	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid #f0f0f0;
+	gap: 10rpx;
+	margin-top: 10rpx;
+	padding-top: 12rpx;
+	border-top: 1rpx solid #edf2f8;
 	.action-btn {
 		flex: 1;
-		height: 36px;
-		border-radius: 18px;
-		font-size: 14px;
+		height: 64rpx;
+		border-radius: 32rpx;
+		font-size: 24rpx;
 		font-weight: 500;
 		border: none;
-		transition: all 0.3s ease;
-		cursor: pointer;
+		transition: all 0.2s ease;
 		position: relative;
 		overflow: hidden;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		&:active { transform: scale(0.95); }
-		&.secondary { background: #f8f9fa; color: #666666; border: 1px solid #e9ecef; &:active { background: #e9ecef; } }
-		&.primary { background: #4A90E2; color: #ffffff; &:active { background: #357abd; } }
-		.btn-icon { width: 16px; height: 16px; }
+		gap: 8rpx;
+		&::after {
+			border: none;
+		}
+		&:active {
+			transform: scale(0.97);
+		}
+		&.secondary {
+			background: #f3f6fb;
+			color: #5b6575;
+			border: 1rpx solid #dfe7f1;
+			&:active {
+				background: #e8eef7;
+			}
+		}
+		&.primary {
+			background: linear-gradient(135deg, #7cb7ff, #66a6ff);
+			color: #ffffff;
+			box-shadow: 0 6rpx 16rpx rgba(102, 166, 255, 0.25);
+			&:active {
+				background: linear-gradient(135deg, #6eaefb, #5e9ff2);
+			}
+		}
+		.btn-icon {
+			width: 22rpx;
+			height: 22rpx;
+		}
+	}
+}
+
+.status-tag {
+	position: absolute;
+	top: 18rpx;
+	right: 18rpx;
+	border-radius: 999rpx;
+	padding: 6rpx 14rpx;
+	font-size: 20rpx;
+	background: #edf2f7;
+	color: #64748b;
+}
+
+@keyframes cardIn {
+	from {
+		opacity: 0;
+		transform: translateY(10rpx);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 </style>
-

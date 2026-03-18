@@ -193,4 +193,40 @@
         WHERE order_id = #{orderId}
     </update>
 
+    <select id="countTodayCompletedService" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+          AND DATE(STR_TO_DATE(service_date, '%Y-%m-%d')) = CURDATE()
+    </select>
+
+    <select id="countMonthCompletedService" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+          AND DATE_FORMAT(STR_TO_DATE(service_date, '%Y-%m-%d'), '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+    </select>
+
+    <select id="sumCompletedIncome" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(order_amount + COALESCE(balance_amount, 0)), 0)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+    </select>
+
+    <select id="countTotalOrdersByAttendant" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+    </select>
+
+    <select id="countCompletedOrdersByAttendant" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+    </select>
+
 </mapper>

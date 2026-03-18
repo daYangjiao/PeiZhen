@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useMessageStore } from '@/stores/message'
 
 const STORAGE_KEYS = {
   role: 'role',
@@ -37,8 +38,10 @@ export const useSessionStore = defineStore('session', {
       }
       this.isLoggedIn = true
       uni.setStorageSync(STORAGE_KEYS.isLoggedIn, true)
+      uni.$emit('session:changed')
     },
     logout() {
+      const messageStore = useMessageStore()
       this.token = ''
       this.userInfo = null
       this.isLoggedIn = false
@@ -47,7 +50,9 @@ export const useSessionStore = defineStore('session', {
       uni.removeStorageSync(STORAGE_KEYS.userInfo)
       uni.removeStorageSync(STORAGE_KEYS.isLoggedIn)
       uni.removeStorageSync(STORAGE_KEYS.role)
+      messageStore.clearAllUnread()
+      messageStore.updateTabBarBadge()
+      uni.$emit('session:changed')
     }
   }
 })
-

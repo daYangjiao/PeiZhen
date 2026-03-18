@@ -66,6 +66,8 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { post } from '@/utils/api.js'
 import { useSessionStore } from '@/stores/session'
 import { useUserStore } from '@/stores/user'
+import { useMessageStore } from '@/stores/message'
+import { ensureChatConnected } from '@/utils/ws-manager.js'
 
 const currentRole = ref('user')
 const username = ref('')
@@ -74,6 +76,7 @@ const agreed = ref(false)
 const loading = ref(false)
 const session = useSessionStore()
 const userStore = useUserStore()
+const messageStore = useMessageStore()
 const fromGuard = ref(false)
 
 onLoad((options) => {
@@ -125,6 +128,14 @@ const handleLogin = async () => {
 
     if (res.code === 200 && res.data) {
       const { token, userInfo } = res.data
+      const syncMessageStatus = async () => {
+        try {
+          ensureChatConnected()
+          await messageStore.initMessageStatus()
+          messageStore.updateTabBarBadge()
+          uni.$emit('session:changed')
+        } catch {}
+      }
 
       if (currentRole.value === 'user') {
         if (userInfo.userType === 1) {
@@ -133,6 +144,7 @@ const handleLogin = async () => {
         }
         session.setSession({ role: 'user', token, userInfo })
         userStore.setUserInfo({ ...userInfo, token })
+        await syncMessageStatus()
         uni.showToast({ title: '登录成功', icon: 'success' })
         setTimeout(() => {
           uni.switchTab({ url: '/pages/role-user/home' })
@@ -144,6 +156,7 @@ const handleLogin = async () => {
         }
         session.setSession({ role: 'escort', token, userInfo })
         uni.setStorageSync('userInfo', userInfo)
+        await syncMessageStatus()
         uni.showToast({ title: '登录成功', icon: 'success' })
         setTimeout(() => {
           uni.reLaunch({ url: '/pages/role-escort/hall' })

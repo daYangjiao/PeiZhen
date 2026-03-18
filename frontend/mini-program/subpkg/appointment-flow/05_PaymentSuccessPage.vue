@@ -185,9 +185,10 @@ const goToOrderDetail = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .payment-success-page {
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   padding: 20rpx 40rpx;
   font-size: 28rpx;
   min-height: 100vh;
@@ -232,8 +233,8 @@ const goToOrderDetail = () => {
   width: 240rpx;
   height: 60rpx;
   background-color: #ffffff;
-  color: #007AFF;
-  border: 1rpx solid #007AFF;
+  color: #66A6FF;
+  border: 1rpx solid #66A6FF;
   border-radius: 30rpx;
   font-size: 28rpx;
   line-height: 60rpx;

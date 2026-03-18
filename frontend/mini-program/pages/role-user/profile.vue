@@ -218,14 +218,15 @@ onShow(() => {
 })
 </script>
 
-<style>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .container {
 	min-height: 100vh;
-	background-color: #f5f5f5;
+	background-color: #f5f7fa;
 	padding: 20rpx;
 }
 .user-section {
-	background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
 	border-radius: 20rpx;
 	padding: 40rpx;
 	margin-bottom: 30rpx;
@@ -308,7 +309,7 @@ onShow(() => {
 	border: none;
 }
 .btn-text {
-	color: #4A90E2;
+	color: #66A6FF;
 	font-size: 28rpx;
 	font-weight: bold;
 }

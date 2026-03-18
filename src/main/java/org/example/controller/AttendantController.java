@@ -7,9 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
 import org.example.model.Attendant;
+import org.example.model.AttendantQualification;
 import org.example.model.Order;
 import org.example.model.User;
+import org.example.model.request.AttendantQualificationUpdateRequest;
+import org.example.model.request.AttendantProfileUpdateRequest;
 import org.example.model.request.OrderListQueryRequest;
+import org.example.model.response.AttendantProfileResponse;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
 import org.example.model.OrderEvaluation;
@@ -47,39 +51,126 @@ public class AttendantController {
      */
     @GetMapping("/profile/{userId}")
     @ApiOperation("获取陪诊师个人资料")
-    public ResponseResult<Map<String, Object>> getProfile(@PathVariable Integer userId) {
+    public ResponseResult<AttendantProfileResponse> getProfile(@PathVariable Integer userId) {
         try {
-            User user = userService.findById(userId);
-            if (user == null) {
+            AttendantProfileResponse profile = attendantService.getProfile(userId);
+            if (profile == null) {
                 return ResponseResult.error("用户不存在");
             }
-
-            Attendant attendant = attendantService.findByUserId(userId);
-            
-            Map<String, Object> profile = new HashMap<>();
-            profile.put("id", user.getId());
-            profile.put("username", user.getUsername());
-            profile.put("name", user.getName() != null ? user.getName() : user.getUsername());
-            profile.put("phone", user.getPhone());
-            profile.put("avatarUrl", user.getAvatar());
-            
-            if (attendant != null) {
-                profile.put("certificate", attendant.getCertificate());
-                profile.put("score", attendant.getScore());
-                profile.put("introduction", attendant.getIntroduction());
-                profile.put("professionalField", attendant.getProfessionalField());
-                profile.put("experienceYears", attendant.getExperienceYears());
-            }
-            
-            profile.put("totalOrders", 0);
-            profile.put("completedOrders", 0);
-            profile.put("totalEarnings", 0.00);
-            profile.put("balance", 0.00);
 
             return ResponseResult.success(profile);
         } catch (Exception e) {
             log.error("获取陪诊师资料失败", e);
             return ResponseResult.error("获取资料失败");
+        }
+    }
+
+    /**
+     * 更新陪诊师个人资料
+     */
+    @PutMapping("/profile/{userId}")
+    @ApiOperation("更新陪诊师个人资料")
+    public ResponseResult<String> updateProfile(
+            @PathVariable Integer userId,
+            @RequestBody AttendantProfileUpdateRequest request) {
+        try {
+            if (request == null) {
+                return ResponseResult.error("请求参数不能为空");
+            }
+            User existUser = userService.findById(userId);
+            if (existUser == null) {
+                return ResponseResult.error("用户不存在");
+            }
+
+            boolean hasUserUpdates = request.getName() != null
+                    || request.getPhone() != null
+                    || request.getAvatarUrl() != null;
+            if (hasUserUpdates) {
+                User user = new User();
+                user.setId(userId);
+                user.setName(request.getName());
+                user.setPhone(request.getPhone());
+                user.setAvatar(request.getAvatarUrl());
+                userService.update(user);
+            }
+
+            boolean hasAttendantUpdates = request.getIntroduction() != null
+                    || request.getProfessionalField() != null
+                    || request.getExperienceYears() != null
+                    || request.getHospitalName() != null
+                    || request.getCertificate() != null;
+            if (hasAttendantUpdates) {
+                Attendant attendant = new Attendant();
+                attendant.setUserId(userId);
+                attendant.setIntroduction(request.getIntroduction());
+                attendant.setProfessionalField(request.getProfessionalField());
+                attendant.setExperienceYears(request.getExperienceYears());
+                attendant.setHospitalName(request.getHospitalName());
+                attendant.setCertificate(request.getCertificate());
+                attendantService.update(attendant);
+            }
+
+            return ResponseResult.success("更新成功");
+        } catch (Exception e) {
+            log.error("更新陪诊师资料失败，userId={}", userId, e);
+            return ResponseResult.error("更新失败");
+        }
+    }
+
+    /**
+     * 更新陪诊师三证资质信息
+     */
+    @PutMapping("/qualification/{userId}")
+    @ApiOperation("更新陪诊师三证资质信息")
+    public ResponseResult<String> updateQualification(
+            @PathVariable Integer userId,
+            @RequestBody AttendantQualificationUpdateRequest request) {
+        try {
+            if (request == null) {
+                return ResponseResult.error("请求参数不能为空");
+            }
+            User existUser = userService.findById(userId);
+            if (existUser == null) {
+                return ResponseResult.error("用户不存在");
+            }
+
+            AttendantQualification qualification = new AttendantQualification();
+            qualification.setUserId(userId);
+            qualification.setIdCardUploaded(request.getIdCardUploaded());
+            qualification.setPracticeCertUploaded(request.getPracticeCertUploaded());
+            qualification.setHealthCertUploaded(request.getHealthCertUploaded());
+            qualification.setIdCardFileUrl(request.getIdCardFileUrl());
+            qualification.setIdCardFrontFileUrl(request.getIdCardFrontFileUrl());
+            qualification.setIdCardBackFileUrl(request.getIdCardBackFileUrl());
+            qualification.setPracticeCertFileUrl(request.getPracticeCertFileUrl());
+            qualification.setHealthCertFileUrl(request.getHealthCertFileUrl());
+
+            attendantService.updateQualification(userId, qualification);
+            return ResponseResult.success("资质信息更新成功");
+        } catch (Exception e) {
+            log.error("更新陪诊师资质失败，userId={}", userId, e);
+            return ResponseResult.error("资质信息更新失败");
+        }
+    }
+
+    /**
+     * 提交资质审核
+     */
+    @PostMapping("/qualification/{userId}/submit")
+    @ApiOperation("提交资质审核")
+    public ResponseResult<String> submitQualification(@PathVariable Integer userId) {
+        try {
+            User existUser = userService.findById(userId);
+            if (existUser == null) {
+                return ResponseResult.error("用户不存在");
+            }
+            String result = attendantService.submitQualification(userId);
+            return ResponseResult.success(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("提交资质审核失败，userId={}", userId, e);
+            return ResponseResult.error("提交资质审核失败");
         }
     }
 

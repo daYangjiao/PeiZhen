@@ -1,24 +1,26 @@
 <template>
-	<view class="page-wrap" :style="{ paddingTop: statusBarHeight + 'px' }">
+	<view class="page-wrap">
 		<view class="header">
-			<view class="search-box">
-				<image class="search-icon" src="/static/sous.png" mode="aspectFit" />
-				<input
-					class="search-input"
-					placeholder="搜索医院、患者或服务类型"
-					v-model="searchKeyword"
-					@confirm="handleSearch"
-					confirm-type="search"
-				/>
-			</view>
-			<view class="header-actions">
-				<view class="action-btn" @click="showFilterPopup = true">
-					<image class="action-icon" src="/static/filter.png" mode="aspectFit" />
-					<text class="action-text">筛选</text>
-				</view>
-				<view class="action-btn" @click="refreshOrders" :class="{ spinning: isRefreshing }">
-					<image class="action-icon" src="/static/refresh.svg" mode="aspectFit" />
-					<text class="action-text">刷新</text>
+			<view class="header-module">
+				<view class="top-row">
+					<view class="search-box">
+						<image class="search-icon" src="/static/sous.png" mode="aspectFit" />
+						<input
+							class="search-input"
+							placeholder="搜索医院、患者或服务类型"
+							v-model="searchKeyword"
+							@confirm="handleSearch"
+							confirm-type="search"
+						/>
+					</view>
+					<view class="header-actions">
+						<view class="action-btn" :class="{ active: showFilterPopup || hasActiveFilter }" @click="showFilterPopup = true">
+							<image class="action-icon" src="/static/filter.png" mode="aspectFit" />
+						</view>
+						<view class="action-btn" @click="refreshOrders" :class="{ spinning: isRefreshVisual, refreshing: isRefreshVisual }">
+							<image class="action-icon" src="/static/refresh.svg" mode="aspectFit" />
+						</view>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -91,30 +93,30 @@
 			class="order-list"
 			scroll-y="true"
 			@scrolltolower="loadMore"
-			refresher-enabled="true"
-			:refresher-triggered="isRefreshing"
-			@refresherrefresh="onRefresh"
 		>
-			<view v-if="!isLoading" class="content-wrapper">
+			<view class="content-wrapper">
 				<view v-if="filteredOrderList.length > 0" class="order-container">
 					<OrderCard
 						v-for="(order, index) in filteredOrderList"
-						:key="order.orderId"
+						:key="`${order.orderId || order.id || 'order'}-${index}`"
 						:order-data="formatOrderData(order)"
 						:show-actions="true"
 						:action-type="'accept'"
-						@contact="contactPatient"
-						@main-action="handleAccept"
+						@card-click="goToDetail"
 						@view-detail="goToDetail"
+						@main-action="handleAccept"
 					/>
 				</view>
-				<view v-else class="empty-state">
+				<view v-else-if="!isLoading" class="empty-state">
 					<image class="empty-icon" src="/static/order.png" mode="aspectFit" />
 					<text class="empty-text">暂无待接订单，稍后再来看看吧</text>
 				</view>
+				<view v-else class="loading-more initial">
+					<text>加载中...</text>
+				</view>
 			</view>
 
-			<view class="loading-more" v-if="isLoading">
+			<view class="loading-more" v-if="isLoading && orderList.length > 0">
 				<text>加载中...</text>
 			</view>
 		</scroll-view>
@@ -128,15 +130,17 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import OrderCard from '@/components/OrderCard.vue'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
-import { get, post, config } from '@/utils/api.js'
+import { get, post } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 
-const statusBarHeight = ref(0)
 const orderList = ref([])
 const searchKeyword = ref('')
 const isLoading = ref(false)
 const isRefreshing = ref(false)
+const isRefreshVisual = ref(false)
 const page = ref(0)
+const pageSize = 10
+const hasMore = ref(true)
 const showFilterPopup = ref(false)
 
 const serviceTypeOptions = [
@@ -185,7 +189,9 @@ const filteredOrderList = computed(() => {
 		return hospital.includes(kw) || patient.includes(kw) || service.includes(kw) || req.includes(kw) || custom.includes(kw)
 	})
 })
-
+const hasActiveFilter = computed(() =>
+	filterServiceTypeIndex.value > 0 || filterDurationIndex.value > 0 || filterFeeIndex.value > 0
+)
 const handleSearch = () => {}
 
 const formatOrderData = (raw) => {
@@ -215,22 +221,47 @@ const formatOrderData = (raw) => {
 
 const loadOrders = async (reset = false) => {
 	if (isLoading.value) return
+	if (!reset && !hasMore.value) return
 	if (reset) {
 		page.value = 0
+		hasMore.value = true
 		orderList.value = []
 	}
 	isLoading.value = true
 	try {
-		const params = { page: page.value, size: 10 }
+		const params = { page: page.value, size: pageSize }
 		if (filterParams.value.serviceType != null) params.serviceType = filterParams.value.serviceType
 		if (filterParams.value.expectedDurationMinHours != null) params.expectedDurationMinHours = filterParams.value.expectedDurationMinHours
 		if (filterParams.value.orderAmountMax != null) params.orderAmountMax = filterParams.value.orderAmountMax
 		const res = await get('/attendant/orders/waiting', params)
 		if (res.code === 200 && res.data) {
 			const newOrders = res.data.content || []
-			if (reset) orderList.value = newOrders
-			else orderList.value = [...orderList.value, ...newOrders]
-			if (newOrders.length > 0) page.value++
+			if (reset) {
+				orderList.value = newOrders
+			} else {
+				const idSet = new Set(orderList.value.map(item => String(item.orderId || item.id || '')))
+				const uniqueAppends = newOrders.filter(item => {
+					const id = String(item.orderId || item.id || '')
+					if (!id) return true
+					if (idSet.has(id)) return false
+					idSet.add(id)
+					return true
+				})
+				orderList.value = [...orderList.value, ...uniqueAppends]
+				if (newOrders.length > 0 && uniqueAppends.length === 0) {
+					hasMore.value = false
+				}
+			}
+
+			const backendPage = Number(res.data.number)
+			if (Number.isFinite(backendPage)) page.value = backendPage + 1
+			else if (newOrders.length > 0) page.value++
+
+			if (res.data.last === true) {
+				hasMore.value = false
+			} else if (newOrders.length < pageSize) {
+				hasMore.value = false
+			}
 		}
 	} catch (e) {
 		console.error('加载订单失败:', e)
@@ -240,13 +271,35 @@ const loadOrders = async (reset = false) => {
 	}
 }
 
-const onRefresh = () => {
-	isRefreshing.value = true
-	loadOrders(true)
+const beginRefreshVisual = () => {
+	isRefreshVisual.value = true
 }
 
-const refreshOrders = () => onRefresh()
-const loadMore = () => loadOrders()
+const endRefreshVisual = (startTs) => {
+	const elapsed = Date.now() - startTs
+	const remain = Math.max(0, 700 - elapsed)
+	setTimeout(() => {
+		isRefreshVisual.value = false
+	}, remain)
+}
+
+const onRefresh = async () => {
+	if (isLoading.value || isRefreshing.value) return
+	const startTs = Date.now()
+	beginRefreshVisual()
+	isRefreshing.value = true
+	await loadOrders(true)
+	endRefreshVisual(startTs)
+}
+
+const refreshOrders = () => {
+	if (isLoading.value || isRefreshing.value) return
+	onRefresh()
+}
+const loadMore = () => {
+	if (isRefreshing.value || isLoading.value || !hasMore.value) return
+	loadOrders()
+}
 
 // 查看详情：陪诊师端从大厅进入“陪诊师专用订单详情”
 const goToDetail = (orderData) => {
@@ -267,28 +320,22 @@ const handleAccept = (actionData) => {
 	}
 	uni.showModal({
 		title: '确认接单',
-		content: `确定要接受该订单吗？`,
+		content: '确定要接受该订单吗？',
 		success: async (res) => {
-			if (res.confirm) {
-				try {
-					const response = await post(`/attendant/orders/${order.id}/accept?attendantId=${attendantInfo.id}`)
-					if (response.code === 200) {
-						uni.showToast({ title: '接单成功', icon: 'success' })
-						loadOrders(true)
-					} else {
-						uni.showToast({ title: response.message || '接单失败', icon: 'none' })
-					}
-				} catch (e) {
-					uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
+			if (!res.confirm) return
+			try {
+				const response = await post(`/attendant/orders/${order.id}/accept?attendantId=${attendantInfo.id}`)
+				if (response.code === 200) {
+					uni.showToast({ title: '接单成功', icon: 'success' })
+					loadOrders(true)
+				} else {
+					uni.showToast({ title: response.message || '接单失败', icon: 'none' })
 				}
+			} catch (e) {
+				uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
 			}
 		}
 	})
-}
-
-const contactPatient = (order) => {
-	if (order.phone) uni.makePhoneCall({ phoneNumber: order.phone })
-	else uni.showToast({ title: '暂无联系电话', icon: 'none' })
 }
 
 const closeFilterPopup = () => {
@@ -316,47 +363,260 @@ const confirmFilter = () => {
 }
 
 onMounted(() => {
-	const sys = uni.getSystemInfoSync()
-	statusBarHeight.value = sys.statusBarHeight || 0
 	loadOrders(true)
 })
 onShow(() => ensureRole('escort'))
 </script>
 
 <style lang="scss" scoped>
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.page-wrap { min-height: 100vh; background-color: #f5f7fa; }
-.header { padding: 20rpx 30rpx; background-color: #fff; display: flex; align-items: center; gap: 16rpx; }
-.search-box { flex: 1; background-color: #f5f7fa; border-radius: 40rpx; padding: 16rpx 30rpx; display: flex; align-items: center; }
-.search-icon { width: 32rpx; height: 32rpx; margin-right: 20rpx; opacity: 0.5; }
-.search-input { flex: 1; font-size: 28rpx; color: #333; }
-.header-actions { display: flex; align-items: center; gap: 8rpx; }
-.action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12rpx 20rpx; min-width: 80rpx; }
-.action-icon { width: 36rpx; height: 36rpx; margin-bottom: 4rpx; }
-.action-btn.spinning .action-icon { animation: spin 0.8s linear infinite; }
-.action-text { font-size: 22rpx; color: #666; }
-.filter-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; }
-.filter-popup { width: 100%; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 32rpx 40rpx calc(env(safe-area-inset-bottom) + 32rpx); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
-.filter-popup-title { font-size: 34rpx; font-weight: 600; color: #1a1a1a; margin-bottom: 32rpx; text-align: center; }
-.filter-row { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 0; border-bottom: 1rpx solid #f0f0f0; }
-.filter-row:last-of-type { border-bottom: none; }
-.filter-label { font-size: 30rpx; color: #333; font-weight: 500; }
-.filter-value-wrap { display: flex; align-items: center; gap: 12rpx; }
-.filter-value { font-size: 28rpx; color: #4A90E2; font-weight: 500; }
-.filter-arrow { font-size: 20rpx; color: #999; }
-.filter-options { background: #f8faff; border-radius: 16rpx; margin: 0 0 20rpx 0; padding: 12rpx 0; max-height: 400rpx; overflow-y: auto; border: 1rpx solid #e8eeff; }
-.filter-option { padding: 24rpx 36rpx; font-size: 28rpx; color: #444; border-radius: 12rpx; margin: 0 16rpx 8rpx; }
-.filter-option.active { color: #4A90E2; font-weight: 600; background: rgba(74, 144, 226, 0.1); }
-.filter-actions { display: flex; gap: 24rpx; margin-top: 40rpx; }
-.filter-btn { flex: 1; height: 88rpx; line-height: 88rpx; text-align: center; font-size: 30rpx; font-weight: 500; border-radius: 44rpx; border: none; }
-.filter-btn.reset { background: #f5f5f5; color: #666; }
-.filter-btn.confirm { background: linear-gradient(135deg, #4A90E2, #357abd); color: #fff; box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.35); }
-.content-wrapper { padding: 0 24rpx 40rpx; }
-.order-container { padding-top: 20rpx; }
-.order-list { flex: 1; min-height: 60vh; box-sizing: border-box; }
-.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 120rpx; }
-.empty-icon { width: 160rpx; height: 160rpx; margin-bottom: 32rpx; opacity: 0.5; }
-.empty-text { color: #999; font-size: 28rpx; }
-.loading-more { text-align: center; padding: 40rpx; color: #999; font-size: 26rpx; }
-</style>
+@import '@/styles/escort-ui.scss';
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
+.page-wrap {
+  @include escort-page;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 18rpx 24rpx 14rpx;
+  background: #f5f7fa;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.header-module {
+  background: $escort-color-surface;
+  border-radius: $escort-radius-card;
+  padding: 16rpx 14rpx;
+  box-shadow: $escort-shadow-card;
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.search-box {
+  flex: 1;
+  background: #f5f7fa;
+  border: 1rpx solid #e6edf5;
+  border-radius: 40rpx;
+  padding: 14rpx 22rpx;
+  display: flex;
+  align-items: center;
+  min-height: 72rpx;
+  box-sizing: border-box;
+}
+
+.search-icon {
+  width: 30rpx;
+  height: 30rpx;
+  margin-right: 14rpx;
+  opacity: 0.55;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 27rpx;
+  color: #1f2937;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.action-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 18rpx;
+  background: #ffffff;
+  border: 1rpx solid #e0e8f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 0;
+}
+
+.action-btn.active,
+.action-btn.refreshing {
+  background: #eaf3ff;
+  border-color: $escort-color-primary;
+  box-shadow: $escort-shadow-primary;
+}
+
+.action-btn.spinning .action-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+.filter-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.filter-popup {
+  width: 100%;
+  background: #f5f7fa;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 32rpx calc(env(safe-area-inset-bottom) + 30rpx);
+  box-shadow: 0 -10rpx 36rpx rgba(31, 41, 55, 0.14);
+}
+
+.filter-popup-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 22rpx;
+  text-align: center;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #e4ebf3;
+}
+
+.filter-row:last-of-type {
+  border-bottom: none;
+}
+
+.filter-label {
+  font-size: 29rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.filter-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.filter-value {
+  font-size: 26rpx;
+  color: #66a6ff;
+}
+
+.filter-arrow {
+  font-size: 20rpx;
+  color: #8a94a6;
+}
+
+.filter-options {
+  background: #edf2f9;
+  border: 1rpx solid #dce5f2;
+  border-radius: 14rpx;
+  margin: 14rpx 0 20rpx;
+  padding: 8rpx 0;
+  max-height: 360rpx;
+  overflow-y: auto;
+}
+
+.filter-option {
+  padding: 22rpx 26rpx;
+  font-size: 27rpx;
+  color: #445062;
+  border-radius: 12rpx;
+  margin: 0 12rpx 8rpx;
+}
+
+.filter-option.active {
+  color: #66a6ff;
+  font-weight: 600;
+  background: rgba(102, 166, 255, 0.14);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 30rpx;
+}
+
+.filter-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  font-size: 30rpx;
+  border-radius: 42rpx;
+  border: none;
+}
+
+.filter-btn.reset {
+  background: #e7edf5;
+  color: #4b5565;
+}
+
+.filter-btn.confirm {
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
+  color: #fff;
+  box-shadow: $escort-shadow-primary;
+}
+
+.content-wrapper {
+  padding: 14rpx 24rpx 40rpx;
+}
+
+.order-container {
+  padding-top: 0;
+}
+
+.order-list {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 120rpx;
+}
+
+.empty-icon {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.55;
+}
+
+.empty-text {
+  color: #7d8898;
+  font-size: 28rpx;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 36rpx;
+  color: #7d8898;
+  font-size: 25rpx;
+}
+</style>

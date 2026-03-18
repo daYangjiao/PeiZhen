@@ -194,10 +194,11 @@ const submit = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .evaluate-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   padding: 20rpx 32rpx 140rpx;
   box-sizing: border-box;
 }
@@ -313,7 +314,7 @@ const submit = () => {
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  background: linear-gradient(135deg, #1890FF, #0d73d6);
+  background: linear-gradient(135deg, #66A6FF, #4F95F0);
   color: #fff;
   border-radius: 44rpx;
   font-size: 30rpx;

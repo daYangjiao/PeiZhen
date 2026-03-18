@@ -201,7 +201,8 @@ onMounted(() => {
 
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .chat-container {
   height: 100vh;
   display: flex;
@@ -279,7 +280,7 @@ onMounted(() => {
 }
 
 .user-bubble {
-  background-color: #007AFF;
+  background-color: #66A6FF;
   color: white;
   border-radius: 18px 4px 18px 18px; /* 右下角平一点，更像微信 */
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -352,7 +353,7 @@ onMounted(() => {
 
 .suggestion-title {
   font-size: 12px;
-  color: #007AFF;
+  color: #66A6FF;
   margin-bottom: 5px;
   font-weight: bold;
   display: flex;
@@ -392,7 +393,7 @@ onMounted(() => {
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #007AFF;
+  color: #66A6FF;
   white-space: nowrap;         /* 禁止换行 */
   text-align: center;
   flex-shrink: 0;              /* 关键！不让按钮被压缩 */
@@ -403,9 +404,9 @@ onMounted(() => {
 }
 
 .suggestion-btn-bottom.selected {
-  background-color: #007AFF;
+  background-color: #66A6FF;
   color: white;
-  border-color: #007AFF;
+  border-color: #66A6FF;
 }
 
 /* 输入区域 */
@@ -460,7 +461,7 @@ onMounted(() => {
 
 .send-btn {
   padding: 10px 20px;
-  background-color: #007AFF;
+  background-color: #66A6FF;
   color: white;
   border: none;
   border-radius: 20px;
@@ -475,7 +476,7 @@ onMounted(() => {
 .highlight {
   background-color: #e8f4ff;
   padding: 12px;
-  border-left: 4px solid #007AFF;
+  border-left: 4px solid #66A6FF;
   border-radius: 8px;
   margin: 12px 0;
 }

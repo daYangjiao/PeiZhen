@@ -47,5 +47,17 @@
         WHERE order_id = #{orderId}
     </update>
 
-</mapper>
+    <select id="countByAttendantId" resultType="int">
+        SELECT COUNT(1)
+        FROM order_evaluation
+        WHERE attendant_id = #{attendantId}
+    </select>
 
+    <select id="countGoodByAttendantId" resultType="int">
+        SELECT COUNT(1)
+        FROM order_evaluation
+        WHERE attendant_id = #{attendantId}
+          AND rating &gt;= #{minRating}
+    </select>
+
+</mapper>

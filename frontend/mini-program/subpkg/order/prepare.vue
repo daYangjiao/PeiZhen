@@ -108,49 +108,54 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
 .container {
 	min-height: 100vh;
-	background: #f5f5f5;
+	background: #f5f7fa;
+	--text-main: #1f2937;
+	--text-sub: #667085;
+	--primary: #66a6ff;
+	--primary-deep: #4f95f0;
 }
 .content {
 	min-height: 100vh;
-	padding: 16px 0 0;
+	padding: 24rpx 0 16rpx;
 }
 .info-card {
-	background: #fff;
-	border-radius: 20px;
-	padding: 16px;
-	margin: 0 16px 16px;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-	border: 1px solid #f0f0f0;
+	background: $escort-color-surface;
+	border-radius: $escort-radius-card;
+	padding: 28rpx 24rpx;
+	margin: 0 24rpx 20rpx;
+	box-shadow: $escort-shadow-card;
+	border: 1rpx solid #e7edf5;
 }
 .card-title {
 	display: flex;
 	align-items: center;
-	margin-bottom: 16px;
-	font-size: 16px;
+	margin-bottom: 18rpx;
+	font-size: 30rpx;
 	font-weight: 600;
-	color: #333;
+	color: var(--text-main);
 }
 .title-icon {
-	width: 24px;
-	height: 24px;
-	margin-right: 8px;
+	width: 34rpx;
+	height: 34rpx;
+	margin-right: 10rpx;
 }
 .check-list {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: 12rpx;
 }
 .check-item {
 	display: flex;
 	align-items: center;
-	padding: 8px 0;
+	padding: 10rpx 0;
 }
 .checkbox {
 	width: 36rpx;
 	height: 36rpx;
-	border: 2rpx solid #ddd;
+	border: 2rpx solid #d8e0ec;
 	border-radius: 8rpx;
 	margin-right: 16rpx;
 	display: flex;
@@ -161,27 +166,27 @@ export default {
 	flex-shrink: 0;
 }
 .checkbox.checked {
-	background: #4A90E2;
-	border-color: #4A90E2;
+	background: $escort-color-primary;
+	border-color: $escort-color-primary;
 }
 .check-label {
 	font-size: 28rpx;
-	color: #333;
+	color: var(--text-main);
 	line-height: 1.4;
 }
 .btn-wrap {
-	padding: 24rpx 16px 60rpx;
+	padding: 28rpx 24rpx 72rpx;
 }
 .confirm-btn {
 	width: 100%;
-	height: 44px;
-	line-height: 44px;
-	background: #4A90E2;
+	height: 88rpx;
+	line-height: 88rpx;
+	background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
 	color: #fff;
 	border: none;
-	border-radius: 22px;
-	font-size: 14px;
+	border-radius: 44rpx;
+	font-size: 28rpx;
 	font-weight: 600;
+	box-shadow: $escort-shadow-primary;
 }
 </style>
-

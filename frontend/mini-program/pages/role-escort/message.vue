@@ -119,7 +119,8 @@ const handleNewMessage = (msg) => {
     processedMessages.clear()
     arr.forEach(k => processedMessages.add(k))
   }
-  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !(msg.msgType == 3 || msg.content === 'READ_RECEIPT')) {
+  const isReadReceipt = msg.msgType === 3 || msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
+  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !isReadReceipt) {
     loadContacts()
   }
 }
@@ -173,6 +174,7 @@ const openChat = (contact) => {
       await post(`/api/chat/read?senderId=${targetId}`)
     } catch {}
     messageStore.resetContactUnread(targetId)
+    messageStore.updateTabBarBadge()
   })()
 }
 
@@ -232,62 +234,72 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
 .container {
+  @include escort-page;
   min-height: 100vh;
-  background-color: #f5f7fa;
   padding-bottom: 140rpx;
 }
+
 .message-list {
   height: calc(100vh - 140rpx);
-  padding: 16rpx 24rpx;
+  padding: 18rpx 20rpx;
   box-sizing: border-box;
 }
+
 .message-card {
   display: flex;
   padding: 24rpx;
-  background-color: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03);
+  background: $escort-color-surface;
+  border-radius: $escort-radius-card;
+  margin-bottom: 14rpx;
+  border: 1rpx solid #e7edf5;
+  box-shadow: $escort-shadow-card;
 }
+
 .system-card {
-  background: linear-gradient(to right, #ffffff, #f0f7ff);
-  border-left: 6rpx solid #4A90E2;
+  background: linear-gradient(120deg, #f3f8ff 0%, #e9f2ff 100%);
+  border: 1rpx solid #d5e4f9;
 }
+
 .avatar-container {
   position: relative;
-  margin-right: 20rpx;
+  margin-right: 18rpx;
   flex-shrink: 0;
 }
+
 .avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 78rpx;
+  height: 78rpx;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: #eef2f7;
   border: 2rpx solid #fff;
-  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.08);
+  box-shadow: 0 6rpx 12rpx rgba(31, 41, 55, 0.1);
 }
+
 .system-avatar-container .avatar {
   padding: 8rpx;
-  background-color: #e6f7ff;
+  background-color: #dcecff;
 }
+
 .unread-badge {
   position: absolute;
   top: -4rpx;
   right: -4rpx;
-  background-color: #ff4d4f;
+  background-color: #ff5b5d;
   color: #fff;
   font-size: 18rpx;
-  min-width: 28rpx;
-  height: 28rpx;
+  min-width: 30rpx;
+  height: 30rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14rpx;
+  border-radius: 15rpx;
   border: 2rpx solid #fff;
   padding: 0 4rpx;
   box-sizing: border-box;
 }
+
 .message-content {
   flex: 1;
   display: flex;
@@ -299,35 +311,64 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
 }
+
 .name {
-  font-size: 28rpx;
+  font-size: 27rpx;
   font-weight: 600;
-  color: #333;
+  color: #1f2937;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 300rpx;
 }
-.system-name { color: #4A90E2; }
-.time { font-size: 20rpx; color: #999; }
+
+.system-name {
+  color: #2f78d4;
+}
+
+.time {
+  font-size: 21rpx;
+  color: #8c96a8;
+}
+
 .last-message {
   font-size: 24rpx;
-  color: #666;
+  color: #5f6b7b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 160rpx;
+  padding-top: 140rpx;
+  background: #edf2f8;
+  border-radius: 20rpx;
+  margin-top: 20rpx;
+  min-height: 460rpx;
 }
-.empty-icon { width: 200rpx; height: 200rpx; margin-bottom: 24rpx; opacity: 0.6; }
-.empty-text { color: #333; font-size: 28rpx; font-weight: 500; margin-bottom: 8rpx; }
-.empty-subtext { color: #999; font-size: 22rpx; }
-</style>
 
+.empty-icon {
+  width: 180rpx;
+  height: 180rpx;
+  margin-bottom: 18rpx;
+  opacity: 0.6;
+}
+
+.empty-text {
+  color: #1f2937;
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.empty-subtext {
+  color: #7d8898;
+  font-size: 22rpx;
+}
+</style>

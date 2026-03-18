@@ -13,24 +13,58 @@ const escortTabs = [
   { pagePath: 'pages/role-escort/profile', text: '我的', iconPath: '/static/wode_2.png', selectedIconPath: '/static/wode_2_active.png' }
 ]
 
+const MESSAGE_BADGE_STORAGE_KEY = 'tabbar_message_badge'
+
+const isMessageTab = (pagePath) => /\/message$/.test(pagePath || '')
+
+const withMessageBadge = (tabs, badgeCount) => {
+  return tabs.map(tab => Object.assign({}, tab, {
+    badge: isMessageTab(tab.pagePath) ? badgeCount : 0
+  }))
+}
+
 Component({
   data: {
-    tabs: userTabs,
-    selectedIndex: 0
+    tabs: withMessageBadge(userTabs, 0),
+    selectedIndex: 0,
+    badgeCount: 0
   },
   attached() {
     this.updateTabs()
+    this.badgeTimer = setInterval(() => {
+      this.syncBadge()
+    }, 800)
+  },
+  detached() {
+    if (this.badgeTimer) {
+      clearInterval(this.badgeTimer)
+      this.badgeTimer = null
+    }
   },
   methods: {
     updateTabs() {
       const role = wx.getStorageSync('role') || 'user'
       const pages = getCurrentPages()
       const currentRoute = pages[pages.length - 1].route
-      const tabs = role === 'escort' ? escortTabs : userTabs
+      const badgeCount = Number(wx.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
+      const sourceTabs = role === 'escort' ? escortTabs : userTabs
+      const tabs = withMessageBadge(sourceTabs, badgeCount)
       const index = tabs.findIndex(t => t.pagePath === currentRoute)
       this.setData({
         tabs,
-        selectedIndex: index >= 0 ? index : 0
+        selectedIndex: index >= 0 ? index : 0,
+        badgeCount
+      })
+    },
+    syncBadge() {
+      const nextBadgeCount = Number(wx.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
+      if (nextBadgeCount === this.data.badgeCount) return
+      const tabs = (this.data.tabs || []).map(tab => Object.assign({}, tab, {
+        badge: isMessageTab(tab.pagePath) ? nextBadgeCount : 0
+      }))
+      this.setData({
+        tabs,
+        badgeCount: nextBadgeCount
       })
     },
     onTabTap(e) {
@@ -47,4 +81,3 @@ Component({
     }
   }
 })
-

@@ -93,87 +93,98 @@ const handleRegister = async () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
 .container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background: #f5f7fa;
+  --primary: #{$escort-color-primary};
+  --primary-deep: #{$escort-color-primary-deep};
+  --text-main: #{$escort-color-text-main};
+  --text-sub: #{$escort-color-text-sub};
 }
 .header-bg {
-  height: 220px;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
-  padding: 60px 20px 0;
+  padding: calc(var(--status-bar-height) + 24rpx) 30rpx 120rpx;
+  background: linear-gradient(135deg, #7cb7ff 0%, var(--primary) 55%, var(--primary-deep) 100%);
   color: #fff;
 }
 .back-btn {
-  width: 40px;
-  height: 40px;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 10px;
+  margin-bottom: 20rpx;
+}
+.back-icon {
+  font-size: 38rpx;
+  line-height: 1;
 }
 .title {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 44rpx;
+  font-weight: 700;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10rpx;
 }
 .subtitle {
-  font-size: 14px;
-  opacity: 0.8;
+  font-size: 24rpx;
+  opacity: 0.94;
 }
 .form-card {
-  margin: -40px 20px 20px;
+  margin: -72rpx 24rpx 24rpx;
   background: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-radius: 20rpx;
+  padding: 30rpx 24rpx;
+  box-shadow: 0 12rpx 28rpx rgba(31, 41, 55, 0.1);
 }
 .input-item {
-  margin-bottom: 20px;
+  margin-bottom: 20rpx;
 }
 .label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 8px;
+  font-size: 24rpx;
+  color: var(--text-main);
+  font-weight: 600;
+  margin-bottom: 10rpx;
   display: block;
 }
 .input {
-  height: 44px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 15px;
+  height: 84rpx;
+  background: #f8fafc;
+  border-radius: 14rpx;
+  padding: 0 18rpx;
+  font-size: 27rpx;
+  color: var(--text-main);
 }
 .textarea {
-  height: 80px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 15px;
+  min-height: 160rpx;
+  background: #f8fafc;
+  border-radius: 14rpx;
+  padding: 16rpx 18rpx;
+  font-size: 27rpx;
+  color: var(--text-main);
   width: 100%;
   box-sizing: border-box;
 }
 .submit-btn {
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
   color: #fff;
-  height: 48px;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 10px;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-top: 10rpx;
+  box-shadow: 0 10rpx 24rpx rgba(102, 166, 255, 0.28);
 }
 .login-link {
   text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #666;
+  margin-top: 22rpx;
+  font-size: 24rpx;
+  color: var(--text-sub);
 }
 .link-text {
-  color: #4A90E2;
-  font-weight: 500;
+  color: var(--primary);
+  font-weight: 600;
 }
 </style>
-

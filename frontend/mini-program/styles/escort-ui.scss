@@ -1,0 +1,61 @@
+// 陪诊师端主题色：主色（浅蓝）
+$escort-color-primary: #66a6ff;
+// 陪诊师端主题色：主色深阶（用于渐变终点）
+$escort-color-primary-deep: #4f95f0;
+// 页面基础背景色（统一灰底）
+$escort-color-bg: #f5f7fa;
+// 卡片/面板底色（统一白底）
+$escort-color-surface: #ffffff;
+// 主文本颜色（标题与高优先级信息）
+$escort-color-text-main: #1f2937;
+// 次文本颜色（说明、副标题、弱化信息）
+$escort-color-text-sub: #667085;
+// 分割线/边框颜色
+$escort-color-border: #e7edf5;
+// 成功状态色（完成、通过）
+$escort-color-success: #52c41a;
+// 警告状态色（待处理、提醒）
+$escort-color-warning: #faad14;
+// 危险状态色（失败、错误）
+$escort-color-danger: #ff4d4f;
+
+// 统一卡片圆角
+$escort-radius-card: 16rpx;
+// 胶囊圆角（按钮、标签）
+$escort-radius-pill: 999rpx;
+// 卡片阴影（轻量浮层感）
+$escort-shadow-card: 0 10rpx 24rpx rgba(31, 41, 55, 0.08);
+// 主按钮阴影（强调可点击主行为）
+$escort-shadow-primary: 0 10rpx 24rpx rgba(102, 166, 255, 0.28);
+
+// 页面级外边距
+$escort-gap-page: 24rpx;
+// 卡片之间常规间距
+$escort-gap-card: 24rpx;
+// 卡片内区块间距
+$escort-gap-block: 16rpx;
+// 主按钮统一高度
+$escort-btn-height: 88rpx;
+
+// 页面容器：统一背景与最小高度
+@mixin escort-page {
+  min-height: 100vh;
+  background: $escort-color-bg;
+}
+
+// 卡片容器：统一白底、圆角、阴影
+@mixin escort-card($padding: 24rpx) {
+  background: $escort-color-surface;
+  border-radius: $escort-radius-card;
+  padding: $padding;
+  box-shadow: $escort-shadow-card;
+}
+
+// 主按钮：统一渐变与视觉层级
+@mixin escort-primary-btn {
+  height: $escort-btn-height;
+  border-radius: calc($escort-btn-height / 2);
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
+  color: #ffffff;
+  box-shadow: $escort-shadow-primary;
+}

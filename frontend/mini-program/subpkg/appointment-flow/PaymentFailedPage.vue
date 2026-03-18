@@ -83,9 +83,10 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .payment-failed-page {  
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   padding: 40rpx;
   font-size: 28rpx;
   min-height: 100vh;
@@ -147,7 +148,7 @@ export default {
   width: 100%;
   height: 80rpx;
   line-height: 80rpx;
-  background-color: #007AFF;
+  background-color: #66A6FF;
   color: white;
   border-radius: 40rpx;
   font-size: 30rpx;
@@ -159,8 +160,8 @@ export default {
   height: 80rpx;
   line-height: 80rpx;
   background-color: white;
-  color: #007AFF;
-  border: 2rpx solid #007AFF;
+  color: #66A6FF;
+  border: 2rpx solid #66A6FF;
   border-radius: 40rpx;
   font-size: 30rpx;
 }
@@ -169,7 +170,7 @@ export default {
   width: 100%;
   height: 80rpx;
   line-height: 80rpx;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   color: #666;
   border: none;
   border-radius: 40rpx;

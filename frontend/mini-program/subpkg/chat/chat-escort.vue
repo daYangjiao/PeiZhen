@@ -577,16 +577,17 @@ const formatTimeCenter = (time) => {
 </script>
 
 <style lang="scss" scoped>
-$primary-color: #4A90E2; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #FFF; $bubble-self: $primary-color;
+@import '@/styles/escort-ui.scss';
+$primary-color: #66A6FF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other: #FFF; $bubble-self: $primary-color;
 
 .container { height: 100vh; background-color: $bg-color; display: flex; flex-direction: column; }
-.chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(74,144,226,0.15); }
+.chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(102,166,255,0.2); }
 .header-content { height: 88rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; }
 .header-back { width: 60rpx; height: 60rpx; display: flex; align-items: center; .back-text { font-size: 44rpx; color: #fff; font-weight: 300; } }
 .header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4rpx;
   .title-row { display: flex; align-items: center; gap: 10rpx; }
   .title-text { font-size: 32rpx; font-weight: 600; color: #fff; }
-  .online-dot { width: 12rpx; height: 12rpx; background: #95f4b7; border-radius: 50%; box-shadow: 0 0 8rpx rgba(149,244,183,0.6); }
+  .online-dot { width: 12rpx; height: 12rpx; background: #d9f2ff; border-radius: 50%; box-shadow: 0 0 8rpx rgba(217,242,255,0.75); }
   .subtitle-text { font-size: 22rpx; color: rgba(255,255,255,0.85); }
 }
 .header-placeholder-right { width: 60rpx; }
@@ -603,14 +604,14 @@ $primary-color: #4A90E2; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
 
 .bubble-container { display: flex; align-items: flex-end; gap: 10rpx; .self & { flex-direction: row-reverse; } }
 .read-status { font-size: 20rpx; color: #999; margin-bottom: 10rpx; white-space: nowrap; &.read { color: #999; } }
-.loading-spinner { width: 24rpx; height: 24rpx; border: 2rpx solid rgba(74,144,226,0.3); border-top-color: $primary-color; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10rpx; }
+.loading-spinner { width: 24rpx; height: 24rpx; border: 2rpx solid rgba(102,166,255,0.3); border-top-color: $primary-color; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10rpx; }
 .fail-icon { width: 30rpx; height: 30rpx; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 20rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 10rpx; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .content-bubble {
   position: relative; padding: 20rpx 24rpx; border-radius: 12rpx; font-size: 30rpx; line-height: 1.5; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
   background: $bubble-other; color: $text-main;
-  .self & { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+  .self & { background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); color: #fff; }
   .image { max-width: 300rpx; border-radius: 8rpx; display: block; }
 }
 
@@ -665,10 +666,10 @@ $primary-color: #4A90E2; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
 }
 
 .voice-record-btn {
-    width: 100%; height: 72rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12rpx;
+    width: 100%; height: 72rpx; background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); border-radius: 12rpx;
     display: flex; align-items: center; justify-content: center;
     font-size: 30rpx; color: #fff; font-weight: 500;
-    &.recording { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+    &.recording { background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%); }
 }
 
 .icon-btn {
@@ -683,9 +684,9 @@ $primary-color: #4A90E2; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
 }
 
 .send-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 10rpx 24rpx; border-radius: 12rpx; font-size: 26rpx; font-weight: 500;
-    box-shadow: 0 4rpx 12rpx rgba(102,126,234,0.3);
-    &.sending { background: linear-gradient(135deg, #a8b5e8 0%, #b59fc9 100%); box-shadow: 0 2rpx 8rpx rgba(102,126,234,0.2); }
+    background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); color: #fff; padding: 10rpx 24rpx; border-radius: 12rpx; font-size: 26rpx; font-weight: 500;
+    box-shadow: 0 4rpx 12rpx rgba(102,166,255,0.3);
+    &.sending { background: linear-gradient(135deg, #b7d8ff 0%, #95c3ff 100%); box-shadow: 0 2rpx 8rpx rgba(102,166,255,0.2); }
 }
 
 /* 面板区域 */
@@ -711,7 +712,7 @@ $primary-color: #4A90E2; $bg-color: #F5F7FA; $text-main: #333; $bubble-other: #F
     width: 25%; display: flex; flex-direction: column; align-items: center; margin-bottom: 40rpx;
 }
 .more-icon-box {
-    width: 110rpx; height: 110rpx; background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%); border-radius: 24rpx;
+    width: 110rpx; height: 110rpx; background: linear-gradient(135deg, #f5f7fa 0%, #edf3fb 100%); border-radius: 24rpx;
     display: flex; align-items: center; justify-content: center; margin-bottom: 10rpx;
     box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
 }

@@ -220,9 +220,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
 .container {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f5f7fa;
+  --text-main: #1f2937;
+  --text-sub: #667085;
+  --primary: #66a6ff;
+  --primary-deep: #4f95f0;
 }
 .custom-navbar {
   position: fixed;
@@ -231,7 +236,7 @@ export default {
   right: 0;
   z-index: 1000;
   padding-top: var(--status-bar-height);
-  background-color: #4A90E2;
+  background: linear-gradient(135deg, #7cb7ff 0%, var(--primary) 55%, var(--primary-deep) 100%);
   .navbar-content {
     height: 44px;
     display: flex;
@@ -263,30 +268,30 @@ export default {
 }
 .card {
   background: #ffffff;
-  border-radius: 16px;
-  margin: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-radius: $escort-radius-card;
+  margin: 24rpx;
+  padding: 24rpx;
+  box-shadow: $escort-shadow-card;
 }
 .card-title {
-  font-size: 16px;
+  font-size: 30rpx;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
+  color: var(--text-main);
+  margin-bottom: 16rpx;
 }
 .time-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 14rpx 0;
 }
 .label {
-  font-size: 14px;
-  color: #666;
+  font-size: 25rpx;
+  color: var(--text-sub);
 }
 .value {
-  font-size: 14px;
-  color: #333;
+  font-size: 25rpx;
+  color: var(--text-main);
 }
 .diff {
   font-weight: 600;
@@ -298,9 +303,9 @@ export default {
   color: #27AE60;
 }
 .rule-text {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #999;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #98a2b3;
   line-height: 1.6;
 }
 .duration-input {
@@ -308,34 +313,34 @@ export default {
   align-items: center;
 }
 .step-btn {
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
+  width: 64rpx;
+  height: 64rpx;
+  line-height: 64rpx;
   text-align: center;
-  background: #f2f2f2;
-  border-radius: 16px;
+  background: #eef3f9;
+  border-radius: 32rpx;
   border: none;
-  font-size: 18px;
-  color: #333;
+  font-size: 32rpx;
+  color: var(--text-main);
 }
 .duration-text {
-  margin: 0 12px;
-  font-size: 14px;
-  color: #333;
+  margin: 0 16rpx;
+  font-size: 25rpx;
+  color: var(--text-main);
 }
 .desc-input {
   width: 100%;
-  min-height: 80px;
+  min-height: 180rpx;
   background: #f8f8f8;
-  border-radius: 12px;
-  padding: 10px;
-  font-size: 14px;
-  color: #333;
+  border-radius: 14rpx;
+  padding: 16rpx;
+  font-size: 25rpx;
+  color: var(--text-main);
 }
 .desc-count {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #999;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #98a2b3;
   text-align: right;
 }
 .bottom-actions {
@@ -343,20 +348,21 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 8px 16px calc(env(safe-area-inset-bottom) + 8px);
+  padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 14rpx);
   background: #ffffff;
-  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.06);
+  border-top: 1rpx solid #e7edf5;
+  box-shadow: 0 -6rpx 16rpx rgba(31, 41, 55, 0.06);
 }
 .main-btn {
   width: 100%;
-  height: 44px;
-  line-height: 44px;
-  border-radius: 22px;
-  background: #4A90E2;
+  height: 86rpx;
+  line-height: 86rpx;
+  border-radius: 43rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
   color: #ffffff;
-  font-size: 16px;
+  font-size: 28rpx;
   font-weight: 600;
   border: none;
+  box-shadow: $escort-shadow-primary;
 }
 </style>
-

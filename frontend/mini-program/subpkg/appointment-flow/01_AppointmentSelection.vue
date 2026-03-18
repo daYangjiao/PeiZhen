@@ -186,10 +186,11 @@ const goToNext = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .container {
 	min-height: 100vh;
-	background-color: #f5f5f5;
+	background-color: #f5f7fa;
 	padding: 20rpx;
 	padding-bottom: 40rpx; /* 与底部按钮高度匹配，避免内容露到按钮下方 */
 }
@@ -236,13 +237,13 @@ const goToNext = () => {
 
 .service-item.selected {
 	background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-	border: 2rpx solid #4a90e2;
+	border: 2rpx solid #66a6ff;
 	box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.2);
 	transform: translateY(-2rpx);
 }
 
 .service-item.selected .service-title {
-	color: #4a90e2;
+	color: #66a6ff;
 	font-weight: 600;
 }
 
@@ -318,7 +319,7 @@ const goToNext = () => {
 .next-btn {
 	width: 100%;
 	height: 88rpx;
-	background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
 	color: white;
 	font-size: 32rpx;
 	font-weight: bold;

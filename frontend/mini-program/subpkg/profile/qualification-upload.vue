@@ -1,0 +1,435 @@
+<template>
+  <view class="page">
+    <view class="hero-card slide-up delay-1">
+      <view class="hero-left">
+        <image class="hero-icon" src="/static/ren_1.png" mode="aspectFit"></image>
+        <view>
+          <text class="hero-title">上传资质材料</text>
+          <text class="hero-desc">身份证需上传正反面，其他证件单独上传</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card slide-up delay-1">
+      <view class="section-head">
+        <text class="section-title">身份证（正反面）</text>
+        <text class="section-status" :class="idCardReady ? 'status-pass' : 'status-warn'">
+          {{ idCardReady ? '已完成' : '未完成' }}
+        </text>
+      </view>
+      <view class="id-grid">
+        <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardFront')">
+          <image v-if="idCardFront" class="preview" :src="toFullUrl(idCardFront)" mode="aspectFill"></image>
+          <view v-else class="placeholder">
+            <text class="plus">+</text>
+            <text class="placeholder-text">上传身份证正面</text>
+          </view>
+          <text class="slot-label">正面</text>
+        </view>
+        <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardBack')">
+          <image v-if="idCardBack" class="preview" :src="toFullUrl(idCardBack)" mode="aspectFill"></image>
+          <view v-else class="placeholder">
+            <text class="plus">+</text>
+            <text class="placeholder-text">上传身份证背面</text>
+          </view>
+          <text class="slot-label">背面</text>
+        </view>
+      </view>
+      <text class="tip">仅支持 JPG/PNG，建议文字清晰无遮挡</text>
+    </view>
+
+    <view class="card slide-up delay-2">
+      <view class="doc-row" :class="{ focused: focusType === 'practiceCert' }">
+        <view class="doc-left">
+          <text class="doc-name">执业证书</text>
+          <text class="doc-state" :class="practiceCertUrl ? 'pass' : 'warn'">
+            {{ practiceCertUrl ? '已上传' : '未上传' }}
+          </text>
+        </view>
+        <view class="doc-right">
+          <text v-if="practiceCertUrl" class="preview-link" @click.stop="previewImage(practiceCertUrl)">查看</text>
+          <view class="ghost-btn" @click="uploadByKey('practiceCert')">
+            <text>{{ practiceCertUrl ? '重传' : '上传' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="doc-row" :class="{ focused: focusType === 'healthCert' }">
+        <view class="doc-left">
+          <text class="doc-name">健康证</text>
+          <text class="doc-state" :class="healthCertUrl ? 'pass' : 'warn'">
+            {{ healthCertUrl ? '已上传' : '未上传' }}
+          </text>
+        </view>
+        <view class="doc-right">
+          <text v-if="healthCertUrl" class="preview-link" @click.stop="previewImage(healthCertUrl)">查看</text>
+          <view class="ghost-btn" @click="uploadByKey('healthCert')">
+            <text>{{ healthCertUrl ? '重传' : '上传' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-btn slide-up delay-3" :class="{ disabled: saving }" @click="goBack">
+      <text>{{ saving ? '处理中...' : '完成并返回' }}</text>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { storeToRefs } from 'pinia'
+import { config, put, upload } from '@/utils/api.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const { attendantInfo } = storeToRefs(userStore)
+
+const focusType = ref('')
+const saving = ref(false)
+
+const userId = () => {
+  const userInfo = uni.getStorageSync('userInfo')
+  return userInfo && userInfo.id ? userInfo.id : null
+}
+
+const idCardFront = computed(() => attendantInfo.value.idCardFrontFileUrl || attendantInfo.value.idCardFileUrl || '')
+const idCardBack = computed(() => attendantInfo.value.idCardBackFileUrl || '')
+const practiceCertUrl = computed(() => attendantInfo.value.practiceCertFileUrl || '')
+const healthCertUrl = computed(() => attendantInfo.value.healthCertFileUrl || '')
+const idCardReady = computed(() => !!idCardFront.value && !!idCardBack.value)
+
+const toFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL
+  return `${base}${url}`
+}
+
+const loadProfile = async () => {
+  const uid = userId()
+  if (!uid) return
+  await userStore.fetchAttendantProfile(uid)
+}
+
+const previewImage = (url) => {
+  const full = toFullUrl(url)
+  if (!full) return
+  uni.previewImage({
+    urls: [full],
+    current: full
+  })
+}
+
+const uploadByKey = (key) => {
+  if (saving.value) return
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const uid = userId()
+      if (!uid) {
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        return
+      }
+      const filePath = res.tempFilePaths && res.tempFilePaths[0]
+      if (!filePath) return
+
+      saving.value = true
+      try {
+        const uploadRes = await upload('/api/common/upload-image', filePath)
+        const fileUrl = uploadRes.url || uploadRes.data || ''
+        if (!fileUrl) {
+          uni.showToast({ title: '上传返回异常', icon: 'none' })
+          return
+        }
+
+        const payload = {}
+        if (key === 'idCardFront') {
+          payload.idCardFrontFileUrl = fileUrl
+          payload.idCardFileUrl = fileUrl
+        } else if (key === 'idCardBack') {
+          payload.idCardBackFileUrl = fileUrl
+        } else if (key === 'practiceCert') {
+          payload.practiceCertFileUrl = fileUrl
+          payload.practiceCertUploaded = 1
+        } else if (key === 'healthCert') {
+          payload.healthCertFileUrl = fileUrl
+          payload.healthCertUploaded = 1
+        }
+
+        await put(`/attendant/qualification/${uid}`, payload)
+        await userStore.fetchAttendantProfile(uid)
+        uni.showToast({ title: '上传成功', icon: 'success' })
+      } catch (error) {
+        uni.showToast({ title: '上传失败', icon: 'none' })
+      } finally {
+        saving.value = false
+      }
+    }
+  })
+}
+
+const goBack = () => {
+  if (saving.value) return
+  uni.navigateBack()
+}
+
+onLoad((options) => {
+  focusType.value = options && options.type ? String(options.type) : ''
+})
+
+onMounted(loadProfile)
+</script>
+
+<style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
+
+.page {
+  @include escort-page;
+  min-height: 100vh;
+  padding-bottom: 24rpx;
+}
+
+.hero-card {
+  @include escort-card(26rpx);
+  margin: 24rpx 24rpx 0;
+  border: 1rpx solid #e5eefb;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f8ff 100%);
+}
+
+.hero-left {
+  display: flex;
+  align-items: center;
+}
+
+.hero-icon {
+  width: 56rpx;
+  height: 56rpx;
+  margin-right: 14rpx;
+}
+
+.hero-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.hero-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.card {
+  @include escort-card(28rpx);
+  margin: 24rpx;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.section-status {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.status-pass {
+  color: #52c41a;
+}
+
+.status-warn {
+  color: #ff4d4f;
+}
+
+.id-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.id-slot {
+  border-radius: 14rpx;
+  border: 1rpx solid #e5eaf2;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.id-slot.focused {
+  border-color: $escort-color-primary;
+  box-shadow: 0 0 0 2rpx rgba(102, 166, 255, 0.14);
+}
+
+.preview {
+  width: 100%;
+  height: 190rpx;
+}
+
+.placeholder {
+  width: 100%;
+  height: 190rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.plus {
+  color: $escort-color-primary;
+  font-size: 42rpx;
+  line-height: 1;
+}
+
+.placeholder-text {
+  margin-top: 8rpx;
+  color: #9ca3af;
+  font-size: 22rpx;
+}
+
+.slot-label {
+  display: block;
+  text-align: center;
+  color: #4b5563;
+  font-size: 24rpx;
+  line-height: 58rpx;
+  background: #fff;
+}
+
+.tip {
+  display: block;
+  margin-top: 10rpx;
+  color: #9ca3af;
+  font-size: 22rpx;
+}
+
+.doc-row {
+  min-height: 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
+.doc-row:last-child {
+  border-bottom: none;
+}
+
+.doc-row.focused {
+  background: #f8fbff;
+}
+
+.doc-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.doc-name {
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.doc-state {
+  font-size: 24rpx;
+}
+
+.doc-state.pass {
+  color: #52c41a;
+}
+
+.doc-state.warn {
+  color: #ff4d4f;
+}
+
+.doc-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.preview-link {
+  color: $escort-color-primary;
+  font-size: 24rpx;
+}
+
+.ghost-btn {
+  min-width: 108rpx;
+  height: 54rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid $escort-color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text {
+    color: $escort-color-primary;
+    font-size: 24rpx;
+  }
+}
+
+.bottom-btn {
+  height: 88rpx;
+  border-radius: 60rpx;
+  background: $escort-color-primary;
+  margin: 16rpx 24rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $escort-shadow-primary;
+
+  text {
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 700;
+  }
+}
+
+.bottom-btn.disabled {
+  background: #c0c4cc;
+  box-shadow: none;
+}
+
+.slide-up {
+  opacity: 0;
+  transform: translateY(20rpx);
+  animation: slideUp 0.42s ease forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.02s;
+}
+
+.delay-2 {
+  animation-delay: 0.08s;
+}
+
+.delay-3 {
+  animation-delay: 0.14s;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

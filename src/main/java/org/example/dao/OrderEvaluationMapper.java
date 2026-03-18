@@ -12,5 +12,14 @@ public interface OrderEvaluationMapper {
     int insert(OrderEvaluation evaluation);
 
     int updateByOrderId(OrderEvaluation evaluation);
-}
 
+    /**
+     * 统计陪诊师评价总数
+     */
+    Integer countByAttendantId(@Param("attendantId") Integer attendantId);
+
+    /**
+     * 统计陪诊师好评数（rating >= minRating）
+     */
+    Integer countGoodByAttendantId(@Param("attendantId") Integer attendantId, @Param("minRating") Integer minRating);
+}

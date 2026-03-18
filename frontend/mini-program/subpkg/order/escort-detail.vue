@@ -7,9 +7,27 @@
 		</view>
 		
 		<scroll-view class="content" scroll-y v-else>
+			<view class="overview-card">
+				<view class="overview-top">
+					<view class="overview-status-wrap">
+						<text class="overview-status">{{ statusText }}</text>
+						<text class="overview-desc">{{ statusDesc || '请查看详情后进行下一步操作' }}</text>
+						<text class="overview-hint">{{ overviewHintText }}</text>
+					</view>
+					<view class="overview-income" v-if="orderInfo.status !== 'completed'">
+						<text class="overview-income-label">本单可得</text>
+						<text class="overview-income-value">¥{{ feeInfoAttendantIncomeText }}</text>
+					</view>
+				</view>
+				<text class="overview-order-no">订单号：{{ orderInfo.orderNo }}</text>
+			</view>
+
 			<!-- 顶部：订单整体状态进度条（待核销 / 服务中 / 待确认） -->
 			<view class="status-card top-progress-card" v-if="['accepted','in_progress','waiting_confirm'].includes(orderInfo.status)">
-				<view class="order-no">订单号：{{ orderInfo.orderNo }}</view>
+				<view class="progress-title-row">
+					<text class="progress-title">服务进度</text>
+					<text class="progress-step-text">当前：{{ serviceProgressText }}</text>
+				</view>
 				<view class="service-progress-bar">
 					<view class="progress-step" :class="{ active: serviceProgressStep >= 1, current: serviceProgressStep === 1 }">
 						<view class="step-dot"></view>
@@ -47,11 +65,6 @@
 
 					<view class="settlement-breakdown">
 						<view class="settlement-row">
-							<text class="settlement-label highlight">实收</text>
-							<text class="settlement-value highlight">¥{{ attendantIncomeText }}</text>
-						</view>
-						<view class="settlement-divider"></view>
-						<view class="settlement-row">
 							<text class="settlement-label">患者支付总额</text>
 							<text class="settlement-value">¥{{ settlementTotalText }}</text>
 						</view>
@@ -60,8 +73,6 @@
 							<text class="settlement-value minus">-¥{{ platformServiceFeeText }}</text>
 						</view>
 					</view>
-
-					<view class="settlement-order-no">订单号：{{ orderInfo.orderNo }}</view>
 				</view>
 
 				<!-- 患者评价（紧接结算卡片下方） -->
@@ -97,18 +108,6 @@
 				</view>
 			</view>
 
-			<!-- 非进行中订单（待接单/已取消）：原状态展示 -->
-			<view class="status-card" v-else>
-				<view class="status-info">
-					<image class="status-icon" :src="statusIcon" mode="aspectFit"></image>
-					<view class="status-text">
-						<text class="status-title">{{ statusText }}</text>
-						<text class="status-desc">{{ statusDesc }}</text>
-					</view>
-				</view>
-				<view class="order-no">订单号：{{ orderInfo.orderNo }}</view>
-			</view>
-			
 			<!-- 患者信息（接单前隐藏姓名/头像/电话，仅展示年龄和性别） -->
 			<view class="info-card">
 				<view class="card-title">
@@ -336,13 +335,11 @@
 		<!-- 底部操作按钮 -->
 		<view class="bottom-actions" v-if="showActions">
 			<button class="action-btn secondary" @click="contactPatient">联系患者</button>
-
 			<!-- 待服务状态：扫码核销（未准备时点弹窗）、模拟扫码 -->
 			<template v-if="orderInfo.status === 'accepted'">
 				<button class="action-btn" :class="isPrepared ? 'primary' : 'disabled'" @click="onScanCodeClick">扫码核销</button>
 				<button class="action-btn" :class="isPrepared ? 'warning' : 'disabled'" @click="onSimulateScanClick">模拟扫码</button>
 			</template>
-
 			<!-- 服务中状态：显示结束服务 -->
 			<button v-else-if="orderInfo.status === 'in_progress'" class="action-btn primary" @click="handleEndServiceClick">结束服务</button>
 		</view>
@@ -416,7 +413,7 @@
 				</view>
 				<view class="contact-options">
 					<view class="contact-option" @click="handleContactPatientChoice('phone')">
-						<view class="contact-icon phone">☎</view>
+						<view class="contact-icon phone">电</view>
 						<view class="contact-text">
 							<text class="contact-main">拨打电话</text>
 							<text class="contact-desc">{{ orderInfo.patientPhone || '未提供电话' }}</text>
@@ -424,7 +421,7 @@
 						<text class="contact-arrow">›</text>
 					</view>
 					<view class="contact-option" @click="handleContactPatientChoice('chat')">
-						<view class="contact-icon chat">💬</view>
+						<view class="contact-icon chat">聊</view>
 						<view class="contact-text">
 							<text class="contact-main">发送消息</text>
 							<text class="contact-desc">进入聊天界面与患者沟通</text>
@@ -539,16 +536,6 @@ export default {
 			if (a && typeof a === 'string' && a.trim() && !a.includes('user-placeholder')) return a
 			return placeholderImg
 		},
-		statusIcon() {
-			const icons = {
-				pending: '/static/clock.svg',
-				accepted: '/static/check.svg',
-				in_progress: '/static/progress.svg',
-				completed: '/static/success.svg',
-				cancelled: '/static/cancel.svg'
-			}
-			return icons[this.orderInfo.status] || '/static/clock.svg'
-		},
 		canViewPatientContact() {
 			const status = this.orderInfo.status
 			return status && status !== 'pending'
@@ -586,6 +573,33 @@ export default {
 			if (this.orderInfo.status === 'waiting_confirm') return 3
 			if (this.orderInfo.status === 'completed') return 4
 			return 1
+		},
+		serviceProgressText() {
+			const map = {
+				accepted: '待核销',
+				in_progress: '服务中',
+				waiting_confirm: '待确认'
+			}
+			return map[this.orderInfo.status] || '待接单'
+		},
+		overviewHintText() {
+			const status = this.orderInfo.status
+			if (status === 'accepted') {
+				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
+			}
+			if (status === 'in_progress') {
+				return `当前服务流程进度：第${this.currentFlowStep}步 / 共4步`
+			}
+			if (status === 'waiting_confirm') {
+				return '您已提交时长与费用，正在等待患者确认'
+			}
+			if (status === 'completed') {
+				return '订单已完成，结算金额已生成'
+			}
+			if (status === 'cancelled') {
+				return '订单已取消，可在下方查看取消信息'
+			}
+			return '等待接单后即可查看完整服务流程'
 		},
 		settlementTotal() {
 			const raw = Number(this.orderInfo.totalFee || this.orderInfo.serviceFee || 0)
@@ -1010,9 +1024,16 @@ export default {
 </script>
 
 <style lang="scss">
+@import '@/styles/escort-ui.scss';
 .container {
-	background-color: #f5f5f5;
+	background-color: #f5f7fa;
 	min-height: 100vh;
+	--primary: #66a6ff;
+	--primary-deep: #4f95f0;
+	--primary-soft: #eaf3ff;
+	--text-main: #1f2937;
+	--text-sub: #667085;
+	--card-shadow: 0 10rpx 24rpx rgba(31, 41, 55, 0.08);
 }
 
 .custom-navbar {
@@ -1022,7 +1043,7 @@ export default {
 	right: 0;
 	z-index: 1000;
 	padding-top: var(--status-bar-height);
-	background-color: #4A90E2;
+	background-color: var(--primary);
 	
 	.navbar-content {
 		height: 44px;
@@ -1054,8 +1075,119 @@ export default {
 }
 
 .content {
-	padding-top: calc(var(--status-bar-height) + 44px);
-	padding-bottom: 80px;
+	padding: 18rpx 0 128rpx;
+}
+
+.overview-card {
+	position: relative;
+	overflow: hidden;
+	background: linear-gradient(135deg, #7cb7ff, #66a6ff 56%, #5b9df2);
+	margin: 0 24rpx 22rpx;
+	padding: 28rpx 26rpx 24rpx;
+	border-radius: 20rpx;
+	box-shadow: 0 14rpx 28rpx rgba(86, 157, 247, 0.3);
+	color: #ffffff;
+	animation: slideUp 260ms ease both;
+}
+
+.overview-card::before {
+	content: '';
+	position: absolute;
+	width: 280rpx;
+	height: 280rpx;
+	right: -86rpx;
+	top: -130rpx;
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+}
+
+.overview-card::after {
+	content: '';
+	position: absolute;
+	width: 180rpx;
+	height: 180rpx;
+	right: 132rpx;
+	bottom: -116rpx;
+	background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+}
+
+.overview-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18rpx;
+	position: relative;
+	z-index: 1;
+}
+
+.overview-status-wrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.overview-status {
+	display: block;
+	font-size: 36rpx;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 1rpx;
+}
+
+.overview-desc {
+	display: block;
+	font-size: 23rpx;
+	opacity: 0.94;
+	margin-top: 10rpx;
+	line-height: 1.4;
+}
+
+.overview-hint {
+	display: inline-flex;
+	margin-top: 12rpx;
+	padding: 8rpx 14rpx;
+	border-radius: 999rpx;
+	font-size: 21rpx;
+	line-height: 1.3;
+	background: rgba(255, 255, 255, 0.2);
+	border: 1rpx solid rgba(255, 255, 255, 0.28);
+}
+
+.overview-income {
+	text-align: center;
+	flex-shrink: 0;
+	background: rgba(255, 255, 255, 0.18);
+	border: 1rpx solid rgba(255, 255, 255, 0.3);
+	border-radius: 14rpx;
+	padding: 10rpx 14rpx;
+	min-width: 182rpx;
+	backdrop-filter: blur(4rpx);
+}
+
+.overview-income-label {
+	display: block;
+	font-size: 22rpx;
+	opacity: 0.9;
+}
+
+.overview-income-value {
+	display: block;
+	font-size: 40rpx;
+	font-weight: 700;
+	margin-top: 6rpx;
+}
+
+.overview-order-no {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 16rpx;
+	padding: 8rpx 14rpx;
+	font-size: 22rpx;
+	border-radius: 999rpx;
+	background: rgba(255, 255, 255, 0.16);
+	border: 1rpx solid rgba(255, 255, 255, 0.25);
+	opacity: 0.95;
+	position: relative;
+	z-index: 1;
 }
 
 .loading {
@@ -1069,79 +1201,66 @@ export default {
 
 .status-card {
 	background-color: #ffffff;
-	margin: 15px;
-	border-radius: 20px;
-	padding: 20px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	margin: 0 24rpx 20rpx;
+	border-radius: 18rpx;
+	padding: 26rpx 24rpx;
+	box-shadow: var(--card-shadow);
+	animation: slideUp 280ms ease both;
 	
 	&.top-progress-card {
-		.order-no {
-			margin-bottom: 16px;
-		}
+		padding-top: 24rpx;
+		padding-bottom: 24rpx;
 		.service-progress-bar {
 			margin-bottom: 0;
 		}
 	}
 	
-	.status-info {
+	.progress-title-row {
 		display: flex;
 		align-items: center;
-		margin-bottom: 15px;
-		
-		.status-icon {
-			width: 40px;
-			height: 40px;
-			margin-right: 15px;
+		justify-content: space-between;
+		margin-bottom: 20rpx;
+
+		.progress-title {
+			font-size: 28rpx;
+			font-weight: 600;
+			color: var(--text-main);
 		}
-		
-		.status-text {
-			flex: 1;
-			
-			.status-title {
-				font-size: 18px;
-				font-weight: 600;
-				color: #333;
-				display: block;
-				margin-bottom: 5px;
-			}
-			
-			.status-desc {
-				font-size: 14px;
-				color: #666;
-				display: block;
-			}
+
+		.progress-step-text {
+			font-size: 23rpx;
+			color: var(--primary);
+			background: var(--primary-soft);
+			border-radius: 999rpx;
+			padding: 6rpx 14rpx;
 		}
-	}
-	
-	.order-no {
-		font-size: 14px;
-		color: #999;
 	}
 }
 
 .info-card {
 	background-color: #ffffff;
-	margin: 0 15px 15px;
-	border-radius: 20px;
-	padding: 20px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	margin: 0 24rpx 20rpx;
+	border-radius: 18rpx;
+	padding: 26rpx 24rpx;
+	box-shadow: var(--card-shadow);
+	animation: slideUp 280ms ease both;
 	
 	.card-title {
 		display: flex;
 		align-items: center;
-		margin-bottom: 15px;
+		margin-bottom: 20rpx;
 		
 		.title-icon {
-			width: 20px;
-			height: 20px;
-			margin-right: 8px;
-			opacity: 0.8;
+			width: 34rpx;
+			height: 34rpx;
+			margin-right: 10rpx;
+			opacity: 0.92;
 		}
 		
 		text {
-			font-size: 16px;
+			font-size: 30rpx;
 			font-weight: 600;
-			color: #333;
+			color: var(--text-main);
 		}
 	}
 }
@@ -1149,13 +1268,16 @@ export default {
 .patient-info {
 	display: flex;
 	align-items: center;
+	padding: 8rpx 0 4rpx;
 	
 	.patient-avatar {
-		width: 50px;
-		height: 50px;
-		border-radius: 25px;
+		width: 92rpx;
+		height: 92rpx;
+		border-radius: 50%;
 		overflow: hidden;
-		margin-right: 15px;
+		margin-right: 18rpx;
+		background: #eef3fb;
+		border: 2rpx solid #f0f5ff;
 		
 		image {
 			width: 100%;
@@ -1167,34 +1289,35 @@ export default {
 		flex: 1;
 		
 		.patient-name {
-			font-size: 16px;
+			font-size: 30rpx;
 			font-weight: 600;
-			color: #333;
-			margin-bottom: 5px;
+			color: var(--text-main);
+			margin-bottom: 10rpx;
 		}
 		
 		.patient-meta {
-			font-size: 14px;
-			color: #666;
+			font-size: 24rpx;
+			color: var(--text-sub);
 			
 			text {
-				margin-right: 15px;
+				margin-right: 16rpx;
 			}
 		}
 	}
 	
 	.contact-btn {
-		width: 40px;
-		height: 40px;
-		background-color: #4A90E2;
-		border-radius: 20px;
+		width: 72rpx;
+		height: 72rpx;
+		background: linear-gradient(180deg, #79b5ff, var(--primary));
+		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		box-shadow: 0 10rpx 20rpx rgba(102, 166, 255, 0.3);
 		
 		image {
-			width: 20px;
-			height: 20px;
+			width: 34rpx;
+			height: 34rpx;
 			filter: brightness(0) invert(1);
 		}
 	}
@@ -1205,32 +1328,34 @@ export default {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 12px 0;
-		border-bottom: 1px solid #f0f0f0;
+		padding: 18rpx 0;
+		border-bottom: 1rpx solid #edf2f8;
 		
 		&:last-child {
 			border-bottom: none;
 		}
 		
 		.label {
-			font-size: 14px;
-			color: #666;
+			font-size: 24rpx;
+			color: #7b8798;
 		}
 		
 		.value {
-			font-size: 14px;
-			color: #333;
+			font-size: 25rpx;
+			color: var(--text-main);
 			font-weight: 500;
+			text-align: right;
+			max-width: 420rpx;
 		}
 	}
 }
 
 .special-requests {
-	padding: 14px 16px;
+	padding: 22rpx 22rpx;
 	background-color: #f8fafc;
-	border: 1px solid #e2e8f0;
-	border-radius: 12px;
-	font-size: 14px;
+	border: 1rpx solid #e6edf8;
+	border-radius: 14rpx;
+	font-size: 24rpx;
 	color: #334155;
 	line-height: 1.6;
 }
@@ -1240,46 +1365,46 @@ export default {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 12px 0;
+		padding: 18rpx 0;
 		
 		.fee-label {
-			font-size: 14px;
-			color: #666;
+			font-size: 24rpx;
+			color: #7b8798;
 		}
 		
 		.fee-value {
-			font-size: 14px;
-			color: #333;
+			font-size: 24rpx;
+			color: var(--text-main);
 			font-weight: 500;
 		}
 		
 		&.total {
-			border-top: 1px solid #f0f0f0;
-			padding-top: 15px;
-			margin-top: 5px;
+			border-top: 1rpx solid #edf2f8;
+			padding-top: 20rpx;
+			margin-top: 6rpx;
 			
 			.fee-label {
-				font-size: 16px;
+				font-size: 30rpx;
 				font-weight: 600;
-				color: #333;
+				color: var(--text-main);
 			}
 			
 			.total-price {
-				font-size: 18px;
+				font-size: 36rpx;
 				font-weight: 600;
-				color: #ff6b6b;
+				color: #ff5b4d;
 			}
 		}
 	}
 }
 
 .settlement-card {
-	/* 与 info-card 一致的左右边距和圆角，并与顶部留出间距 */
-	margin: 10px 15px 15px;
-	padding: 22px 20px 20px;
-	border-radius: 20px;
+	margin: 0 24rpx 20rpx;
+	padding: 26rpx 24rpx;
+	border-radius: 18rpx;
 	background-color: #ffffff;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--card-shadow);
+	animation: slideUp 280ms ease both;
 }
 
 .settlement-header {
@@ -1292,16 +1417,16 @@ export default {
 .settlement-title {
 	font-size: 30rpx;
 	font-weight: 600;
-	color: #333;
+	color: var(--text-main);
 }
 
 .settlement-status-tag {
 	font-size: 22rpx;
 	padding: 4rpx 14rpx;
 	border-radius: 999px;
-	background: #e6f7ff;
-	color: #1890ff;
-	border: 1rpx solid #bae7ff;
+	background: var(--primary-soft);
+	color: var(--primary);
+	border: 1rpx solid #cde2ff;
 }
 
 .settlement-amount {
@@ -1309,7 +1434,7 @@ export default {
 	font-size: 40rpx;
 	font-weight: 700;
 	margin-top: 8px;
-	color: #ff6b6b;
+	color: #ff5b4d;
 }
 
 .settlement-subtitle {
@@ -1333,12 +1458,12 @@ export default {
 
 .settlement-label {
 	font-size: 24rpx;
-	color: #666;
+	color: #7b8798;
 }
 
 .settlement-value {
 	font-size: 26rpx;
-	color: #333;
+	color: var(--text-main);
 }
 
 .settlement-value.minus {
@@ -1347,13 +1472,13 @@ export default {
 
 .settlement-label.highlight {
 	font-weight: 600;
-	color: #333;
+	color: var(--text-main);
 }
 
 .settlement-value.highlight {
 	font-size: 32rpx;
 	font-weight: 700;
-	color: #ff6b6b;
+	color: #ff5b4d;
 }
 
 .settlement-divider {
@@ -1362,15 +1487,9 @@ export default {
 	margin: 10px 0 8px;
 }
 
-.settlement-order-no {
-	margin-top: 10px;
-	font-size: 22rpx;
-	color: #999;
-}
-
 /* 患者评价卡片 */
 .evaluation-card {
-	margin-top: 10px;
+	margin-top: 0;
 }
 .evaluation-header {
 	display: flex;
@@ -1428,13 +1547,13 @@ export default {
 .evaluation-tags .tag {
 	font-size: 12px;
 	padding: 4px 10px;
-	background: #e6f7ff;
-	color: #1890ff;
+	background: var(--primary-soft);
+	color: var(--primary);
 	border-radius: 999px;
 }
 .reply-status {
 	padding: 12px 16px;
-	background: #e6f7ff;
+	background: #eef5ff;
 	border-radius: 12px;
 	margin-bottom: 12px;
 }
@@ -1470,13 +1589,13 @@ export default {
 	padding: 0 20px;
 	line-height: 40px;
 	font-size: 14px;
-	color: #4A90E2;
+	color: var(--primary);
 	background: #fff;
-	border: 1px solid #4A90E2;
+	border: 1px solid var(--primary);
 	border-radius: 20px;
 }
 .reply-btn:active {
-	background: #e6f7ff;
+	background: var(--primary-soft);
 }
 
 .service-progress-bar {
@@ -1498,19 +1617,19 @@ export default {
 			box-shadow: 0 0 0 2rpx #e0e0e0;
 		}
 		&.active .step-dot {
-			background: #4A90E2;
-			box-shadow: 0 0 0 2rpx #4A90E2;
+			background: var(--primary);
+			box-shadow: 0 0 0 2rpx var(--primary);
 		}
 		&.current .step-dot {
-			background: #4A90E2;
-			box-shadow: 0 0 0 2rpx #4A90E2, 0 0 0 8rpx rgba(74,144,226,0.2);
+			background: var(--primary);
+			box-shadow: 0 0 0 2rpx var(--primary), 0 0 0 8rpx rgba(102, 166, 255, 0.2);
 		}
 		.step-label {
 			font-size: 24rpx;
 			color: #999;
 		}
 		&.active .step-label, &.current .step-label {
-			color: #4A90E2;
+			color: var(--primary);
 			font-weight: 500;
 		}
 	}
@@ -1521,7 +1640,7 @@ export default {
 		margin: 0 8rpx;
 		margin-bottom: 28rpx;
 		&.active {
-			background: #4A90E2;
+			background: var(--primary);
 		}
 	}
 }
@@ -1536,7 +1655,7 @@ export default {
 		min-width: 0;
 		.prep-label { font-size: 15px; color: #666; }
 		.prep-value { font-size: 15px; color: #ff9500; }
-		.prep-value.done { color: #4A90E2; }
+		.prep-value.done { color: var(--primary); }
 	}
 	.prep-btn.action-style {
 		flex-shrink: 0;
@@ -1544,7 +1663,7 @@ export default {
 		height: 44px;
 		line-height: 44px;
 		padding: 0 24px;
-		background: #4A90E2;
+		background: var(--primary);
 		color: #fff;
 		border: none;
 		border-radius: 22px;
@@ -1552,7 +1671,7 @@ export default {
 		font-weight: 600;
 	}
 	.prep-btn.action-style:active {
-		background: #3a7bc8;
+		background: var(--primary-deep);
 		transform: scale(0.98);
 	}
 }
@@ -1578,7 +1697,7 @@ export default {
 		}
 		
 		&.active::after {
-			background-color: #4A90E2;
+			background-color: var(--primary);
 		}
 		
 		.timeline-dot {
@@ -1594,8 +1713,8 @@ export default {
 		}
 		
 		&.active .timeline-dot {
-			background-color: #4A90E2;
-			box-shadow: 0 0 0 2px #4A90E2;
+			background-color: var(--primary);
+			box-shadow: 0 0 0 2px var(--primary);
 		}
 		
 		&.current .timeline-dot {
@@ -1616,7 +1735,7 @@ export default {
 			
 			.step-time {
 				font-size: 12px;
-				color: #4A90E2;
+				color: var(--primary);
 				margin-bottom: 4px;
 			}
 			
@@ -1628,7 +1747,7 @@ export default {
 		}
 		
 		&.active .timeline-content .step-title {
-			color: #4A90E2;
+			color: var(--primary);
 		}
 		
 		&.current .timeline-content .step-title {
@@ -1678,17 +1797,18 @@ export default {
 	left: 0;
 	right: 0;
 	background-color: #ffffff;
-	padding: 15px;
-	padding-bottom: calc(15px + env(safe-area-inset-bottom));
-	border-top: 1px solid #f0f0f0;
+	padding: 18rpx 24rpx;
+	padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #e7edf5;
 	display: flex;
-	gap: 10px;
+	gap: 12rpx;
+	box-shadow: 0 -6rpx 18rpx rgba(31, 41, 55, 0.06);
 	
 	.action-btn {
 		flex: 1;
-		height: 44px;
-		border-radius: 22px;
-		font-size: 14px;
+		height: 84rpx;
+		border-radius: 44rpx;
+		font-size: 27rpx;
 		font-weight: 600;
 		border: none;
 		transition: all 0.3s ease;
@@ -1705,12 +1825,12 @@ export default {
 		}
 		
 		&.primary {
-			background-color: #4A90E2;
+			background-color: var(--primary);
 			color: #ffffff;
 			flex: 1.2;
 			
 			&:active {
-				background-color: #3a7bc8;
+				background-color: var(--primary-deep);
 				transform: scale(0.98);
 			}
 		}
@@ -1725,6 +1845,7 @@ export default {
 				transform: scale(0.98);
 			}
 		}
+
 	}
 }
 
@@ -1778,7 +1899,7 @@ export default {
 	background: #e8f3ff;
 }
 .flow-item.current::before {
-	background: #4A90E2;
+	background: var(--primary);
 }
 .flow-item.past::before,
 .flow-item.completed::before {
@@ -1802,14 +1923,14 @@ export default {
 	color: #666;
 }
 .flow-btn.doing {
-	background: #4A90E2;
-	border-color: #4A90E2;
+	background: var(--primary);
+	border-color: var(--primary);
 	color: #fff;
 }
 .flow-btn.update {
 	background: #fff;
-	border-color: #4A90E2;
-	color: #4A90E2;
+	border-color: var(--primary);
+	color: var(--primary);
 }
 .flow-btn.done {
 	background: #52c41a;
@@ -1879,8 +2000,8 @@ export default {
 .confirm-btn.outline {
 	flex: 1;
 	background: #fff;
-	color: #4A90E2;
-	border: 1px solid #4A90E2;
+	color: var(--primary);
+	border: 1px solid var(--primary);
 }
 .confirm-btn.danger {
 	flex: 1;
@@ -2034,7 +2155,7 @@ export default {
 }
 .contact-modal .contact-icon.phone {
 	background: #f0f7ff;
-	color: #4A90E2;
+	color: var(--primary);
 }
 .contact-modal .contact-icon.chat {
 	background: #f6ffed;
@@ -2068,7 +2189,7 @@ export default {
 	width: 100%;
 	height: 80rpx;
 	line-height: 80rpx;
-	background: #f5f5f5;
+	background: #f5f7fa;
 	color: #666;
 	border: none;
 	border-radius: 40rpx;
@@ -2146,12 +2267,12 @@ export default {
 	border: none;
 
 	&.cancel {
-		background-color: #f5f5f5;
+		background-color: #f5f7fa;
 		color: #666;
 	}
 
 	&.confirm {
-		background-color: #4A90E2;
+		background-color: var(--primary);
 		color: #ffffff;
 	}
 	&.danger {
@@ -2159,5 +2280,15 @@ export default {
 		color: #ffffff;
 	}
 }
-</style>
 
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(12rpx);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+</style>

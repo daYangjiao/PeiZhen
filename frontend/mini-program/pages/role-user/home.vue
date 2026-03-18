@@ -215,10 +215,11 @@ onMounted(() => {
 onShow(() => {})
 </script>
 
-<style>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   position: relative;
 }
 .floating-btn {
@@ -242,7 +243,7 @@ onShow(() => {})
   padding: 0 30rpx 30rpx;
 }
 .search-box {
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   border-radius: 50rpx;
   padding: 20rpx 30rpx;
   display: flex;
@@ -305,7 +306,7 @@ onShow(() => {})
   padding: 15rpx 30rpx;
 }
 .btn-text {
-  color: #4a90e2;
+  color: #66a6ff;
   font-size: 24rpx;
   font-weight: bold;
 }
@@ -418,7 +419,7 @@ onShow(() => {})
 }
 .companion-specialty {
   font-size: 22rpx;
-  color: #4a90e2;
+  color: #66a6ff;
   margin-bottom: 5rpx;
 }
 .companion-experience {

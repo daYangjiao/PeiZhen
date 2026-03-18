@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/api.js'
 
+const TABBAR_MESSAGE_BADGE_KEY = 'tabbar_message_badge'
+
 export const useMessageStore = defineStore('message', {
   state: () => ({
     unreadTotal: 0,
@@ -8,21 +10,39 @@ export const useMessageStore = defineStore('message', {
     contactUnreadMap: {},
     contactIdsMarkedRead: new Set(),
     lastUpdateTime: null,
-    loading: false
+    loading: false,
+    refreshTimer: null
   }),
   getters: {
     totalUnreadCount: (state) => state.systemUnreadCount + state.unreadTotal,
     getContactUnreadCount: (state) => (contactId) => state.contactUnreadMap[contactId] || 0,
-    hasUnreadMessages: (state) => state.totalUnreadCount > 0
+    hasUnreadMessages: (state) => (state.systemUnreadCount + state.unreadTotal) > 0
   },
   actions: {
     async initMessageStatus() {
       await this.refreshUnreadCounts()
     },
+    scheduleRefreshUnreadCounts(delay = 200) {
+      if (this.refreshTimer) clearTimeout(this.refreshTimer)
+      this.refreshTimer = setTimeout(() => {
+        this.refreshTimer = null
+        this.refreshUnreadCounts()
+      }, delay)
+    },
     async refreshUnreadCounts() {
       if (this.loading) return
       this.loading = true
       try {
+        const userInfo = uni.getStorageSync('userInfo') || {}
+        const currentUserId = Number(userInfo.id || userInfo.userId || 0)
+        const token = uni.getStorageSync('token')
+        const isLoggedIn = !!uni.getStorageSync('isLoggedIn')
+        if (!currentUserId || !token || !isLoggedIn) {
+          this.clearAllUnread()
+          this.updateTabBarBadge()
+          return
+        }
+
         const res = await get('/api/chat/contacts')
         if (res.code === 200) {
           const allContacts = res.data || []
@@ -33,7 +53,10 @@ export const useMessageStore = defineStore('message', {
             if (contact.senderId === 0 || contact.receiverId === 0) {
               systemUnread = contact.unreadCount || 0
             } else {
-              const contactId = contact.senderId === 0 ? contact.receiverId : contact.senderId
+              const contactId = Number(contact.senderId) === currentUserId
+                ? Number(contact.receiverId)
+                : Number(contact.senderId)
+              if (!contactId) return
               const count = this.contactIdsMarkedRead.has(contactId) ? 0 : (contact.unreadCount || 0)
               contactUnreadMap[contactId] = count
               totalUnread += count
@@ -44,6 +67,7 @@ export const useMessageStore = defineStore('message', {
           this.systemUnreadCount = systemUnread
           this.contactUnreadMap = contactUnreadMap
           this.lastUpdateTime = Date.now()
+          this.updateTabBarBadge()
         }
       } finally {
         this.loading = false
@@ -72,6 +96,10 @@ export const useMessageStore = defineStore('message', {
       this.contactUnreadMap = {}
       this.contactIdsMarkedRead.clear()
       this.lastUpdateTime = null
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer)
+        this.refreshTimer = null
+      }
     },
     resetContactUnread(contactId) {
       if (!contactId) return
@@ -95,6 +123,9 @@ export const useMessageStore = defineStore('message', {
     updateTabBarBadge() {
       const total = this.systemUnreadCount + this.unreadTotal
       try {
+        uni.setStorageSync(TABBAR_MESSAGE_BADGE_KEY, total)
+        const role = uni.getStorageSync('role')
+        if (role && role !== 'user') return
         if (total > 0) {
           uni.setTabBarBadge({ index: 3, text: total > 99 ? '99+' : String(total) })
         } else {
@@ -104,4 +135,3 @@ export const useMessageStore = defineStore('message', {
     }
   }
 })
-

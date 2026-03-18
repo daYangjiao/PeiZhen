@@ -20,7 +20,9 @@ public class AiMedicalController {
 
     @Autowired
     private AiMedicalService aiMedicalService;
-    private AiMedicalQaMapper AiMedicalQaMapperi;
+
+    @Autowired
+    private AiMedicalQaMapper aiMedicalQaMapper;
 
     @PostMapping("/qa")
     @ApiOperation(value = "医疗问题问答", notes = "用户提交医疗问题，获取AI生成的专业回答（包含思考过程推送）")
@@ -39,7 +41,7 @@ public class AiMedicalController {
     public ResponseEntity<AiMedicalQa> getThinkingProcess(
             @ApiParam(name = "recordId", value = "问答记录ID", required = true)
             @PathVariable Long recordId) {
-        AiMedicalQa qaRecord = AiMedicalQaMapperi.selectById(recordId); // 需确保Mapper有该方法
+        AiMedicalQa qaRecord = aiMedicalQaMapper.selectById(recordId);
         return ResponseEntity.ok(qaRecord);
     }
 }

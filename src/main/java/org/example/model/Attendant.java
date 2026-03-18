@@ -17,8 +17,11 @@ public class Attendant {
     @ApiModelProperty(value = "资格证书编号", example = "CERT123456")
     private String certificate;
 
-    @ApiModelProperty(value = "状态：0=审核中, 1=正常, 2=封禁", example = "1")
+    @ApiModelProperty(value = "状态：0=审核中, 1=正常, 2=封禁, 3=审核失败", example = "1")
     private Integer status;
+
+    @ApiModelProperty(value = "资质审核失败原因", example = "健康证过期")
+    private String qualificationFailReason;
 
     @ApiModelProperty(value = "个人简介", example = "从事陪诊行业5年，熟悉成都各大医院就诊流程，耐心细致。")
     private String introduction;

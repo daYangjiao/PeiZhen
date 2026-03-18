@@ -374,14 +374,15 @@ const getStatusClass = (status) => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 /* 流程编号样式 */
 .process-number {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20rpx 0;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  background: linear-gradient(135deg, #66A6FF, #4F95F0);
   margin-bottom: 20rpx;
   border-radius: 12rpx;
 }
@@ -407,7 +408,7 @@ const getStatusClass = (status) => {
 }
 
 .page {
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
   min-height: 100vh;
   padding: 20rpx;
 }
@@ -454,7 +455,7 @@ const getStatusClass = (status) => {
   font-size: 24rpx;
   color: #666;
   padding: 10rpx;
-  background: #f5f5f5;
+  background: #f5f7fa;
   border-radius: 8rpx;
 }
 
@@ -507,7 +508,7 @@ const getStatusClass = (status) => {
 
 .status-accepted {
   background: #BAE7FF;
-  color: #1890FF;
+  color: #66A6FF;
 }
 
 .status-service {
@@ -578,19 +579,19 @@ const getStatusClass = (status) => {
 }
 
 .btn-outline {
-  background: #f5f5f5;
+  background: #f5f7fa;
   color: #333;
   border: 1rpx solid #d9d9d9;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  background: linear-gradient(135deg, #66A6FF, #4F95F0);
   color: white;
   border: none;
 }
 
 .btn-primary:disabled {
-  background: #f5f5f5;
+  background: #f5f7fa;
   color: #ccc;
 }
 
@@ -619,7 +620,7 @@ const getStatusClass = (status) => {
 .btn-load-more {
   width: 400rpx;
   height: 72rpx;
-  background: #f5f5f5;
+  background: #f5f7fa;
   color: #333;
   border: 1rpx solid #d9d9d9;
   border-radius: 36rpx;
@@ -723,7 +724,7 @@ const getStatusClass = (status) => {
 
 .option-tag {
   background: #f0f5ff;
-  color: #1890ff;
+  color: #66a6ff;
   padding: 8rpx 16rpx;
   border-radius: 20rpx;
   font-size: 24rpx;
@@ -738,7 +739,7 @@ const getStatusClass = (status) => {
 .confirm-btn {
   width: 100%;
   height: 80rpx;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  background: linear-gradient(135deg, #66A6FF, #4F95F0);
   color: white;
   border: none;
   border-radius: 40rpx;

@@ -1,37 +1,39 @@
 <!-- 陪诊师端订单列表（迁入） -->
 <template>
-  <view class="order-page" :style="{ paddingTop: statusBarHeight + 'px' }">
+  <view class="order-page">
     <view class="header">
-      <view class="search-box">
-        <image class="search-icon" src="/static/sous.png"></image>
-        <input
-          class="search-input"
-          placeholder="搜索患者、医院或服务类型"
-          v-model="searchKeyword"
-          @confirm="handleSearch"
-          confirm-type="search"
-        />
+      <view class="header-module">
+        <view class="search-box">
+          <image class="search-icon" src="/static/sous.png"></image>
+          <input
+            class="search-input"
+            placeholder="搜索患者、医院或服务类型"
+            v-model="searchKeyword"
+            @confirm="handleSearch"
+            confirm-type="search"
+          />
+        </view>
+
+        <view class="status-tabs">
+          <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
+            <view class="tabs-container">
+              <view
+                v-for="(tab, index) in statusTabs"
+                :key="index"
+                class="tab-item"
+                :class="{ active: activeStatus === tab.value }"
+                @click="switchTab(tab.value)"
+              >
+                <text class="tab-text">{{ tab.name }}</text>
+                <view class="active-line" v-if="activeStatus === tab.value"></view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
       </view>
     </view>
 
     <view class="content-wrapper">
-      <view class="status-tabs">
-        <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
-          <view class="tabs-container">
-            <view
-              v-for="(tab, index) in statusTabs"
-              :key="index"
-              class="tab-item"
-              :class="{ active: activeStatus === tab.value }"
-              @click="switchTab(tab.value)"
-            >
-              <text class="tab-text">{{ tab.name }}</text>
-              <view class="active-line" v-if="activeStatus === tab.value"></view>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-
       <view v-if="loading" class="loading-state">
         <text class="loading-text">加载中...</text>
       </view>
@@ -104,7 +106,6 @@ import { get, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 
-const statusBarHeight = ref(0)
 const searchKeyword = ref('')
 
 const statusTabs = ref([
@@ -123,8 +124,6 @@ let socketListener = null
 let pollTimer = null
 
 onMounted(() => {
-  const systemInfo = uni.getSystemInfoSync()
-  statusBarHeight.value = systemInfo.statusBarHeight || 0
   loadOrders()
   setupWebSocketListener()
   startPolling()
@@ -141,9 +140,7 @@ const switchTab = (status) => {
   loadOrders()
 }
 
-const handleSearch = () => {
-  loadOrders()
-}
+const handleSearch = () => {}
 
 const loadOrders = async () => {
   const userInfo = uni.getStorageSync('userInfo')
@@ -154,7 +151,7 @@ const loadOrders = async () => {
 
   loading.value = true
   try {
-    const params = { attendantId: userInfo.id, page: 0, size: 50 }
+    const params = { attendantId: userInfo.id, page: 0, size: 200 }
     if (activeStatus.value !== null) params.orderStatus = activeStatus.value
 
     const res = await get('/attendant/orders', params)
@@ -168,11 +165,31 @@ const loadOrders = async () => {
   }
 }
 
+const normalizeStatus = (status) => {
+  const val = Number(status)
+  if (Number.isFinite(val)) return val
+  const map = {
+    pending: 1,
+    accepted: 2,
+    in_progress: 3,
+    waiting_confirm: 4,
+    waiting_balance: 5,
+    completed: 6,
+    cancelled: 7
+  }
+  return map[String(status || '').toLowerCase()] || 0
+}
+
 const filteredOrders = computed(() => {
-  if (!searchKeyword.value) return orders.value
-  const kw = searchKeyword.value.trim()
-  if (!kw) return orders.value
-  return orders.value.filter(o =>
+  let list = orders.value
+  if (activeStatus.value !== null) {
+    list = list.filter((o) => normalizeStatus(o.orderStatus) === Number(activeStatus.value))
+  }
+
+  const kw = (searchKeyword.value || '').trim()
+  if (!kw) return list
+
+  return list.filter(o =>
     (o.patientName && o.patientName.includes(kw)) ||
     (o.hospital && o.hospital.includes(kw)) ||
     (o.serviceContent && o.serviceContent.includes(kw)) ||
@@ -235,49 +252,318 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
-.order-page { min-height: 100vh; background-color: #f5f7fa; padding-bottom: 40rpx; }
-.header { padding: 20rpx 30rpx; background-color: #fff; position: sticky; top: 0; z-index: 100; }
-.search-box { background-color: #f5f7fa; border-radius: 40rpx; padding: 16rpx 30rpx; display: flex; align-items: center; }
-.search-icon { width: 32rpx; height: 32rpx; margin-right: 20rpx; opacity: 0.5; }
-.search-input { flex: 1; font-size: 28rpx; color: #333; }
-.status-tabs { background-color: #fff; padding: 0 10rpx; margin-bottom: 20rpx; }
-.tabs-scroll { white-space: nowrap; width: 100%; }
-.tabs-container { display: flex; padding: 0 10rpx; }
-.tab-item { display: inline-flex; flex-direction: column; align-items: center; padding: 24rpx 30rpx; position: relative; flex-shrink: 0; }
-.tab-text { font-size: 28rpx; color: #666; transition: all 0.3s; }
-.tab-item.active .tab-text { color: #4A90E2; font-weight: 600; font-size: 30rpx; }
-.active-line { width: 40rpx; height: 4rpx; background-color: #4A90E2; border-radius: 2rpx; position: absolute; bottom: 10rpx; }
-.content-wrapper { padding: 0 24rpx; }
-.loading-state { padding: 40rpx 0; text-align: center; }
-.loading-text { font-size: 26rpx; color: #999; }
-.order-card { background-color: #fff; border-radius: 20rpx; padding: 30rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.04); }
-.order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx; padding-bottom: 20rpx; border-bottom: 1rpx solid #f5f7fa; }
-.order-number { font-size: 24rpx; color: #999; }
-.status-badge { padding: 6rpx 16rpx; border-radius: 8rpx; font-size: 22rpx; }
-.status-waiting { background: #e6f7ff; color: #1890ff; }
-.status-accepted { background: #f6ffed; color: #52c41a; }
-.status-service { background: #f9f0ff; color: #722ed1; }
-.status-confirm { background: #fff7e6; color: #fa8c16; }
-.status-completed { background: #f5f5f5; color: #8c8c8c; }
-.status-cancelled { background: #fff1f0; color: #f5222d; }
-.service-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx; }
-.service-type { font-size: 32rpx; font-weight: 400; color: #333; }
-.hospital-name { font-size: 26rpx; color: #666; }
-.order-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx; }
-.time-row { display: flex; align-items: center; gap: 8rpx; }
-.meta-icon { width: 28rpx; height: 28rpx; opacity: 0.6; }
-.service-time { font-size: 26rpx; color: #666; }
-.price { font-size: 32rpx; font-weight: 600; color: #ff4d4f; }
-.divider { height: 1rpx; background-color: #f5f7fa; margin: 0 -30rpx 24rpx; }
-.doctor-info { display: flex; justify-content: space-between; align-items: center; }
-.attendant-wrapper { display: flex; align-items: center; gap: 16rpx; }
-.doctor-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: #f0f0f0; }
-.doctor-name { font-size: 28rpx; color: #333; font-weight: 400; }
-.btn { font-size: 24rpx; padding: 10rpx 24rpx; border-radius: 30rpx; margin: 0; line-height: 1.5; }
-.detail-btn { background-color: #fff; color: #666; border: 1rpx solid #ddd; }
-.empty-state { padding-top: 100rpx; display: flex; flex-direction: column; align-items: center; }
-.empty-icon { width: 200rpx; height: 200rpx; margin-bottom: 20rpx; opacity: 0.5; }
-.empty-text { font-size: 28rpx; color: #999; }
-</style>
+<style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
+.order-page {
+  @include escort-page;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
+.header {
+  padding: 18rpx 24rpx 14rpx;
+  background: #f5f7fa;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.header-module {
+  background: $escort-color-surface;
+  border-radius: $escort-radius-card;
+  padding: 18rpx 16rpx 16rpx;
+  box-shadow: $escort-shadow-card;
+}
+
+.search-box {
+  background: #f5f7fa;
+  border-radius: 40rpx;
+  border: 1rpx solid #e6edf5;
+  padding: 14rpx 22rpx;
+  display: flex;
+  align-items: center;
+  min-height: 72rpx;
+  box-sizing: border-box;
+}
+
+.search-icon {
+  width: 30rpx;
+  height: 30rpx;
+  margin-right: 14rpx;
+  opacity: 0.55;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 27rpx;
+  color: #1f2937;
+}
+
+.status-tabs {
+  background: transparent;
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid #edf2f8;
+}
+
+.tabs-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.tabs-container {
+  display: flex;
+  padding: 2rpx 2rpx 2rpx 0;
+  gap: 10rpx;
+}
+
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 1rpx solid #e1e8f2;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.tab-text {
+  font-size: 25rpx;
+  color: #5b6575;
+  transition: all 0.25s;
+}
+
+.tab-item.active {
+  background: $escort-color-primary;
+  border-color: $escort-color-primary;
+  box-shadow: $escort-shadow-primary;
+}
+
+.tab-item.active .tab-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.active-line {
+  display: none;
+}
+
+.content-wrapper {
+  padding: 12rpx 24rpx 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-list {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.order-container {
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+.loading-state {
+  padding: 36rpx 0;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 25rpx;
+  color: #7d8898;
+}
+
+.order-card {
+  background: $escort-color-surface;
+  border-radius: $escort-radius-card;
+  padding: 26rpx;
+  margin-bottom: 20rpx;
+  box-shadow: $escort-shadow-card;
+  animation: fadeUp 0.24s ease both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 10rpx 28rpx rgba(31, 41, 55, 0.11);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #edf2f8;
+}
+
+.order-number {
+  font-size: 23rpx;
+  color: #8b95a6;
+}
+
+.status-badge {
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  border: 1rpx solid transparent;
+}
+
+.status-waiting {
+  background: #e8f1ff;
+  color: #66a6ff;
+}
+
+.status-accepted {
+  background: #edf9ef;
+  color: #52c41a;
+}
+
+.status-service {
+  background: #f2edff;
+  color: #6e45d7;
+}
+
+.status-confirm {
+  background: #fff6e7;
+  color: #e08b28;
+}
+
+.status-completed {
+  background: #eef1f5;
+  color: #6b7280;
+}
+
+.status-cancelled {
+  background: #fff0f0;
+  color: #ef4444;
+}
+
+.service-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.service-type {
+  font-size: 31rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.hospital-name {
+  font-size: 24rpx;
+  color: #5f6b7b;
+}
+
+.order-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.meta-icon {
+  width: 26rpx;
+  height: 26rpx;
+  opacity: 0.55;
+}
+
+.service-time {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.price {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ff5b4d;
+}
+
+.divider {
+  height: 1rpx;
+  background: #edf2f8;
+  margin: 0 -26rpx 18rpx;
+}
+
+.doctor-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attendant-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.doctor-avatar {
+  width: 62rpx;
+  height: 62rpx;
+  border-radius: 50%;
+  background: #eef2f7;
+}
+
+.doctor-name {
+  font-size: 27rpx;
+  color: #1f2937;
+}
+
+.btn {
+  font-size: 23rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 28rpx;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.detail-btn {
+  background: #f2f6fb;
+  color: #4b5a70;
+  border: 1rpx solid #dfe7f1;
+}
+
+.empty-state {
+  padding-top: 90rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-icon {
+  width: 190rpx;
+  height: 190rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.55;
+}
+
+.empty-text {
+  font-size: 27rpx;
+  color: #7d8898;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :class="roleClass">
     <view class="chat-header">
       <view class="header-content">
         <view class="header-back" @click="navigateBack">
@@ -136,7 +136,6 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, upload, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
-import { ensureRole } from '@/utils/auth-guard.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
@@ -164,6 +163,7 @@ const processedMessages = new Set()
 const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🤠','🤡','🥳','🥴','🥺','🤥','🤫','🤭','🧐','🤓','😈','👿']
 
 const headerSubtitle = computed(() => (role.value === 'escort' ? '患者 · 在线沟通中' : '陪诊师 · 在线沟通中'))
+const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 
 onLoad((options) => {
   uni.stopPullDownRefresh()
@@ -487,13 +487,25 @@ const formatTimeCenter = (time) => {
 </script>
 
 <style lang="scss" scoped>
-$primary-color: #2979ff;
+@import '@/styles/user-ui.scss';
+@import '@/styles/escort-ui.scss';
 $bg-color: #F5F7FA;
 $text-main: #333;
 $bubble-other: #FFF;
-$bubble-self: $primary-color;
+$bubble-self: var(--chat-primary);
 
-.container { height: 100vh; background-color: $bg-color; display: flex; flex-direction: column; }
+.container {
+  --chat-primary: #{$user-color-primary};
+  --chat-primary-deep: #{$user-color-primary-deep};
+  height: 100vh;
+  background-color: $bg-color;
+  display: flex;
+  flex-direction: column;
+}
+.container.role-escort {
+  --chat-primary: #{$escort-color-primary};
+  --chat-primary-deep: #{$escort-color-primary-deep};
+}
 .chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background-color: #fff; padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03); }
 .header-content { height: 88rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; }
 .header-back { width: 60rpx; height: 60rpx; display: flex; align-items: center; justify-content: center; }
@@ -518,7 +530,7 @@ $bubble-self: $primary-color;
 
 .bubble-container { display: flex; align-items: flex-end; gap: 10rpx; .self & { flex-direction: row-reverse; } }
 .read-status { font-size: 20rpx; color: #999; margin-bottom: 10rpx; white-space: nowrap; &.read { color: #999; } }
-.loading-spinner { width: 24rpx; height: 24rpx; border: 2rpx solid #ccc; border-top-color: $primary-color; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10rpx; }
+.loading-spinner { width: 24rpx; height: 24rpx; border: 2rpx solid #ccc; border-top-color: var(--chat-primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10rpx; }
 .fail-icon { width: 30rpx; height: 30rpx; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 20rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 10rpx; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -573,4 +585,3 @@ $bubble-self: $primary-color;
 .voice-content { display: flex; align-items: center; gap: 10rpx; min-width: 120rpx; }
 .location-content { display: flex; align-items: center; gap: 10rpx; }
 </style>
-

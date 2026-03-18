@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.AttendantQualificationMapper">
+
+    <resultMap id="AttendantQualificationResultMap" type="org.example.model.AttendantQualification">
+        <id column="user_id" property="userId"/>
+        <result column="id_card_uploaded" property="idCardUploaded"/>
+        <result column="practice_cert_uploaded" property="practiceCertUploaded"/>
+        <result column="health_cert_uploaded" property="healthCertUploaded"/>
+        <result column="id_card_file_url" property="idCardFileUrl"/>
+        <result column="id_card_front_file_url" property="idCardFrontFileUrl"/>
+        <result column="id_card_back_file_url" property="idCardBackFileUrl"/>
+        <result column="practice_cert_file_url" property="practiceCertFileUrl"/>
+        <result column="health_cert_file_url" property="healthCertFileUrl"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="AttendantQualificationResultMap">
+        SELECT *
+        FROM attendant_qualification
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="org.example.model.AttendantQualification">
+        INSERT INTO attendant_qualification (
+            user_id,
+            id_card_uploaded,
+            practice_cert_uploaded,
+            health_cert_uploaded,
+            id_card_file_url,
+            id_card_front_file_url,
+            id_card_back_file_url,
+            practice_cert_file_url,
+            health_cert_file_url
+        ) VALUES (
+            #{userId},
+            #{idCardUploaded},
+            #{practiceCertUploaded},
+            #{healthCertUploaded},
+            #{idCardFileUrl},
+            #{idCardFrontFileUrl},
+            #{idCardBackFileUrl},
+            #{practiceCertFileUrl},
+            #{healthCertFileUrl}
+        )
+    </insert>
+
+    <update id="updateByUserId" parameterType="org.example.model.AttendantQualification">
+        UPDATE attendant_qualification
+        <set>
+            <if test="idCardUploaded != null">id_card_uploaded = #{idCardUploaded},</if>
+            <if test="practiceCertUploaded != null">practice_cert_uploaded = #{practiceCertUploaded},</if>
+            <if test="healthCertUploaded != null">health_cert_uploaded = #{healthCertUploaded},</if>
+            <if test="idCardFileUrl != null">id_card_file_url = #{idCardFileUrl},</if>
+            <if test="idCardFrontFileUrl != null">id_card_front_file_url = #{idCardFrontFileUrl},</if>
+            <if test="idCardBackFileUrl != null">id_card_back_file_url = #{idCardBackFileUrl},</if>
+            <if test="practiceCertFileUrl != null">practice_cert_file_url = #{practiceCertFileUrl},</if>
+            <if test="healthCertFileUrl != null">health_cert_file_url = #{healthCertFileUrl},</if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

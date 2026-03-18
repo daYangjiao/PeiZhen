@@ -1,6 +1,8 @@
 package org.example.service;
 
 import org.example.model.Attendant;
+import org.example.model.AttendantQualification;
+import org.example.model.response.AttendantProfileResponse;
 import org.example.model.User;
 import java.util.List;
 
@@ -33,4 +35,26 @@ public interface AttendantService {
      * @return 推荐的陪诊师列表
      */
     List<Attendant> findRecommended();
+
+    /**
+     * 获取陪诊师个人中心资料
+     * @param userId 陪诊师用户ID
+     * @return 个人中心资料
+     */
+    AttendantProfileResponse getProfile(Integer userId);
+
+    /**
+     * 更新陪诊师三证资质信息
+     * @param userId 用户ID
+     * @param qualification 三证信息
+     * @return 更新行数
+     */
+    int updateQualification(Integer userId, AttendantQualification qualification);
+
+    /**
+     * 提交资质审核
+     * @param userId 用户ID
+     * @return 提交结果
+     */
+    String submitQualification(Integer userId);
 }

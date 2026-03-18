@@ -152,10 +152,11 @@ onMounted(() => restoreUserSelections())
 onShow(() => restoreUserSelections())
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/user-ui.scss';
 .container {
 	min-height: 100vh;
-	background-color: #f5f5f5;
+	background-color: #f5f7fa;
 	padding: 20rpx;
 	padding-bottom: 220rpx; /* 适当抬高“下一步”按钮，刚好浮在底部预约 Tab 上方 */
 }
@@ -197,7 +198,7 @@ onShow(() => restoreUserSelections())
 }
 .service-item.selected {
 	background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-	border: 2rpx solid #4a90e2;
+	border: 2rpx solid #66a6ff;
 	box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.2);
 	transform: translateY(-2rpx);
 }
@@ -254,7 +255,7 @@ onShow(() => restoreUserSelections())
 .next-btn {
 	width: 100%;
 	height: 88rpx;
-	background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
 	color: white;
 	font-size: 32rpx;
 	font-weight: bold;
