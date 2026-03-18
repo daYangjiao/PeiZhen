@@ -133,6 +133,7 @@ const handleLogin = async () => {
           ensureChatConnected()
           await messageStore.initMessageStatus()
           messageStore.updateTabBarBadge()
+          messageStore.scheduleRefreshUnreadCounts(600)
           uni.$emit('session:changed')
         } catch {}
       }

@@ -471,9 +471,9 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app';
 import { get, post, put, config } from '@/utils/api.js';
-import { addSocketListener, removeSocketListener, connectOrderSocket } from '@/utils/order-websocket.js';
+import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js';
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -481,8 +481,14 @@ const userEvaluation = ref(null); // 我的评价（含陪诊师回复）
 const balancePayMethod = ref('wechat'); // 差额支付方式，默认微信
 const showBalancePayResultModal = ref(false); // 补付结果弹窗
 const showContactModal = ref(false); // 联系陪诊师方式弹窗
-let pollTimer = null; // 轮询定时器
+let pollTimer = null; // 订单实时同步轮询定时器
 let payCountdownTimer = null; // 待支付倒计时定时器
+let socketRefreshTimer = null; // 消息刷新防抖定时器
+let currentOrderKey = ''; // 当前订单号（优先）
+let isFetchingOrder = false; // 防止并发请求
+let queuedOrderKey = ''; // 并发请求期间记录下一次刷新目标
+let pageActive = false; // 页面可见态
+const REALTIME_SYNC_INTERVAL = 4000;
 
 const payCountdown = ref('');
 const showCancelModal = ref(false);
@@ -1156,8 +1162,57 @@ const loadUserEvaluation = async (orderId) => {
   }
 };
 
+const stopRealtimeSync = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+};
+
+const shouldRealtimeSync = (orderData) => {
+  if (!orderData) return false;
+  const status = Number(orderData.orderStatus);
+  // 仅终态（已完成/已取消）停止自动同步，其余状态保持实时更新
+  return status !== 6 && status !== 7;
+};
+
+const startRealtimeSync = (orderKey) => {
+  if (!orderKey) return;
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    fetchOrderDetail(orderKey);
+  }, REALTIME_SYNC_INTERVAL);
+};
+
+const updateRealtimeSyncState = (orderKey, orderData = order.value) => {
+  if (orderKey) currentOrderKey = orderKey;
+  if (!shouldRealtimeSync(orderData)) {
+    stopRealtimeSync();
+    return;
+  }
+  startRealtimeSync(currentOrderKey || orderData?.orderNo || orderData?.orderId);
+};
+
+const scheduleOrderRefresh = (delay = 700) => {
+  if (!pageActive) return;
+  const key = currentOrderKey || order.value?.orderNo || order.value?.orderId;
+  if (!key) return;
+  if (socketRefreshTimer) clearTimeout(socketRefreshTimer);
+  socketRefreshTimer = setTimeout(() => {
+    fetchOrderDetail(key);
+  }, delay);
+};
+
 // 获取订单详情（同时兼容用户端和陪诊师端）
 const fetchOrderDetail = async (orderKey) => {
+  if (!orderKey) return;
+
+  if (isFetchingOrder) {
+    queuedOrderKey = orderKey;
+    return;
+  }
+
+  isFetchingOrder = true;
   try {
     console.log('正在获取订单详情，订单标识:', orderKey);
 
@@ -1193,12 +1248,7 @@ const fetchOrderDetail = async (orderKey) => {
     }
 
     order.value = data;
-
-    // 如果订单状态已更新（>=2），停止轮询
-    if (order.value.orderStatus >= 2 && pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    currentOrderKey = data.orderNo || orderKey;
 
     // 更新待支付倒计时（仅对有支付倒计时的用户端订单生效）
     setupPayCountdown();
@@ -1209,37 +1259,89 @@ const fetchOrderDetail = async (orderKey) => {
     } else {
       userEvaluation.value = null;
     }
+
+    updateRealtimeSyncState(currentOrderKey, order.value);
   } catch (error) {
     console.error('获取订单详情失败:', error);
     uni.showToast({ title: '网络错误', icon: 'none' });
+  } finally {
+    isFetchingOrder = false;
+    if (queuedOrderKey) {
+      const nextKey = queuedOrderKey;
+      queuedOrderKey = '';
+      fetchOrderDetail(nextKey);
+    }
   }
+};
+
+const isOrderRelatedMessage = (messageType, content) => {
+  const type = String(messageType || '').toUpperCase();
+  const orderEventTypes = [
+    'ORDER_ACCEPTED',
+    'SERVICE_STARTED',
+    'SERVICE_COMPLETED',
+    'ORDER_STATUS_CHANGED',
+    'ORDER_RELEASED_BY_ATTENDANT',
+    'SERVICE_PROGRESS_UPDATED',
+    'SERVICE_PROGRESS_CHANGED',
+    'ORDER_UPDATED',
+    'ORDER_CANCELLED',
+    'ORDER_FINISHED',
+    'TIME_FEE_CONFIRMED',
+    'TIME_FEE_DISPUTED',
+    'BALANCE_PAYMENT_REQUIRED'
+  ];
+  if (orderEventTypes.includes(type)) return true;
+  if (typeof content === 'string') {
+    return /订单|服务|就诊|进度|时长|补款|取消/.test(content);
+  }
+  return false;
 };
 
 // WebSocket 消息处理
 const handleSocketMessage = (message) => {
-  console.log('收到 WebSocket 消息:', message);
-  
-  // 检查消息是否与当前订单相关
-  const isCurrentOrder = message.orderId === order.value.orderId || 
-                        message.orderNo === order.value.orderNo ||
-                        (message.data && (message.data.orderId === order.value.orderId || message.data.orderNo === order.value.orderNo));
-  
-  // 处理各种订单状态变更消息
-  if (isCurrentOrder && (message.type === 'ORDER_ACCEPTED' || 
-                         message.type === 'SERVICE_STARTED' || 
-                         message.type === 'SERVICE_COMPLETED' ||
-                         message.type === 'ORDER_STATUS_CHANGED' ||
-                         message.type === 'ORDER_RELEASED_BY_ATTENDANT' ||
-                         message.type === 'SERVICE_PROGRESS_UPDATED')) {
-    
-    console.log('收到当前订单状态更新消息，刷新详情');
-    if (message.type === 'ORDER_RELEASED_BY_ATTENDANT') {
-      uni.showToast({ title: '订单已重新进入接单大厅，将为您匹配合诊师', icon: 'none', duration: 2500 });
+  if (!pageActive || !message || !order.value) return;
+
+  let payload = {};
+  if (message.data && typeof message.data === 'object') {
+    payload = message.data;
+  } else if (typeof message.data === 'string') {
+    try {
+      payload = JSON.parse(message.data);
+    } catch (e) {
+      payload = {};
     }
-    // 延迟一小段时间后再刷新，确保数据库已更新
-    setTimeout(() => {
-      fetchOrderDetail(order.value.orderNo);
-    }, 1000);
+  }
+  const messageOrderId = Number(message.orderId || payload.orderId || 0);
+  const currentOrderId = Number(order.value.orderId || 0);
+  const messageOrderNo = String(message.orderNo || payload.orderNo || '');
+  const currentOrderNo = String(order.value.orderNo || '');
+
+  const isCurrentOrder = (currentOrderId && messageOrderId && messageOrderId === currentOrderId) ||
+    (currentOrderNo && messageOrderNo && messageOrderNo === currentOrderNo) ||
+    (typeof message.content === 'string' && currentOrderNo && message.content.includes(currentOrderNo));
+
+  const messageType = message.type || message.eventType || payload.type || '';
+  const related = isOrderRelatedMessage(messageType, message.content);
+  if (!isCurrentOrder || !related) return;
+
+  if (String(messageType).toUpperCase() === 'ORDER_RELEASED_BY_ATTENDANT') {
+    uni.showToast({ title: '订单已重新进入接单大厅，将为您重新匹配陪诊师', icon: 'none', duration: 2500 });
+  }
+
+  scheduleOrderRefresh();
+};
+
+const cleanupRealtimeResources = () => {
+  removeChatListener(handleSocketMessage);
+  stopRealtimeSync();
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer);
+    socketRefreshTimer = null;
+  }
+  if (payCountdownTimer) {
+    clearInterval(payCountdownTimer);
+    payCountdownTimer = null;
   }
 };
 
@@ -1253,40 +1355,43 @@ onLoad(async (options) => {
   if (!orderNo) {
     uni.showToast({ title: '订单号错误', icon: 'none' });
     setTimeout(() => {
-        uni.reLaunch({ url: '/pages/role-user/order' });
+      uni.reLaunch({ url: '/pages/role-user/order' });
     }, 1500);
     return;
   }
 
+  currentOrderKey = orderNo;
   await fetchOrderDetail(orderNo);
 
-  connectOrderSocket();
-  addSocketListener(handleSocketMessage);
-  
-  // 如果订单处于待接单状态，开启轮询作为 WebSocket 的备份
-  if (order.value.orderStatus === 1) {
-      pollTimer = setInterval(() => {
-          fetchOrderDetail(orderNo);
-      }, 5000); // 缩短到5秒
+  connectChatSocket();
+  addChatListener(handleSocketMessage);
+});
+
+onShow(() => {
+  pageActive = true;
+  const key = currentOrderKey || order.value?.orderNo || order.value?.orderId;
+  if (!key) return;
+  connectChatSocket();
+  updateRealtimeSyncState(key, order.value);
+  fetchOrderDetail(key);
+});
+
+onHide(() => {
+  pageActive = false;
+  stopRealtimeSync();
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer);
+    socketRefreshTimer = null;
   }
 });
 
-// 页面卸载
+onUnload(() => {
+  cleanupRealtimeResources();
+});
+
+// 页面卸载（兜底）
 onUnmounted(() => {
-    // 移除 WebSocket 监听
-    removeSocketListener(handleSocketMessage);
-
-    // 清除轮询定时器
-    if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-    }
-
-    // 清除倒计时定时器
-    if (payCountdownTimer) {
-      clearInterval(payCountdownTimer);
-      payCountdownTimer = null;
-    }
+  cleanupRealtimeResources();
 });
 </script>
 

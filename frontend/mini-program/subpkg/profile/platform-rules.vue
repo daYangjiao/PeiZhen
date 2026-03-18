@@ -2,7 +2,7 @@
   <view class="page">
     <view class="hero-card slide-up delay-1">
       <view class="hero-left">
-        <image class="hero-icon" src="/static/note.png" mode="aspectFit"></image>
+        <image class="hero-icon" src="/static/escort-rules.svg" mode="aspectFit"></image>
         <view>
           <text class="hero-title">平台规则</text>
           <text class="hero-desc">定价与定金规则清晰透明，保障双方权益</text>

@@ -5,10 +5,10 @@
         <image class="hero-icon" src="/static/xin.png" mode="aspectFit"></image>
         <view>
           <text class="hero-title">我的评价</text>
-          <text class="hero-desc">及时回复评价，提升服务口碑</text>
+          <text class="hero-desc">及时回复评价，持续提升服务口碑</text>
         </view>
       </view>
-      <text class="hero-refresh" @click="loadReviews">刷新</text>
+      <view class="hero-btn" @click="loadReviews"><text>刷新</text></view>
     </view>
 
     <view class="summary-grid slide-up delay-2">
@@ -26,48 +26,56 @@
       </view>
     </view>
 
-    <view class="tag-bar slide-up delay-2">
-      <view class="tag" :class="{ active: filterTab === 'all' }" @click="filterTab = 'all'"><text>全部</text></view>
-      <view class="tag" :class="{ active: filterTab === 'pending' }" @click="filterTab = 'pending'"><text>待回复</text></view>
-      <view class="tag" :class="{ active: filterTab === 'replied' }" @click="filterTab = 'replied'"><text>已回复</text></view>
+    <view class="filter-wrap slide-up delay-2">
+      <view class="filter-item" :class="{ active: filterTab === 'all' }" @click="filterTab = 'all'">
+        <text>全部</text>
+      </view>
+      <view class="filter-item" :class="{ active: filterTab === 'pending' }" @click="filterTab = 'pending'">
+        <text>待回复 {{ pendingCount }}</text>
+      </view>
+      <view class="filter-item" :class="{ active: filterTab === 'replied' }" @click="filterTab = 'replied'">
+        <text>已回复 {{ repliedCount }}</text>
+      </view>
     </view>
 
-    <view v-if="loading" class="state-wrap"><text>加载中...</text></view>
-    <view v-else-if="filteredReviews.length === 0" class="state-wrap"><text>暂无评价</text></view>
+    <view v-if="loading" class="state-card"><text>加载中...</text></view>
+    <view v-else-if="filteredReviews.length === 0" class="state-card"><text>暂无评价</text></view>
 
     <view v-else class="list-wrap">
       <view class="review-card slide-up delay-3" v-for="item in filteredReviews" :key="item.orderId">
-        <view class="card-top">
-          <text class="order-no">订单 {{ item.orderNo || '--' }}</text>
-          <text class="date">{{ item.serviceDate || '--' }}</text>
+        <view class="card-head">
+          <view class="head-left">
+            <text class="service">{{ item.serviceTypeName || item.serviceContent || '陪诊服务' }}</text>
+            <text class="order-no">订单 {{ item.orderNo || '--' }}</text>
+          </view>
+          <view class="head-right">
+            <text class="date">{{ item.serviceDate || '--' }}</text>
+          </view>
         </view>
 
-        <text class="service">{{ item.serviceTypeName || item.serviceContent || '陪诊服务' }}</text>
-
         <view class="stars-row">
-          <view class="stars">
-            <text class="star" v-for="n in 5" :key="n" :class="n <= item.rating ? 'on' : 'off'">★</text>
-          </view>
-          <text class="score">{{ item.rating || 0 }} 分</text>
+          <text class="star" v-for="n in 5" :key="n" :class="n <= item.rating ? 'on' : 'off'">★</text>
         </view>
 
         <view class="tag-wrap" v-if="item.tags && item.tags.length">
           <text class="tag-chip" v-for="(tag, idx) in item.tags" :key="idx">{{ tag }}</text>
         </view>
 
-        <text class="content" v-if="item.content">{{ item.content }}</text>
-        <text class="content muted" v-else>用户未填写文字评价</text>
+        <view class="content-box">
+          <text class="content" v-if="item.content">{{ item.content }}</text>
+          <text class="content muted" v-else>用户未填写文字评价</text>
+        </view>
 
-        <view class="reply-box" v-if="item.attendantReply">
+        <view class="reply-box replied" v-if="item.attendantReply">
           <text class="reply-title">我的回复</text>
           <text class="reply-text">{{ item.attendantReply }}</text>
         </view>
 
-        <view class="reply-editor" v-else>
+        <view class="reply-box" v-else>
           <textarea
             class="textarea"
             v-model="draftReply[item.orderId]"
-            placeholder="请输入回复内容"
+            placeholder="请输入回复内容（200字内）"
             maxlength="200"
           />
           <view class="reply-foot">
@@ -83,7 +91,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { get, post } from '@/utils/api.js'
 
 const loading = ref(false)
@@ -94,6 +102,8 @@ const filterTab = ref('all')
 
 const totalCount = computed(() => reviews.value.length)
 const pendingCount = computed(() => reviews.value.filter((item) => !item.attendantReply).length)
+const repliedCount = computed(() => reviews.value.filter((item) => !!item.attendantReply).length)
+
 const avgRating = computed(() => {
   if (!reviews.value.length) return '0.0'
   const sum = reviews.value.reduce((acc, item) => acc + Number(item.rating || 0), 0)
@@ -161,7 +171,6 @@ const loadReviews = async () => {
         attendantReply: item.evaluation.attendantReply || ''
       }))
   } catch (error) {
-    console.error('加载评价失败:', error)
     reviews.value = []
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -175,7 +184,6 @@ const submitReply = async (orderId) => {
     uni.showToast({ title: '请输入回复内容', icon: 'none' })
     return
   }
-
   if (submittingOrderId.value) return
 
   submittingOrderId.value = orderId
@@ -188,7 +196,6 @@ const submitReply = async (orderId) => {
       uni.showToast({ title: '回复成功', icon: 'success' })
     }
   } catch (error) {
-    console.error('回复评价失败:', error)
     uni.showToast({ title: '回复失败', icon: 'none' })
   } finally {
     submittingOrderId.value = null
@@ -202,6 +209,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @import '@/styles/escort-ui.scss';
+
 .page {
   @include escort-page;
   min-height: 100vh;
@@ -244,16 +252,26 @@ onMounted(() => {
   color: #6b7280;
 }
 
-.hero-refresh {
-  color: $escort-color-primary;
-  font-size: 24rpx;
+.hero-btn {
+  min-width: 96rpx;
+  height: 54rpx;
+  border-radius: 28rpx;
+  border: 1rpx solid $escort-color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text {
+    color: $escort-color-primary;
+    font-size: 24rpx;
+  }
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
 }
 
 .summary-card {
@@ -277,37 +295,44 @@ onMounted(() => {
   color: $escort-color-primary;
 }
 
-.tag-bar {
+.filter-wrap {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 10rpx;
+  box-shadow: $escort-shadow-card;
   display: flex;
-  gap: 12rpx;
+  align-items: center;
+  gap: 8rpx;
   margin-bottom: 14rpx;
 }
 
-.tag {
+.filter-item {
+  flex: 1;
   height: 54rpx;
-  padding: 0 22rpx;
-  border-radius: 30rpx;
-  background: #f0f2f5;
-  display: inline-flex;
+  border-radius: 28rpx;
+  display: flex;
   align-items: center;
   justify-content: center;
 
   text {
-    color: #111827;
     font-size: 24rpx;
+    color: #111827;
   }
 }
 
-.tag.active {
+.filter-item.active {
   background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
 
   text {
-    color: #ffffff;
+    color: #fff;
   }
 }
 
-.state-wrap {
+.state-card {
   height: 220rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: $escort-shadow-card;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -331,15 +356,37 @@ onMounted(() => {
   box-shadow: $escort-shadow-card;
 }
 
-.card-top {
+.card-head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+}
+
+.head-left {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12rpx;
+}
+
+.service {
+  display: block;
+  font-size: 28rpx;
+  color: #111827;
+  font-weight: 700;
 }
 
 .order-no {
-  font-size: 24rpx;
-  color: #4b5563;
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #6b7280;
+}
+
+.head-right {
+  min-width: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .date {
@@ -347,24 +394,8 @@ onMounted(() => {
   color: #9ca3af;
 }
 
-.service {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 28rpx;
-  color: #111827;
-  font-weight: 600;
-}
-
 .stars-row {
-  margin-top: 10rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.stars {
-  display: flex;
-  align-items: center;
+  margin-top: 12rpx;
 }
 
 .star {
@@ -378,11 +409,6 @@ onMounted(() => {
 
 .star.off {
   color: #d1d5db;
-}
-
-.score {
-  font-size: 24rpx;
-  color: #6b7280;
 }
 
 .tag-wrap {
@@ -400,9 +426,14 @@ onMounted(() => {
   font-size: 22rpx;
 }
 
-.content {
-  display: block;
+.content-box {
   margin-top: 10rpx;
+  padding: 14rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+}
+
+.content {
   font-size: 24rpx;
   color: #374151;
   line-height: 1.6;
@@ -416,6 +447,10 @@ onMounted(() => {
   margin-top: 12rpx;
   padding: 14rpx;
   border-radius: 12rpx;
+  background: #f8fafc;
+}
+
+.reply-box.replied {
   background: #eef6ff;
 }
 
@@ -429,20 +464,18 @@ onMounted(() => {
 .reply-text {
   font-size: 24rpx;
   color: #1f2937;
-}
-
-.reply-editor {
-  margin-top: 12rpx;
+  line-height: 1.6;
 }
 
 .textarea {
   width: 100%;
-  min-height: 120rpx;
-  border-radius: 12rpx;
-  background: #f8fafc;
-  padding: 12rpx 14rpx;
+  min-height: 88rpx;
+  max-height: 140rpx;
+  border-radius: 10rpx;
+  background: #fff;
+  padding: 10rpx 12rpx;
   box-sizing: border-box;
-  font-size: 25rpx;
+  font-size: 24rpx;
 }
 
 .reply-foot {

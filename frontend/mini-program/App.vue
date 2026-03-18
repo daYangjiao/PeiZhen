@@ -9,11 +9,17 @@ const bindGlobalMessageSync = () => {
 
   const messageStore = useMessageStore()
   const session = useSessionStore()
-  const refresh = () => {
+  const refresh = (force = false) => {
     session.restoreFromStorage()
     if (!session.isLoggedIn) {
       messageStore.clearAllUnread()
       messageStore.updateTabBarBadge()
+      return
+    }
+    if (force) {
+      messageStore.refreshUnreadCounts()
+      messageStore.scheduleRefreshUnreadCounts(600)
+      messageStore.scheduleRefreshUnreadCounts(1800)
       return
     }
     messageStore.scheduleRefreshUnreadCounts(120)
@@ -22,11 +28,12 @@ const bindGlobalMessageSync = () => {
   uni.$on('chat:message', (message) => {
     if (!message) return
     if (message.msgType === 3 || message.content === 'READ_RECEIPT' || message.type === 'READ_RECEIPT') return
+    messageStore.applyRealtimeUnreadFromMessage(message)
     refresh()
   })
 
-  uni.$on('session:changed', refresh)
-  refresh()
+  uni.$on('session:changed', () => refresh(true))
+  refresh(true)
 }
 
 export default {

@@ -1,104 +1,112 @@
 <template>
-   <div class="chat-container">
-      <!-- 聊天区域 -->
-      <div class="chat-messages" ref="messagesContainer">
-        <div v-for="(msg, index) in messages" :key="index" class="message-wrapper">
-        <!-- AI 消息：靠左 -->
-        <div v-if="msg.type === 'ai'" class="message ai">
-                  <img :src="AIAvatar" alt="AI" class="ai-avatar" />
-                  <div class="bubble ai-bubble">
-                    <div class="name">智能医疗助手</div>
-                    <div v-html="msg.text"></div>
-                  </div>
-                </div>
+  <view class="ai-page">
+    <view class="hero-card">
+      <view class="hero-icon-wrap">
+        <image class="hero-icon" :src="AIAvatar" mode="aspectFill" />
+      </view>
+      <view class="hero-texts">
+        <text class="hero-title">智能医疗助手</text>
+        <text class="hero-subtitle">仅提供健康科普参考，不能替代医生诊疗</text>
+      </view>
+    </view>
 
-        <!-- 用户消息：靠右 -->
-        <div v-else class="message user">
-                  <div class="bubble user-bubble">
-                    {{ msg.text }}
-                  </div>
-				   <img src="/static/user-avatar.jpg" alt="User" class="user-avatar" />
-                </div>
-              </div>
-            </div>
+    <view class="disclaimer-bar">
+      <text class="disclaimer-text">免责声明：AI 回复仅供参考，不构成诊断、治疗或用药建议；如有不适请及时就医。</text>
+    </view>
 
-    <!-- 输入区域 -->
-    <div class="input-area">
-      <!-- 医疗术语联想按钮组 -->
-      <div class="suggestions-bottom">
-        <div class="suggestion-title">💡 医疗术语联想</div>
-        <div class="suggestion-buttons-bottom">
-          <button
-            v-for="(tag, index) in suggestions"
-            :key="index"
-            @click="selectTag(tag)"
-            :class="['suggestion-btn-bottom', selectedTag === tag ? 'selected' : '']"
-          >
-            {{ tag }}
-          </button>
-        </div>
-      </div>
+    <scroll-view
+      class="chat-scroll"
+      scroll-y
+      :scroll-into-view="scrollIntoView"
+      scroll-with-animation
+    >
+      <view class="chat-list">
+        <view
+          v-for="(msg, index) in messages"
+          :key="index"
+          class="message-row"
+          :class="msg.type === 'user' ? 'row-user' : 'row-ai'"
+          :id="`msg-${index}`"
+        >
+          <image
+            v-if="msg.type === 'ai'"
+            class="avatar"
+            :src="AIAvatar"
+            mode="aspectFill"
+          />
 
-      <!-- 输入框 -->
-      <div class="input-wrapper">
+          <view class="bubble" :class="msg.type === 'user' ? 'bubble-user' : 'bubble-ai'">
+            <text v-if="msg.type === 'ai'" class="bubble-name">医疗助手</text>
+            <view class="bubble-content" :class="{ loading: msg.loading }">
+              <text>{{ msg.text }}</text>
+            </view>
+          </view>
+
+          <image
+            v-if="msg.type === 'user'"
+            class="avatar"
+            src="/static/user-avatar.jpg"
+            mode="aspectFill"
+          />
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="composer" :style="{ paddingBottom: composerPaddingBottom + 'px' }">
+      <view class="term-card">
+        <text class="term-title">医疗术语联想</text>
+        <scroll-view class="term-chips" scroll-x :show-scrollbar="false" enable-flex>
+          <view class="term-chip-list">
+            <view
+              v-for="(tag, index) in suggestions"
+              :key="index"
+              class="term-chip"
+              :class="{ selected: selectedTag === tag }"
+              @click="selectTag(tag)"
+            >
+              <text>{{ tag }}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="input-bar">
         <input
           v-model="userInput"
-          @keypress.enter="sendMessage"
-          placeholder="请输入您的健康问题..."
           class="input-box"
+          placeholder="请输入您的健康问题..."
+          confirm-type="send"
+          @confirm="sendMessage"
+          :disabled="sending"
         />
-        <button @click="toggleMic" class="mic-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
+        <button class="send-btn" :disabled="sending || !userInput.trim()" @click="sendMessage">
+          {{ sending ? '发送中' : '发送' }}
         </button>
-      </div>
-      <div class="input-actions">
-        <button @click="addImage" class="action-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-        </button>
-        <button @click="attachFile" class="action-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </button>
-        <button @click="sendMessage" class="send-btn">发送</button>
-      </div>
-    </div>
-  </div>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import UserAvatar from '@/static/user-avatar.jpg'
+import { ref, nextTick, onMounted } from 'vue'
 import { getBackendImageUrl } from '@/utils/api.js'
 import { askMedicalQuestion } from '@/api/aiaks.js'
 
-// 定义后端图片 URL
 const AIAvatar = getBackendImageUrl('ai-avatar.png')
 
-// 消息列表
 const messages = ref([
   {
     type: 'ai',
-    text: '您好！我是您的智能医疗助手，很高兴为您提供帮助。请问有什么健康问题需要咨询吗？'
+    text: '您好，我是智能医疗助手。您可以描述症状或检查结果，我会提供科普参考信息，不能替代医生面诊。'
   }
 ])
 
-// 输入框
 const userInput = ref('')
 const selectedTag = ref('')
+const sending = ref(false)
+const scrollIntoView = ref('')
+const composerPaddingBottom = ref(8)
 
-// 关键词建议
 const suggestions = [
   '紧张性头痛',
   '过敏性咳嗽',
@@ -110,374 +118,303 @@ const suggestions = [
   '结膜炎'
 ]
 
-// 滚动到底部
-const messagesContainer = ref(null)
-const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+const refreshSafeBottom = () => {
+  try {
+    const info = typeof uni.getWindowInfo === 'function' ? uni.getWindowInfo() : uni.getSystemInfoSync()
+    const safeBottom = Number(info?.safeAreaInsets?.bottom || 0)
+    composerPaddingBottom.value = Math.max(8, safeBottom)
+  } catch (error) {
+    console.warn('读取安全区失败，使用默认底部间距', error)
+    composerPaddingBottom.value = 8
   }
 }
 
-// 点击术语按钮：仅填入输入框，不发送
+const scrollToBottom = () => {
+  nextTick(() => {
+    scrollIntoView.value = `msg-${messages.value.length - 1}`
+  })
+}
+
 const selectTag = (tag) => {
   selectedTag.value = tag
   userInput.value = tag
-  // ❌ 不再自动触发 AI 回复！
 }
 
-
-  // 模拟 AI 回复（延迟后）
-// const sendMessage = () => {
-//   if (!userInput.value.trim()) return;
-
-//   // ✅ 添加用户消息到聊天记录
-//   messages.value.push({
-//     type: 'user',
-//     text: userInput.value
-//   });
-
-//   const userMsg = userInput.value;
-//   userInput.value = '';
-
-//   // 模拟 AI 回复
-//   setTimeout(() => {
-//     messages.value.push({
-//       type: 'ai',
-//       text: `您提到的是 <strong>${userMsg}</strong>，这是常见的健康问题。以下是建议：<br><strong>建议措施：</strong><ul><li>注意休息，避免过度劳累</li><li>保持饮食清淡，多吃蔬菜水果</li><li>如症状持续或加重，请及时就医</li></ul>`
-//     });
-//     scrollToBottom();
-//   }, 800);
-// }
 const sendMessage = async () => {
-  if (!userInput.value.trim()) return
+  const question = (userInput.value || '').trim()
+  if (!question || sending.value) return
 
-  // 添加用户消息
-  messages.value.push({
-    type: 'user',
-    text: userInput.value
-  })
-
-  const userMsg = userInput.value
+  sending.value = true
+  messages.value.push({ type: 'user', text: question })
   userInput.value = ''
   scrollToBottom()
 
-//   // 显示“AI 正在思考...”
-  messages.value.push({
-    type: 'ai',
-    text: '正在思考...'
-  })
+  const loadingIndex = messages.value.length
+  messages.value.push({ type: 'ai', text: '正在分析您的问题，请稍候...', loading: true })
   scrollToBottom()
 
-  // 调用真实 API
-  const result = await askMedicalQuestion(userMsg)
-
-  // 移除“正在思考”消息
-  messages.value.pop()
-
-  if (result) {
-    messages.value.push({
-      type: 'ai',
-      text: result.answer // 注意：这里只取 answer
-    })
-  } else {
-    messages.value.push({
-      type: 'ai',
-      text: '抱歉，当前无法回答您的问题，请稍后再试。'
-    })
+  try {
+    const result = await askMedicalQuestion(question)
+    const answer = result?.answer || '抱歉，当前无法回答您的问题，请稍后重试。'
+    messages.value.splice(loadingIndex, 1, { type: 'ai', text: answer })
+  } catch (error) {
+    console.error('AI 回答失败:', error)
+    messages.value.splice(loadingIndex, 1, { type: 'ai', text: '抱歉，当前无法回答您的问题，请稍后重试。' })
+  } finally {
+    sending.value = false
+    scrollToBottom()
   }
-
-  scrollToBottom()
 }
 
-// 其他功能（可选）
-const toggleMic = () => alert('语音输入')
-const addImage = () => alert('上传图片')
-const attachFile = () => alert('上传文件')
-
 onMounted(() => {
+  refreshSafeBottom()
   scrollToBottom()
 })
-
-
 </script>
 
 <style lang="scss" scoped>
 @import '@/styles/user-ui.scss';
-.chat-container {
+
+.ai-page {
   height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #edf4ff 0%, #f4f7fb 180rpx, #f5f7fa 100%);
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
-  overflow: hidden;
 }
 
-.chat-messages {
+.hero-card {
+  margin: 16rpx 24rpx 10rpx;
+  border-radius: 20rpx;
+  padding: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  box-shadow: 0 12rpx 28rpx rgba(79, 149, 240, 0.28);
+}
+
+.hero-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-icon {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 12rpx;
+}
+
+.hero-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.hero-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.hero-subtitle {
+  font-size: 23rpx;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.disclaimer-bar {
+  margin: 0 24rpx 10rpx;
+  padding: 10rpx 14rpx;
+  border-radius: 14rpx;
+  background: #fff6e9;
+  border: 1rpx solid #ffe2b8;
+}
+
+.disclaimer-text {
+  font-size: 22rpx;
+  line-height: 1.55;
+  color: #9a6514;
+}
+
+.chat-scroll {
   flex: 1;
-  padding: 5px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  min-height: 0;
+  padding: 0 20rpx;
 }
 
-.message-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+.chat-list {
+  padding: 8rpx 0 16rpx;
 }
 
-.message {
+.message-row {
   display: flex;
-    align-items: flex-start;
-    max-width: 85%;
-    margin: 0 auto;
+  margin-bottom: 18rpx;
+  align-items: flex-start;
 }
 
-/* AI 消息：靠左 */
-.message.ai {
+.row-ai {
   justify-content: flex-start;
-  margin-left: 10px;
 }
 
-.message.user {
+.row-user {
   justify-content: flex-end;
-  margin-right: 10px;
 }
 
-.ai-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  margin-right: 10px;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-.user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-    object-fit: cover;
-    margin-left: 8px; /* 与气泡间距 */
+.avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e4ebf5;
+  background: #fff;
   flex-shrink: 0;
 }
 
-/* 气泡样式*/
 .bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  word-break: break-word;
-  line-height: 1.5;
-  font-size: 14px;
-  /* position: relative; */
+  max-width: 72%;
+  border-radius: 20rpx;
+  padding: 16rpx 18rpx;
+  margin: 0 12rpx;
+  line-height: 1.55;
+  font-size: 27rpx;
+  box-shadow: 0 8rpx 20rpx rgba(31, 41, 55, 0.08);
 }
 
-.ai-bubble {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  color: #333;
-  border-radius: 4px 18px 18px 18px;
-   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+.bubble-ai {
+  background: #fff;
+  border: 1rpx solid #e6edf6;
+  color: #1f2937;
 }
 
-.user-bubble {
-  background-color: #66A6FF;
-  color: white;
-  border-radius: 18px 4px 18px 18px; /* 右下角平一点，更像微信 */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+.bubble-user {
+  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  color: #fff;
 }
 
-.name {
-  font-size: 12px;
-  color: #333;
-  margin-bottom: 4px;
+.bubble-name {
+  font-size: 22rpx;
+  color: #6a778b;
+  margin-bottom: 6rpx;
 }
 
-.text {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.5;
+.bubble-content.loading {
+  color: #5f6b7b;
 }
 
-.images {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+.composer {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1rpx solid #e7edf5;
+  padding: 16rpx 18rpx 8rpx;
 }
 
-.images img {
+.term-card {
+  background: #f4f8ff;
+  border: 1rpx solid #dbe8ff;
+  border-radius: 16rpx;
+  padding: 12rpx;
+}
+
+.term-title {
+  font-size: 24rpx;
+  color: #43648f;
+  font-weight: 600;
+}
+
+.term-chips {
   width: 100%;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
+  margin-top: 10rpx;
+  white-space: nowrap;
 }
 
-.image-item {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
+.term-chip-list {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+  gap: 10rpx;
+  padding-right: 6rpx;
 }
 
-.play-icon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.5);
-  border-radius: 50%;
-  padding: 6px;
-  color: white;
-}
-
-.list ul {
-  margin: 8px 0 0;
-  padding-left: 20px;
-  font-size: 14px;
-  color: #333;
-}
-
-.list li {
-  margin: 4px 0;
-}
-
-/* 医疗术语联想按钮组（底部） */
-.suggestions-bottom {
-  max-width: 95%;
-  padding: 10px;
-  background-color: #f0f7ff;
-  border-radius: 12px;
-  border: 1px solid #b0d8ff;
-  align-self: flex-start;
-  /* margin-top: 0px; */
-}
-
-.suggestion-title {
-  font-size: 12px;
-  color: #66A6FF;
-  margin-bottom: 5px;
-  font-weight: bold;
+.term-chip {
+  flex-shrink: 0;
+  min-height: 52rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #b8d2ff;
+  background: #fff;
+  color: #4f95f0;
+  font-size: 24rpx;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  box-sizing: border-box;
 }
 
-.suggestion-buttons-bottom {
-  display: flex;
-  flex-wrap: nowrap; /* 不换行 */
-  gap: 8px;
-  overflow-x: auto; /* 支持水平滚动 */
-  padding: 4px 0;
-  scrollbar-width: thin;
-  scrollbar-color: #b0d8ff #f0f7ff;
+.term-chip text {
+  display: inline-block;
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
 }
 
-.suggestion-buttons-bottom::-webkit-scrollbar {
-  height: 4px;
+.term-chip.selected {
+  background: #66a6ff;
+  border-color: #66a6ff;
+  color: #fff;
 }
 
-.suggestion-buttons-bottom::-webkit-scrollbar-track {
-  background: #f0f7ff;
-  border-radius: 2px;
-}
-
-.suggestion-buttons-bottom::-webkit-scrollbar-thumb {
-  background: #b0d8ff;
-  border-radius: 2px;
-}
-
-.suggestion-btn-bottom {
-  padding: 6px 12px;           /* 左右留足空间 */
-  background-color: #e0eefc;
-  border: 1px solid #b0d8ff;
-  border-radius: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #66A6FF;
-  white-space: nowrap;         /* 禁止换行 */
-  text-align: center;
-  flex-shrink: 0;              /* 关键！不让按钮被压缩 */
-}
-
-.suggestion-btn-bottom:hover {
-  background-color: #d0e7ff;
-}
-
-.suggestion-btn-bottom.selected {
-  background-color: #66A6FF;
-  color: white;
-  border-color: #66A6FF;
-}
-
-/* 输入区域 */
-.input-area {
-  padding: 16px;
-  background-color: white;
-  border-top: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.input-wrapper {
+.input-bar {
+  margin-top: 12rpx;
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  padding: 8px 12px;
-  background-color: #f8f9fa;
+  gap: 10rpx;
 }
 
 .input-box {
   flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  padding: 4px 0;
-}
-
-.mic-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-}
-
-.input-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
+  height: 76rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #d9e4f3;
+  background: #f8fafd;
+  padding: 0 18rpx;
+  font-size: 28rpx;
+  color: #1f2937;
+  box-sizing: border-box;
 }
 
 .send-btn {
-  padding: 10px 20px;
-  background-color: #66A6FF;
-  color: white;
+  min-width: 128rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 38rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #66a6ff, #4f95f0);
   border: none;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
+  padding: 0 22rpx;
+  box-shadow: 0 8rpx 18rpx rgba(79, 149, 240, 0.28);
+  transition: all 0.2s ease;
 }
 
-.send-btn:hover {
-  background-color: #0056b3;
+.send-btn::after {
+  border: none;
 }
 
-.highlight {
-  background-color: #e8f4ff;
-  padding: 12px;
-  border-left: 4px solid #66A6FF;
-  border-radius: 8px;
-  margin: 12px 0;
+.send-btn[disabled] {
+  opacity: 1;
+  color: #6f87ad;
+  background: linear-gradient(135deg, #dbe8ff, #cfddf5);
+  border: none;
+  box-shadow: none;
 }
 </style>

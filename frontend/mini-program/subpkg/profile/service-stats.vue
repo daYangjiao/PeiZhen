@@ -2,7 +2,7 @@
   <view class="page">
     <view class="hero-card slide-up delay-1">
       <view class="hero-left">
-        <image class="hero-icon" src="/static/service.png" mode="aspectFit"></image>
+        <image class="hero-icon" src="/static/escort-stats.svg" mode="aspectFit"></image>
         <view>
           <text class="hero-title">服务统计</text>
           <text class="hero-desc">数据看板帮助你快速了解服务表现</text>

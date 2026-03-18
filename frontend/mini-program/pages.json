@@ -154,7 +154,8 @@
         {
           "path": "ai/AIaks",
           "style": {
-            "navigationBarTitleText": "AI助手"
+            "navigationBarTitleText": "AI助手",
+            "disableScroll": true
           }
         },
         {

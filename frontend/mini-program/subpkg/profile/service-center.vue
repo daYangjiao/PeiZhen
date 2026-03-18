@@ -2,7 +2,7 @@
   <view class="page">
     <view class="hero-card slide-up delay-1">
       <view class="hero-left">
-        <image class="hero-icon" src="/static/phone.png" mode="aspectFit"></image>
+        <image class="hero-icon" src="/static/escort-service-center.svg" mode="aspectFit"></image>
         <view>
           <text class="hero-title">客服中心</text>
           <text class="hero-desc">服务问题可快速联系平台处理</text>

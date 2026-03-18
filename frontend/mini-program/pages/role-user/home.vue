@@ -83,21 +83,29 @@
       </scroll-view>
     </view>
 
-    <view
-      class="floating-btn"
-      :style="{ left: btnLeft + 'px', top: btnTop + 'px' }"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-      @touchend="isDragging = false"
-      @click.stop="navigateToAIaks"
-    >
-      <image class="floating-icon" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit" />
-    </view>
+    <movable-area class="floating-area">
+      <movable-view
+        class="floating-btn"
+        direction="all"
+        :x="btnLeft"
+        :y="btnTop"
+        :inertia="false"
+        :damping="36"
+        :friction="2"
+        @touchstart="handleTouchStart"
+        @touchend="handleTouchEnd"
+        @touchcancel="handleTouchCancel"
+        @change="handleFloatingChange"
+        @click.stop="navigateToAIaks"
+      >
+        <image class="floating-icon" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit" />
+      </movable-view>
+    </movable-area>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { config, getBackendImageUrl } from '@/utils/api.js'
@@ -119,50 +127,123 @@ const companions = ref([])
 
 const btnLeft = ref(0)
 const btnTop = ref(0)
-const isDragging = ref(false)
-const startX = ref(0)
-const startY = ref(0)
+const areaWidth = ref(0)
+const areaHeight = ref(0)
+const safeTopInset = ref(0)
+const safeBottomInset = ref(0)
+const isTouching = ref(false)
+const hasDragged = ref(false)
+const suppressClick = ref(false)
 const startLeft = ref(0)
 const startTop = ref(0)
+const DRAG_THRESHOLD = 8
+const FLOAT_BTN_SIZE = 60
+const EDGE_MARGIN = 8
+const TAB_BAR_RESERVED = 56
+const SUPPRESS_TIMEOUT = 1200
+let suppressTimer = null
+const handleWindowResize = () => {
+  updatePositionAfterViewportChange()
+}
+
+const clearSuppressState = () => {
+  suppressClick.value = false
+  if (suppressTimer) {
+    clearTimeout(suppressTimer)
+    suppressTimer = null
+  }
+}
+
+const setSuppressState = () => {
+  suppressClick.value = true
+  if (suppressTimer) {
+    clearTimeout(suppressTimer)
+  }
+  suppressTimer = setTimeout(() => {
+    suppressClick.value = false
+    suppressTimer = null
+  }, SUPPRESS_TIMEOUT)
+}
+
+const refreshViewportMetrics = () => {
+  const sysInfo = uni.getSystemInfoSync()
+  areaWidth.value = sysInfo.windowWidth
+  areaHeight.value = sysInfo.windowHeight
+  safeTopInset.value = sysInfo.safeAreaInsets?.top || 0
+  safeBottomInset.value = sysInfo.safeAreaInsets?.bottom || 0
+}
+
+const normalizePosition = (x, y) => {
+  const minX = EDGE_MARGIN
+  const maxX = Math.max(minX, areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN)
+  const minY = safeTopInset.value + EDGE_MARGIN
+  const bottomReserved = safeBottomInset.value + TAB_BAR_RESERVED + EDGE_MARGIN
+  const maxY = Math.max(minY, areaHeight.value - FLOAT_BTN_SIZE - bottomReserved)
+  const nextX = Math.max(minX, Math.min(maxX, Number(x) || 0))
+  const nextY = Math.max(minY, Math.min(maxY, Number(y) || 0))
+  return { x: nextX, y: nextY }
+}
 
 const handleTouchStart = (e) => {
-  const touch = e.touches[0]
-  startX.value = touch.clientX
-  startY.value = touch.clientY
+  if (!e.touches || !e.touches.length) return
+  clearSuppressState()
+  isTouching.value = true
   startLeft.value = btnLeft.value
   startTop.value = btnTop.value
-  isDragging.value = true
+  hasDragged.value = false
 }
 
-const handleTouchMove = (e) => {
-  if (!isDragging.value) return
-  const touch = e.touches[0]
-  const deltaX = touch.clientX - startX.value
-  const deltaY = touch.clientY - startY.value
-  updatePosition(startLeft.value + deltaX, startTop.value + deltaY)
+const handleFloatingChange = (e) => {
+  const detail = e.detail || {}
+  const { x, y } = normalizePosition(detail.x, detail.y)
+  btnLeft.value = x
+  btnTop.value = y
+
+  if (isTouching.value && !hasDragged.value) {
+    const movedX = Math.abs(x - startLeft.value)
+    const movedY = Math.abs(y - startTop.value)
+    if (movedX > DRAG_THRESHOLD || movedY > DRAG_THRESHOLD) {
+      hasDragged.value = true
+    }
+  }
 }
 
-const updatePosition = (x, y) => {
-  const sysInfo = uni.getSystemInfoSync()
-  const windowWidth = sysInfo.windowWidth
-  const windowHeight = sysInfo.windowHeight
-  const btnSizePx = 60 * (windowWidth / 750)
-  x = Math.max(0, Math.min(windowWidth - btnSizePx, x))
-  y = Math.max(0, Math.min(windowHeight - btnSizePx, y))
+const finishDrag = () => {
+  if (!isTouching.value) return
+  isTouching.value = false
+  if (hasDragged.value) {
+    setSuppressState()
+  }
+  hasDragged.value = false
+}
+
+const handleTouchEnd = () => {
+  finishDrag()
+}
+
+const handleTouchCancel = () => {
+  finishDrag()
+}
+
+const setInitialPosition = () => {
+  refreshViewportMetrics()
+  const { x, y } = normalizePosition(
+    areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN,
+    areaHeight.value - FLOAT_BTN_SIZE - safeBottomInset.value - TAB_BAR_RESERVED - EDGE_MARGIN
+  )
   btnLeft.value = x
   btnTop.value = y
 }
 
-const setInitialPosition = () => {
-  const sysInfo = uni.getSystemInfoSync()
-  const windowWidth = sysInfo.windowWidth
-  const windowHeight = sysInfo.windowHeight
-  const btnSizePx = 60 * (windowWidth / 750)
-  btnLeft.value = windowWidth - btnSizePx
-  btnTop.value = windowHeight - btnSizePx
+const updatePositionAfterViewportChange = () => {
+  refreshViewportMetrics()
+  const { x, y } = normalizePosition(btnLeft.value, btnTop.value)
+  btnLeft.value = x
+  btnTop.value = y
 }
 
 const navigateToAIaks = () => {
+  if (suppressClick.value) return
   uni.navigateTo({ url: '/subpkg/ai/AIaks' })
 }
 
@@ -212,7 +293,22 @@ onMounted(() => {
   setInitialPosition()
   fetchAttendants()
 })
-onShow(() => {})
+onShow(() => {
+  // 当次拖动：每次进入首页重置入口位置，不持久化。
+  setInitialPosition()
+  clearSuppressState()
+})
+
+onUnmounted(() => {
+  clearSuppressState()
+  if (typeof uni.offWindowResize === 'function') {
+    uni.offWindowResize(handleWindowResize)
+  }
+})
+
+if (typeof uni.onWindowResize === 'function') {
+  uni.onWindowResize(handleWindowResize)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -222,8 +318,16 @@ onShow(() => {})
   background-color: #f5f7fa;
   position: relative;
 }
-.floating-btn {
+.floating-area {
   position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  pointer-events: none;
+}
+.floating-btn {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -232,7 +336,7 @@ onShow(() => {})
   justify-content: center;
   align-items: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 9999;
+  pointer-events: auto;
 }
 .floating-icon {
   width: 40px;
@@ -442,4 +546,3 @@ onShow(() => {})
   color: #999;
 }
 </style>
-

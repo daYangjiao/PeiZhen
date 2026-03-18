@@ -1,14 +1,18 @@
 <template>
   <view class="evaluate-page">
-    <view v-if="loading" class="loading">加载中...</view>
-    <view v-else-if="error" class="error">{{ error }}</view>
+    <view v-if="loading" class="state-box">
+      <text class="state-text">加载订单信息中...</text>
+    </view>
+
+    <view v-else-if="error" class="state-box error-box">
+      <text class="state-text error-text">{{ error }}</text>
+    </view>
 
     <view v-else class="content">
-      <view class="card">
-        <view class="card-title">订单信息</view>
-        <view class="row">
-          <text class="label">订单编号</text>
-          <text class="value">{{ orderNo }}</text>
+      <view class="card order-card">
+        <view class="card-head">
+          <text class="card-title">订单信息</text>
+          <text class="order-no">{{ orderNo }}</text>
         </view>
         <view class="row">
           <text class="label">服务类型</text>
@@ -29,7 +33,10 @@
       </view>
 
       <view class="card">
-        <view class="card-title">整体服务评分</view>
+        <view class="card-head">
+          <text class="card-title">整体服务评分</text>
+          <text class="score-text" v-if="rating > 0">{{ rating }} 分</text>
+        </view>
         <view class="stars">
           <text
             v-for="i in 5"
@@ -43,7 +50,10 @@
       </view>
 
       <view class="card">
-        <view class="card-title">服务亮点</view>
+        <view class="card-head">
+          <text class="card-title">服务亮点</text>
+          <text class="tip-inline">可多选</text>
+        </view>
         <view class="tags">
           <view
             v-for="tag in tags"
@@ -58,7 +68,9 @@
       </view>
 
       <view class="card">
-        <view class="card-title">评价内容</view>
+        <view class="card-head">
+          <text class="card-title">评价内容</text>
+        </view>
         <view class="textarea-wrapper">
           <textarea
             v-model="content"
@@ -73,7 +85,7 @@
       <view class="bottom-space"></view>
     </view>
 
-    <view class="bottom-submit-bar">
+    <view v-if="!loading && !error" class="bottom-submit-bar">
       <button class="submit-btn" @click="submit">提交评价</button>
     </view>
   </view>
@@ -193,133 +205,208 @@ const submit = () => {
     })
 }
 </script>
-
 <style lang="scss" scoped>
 @import '@/styles/user-ui.scss';
+
 .evaluate-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
-  padding: 20rpx 32rpx 140rpx;
+  background: linear-gradient(180deg, #edf4ff 0%, #f6f9ff 220rpx, #f5f7fa 100%);
+  padding: 20rpx 24rpx 170rpx;
   box-sizing: border-box;
 }
-.loading,
-.error {
+
+.state-box {
+  margin-top: 180rpx;
+  border-radius: 20rpx;
+  padding: 40rpx 24rpx;
   text-align: center;
-  margin: 100rpx auto;
-  color: #666;
+  background: #fff;
+  border: 1rpx solid #e3ecfa;
 }
-.error {
-  color: #ff4d4f;
+
+.state-text {
+  color: #6b7280;
+  font-size: 28rpx;
 }
+
+.error-box {
+  border-color: #f7d4d4;
+  background: #fff8f8;
+}
+
+.error-text {
+  color: #dc2626;
+}
+
 .content {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
+
 .card {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 28rpx 24rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06);
+  border-radius: 22rpx;
+  border: 1rpx solid #e3ecfa;
+  padding: 22rpx;
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.06);
 }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
 .card-title {
   font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 16rpx;
+  font-weight: 700;
+  color: #1f3f68;
 }
+
+.order-no {
+  font-size: 22rpx;
+  color: #6f83a5;
+  max-width: 360rpx;
+  text-align: right;
+  word-break: break-all;
+}
+
 .row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 8rpx 0;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 11rpx 0;
+  border-bottom: 1rpx solid #ecf1f9;
 }
+
+.row:last-child {
+  border-bottom: none;
+}
+
 .label {
-  font-size: 26rpx;
-  color: #6b7280;
+  font-size: 25rpx;
+  color: #71839e;
+  flex-shrink: 0;
 }
+
 .value {
-  font-size: 26rpx;
-  color: #111827;
-  max-width: 60%;
+  font-size: 25rpx;
+  color: #1f2937;
   text-align: right;
+  word-break: break-all;
 }
+
+.score-text {
+  font-size: 26rpx;
+  color: #2d73cf;
+  font-weight: 600;
+}
+
 .stars {
   display: flex;
   gap: 8rpx;
-  margin: 8rpx 0 4rpx;
+  margin-top: 2rpx;
 }
+
 .star {
-  font-size: 40rpx;
-  color: #d1d5db;
+  font-size: 48rpx;
+  color: #d5deeb;
+  line-height: 1;
+  min-width: 56rpx;
+  text-align: center;
 }
+
 .star.active {
-  color: #facc15;
+  color: #f5b93b;
 }
+
 .tip {
-  font-size: 24rpx;
-  color: #9ca3af;
+  display: block;
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #94a3b8;
 }
+
+.tip-inline {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 12rpx;
 }
+
 .tag {
-  padding: 8rpx 16rpx;
+  padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  border: 1rpx solid #149DE4;
+  border: 1rpx solid #c9ddfb;
+  background: #f4f9ff;
   font-size: 24rpx;
-  color: #149DE4;
+  color: #2d73cf;
 }
+
 .tag.selected {
-  background-color: #149DE4;
+  background: linear-gradient(135deg, #66a6ff, #4f95f0);
   color: #fff;
+  border-color: transparent;
 }
+
 .textarea-wrapper {
   position: relative;
 }
+
 .textarea {
   width: 100%;
-  height: 150rpx;
+  min-height: 230rpx;
   font-size: 26rpx;
-  line-height: 1.5;
-  padding: 20rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 12rpx;
-  background: #f9fafb;
+  line-height: 1.6;
+  padding: 18rpx;
+  border: 1rpx solid #d7e5fa;
+  border-radius: 16rpx;
+  background: #f8fbff;
   box-sizing: border-box;
 }
+
 .char-count {
   font-size: 22rpx;
-  color: #9ca3af;
+  color: #9aa9be;
   text-align: right;
   margin-top: 8rpx;
+  display: block;
 }
+
 .bottom-space {
-  height: 40rpx;
+  height: 24rpx;
 }
+
 .bottom-submit-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 16rpx 32rpx 32rpx;
+  z-index: 9;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 -4rpx 16rpx rgba(15, 23, 42, 0.06);
+  border-top: 1rpx solid #dbe7f8;
+  box-shadow: 0 -6rpx 20rpx rgba(15, 23, 42, 0.08);
   box-sizing: border-box;
 }
+
 .submit-btn {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  text-align: center;
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
-  color: #fff;
-  border-radius: 44rpx;
+  min-height: 90rpx;
+  line-height: 90rpx;
+  border-radius: 45rpx;
   font-size: 30rpx;
   font-weight: 600;
   border: none;
+  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  color: #fff;
 }
 </style>
-

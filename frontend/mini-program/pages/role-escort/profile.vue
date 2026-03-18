@@ -114,16 +114,9 @@ const qualificationStatusType = computed(() => {
 const menuGroups = computed(() => [
   [
     {
-      key: 'withdraw',
-      title: '提现中心',
-      icon: '/static/money.png',
-      balance: balance.value,
-      route: '/subpkg/profile/withdraw-center'
-    },
-    {
       key: 'walletDetail',
       title: '钱包明细',
-      icon: '/static/wujiaoxin.png',
+      icon: '/static/escort-wallet.svg',
       balance: balance.value,
       route: '/subpkg/profile/wallet-detail'
     },
@@ -153,7 +146,7 @@ const menuGroups = computed(() => [
     {
       key: 'serviceStats',
       title: '服务统计',
-      icon: '/static/service.png',
+      icon: '/static/escort-stats.svg',
       route: '/subpkg/profile/service-stats'
     }
   ],
@@ -161,13 +154,13 @@ const menuGroups = computed(() => [
     {
       key: 'platformRules',
       title: '平台规则',
-      icon: '/static/note.png',
+      icon: '/static/escort-rules.svg',
       route: '/subpkg/profile/platform-rules'
     },
     {
       key: 'serviceCenter',
       title: '客服中心',
-      icon: '/static/phone.png',
+      icon: '/static/escort-service-center.svg',
       route: '/subpkg/profile/service-center'
     },
     {

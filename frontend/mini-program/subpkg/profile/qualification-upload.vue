@@ -39,32 +39,39 @@
     </view>
 
     <view class="card slide-up delay-2">
-      <view class="doc-row" :class="{ focused: focusType === 'practiceCert' }">
-        <view class="doc-left">
-          <text class="doc-name">执业证书</text>
-          <text class="doc-state" :class="practiceCertUrl ? 'pass' : 'warn'">
-            {{ practiceCertUrl ? '已上传' : '未上传' }}
-          </text>
-        </view>
-        <view class="doc-right">
-          <text v-if="practiceCertUrl" class="preview-link" @click.stop="previewImage(practiceCertUrl)">查看</text>
-          <view class="ghost-btn" @click="uploadByKey('practiceCert')">
-            <text>{{ practiceCertUrl ? '重传' : '上传' }}</text>
-          </view>
-        </view>
+      <view class="section-head">
+        <text class="section-title">其他证件</text>
+        <text class="section-status" :class="practiceCertUrl && healthCertUrl ? 'status-pass' : 'status-warn'">
+          {{ practiceCertUrl && healthCertUrl ? '已完成' : '未完成' }}
+        </text>
       </view>
 
-      <view class="doc-row" :class="{ focused: focusType === 'healthCert' }">
-        <view class="doc-left">
-          <text class="doc-name">健康证</text>
-          <text class="doc-state" :class="healthCertUrl ? 'pass' : 'warn'">
-            {{ healthCertUrl ? '已上传' : '未上传' }}
-          </text>
+      <view class="cert-grid">
+        <view class="cert-slot" :class="{ focused: focusType === 'practiceCert' }" @click="onCertCardTap('practiceCert', practiceCertUrl)">
+          <image v-if="practiceCertUrl" class="preview" :src="toFullUrl(practiceCertUrl)" mode="aspectFill"></image>
+          <view v-else class="placeholder">
+            <text class="plus">+</text>
+            <text class="placeholder-text">上传执业证书</text>
+          </view>
+          <view class="cert-foot">
+            <text class="cert-name">执业证书</text>
+            <text class="cert-state" :class="practiceCertUrl ? 'pass' : 'warn'">
+              {{ practiceCertUrl ? '已上传' : '未上传' }}
+            </text>
+          </view>
         </view>
-        <view class="doc-right">
-          <text v-if="healthCertUrl" class="preview-link" @click.stop="previewImage(healthCertUrl)">查看</text>
-          <view class="ghost-btn" @click="uploadByKey('healthCert')">
-            <text>{{ healthCertUrl ? '重传' : '上传' }}</text>
+
+        <view class="cert-slot" :class="{ focused: focusType === 'healthCert' }" @click="onCertCardTap('healthCert', healthCertUrl)">
+          <image v-if="healthCertUrl" class="preview" :src="toFullUrl(healthCertUrl)" mode="aspectFill"></image>
+          <view v-else class="placeholder">
+            <text class="plus">+</text>
+            <text class="placeholder-text">上传健康证</text>
+          </view>
+          <view class="cert-foot">
+            <text class="cert-name">健康证</text>
+            <text class="cert-state" :class="healthCertUrl ? 'pass' : 'warn'">
+              {{ healthCertUrl ? '已上传' : '未上传' }}
+            </text>
           </view>
         </view>
       </view>
@@ -170,6 +177,14 @@ const uploadByKey = (key) => {
       }
     }
   })
+}
+
+const onCertCardTap = (key, url) => {
+  if (url) {
+    previewImage(url)
+    return
+  }
+  uploadByKey(key)
 }
 
 const goBack = () => {
@@ -316,70 +331,49 @@ onMounted(loadProfile)
   font-size: 22rpx;
 }
 
-.doc-row {
-  min-height: 92rpx;
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.cert-slot {
+  border-radius: 14rpx;
+  border: 1rpx solid #e5eaf2;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.cert-slot.focused {
+  border-color: $escort-color-primary;
+  box-shadow: 0 0 0 2rpx rgba(102, 166, 255, 0.14);
+}
+
+.cert-foot {
+  height: 72rpx;
+  background: #fff;
+  padding: 0 12rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1rpx solid #eef2f7;
 }
 
-.doc-row:last-child {
-  border-bottom: none;
-}
-
-.doc-row.focused {
-  background: #f8fbff;
-}
-
-.doc-left {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.doc-name {
-  font-size: 28rpx;
+.cert-name {
+  font-size: 24rpx;
   color: #1f2937;
   font-weight: 600;
 }
 
-.doc-state {
-  font-size: 24rpx;
+.cert-state {
+  font-size: 22rpx;
 }
 
-.doc-state.pass {
+.cert-state.pass {
   color: #52c41a;
 }
 
-.doc-state.warn {
+.cert-state.warn {
   color: #ff4d4f;
-}
-
-.doc-right {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.preview-link {
-  color: $escort-color-primary;
-  font-size: 24rpx;
-}
-
-.ghost-btn {
-  min-width: 108rpx;
-  height: 54rpx;
-  border-radius: 30rpx;
-  border: 1rpx solid $escort-color-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  text {
-    color: $escort-color-primary;
-    font-size: 24rpx;
-  }
 }
 
 .bottom-btn {

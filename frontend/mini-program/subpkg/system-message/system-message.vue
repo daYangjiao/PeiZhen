@@ -109,16 +109,27 @@ const inferTitle = (content) => {
 
 const inferAction = (content) => {
   if (!content) return ''
-  if (content.includes('支付完成') || content.includes('支付成功')) return '查看订单'
-  if (content.includes('服务已完成') || content.includes('评价')) return '去评价'
+  if (content.includes('评价')) return '去评价'
+  if (content.includes('订单')) return '查看订单'
+  if (content.includes('服务已完成')) return '去评价'
   if (content.includes('余额不足')) return '去充值'
   return ''
 }
 
 const extractOrderNo = (content) => {
   if (!content) return null
-  const match = content.match(/订单(?:No\.|号)[:：]?\s*([A-Za-z0-9*]+)/)
-  return match ? match[1] : null
+  const patterns = [
+    /订单(?:No\.?|号)?\s*[：:（(]?\s*([A-Za-z0-9_-]{8,})/i,
+    /订单\s*([A-Za-z0-9_-]{8,})/i,
+    /\b(ORD[A-Za-z0-9_-]{6,})\b/i
+  ]
+  for (const pattern of patterns) {
+    const match = content.match(pattern)
+    if (match && match[1]) {
+      return match[1].replace(/[）)。，,;；。]+$/g, '')
+    }
+  }
+  return null
 }
 
 const filteredMessages = computed(() => {
@@ -138,7 +149,16 @@ const getActionText = (msg) => msg.action
 const handleAction = (msg) => {
   const orderTab = role.value === 'escort' ? '/pages/role-escort/order' : '/pages/role-user/order'
   if (msg.action === '查看订单') {
-    uni.switchTab({ url: orderTab })
+    if (role.value === 'escort') {
+      uni.switchTab({ url: orderTab })
+      return
+    }
+    const orderNo = extractOrderNo(msg.content)
+    if (orderNo && !orderNo.includes('*')) {
+      uni.navigateTo({ url: `/subpkg/order/order-detail?orderNo=${encodeURIComponent(orderNo)}` })
+    } else {
+      uni.switchTab({ url: orderTab })
+    }
   } else if (msg.action === '去评价') {
     if (role.value === 'escort') {
       uni.switchTab({ url: orderTab })

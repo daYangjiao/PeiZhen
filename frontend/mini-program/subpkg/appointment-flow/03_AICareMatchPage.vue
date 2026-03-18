@@ -97,65 +97,68 @@
     </view>
 
     <!-- 订单详情弹窗 -->
-    <view v-if="showOrderDetail" class="detail-modal">
-      <view class="modal-content">
-        <!-- 关闭按钮 -->
-        <view class="close-btn" @click="closeOrderDetail">×</view>
-        
-        <!-- 订单详情内容 -->
+    <view v-if="showOrderDetail" class="detail-modal" @click="closeOrderDetail">
+      <view class="modal-content" @click.stop>
         <view class="detail-header">
-          <text class="detail-title">订单详情</text>
-          <text class="detail-order-no">{{ currentOrder.orderNo }}</text>
+          <view class="detail-title-wrap">
+            <text class="detail-title">订单详情</text>
+            <text class="detail-order-no">订单号：{{ currentOrder.orderNo }}</text>
+          </view>
+          <view class="close-btn" @click="closeOrderDetail">×</view>
         </view>
-        
+
+        <view class="detail-status-row">
+          <text class="status-label">订单状态</text>
+          <text class="order-status" :class="getStatusClass(currentOrder.orderStatus)">
+            {{ getOrderStatusText(currentOrder.orderStatus) }}
+          </text>
+        </view>
+
         <scroll-view class="detail-scroll" scroll-y="true">
-          <!-- 基本信息 -->
           <view class="detail-section">
-            <text class="section-heading">基本信息</text>
+            <text class="section-heading">基础信息</text>
             <view class="detail-item">
-              <text class="item-label">服务类型:</text>
+              <text class="item-label">服务类型</text>
               <text class="item-value">{{ getServiceTypeName(currentOrder.clinicType) }}</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">医院:</text>
-              <text class="item-value">{{ currentOrder.hospital }}</text>
+              <text class="item-label">医院</text>
+              <text class="item-value">{{ currentOrder.hospital || '--' }}</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">就诊时间:</text>
+              <text class="item-label">就诊时间</text>
               <text class="item-value">{{ formatDate(currentOrder.appointmentTime) }}</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">就诊人:</text>
-              <text class="item-value">{{ currentOrder.patientName }}</text>
+              <text class="item-label">就诊人</text>
+              <text class="item-value">{{ currentOrder.patientName || '--' }}</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">联系电话:</text>
-              <text class="item-value">{{ currentOrder.contactPhone }}</text>
+              <text class="item-label">联系电话</text>
+              <text class="item-value">{{ currentOrder.contactPhone || '--' }}</text>
             </view>
           </view>
-          
-          <!-- 费用信息 -->
+
           <view class="detail-section">
             <text class="section-heading">费用信息</text>
             <view class="detail-item">
-              <text class="item-label">预估时长:</text>
+              <text class="item-label">预估时长</text>
               <text class="item-value">{{ currentOrder.consultationDuration }}小时</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">单价:</text>
+              <text class="item-label">单价</text>
               <text class="item-value">¥{{ currentOrder.unitPrice }}/小时</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">预估总额:</text>
+              <text class="item-label">预估总额</text>
               <text class="item-value price">¥{{ currentOrder.orderAmount }}</text>
             </view>
             <view class="detail-item">
-              <text class="item-label">已付定金:</text>
+              <text class="item-label">已付定金</text>
               <text class="item-value price">¥{{ currentOrder.depositAmount }}</text>
             </view>
           </view>
-          
-          <!-- 特殊需求 -->
+
           <view class="detail-section" v-if="currentOrder.selectedOptions && currentOrder.selectedOptions.length > 0">
             <text class="section-heading">特殊需求</text>
             <view class="options-list">
@@ -164,21 +167,22 @@
               </text>
             </view>
           </view>
-          
-          <!-- 自定义需求 -->
+
           <view class="detail-section" v-if="currentOrder.customRequirement">
             <text class="section-heading">自定义需求</text>
             <text class="requirement-text">{{ currentOrder.customRequirement }}</text>
           </view>
         </scroll-view>
-        
-        <!-- 接单按钮 -->
-        <button 
-          class="confirm-btn" 
-          :disabled="!canAcceptOrder(currentOrder)"
-          @click="acceptOrderFromDetail">
-          {{ canAcceptOrder(currentOrder) ? '立即接单' : '不可接单' }}
-        </button>
+
+        <view class="modal-footer">
+          <button
+            class="confirm-btn"
+            :disabled="!canAcceptOrder(currentOrder)"
+            @click="acceptOrderFromDetail"
+          >
+            {{ canAcceptOrder(currentOrder) ? '立即接单' : '不可接单' }}
+          </button>
+        </view>
       </view>
     </view>
   </view>
@@ -633,117 +637,175 @@ const getStatusClass = (status) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.56);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 24rpx;
+  box-sizing: border-box;
 }
 
 .modal-content {
-  width: 90%;
-  max-width: 600rpx;
-  background: white;
-  border-radius: 20rpx;
-  padding: 40rpx;
-  max-height: 80vh;
-  position: relative;
+  width: 100%;
+  max-width: 660rpx;
+  max-height: 86vh;
+  background: #fff;
+  border-radius: 28rpx;
+  border: 1rpx solid #dbe8fb;
+  box-shadow: 0 18rpx 40rpx rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
 }
 
 .close-btn {
-  position: absolute;
-  top: 20rpx;
-  right: 20rpx;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #edf4ff;
+  color: #2d73cf;
   font-size: 36rpx;
-  color: #999;
-  width: 60rpx;
-  height: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .detail-header {
-  text-align: center;
-  margin-bottom: 40rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 24rpx 24rpx 0;
+}
+
+.detail-title-wrap {
+  flex: 1;
+  min-width: 0;
 }
 
 .detail-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f3f68;
   display: block;
-  margin-bottom: 16rpx;
 }
 
 .detail-order-no {
-  font-size: 26rpx;
-  color: #666;
+  margin-top: 6rpx;
+  display: block;
+  font-size: 22rpx;
+  color: #6f83a5;
+  word-break: break-all;
+}
+
+.detail-status-row {
+  margin: 16rpx 24rpx 0;
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f5f9ff;
+  border: 1rpx solid #d6e5fb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-label {
+  font-size: 24rpx;
+  color: #6883aa;
 }
 
 .detail-scroll {
-  max-height: 60vh;
-  margin-bottom: 40rpx;
+  margin-top: 14rpx;
+  padding: 0 24rpx;
+  max-height: 58vh;
+  box-sizing: border-box;
 }
 
 .detail-section {
-  margin-bottom: 32rpx;
+  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e3ecfa;
+  background: #fff;
+  padding: 16rpx;
 }
 
 .section-heading {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #1f3f68;
   display: block;
-  margin-bottom: 20rpx;
-  padding-bottom: 12rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  margin-bottom: 12rpx;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 10rpx;
+  padding: 8rpx 0;
+  border-bottom: 1rpx solid #edf2f8;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .item-label {
-  font-size: 26rpx;
-  color: #666;
+  font-size: 24rpx;
+  color: #6f83a5;
+  flex-shrink: 0;
 }
 
 .item-value {
-  font-size: 26rpx;
-  color: #333;
+  font-size: 24rpx;
+  color: #1f2937;
+  text-align: right;
+  word-break: break-all;
 }
 
 .options-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .option-tag {
-  background: #f0f5ff;
-  color: #66a6ff;
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  background: #f3f8ff;
+  color: #2d73cf;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #d3e4fc;
   font-size: 24rpx;
 }
 
 .requirement-text {
-  font-size: 26rpx;
-  color: #333;
-  line-height: 1.5;
+  font-size: 24rpx;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 16rpx 24rpx 24rpx;
+  border-top: 1rpx solid #e5eefb;
 }
 
 .confirm-btn {
   width: 100%;
-  height: 80rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
   background: linear-gradient(135deg, #66A6FF, #4F95F0);
-  color: white;
+  color: #fff;
   border: none;
-  border-radius: 40rpx;
-  font-size: 32rpx;
-  font-weight: bold;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.confirm-btn[disabled] {
+  background: #e5ebf5;
+  color: #94a3b8;
 }
 </style>

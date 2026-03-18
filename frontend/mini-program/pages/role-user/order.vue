@@ -102,10 +102,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { get, config } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
@@ -127,6 +128,27 @@ const orders = ref([])
 const loading = ref(false)
 const userStore = useUserStore()
 let pollTimer = null
+let socketListener = null
+let socketRefreshTimer = null
+let pageActive = false
+let queuedReload = false
+const ORDER_LIST_POLL_INTERVAL = 6000
+const ORDER_EVENT_TYPES = [
+  'NEW_ORDER',
+  'ORDER_ACCEPTED',
+  'SERVICE_STARTED',
+  'SERVICE_COMPLETED',
+  'ORDER_STATUS_CHANGED',
+  'ORDER_RELEASED_BY_ATTENDANT',
+  'SERVICE_PROGRESS_UPDATED',
+  'SERVICE_PROGRESS_CHANGED',
+  'ORDER_UPDATED',
+  'ORDER_CANCELLED',
+  'ORDER_FINISHED',
+  'TIME_FEE_CONFIRMED',
+  'TIME_FEE_DISPUTED',
+  'BALANCE_PAYMENT_REQUIRED'
+]
 
 onMounted(() => {
   const systemInfo = uni.getSystemInfoSync()
@@ -134,19 +156,40 @@ onMounted(() => {
 })
 
 onShow(() => {
+  pageActive = true
   // 如果是被守卫/401 拦截后从订单页自动跳转到登录，再从登录返回且仍未登录，则直接回到首页，避免死循环
   if (!userStore.isLoggedIn) {
     const fromRoute = uni.getStorageSync('guard_from_route')
     if (fromRoute === 'pages/role-user/order' || fromRoute === '/pages/role-user/order') {
       uni.removeStorageSync('guard_from_route')
+      pageActive = false
       uni.switchTab({ url: '/pages/role-user/home' })
       return
     }
   }
-  if (!ensureRole('user')) return
+  if (!ensureRole('user')) {
+    pageActive = false
+    return
+  }
   userStore.restoreFromStorage()
+  connectChatSocket()
+  setupWebSocketListener()
   loadOrders()
   startPolling()
+})
+
+onHide(() => {
+  pageActive = false
+  stopPolling()
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer)
+    socketRefreshTimer = null
+  }
+  teardownWebSocketListener()
+})
+
+onUnload(() => {
+  cleanupRealtime()
 })
 
 const switchTab = (status) => {
@@ -156,6 +199,10 @@ const switchTab = (status) => {
 const loadOrders = async () => {
   if (!userStore.isLoggedIn) {
     orders.value = []
+    return
+  }
+  if (loading.value) {
+    queuedReload = true
     return
   }
   loading.value = true
@@ -175,6 +222,12 @@ const loadOrders = async () => {
     console.error('加载订单数据出错:', e)
   } finally {
     loading.value = false
+    if (queuedReload && pageActive) {
+      queuedReload = false
+      loadOrders()
+    } else {
+      queuedReload = false
+    }
   }
 }
 
@@ -244,22 +297,93 @@ const handleSearch = () => {
   loadOrders()
 }
 
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
 const startPolling = () => {
-  if (pollTimer) clearInterval(pollTimer)
+  stopPolling()
   pollTimer = setInterval(() => {
+    if (!pageActive || loading.value) return
     const shouldPoll = orders.value.some(order =>
       (order.paymentStatus === 0 && order.orderStatus !== 7) ||
       [1, 2, 3, 4, 5].includes(order.orderStatus)
     )
     if (shouldPoll) loadOrders()
-  }, 10000)
+  }, ORDER_LIST_POLL_INTERVAL)
+}
+
+const isOrderRelatedMessage = (message) => {
+  if (!message) return false
+
+  let payload = {}
+  if (message.data && typeof message.data === 'object') {
+    payload = message.data
+  } else if (typeof message.data === 'string') {
+    try {
+      payload = JSON.parse(message.data)
+    } catch (e) {
+      payload = {}
+    }
+  }
+
+  const type = String(message.type || message.eventType || payload.type || '').toUpperCase()
+  if (ORDER_EVENT_TYPES.includes(type)) return true
+
+  const msgType = Number(message.msgType || payload.msgType || 0)
+  if ([1, 2, 3, 4].includes(msgType)) return false
+
+  const content = String(message.content || payload.content || '')
+  if (!content) return false
+  const senderId = Number(message.senderId || payload.senderId || 0)
+  const receiverId = Number(message.receiverId || payload.receiverId || 0)
+  const fromSystem = senderId === 0 || receiverId === 0
+  if (!fromSystem) return false
+
+  return /订单|服务|就诊|陪诊|时长|补款|取消|接单|支付/.test(content)
+}
+
+const scheduleOrderListRefresh = (delay = 700) => {
+  if (!pageActive) return
+  if (socketRefreshTimer) clearTimeout(socketRefreshTimer)
+  socketRefreshTimer = setTimeout(() => {
+    loadOrders()
+  }, delay)
+}
+
+const handleSocketMessage = (message) => {
+  if (!pageActive) return
+  if (!isOrderRelatedMessage(message)) return
+  scheduleOrderListRefresh()
+}
+
+const setupWebSocketListener = () => {
+  if (socketListener) removeChatListener(socketListener)
+  socketListener = handleSocketMessage
+  addChatListener(socketListener)
+}
+
+const teardownWebSocketListener = () => {
+  if (socketListener) {
+    removeChatListener(socketListener)
+    socketListener = null
+  }
+}
+
+const cleanupRealtime = () => {
+  stopPolling()
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer)
+    socketRefreshTimer = null
+  }
+  teardownWebSocketListener()
 }
 
 onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
+  cleanupRealtime()
 })
 </script>
 
@@ -476,4 +600,3 @@ onUnmounted(() => {
   color: #999;
 }
 </style>
-

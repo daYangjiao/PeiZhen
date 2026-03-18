@@ -250,51 +250,50 @@ onUnmounted(() => {
 .message-card {
   display: flex;
   padding: 24rpx;
-  background: $escort-color-surface;
-  border-radius: $escort-radius-card;
-  margin-bottom: 14rpx;
-  border: 1rpx solid #e7edf5;
-  box-shadow: $escort-shadow-card;
+  background-color: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 }
 
 .system-card {
-  background: linear-gradient(120deg, #f3f8ff 0%, #e9f2ff 100%);
-  border: 1rpx solid #d5e4f9;
+  background: linear-gradient(to right, #ffffff, #f0f7ff);
+  border-left: 6rpx solid #66A6FF;
 }
 
 .avatar-container {
   position: relative;
-  margin-right: 18rpx;
+  margin-right: 20rpx;
   flex-shrink: 0;
 }
 
 .avatar {
-  width: 78rpx;
-  height: 78rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
-  background-color: #eef2f7;
+  background-color: #f0f0f0;
   border: 2rpx solid #fff;
-  box-shadow: 0 6rpx 12rpx rgba(31, 41, 55, 0.1);
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.08);
 }
 
 .system-avatar-container .avatar {
   padding: 8rpx;
-  background-color: #dcecff;
+  background-color: #e6f7ff;
 }
 
 .unread-badge {
   position: absolute;
   top: -4rpx;
   right: -4rpx;
-  background-color: #ff5b5d;
+  background-color: #ff4d4f;
   color: #fff;
   font-size: 18rpx;
-  min-width: 30rpx;
-  height: 30rpx;
+  min-width: 28rpx;
+  height: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 15rpx;
+  border-radius: 14rpx;
   border: 2rpx solid #fff;
   padding: 0 4rpx;
   box-sizing: border-box;
@@ -315,9 +314,9 @@ onUnmounted(() => {
 }
 
 .name {
-  font-size: 27rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #1f2937;
+  color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -325,20 +324,26 @@ onUnmounted(() => {
 }
 
 .system-name {
-  color: #2f78d4;
+  color: #66A6FF;
 }
 
 .time {
-  font-size: 21rpx;
-  color: #8c96a8;
+  font-size: 20rpx;
+  color: #999;
+}
+
+.message-body {
+  display: flex;
+  align-items: center;
 }
 
 .last-message {
   font-size: 24rpx;
-  color: #5f6b7b;
+  color: #666;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 .empty-state {
