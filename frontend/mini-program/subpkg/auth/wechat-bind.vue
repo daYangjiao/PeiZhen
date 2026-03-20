@@ -1,33 +1,87 @@
 <template>
   <view class="container">
-    <view class="bind-card">
-      <view class="title">完成手机号绑定</view>
-      <view class="desc">首次使用微信登录时，需要绑定手机号并补充姓名，后续可直接一键登录。</view>
+    <view class="hero-card">
+      <view class="wechat-badge">
+        <image class="wechat-icon" src="/static/wechat-icon.png" mode="aspectFit"></image>
+        <text class="wechat-badge-text">微信快捷登录</text>
+      </view>
+      <view class="title">绑定手机号后即可一键进入</view>
+      <view class="desc">
+        我们会把当前微信身份和你的手机号账号关联起来。下次使用微信登录时，就不用再重复输入密码了。
+      </view>
+    </view>
 
-      <view class="input-group">
-        <view class="input-item">
-          <text class="iconfont">📱</text>
-          <input class="input" v-model="phone" type="number" maxlength="11" placeholder="请输入手机号" />
+    <view class="bind-card">
+      <view class="section-title">绑定规则</view>
+      <view class="rule-list">
+        <view class="rule-item">
+          <view class="rule-dot"></view>
+          <text class="rule-text">如果这个手机号已经注册，请输入原来的登录密码完成绑定。</text>
         </view>
-        <view class="input-item">
-          <text class="iconfont">👤</text>
-          <input class="input" v-model="name" placeholder="请输入姓名或昵称" />
+        <view class="rule-item">
+          <view class="rule-dot"></view>
+          <text class="rule-text">如果这个手机号还没注册，我们会直接为你创建一个普通用户账号。</text>
         </view>
-        <view class="input-item">
-          <text class="iconfont">🔒</text>
-          <input class="input" v-model="password" type="password" placeholder="请输入密码" />
+        <view class="rule-item">
+          <view class="rule-dot"></view>
+          <text class="rule-text">当前阶段仅支持普通用户微信登录，陪诊师仍使用手机号密码登录。</text>
         </view>
       </view>
 
-      <button class="submit-btn" :disabled="loading" @click="handleBind">
+      <view class="field-label">手机号</view>
+      <view class="input-item">
+        <text class="iconfont">📱</text>
+        <input
+          class="input"
+          v-model="phone"
+          type="number"
+          maxlength="11"
+          placeholder="请输入常用手机号"
+        />
+      </view>
+
+      <view class="field-label">姓名</view>
+      <view class="input-item">
+        <text class="iconfont">👤</text>
+        <input class="input" v-model="name" maxlength="20" placeholder="请输入真实姓名或常用昵称" />
+      </view>
+
+      <view class="field-label">密码</view>
+      <view class="input-item">
+        <text class="iconfont">🔒</text>
+        <input
+          class="input"
+          v-model="password"
+          type="password"
+          maxlength="20"
+          placeholder="已有账号请输入原密码，新账号请输入 6 位以上密码"
+        />
+      </view>
+
+      <view class="helper-text">
+        绑定成功后，你仍然可以继续使用“手机号 + 密码”登录；微信登录只是多了一个更方便的入口。
+      </view>
+
+      <view class="agreement-row">
+        <checkbox-group @change="onCheckChange">
+          <label class="checkbox-label">
+            <checkbox :checked="agreed" color="#4A90E2" style="transform:scale(0.7)" />
+            <text class="agreement-text">我已阅读并同意<text class="link">《服务协议》</text></text>
+          </label>
+        </checkbox-group>
+      </view>
+
+      <button class="submit-btn" :disabled="loading || !formReady" @click="handleBind">
         {{ loading ? '绑定中...' : '确认绑定并登录' }}
       </button>
+
+      <view class="bottom-note">如果返回登录页重新进入，需要重新点击一次微信登录。</view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { bindWechatPhone } from '@/api/wechat-auth.js'
 import { completeLoginSession } from '@/utils/auth-session.js'
@@ -38,12 +92,30 @@ const name = ref('')
 const password = ref('')
 const loading = ref(false)
 const wechatBindToken = ref('')
+const agreed = ref(false)
+const bindCompleted = ref(false)
+
+const phonePattern = /^1\d{10}$/
+
+const formReady = computed(() => (
+  agreed.value &&
+  phonePattern.test(phone.value.trim()) &&
+  name.value.trim().length >= 2 &&
+  password.value.length >= 6
+))
 
 onLoad((options) => {
   role.value = options?.role || uni.getStorageSync('wechatBindRolePending') || 'user'
   wechatBindToken.value = uni.getStorageSync('wechatBindTokenPending') || ''
+  if (role.value !== 'user') {
+    uni.showToast({ title: '当前仅支持普通用户微信绑定', icon: 'none' })
+    setTimeout(() => {
+      uni.navigateBack({ delta: 1 })
+    }, 500)
+    return
+  }
   if (!wechatBindToken.value) {
-    uni.showToast({ title: '微信绑定凭证已失效', icon: 'none' })
+    uni.showToast({ title: '微信绑定凭证已失效，请重新发起微信登录', icon: 'none' })
     setTimeout(() => {
       uni.navigateBack({ delta: 1 })
     }, 500)
@@ -51,29 +123,51 @@ onLoad((options) => {
 })
 
 onUnload(() => {
-  if (!wechatBindToken.value) {
+  if (bindCompleted.value) {
     uni.removeStorageSync('wechatBindTokenPending')
     uni.removeStorageSync('wechatBindRolePending')
   }
 })
 
-const handleBind = async () => {
+const onCheckChange = (e) => {
+  agreed.value = e.detail.value.length > 0
+}
+
+const validateForm = () => {
   if (!wechatBindToken.value) {
-    uni.showToast({ title: '微信绑定凭证已失效', icon: 'none' })
-    return
+    uni.showToast({ title: '微信绑定凭证已失效，请重新发起微信登录', icon: 'none' })
+    return false
   }
-  if (!phone.value || !name.value || !password.value) {
-    uni.showToast({ title: '请先填写完整信息', icon: 'none' })
-    return
+  if (!agreed.value) {
+    uni.showToast({ title: '请先同意协议', icon: 'none' })
+    return false
   }
+  if (!phonePattern.test(phone.value.trim())) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return false
+  }
+  if (name.value.trim().length < 2) {
+    uni.showToast({ title: '姓名至少输入 2 个字', icon: 'none' })
+    return false
+  }
+  if (password.value.length < 6) {
+    uni.showToast({ title: '密码至少输入 6 位', icon: 'none' })
+    return false
+  }
+  return true
+}
+
+const handleBind = async () => {
+  if (!validateForm()) return
+
   loading.value = true
   uni.showLoading({ title: '绑定中...' })
   try {
     const res = await bindWechatPhone({
       wechatBindToken: wechatBindToken.value,
-      phone: phone.value,
+      phone: phone.value.trim(),
+      name: name.value.trim(),
       password: password.value,
-      name: name.value,
       role: role.value
     })
     uni.hideLoading()
@@ -81,18 +175,22 @@ const handleBind = async () => {
       uni.showToast({ title: res.message || '绑定失败', icon: 'none' })
       return
     }
+
     const targetUrl = await completeLoginSession({
       role: role.value,
       token: res.data.token,
       userInfo: res.data.userInfo
     })
+
+    bindCompleted.value = true
     uni.removeStorageSync('wechatBindTokenPending')
     uni.removeStorageSync('wechatBindRolePending')
     wechatBindToken.value = ''
-    uni.showToast({ title: '登录成功', icon: 'success' })
+
+    uni.showToast({ title: '绑定成功，正在登录', icon: 'success' })
     setTimeout(() => {
       uni.switchTab({ url: targetUrl })
-    }, 400)
+    }, 450)
   } catch (error) {
     uni.hideLoading()
     uni.showToast({ title: error?.message || '绑定失败', icon: 'none' })
@@ -105,35 +203,102 @@ const handleBind = async () => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f3f7fb 0%, #ffffff 100%);
-  padding: 80rpx 28rpx;
+  background:
+    radial-gradient(circle at top left, rgba(74, 144, 226, 0.14), transparent 36%),
+    linear-gradient(180deg, #eef5ff 0%, #ffffff 100%);
+  padding: 36rpx 28rpx 56rpx;
 }
 
+.hero-card,
 .bind-card {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 28rpx;
-  padding: 40rpx 30rpx 36rpx;
   box-shadow: 0 20rpx 48rpx rgba(31, 41, 55, 0.08);
+}
+
+.hero-card {
+  padding: 34rpx 30rpx 28rpx;
+  margin-bottom: 22rpx;
+}
+
+.wechat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(7, 193, 96, 0.1);
+  margin-bottom: 18rpx;
+}
+
+.wechat-icon {
+  width: 34rpx;
+  height: 34rpx;
+}
+
+.wechat-badge-text {
+  font-size: 24rpx;
+  color: #07a35e;
+  font-weight: 600;
 }
 
 .title {
   font-size: 36rpx;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 12rpx;
+  margin-bottom: 14rpx;
 }
 
 .desc {
   font-size: 26rpx;
   line-height: 1.7;
-  color: #6b7280;
+  color: #5b6473;
+}
+
+.bind-card {
+  padding: 34rpx 30rpx 36rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 18rpx;
+}
+
+.rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
   margin-bottom: 28rpx;
 }
 
-.input-group {
+.rule-item {
   display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.rule-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #4a90e2;
+  margin-top: 12rpx;
+  flex-shrink: 0;
+}
+
+.rule-text {
+  font-size: 25rpx;
+  color: #5b6473;
+  line-height: 1.7;
+}
+
+.field-label {
+  font-size: 24rpx;
+  color: #556070;
+  margin-bottom: 10rpx;
+  margin-top: 10rpx;
 }
 
 .input-item {
@@ -144,6 +309,7 @@ const handleBind = async () => {
   border-radius: 18rpx;
   padding: 0 24rpx;
   height: 92rpx;
+  margin-bottom: 18rpx;
 }
 
 .iconfont {
@@ -155,8 +321,32 @@ const handleBind = async () => {
   font-size: 28rpx;
 }
 
+.helper-text {
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #6b7280;
+  margin: 6rpx 0 18rpx;
+}
+
+.agreement-row {
+  margin-bottom: 24rpx;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+}
+
+.agreement-text {
+  font-size: 24rpx;
+  color: #5b6473;
+}
+
+.link {
+  color: #357abd;
+}
+
 .submit-btn {
-  margin-top: 32rpx;
   width: 100%;
   height: 92rpx;
   line-height: 92rpx;
@@ -165,5 +355,17 @@ const handleBind = async () => {
   color: #fff;
   font-size: 30rpx;
   font-weight: 600;
+}
+
+.submit-btn[disabled] {
+  opacity: 0.6;
+}
+
+.bottom-note {
+  margin-top: 22rpx;
+  text-align: center;
+  font-size: 23rpx;
+  color: #8b95a5;
+  line-height: 1.6;
 }
 </style>
