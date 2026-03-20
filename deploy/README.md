@@ -11,6 +11,7 @@ This directory contains the server-side templates needed to run the current stac
 - `scripts/deploy-frontend.sh`: sync the H5 build output into `/var/www/pz-mini`.
 - `scripts/publish-frontend.sh`: build the H5 app on macOS, sync it to the server, and run the frontend deploy step remotely.
 - `scripts/publish-backend.sh`: sync the repo to the server and run the backend deploy step remotely.
+- `scripts/publish-all.sh`: publish backend first and frontend second using the same local git source version.
 - `scripts/publish-lib.sh`: shared helpers for git-based release metadata and rollback-by-ref publishing.
 
 Recommended server flow:
@@ -50,6 +51,7 @@ One-command publish from your Mac:
 ```bash
 bash deploy/scripts/publish-frontend.sh
 bash deploy/scripts/publish-backend.sh
+bash deploy/scripts/publish-all.sh
 ```
 
 Release discipline:
