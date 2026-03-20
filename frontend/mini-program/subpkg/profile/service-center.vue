@@ -37,13 +37,10 @@
 </template>
 
 <script setup>
+import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js'
+
 const callService = () => {
-  uni.makePhoneCall({
-    phoneNumber: '4008002026',
-    fail: () => {
-      uni.showToast({ title: '拨号失败', icon: 'none' })
-    }
-  })
+  makePhoneCallWithGuard('4008002026')
 }
 
 const goMessage = () => {

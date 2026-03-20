@@ -3,7 +3,7 @@
     <scroll-view class="message-list" scroll-y>
       <view class="message-card system-card" @click="openSystemChat">
         <view class="avatar-container system-avatar-container">
-          <image class="avatar" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFill"></image>
+          <image class="avatar" :src="systemNoticeAvatar" mode="aspectFill"></image>
           <view class="unread-badge" v-if="systemUnreadCount > 0">
             <text>{{ systemUnreadCount > 99 ? '99+' : systemUnreadCount }}</text>
           </view>
@@ -62,16 +62,18 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { get, post, config, getBackendImageUrl } from '@/utils/api.js'
+import { get, post, config, canUseRemoteImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
 import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { defaultAvatar } from '@/utils/assets.js'
 
 const contacts = ref([])
 const lastSystemMsg = ref({})
 const messageStore = useMessageStore()
 
 const systemUnreadCount = computed(() => messageStore.systemUnreadCount)
+const systemNoticeAvatar = getLocalFirstImageUrl('mynewlogo.png', '/static/mynewlogo.png')
 
 let cleanupTimer = null
 let isRefreshing = false
@@ -177,13 +179,16 @@ const openChat = (contact) => {
 }
 
 const getAvatarUrl = (url) => {
-  if (!url) return '/static/default-avatar.jpg'
-  if (url.startsWith('http') || url.startsWith('https')) return url
-  let baseUrl = config.baseURL
+  if (!url) return defaultAvatar
+  if (url.startsWith('http') || url.startsWith('https')) {
+    return canUseRemoteImageUrl(url) ? url : defaultAvatar
+  }
+  let baseUrl = config.assetBaseURL || config.baseURL
   if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1)
   let path = url
   if (!path.startsWith('/')) path = '/' + path
-  return baseUrl + path
+  const fullUrl = baseUrl + path
+  return canUseRemoteImageUrl(fullUrl) ? fullUrl : defaultAvatar
 }
 
 const handleImageError = () => {}

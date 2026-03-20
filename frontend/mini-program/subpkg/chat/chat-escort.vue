@@ -56,12 +56,12 @@
                 <image v-else-if="msg.msgType === 2" class="image" :src="getImageUrl(msg.content)" mode="widthFix" @click="previewImage(getImageUrl(msg.content))"></image>
                 <!-- 语音 -->
                 <view v-else-if="msg.msgType === 3" class="voice-content" @click="playVoice(msg.content)">
-                  <image class="voice-icon-img" src="/static/icons/voice.png" mode="aspectFit"></image>
+                  <image class="voice-icon-img" :src="voice" mode="aspectFit"></image>
                   <text class="voice-text">语音消息</text>
                 </view>
                 <!-- 位置 -->
                 <view v-else-if="msg.msgType === 4" class="location-content" @click="openLocation(msg.content)">
-                  <image class="location-icon-img" src="/static/icons/location.png" mode="aspectFit"></image>
+                  <image class="location-icon-img" :src="location" mode="aspectFit"></image>
                   <view class="location-text-wrap">
                     <text class="location-name">{{ parseLocation(msg.content).name || '位置信息' }}</text>
                   </view>
@@ -82,7 +82,7 @@
         <view class="input-toolbar">
             <!-- 语音切换 -->
             <view class="icon-btn" @click="switchVoiceMode">
-                <image class="icon-img" :src="isVoiceMode ? '/static/icons/keyboard.png' : '/static/icons/voice.png'" mode="aspectFit"></image>
+                <image class="icon-img" :src="isVoiceMode ? keyboard : voice" mode="aspectFit"></image>
             </view>
 
             <!-- 输入框/按住说话 -->
@@ -97,7 +97,7 @@
 
             <!-- 表情 -->
             <view class="icon-btn" @click="toggleEmoji">
-                <image class="icon-img" src="/static/icons/emoji.png" mode="aspectFit"></image>
+                <image class="icon-img" :src="emoji" mode="aspectFit"></image>
             </view>
 
             <!-- 发送/更多 -->
@@ -106,7 +106,7 @@
                     <text>{{ isSending ? '发送中...' : '发送' }}</text>
                 </view>
                 <view v-else class="icon-btn" @click="toggleMore">
-                    <image class="icon-img" src="/static/icons/plus.png" mode="aspectFit"></image>
+                    <image class="icon-img" :src="plus" mode="aspectFit"></image>
                 </view>
             </view>
         </view>
@@ -126,37 +126,37 @@
             <view v-if="panelType === 'more'" class="more-panel">
                 <view class="more-item" @click="chooseImage('album')">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/album.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="album" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">相册</text>
                 </view>
                 <view class="more-item" @click="chooseImage('camera')">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/camera.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="camera" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">拍摄</text>
                 </view>
                 <view class="more-item" @click="chooseLocation">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/location.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="location" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">位置</text>
                 </view>
                 <view class="more-item" @click="sendEmergency">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/emergency.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="emergency" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">紧急</text>
                 </view>
                 <view class="more-item" @click="videoCall">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/video.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="video" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">视频</text>
                 </view>
                  <view class="more-item" @click="voiceCall">
                     <view class="more-icon-box">
-                        <image class="more-icon-img" src="/static/icons/call.png" mode="aspectFit"></image>
+                        <image class="more-icon-img" :src="call" mode="aspectFit"></image>
                     </view>
                     <text class="more-text">通话</text>
                 </view>
@@ -171,11 +171,19 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, upload, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
+import {
+  chooseLocationWithGuard,
+  createInnerAudioContext,
+  createRecorderManager,
+  openLocationWithGuard,
+  showUnsupportedFeature
+} from '@/subpkg/common/runtime.js'
+import { album, call, camera, doctorAvatar, emoji, emergency, keyboard, location, plus, userPlaceholder, video, voice } from '@/utils/assets.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
 const targetName = ref('陪诊师')
-const targetAvatar = ref('/static/doctor-avatar.png')
+const targetAvatar = ref(doctorAvatar)
 const messages = ref([])
 const inputText = ref('')
 const scrollTop = ref(0)
@@ -192,8 +200,8 @@ const showPanel = ref(false)
 const panelType = ref('') // 'emoji' | 'more'
 const keyboardHeight = ref(0)
 const recording = ref(false)
-const recorderManager = uni.getRecorderManager()
-const innerAudioContext = uni.createInnerAudioContext()
+const recorderManager = createRecorderManager()
+const innerAudioContext = createInnerAudioContext()
 // 消息去重缓存
 const processedMessages = new Set()
 
@@ -224,16 +232,23 @@ onLoad((options) => {
   })
 
   // 录音监听
-  recorderManager.onStop((res) => {
-      if (recording.value) {
-          sendVoice(res.tempFilePath)
-          recording.value = false
-      }
-  })
+  if (recorderManager) {
+      recorderManager.onStop((res) => {
+          if (recording.value) {
+              sendVoice(res.tempFilePath)
+              recording.value = false
+          }
+      })
+  }
 })
 
 onMounted(() => addChatListener(handleNewMessage))
-onUnmounted(() => removeChatListener(handleNewMessage))
+onUnmounted(() => {
+  removeChatListener(handleNewMessage)
+  if (innerAudioContext && typeof innerAudioContext.destroy === 'function') {
+    innerAudioContext.destroy()
+  }
+})
 
 const shouldShowTime = (index) => {
   if (index === 0) return true
@@ -291,9 +306,9 @@ const handleNewMessage = (msg) => {
         const newMsg = { ...msg };
         
         // 关键修复：确保消息包含发送者头像
-        if (!newMsg.senderAvatar || newMsg.senderAvatar === '/static/user-placeholder.png') {
+        if (!newMsg.senderAvatar || newMsg.senderAvatar === userPlaceholder) {
             // 使用预加载的目标用户头像
-            newMsg.senderAvatar = targetAvatar.value || '/static/user-placeholder.png';
+            newMsg.senderAvatar = targetAvatar.value || userPlaceholder;
             console.log('设置发送者头像:', newMsg.senderAvatar);
         }
         
@@ -407,7 +422,7 @@ const sendVoice = async (path) => {
 }
 
 const chooseLocation = () => {
-    uni.chooseLocation({
+    chooseLocationWithGuard({
         success: (res) => {
             const locationData = JSON.stringify({
                 name: res.name,
@@ -434,6 +449,10 @@ const voiceCall = () => {
 
 // 交互逻辑
 const switchVoiceMode = () => {
+    if (!isVoiceMode.value && !recorderManager) {
+        showUnsupportedFeature('录音', '公网 IP 的 HTTP 页面不支持录音，请改用小程序或 HTTPS')
+        return
+    }
     isVoiceMode.value = !isVoiceMode.value
     if (isVoiceMode.value) {
         showPanel.value = false
@@ -491,21 +510,31 @@ const addEmoji = (emoji) => {
 }
 
 const startRecord = () => {
+    if (!recorderManager) {
+        showUnsupportedFeature('录音', '公网 IP 的 HTTP 页面不支持录音，请改用小程序或 HTTPS')
+        return
+    }
     recording.value = true
     recorderManager.start()
 }
 
 const stopRecord = () => {
+    if (!recorderManager) return
     // 录音结束在 onStop 中处理
     recorderManager.stop()
 }
 
 const cancelRecord = () => {
     recording.value = false
+    if (!recorderManager) return
     recorderManager.stop() // 需要标记不发送
 }
 
 const playVoice = (url) => {
+    if (!innerAudioContext) {
+        showUnsupportedFeature('语音播放', '当前环境不支持语音播放')
+        return
+    }
     innerAudioContext.src = getImageUrl(url)
     innerAudioContext.play()
 }
@@ -513,7 +542,7 @@ const playVoice = (url) => {
 const openLocation = (content) => {
     try {
         const loc = JSON.parse(content)
-        uni.openLocation({
+        openLocationWithGuard({
             latitude: loc.latitude,
             longitude: loc.longitude,
             name: loc.name,
@@ -537,29 +566,29 @@ const getAvatar = (msg) => {
     if (msg.senderId === currentUserId.value) {
         // 当前用户头像
         const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar
-        const avatarUrl = currentUserAvatar || '/static/user-placeholder.png'
+        const avatarUrl = currentUserAvatar || userPlaceholder
         console.log('当前陪诊师头像:', avatarUrl)
         return getImageUrl(avatarUrl)
     }
     
     // 对方用户头像
-    if (msg.senderAvatar && msg.senderAvatar !== '/static/user-placeholder.png' && msg.senderAvatar !== '/static/doctor-avatar.png') {
+    if (msg.senderAvatar && msg.senderAvatar !== userPlaceholder && msg.senderAvatar !== doctorAvatar) {
         console.log('使用消息中的用户头像:', msg.senderAvatar)
         return getImageUrl(msg.senderAvatar)
     }
     
     // 使用预加载的目标用户头像
-    if (targetAvatar.value && targetAvatar.value !== '/static/user-placeholder.png' && targetAvatar.value !== '/static/doctor-avatar.png') {
+    if (targetAvatar.value && targetAvatar.value !== userPlaceholder && targetAvatar.value !== doctorAvatar) {
         console.log('使用预加载用户头像:', targetAvatar.value)
         return targetAvatar.value
     }
     
     // 默认使用用户占位头像
     console.log('使用默认用户头像')
-    return '/static/user-placeholder.png'
+    return userPlaceholder
 }
 const getImageUrl = (url) => {
-  if (!url) return '/static/user-placeholder.png'; if (url.startsWith('http') || url.startsWith('wxfile')) return url;
+  if (!url) return userPlaceholder; if (url.startsWith('http') || url.startsWith('wxfile')) return url;
   const baseUrl = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL; return baseUrl + (url.startsWith('/') ? url : '/' + url)
 }
 const previewImage = (url) => uni.previewImage({ urls: [url], current: url })

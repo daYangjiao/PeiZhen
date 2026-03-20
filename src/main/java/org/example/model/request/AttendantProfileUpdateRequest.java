@@ -8,27 +8,27 @@ import lombok.Data;
 @ApiModel(description = "陪诊师个人中心资料更新请求")
 public class AttendantProfileUpdateRequest {
 
-    @ApiModelProperty("姓名")
+    @ApiModelProperty(value = "姓名", example = "李怀")
     private String name;
 
-    @ApiModelProperty("手机号")
+    @ApiModelProperty(value = "手机号", example = "13900139002")
     private String phone;
 
-    @ApiModelProperty("头像地址")
+    @ApiModelProperty(value = "头像地址", example = "/uploads/avatar_20260320.png")
     private String avatarUrl;
 
-    @ApiModelProperty("个人简介")
+    @ApiModelProperty(value = "个人简介", example = "擅长三甲医院门诊陪诊，沟通耐心细致。")
     private String introduction;
 
-    @ApiModelProperty("擅长领域")
+    @ApiModelProperty(value = "擅长领域", example = "肿瘤科, 心内科")
     private String professionalField;
 
-    @ApiModelProperty("从业年限")
+    @ApiModelProperty(value = "从业年限", example = "5")
     private Integer experienceYears;
 
-    @ApiModelProperty("常驻医院")
+    @ApiModelProperty(value = "常驻医院", example = "北京协和医院")
     private String hospitalName;
 
-    @ApiModelProperty("资质证书编号")
+    @ApiModelProperty(value = "资质证书编号", example = "CERT-2026-0001")
     private String certificate;
 }

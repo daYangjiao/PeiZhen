@@ -2,8 +2,11 @@ package org.example.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.example.common.ResponseResult;
+import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +29,7 @@ import java.util.UUID;
 @Api(tags = "文件上传接口")
 public class FileUploadController {
 
-    @Value("${app.upload-dir:D:/NSU/lab/2026.02.15houduan/src/main/resources/static/uploads}")
+    @Value("${app.upload-dir:${user.dir}/uploads}")
     private String uploadDirBase;
 
     private String getUploadDir() {
@@ -34,9 +37,16 @@ public class FileUploadController {
         return dir.endsWith("/") ? dir : dir + "/";
     }
 
-    @PostMapping("/upload")
-    @ApiOperation("上传文件")
-    public ResponseResult<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiOperation(value = "上传文件", notes = "上传任意业务文件，单文件大小限制 5MB。成功后返回可访问的相对路径。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "上传成功，data 为文件访问路径"),
+            @ApiResponse(code = 400, message = "未上传文件、文件为空或文件过大"),
+            @ApiResponse(code = 500, message = "文件保存失败")
+    })
+    public ResponseResult<String> uploadFile(
+            @ApiParam(value = "待上传文件，表单字段名固定为 file", required = true)
+            @RequestParam("file") MultipartFile file) {
         try {
             // 检查文件是否为空
             if (file.isEmpty()) {
@@ -91,9 +101,16 @@ public class FileUploadController {
         return timestamp + "_" + uuid + extension;
     }
 
-    @PostMapping("/upload-image")
-    @ApiOperation("上传图片")
-    public ResponseResult<String> uploadImage(@RequestParam("file") MultipartFile file) {
+    @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiOperation(value = "上传图片", notes = "上传图片文件，支持 jpg/jpeg/png/gif/bmp/webp，大小限制沿用通用上传规则。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "上传成功，data 为图片访问路径"),
+            @ApiResponse(code = 400, message = "文件不是图片或格式不支持"),
+            @ApiResponse(code = 500, message = "文件保存失败")
+    })
+    public ResponseResult<String> uploadImage(
+            @ApiParam(value = "待上传图片，表单字段名固定为 file", required = true)
+            @RequestParam("file") MultipartFile file) {
         // 检查文件类型
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {

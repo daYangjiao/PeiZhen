@@ -14,6 +14,7 @@ const escortTabs = [
 ]
 
 const MESSAGE_BADGE_STORAGE_KEY = 'tabbar_message_badge'
+const platformApi = typeof uni !== 'undefined' ? uni : wx
 
 const isMessageTab = (pagePath) => /\/message$/.test(pagePath || '')
 
@@ -43,10 +44,10 @@ Component({
   },
   methods: {
     updateTabs() {
-      const role = wx.getStorageSync('role') || 'user'
-      const pages = getCurrentPages()
-      const currentRoute = pages[pages.length - 1].route
-      const badgeCount = Number(wx.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
+      const role = platformApi.getStorageSync('role') || 'user'
+      const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+      const currentRoute = pages.length ? pages[pages.length - 1].route : ''
+      const badgeCount = Number(platformApi.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
       const sourceTabs = role === 'escort' ? escortTabs : userTabs
       const tabs = withMessageBadge(sourceTabs, badgeCount)
       const index = tabs.findIndex(t => t.pagePath === currentRoute)
@@ -57,7 +58,7 @@ Component({
       })
     },
     syncBadge() {
-      const nextBadgeCount = Number(wx.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
+      const nextBadgeCount = Number(platformApi.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
       if (nextBadgeCount === this.data.badgeCount) return
       const tabs = (this.data.tabs || []).map(tab => Object.assign({}, tab, {
         badge: isMessageTab(tab.pagePath) ? nextBadgeCount : 0
@@ -72,7 +73,7 @@ Component({
       const item = this.data.tabs[index]
       const url = '/' + item.pagePath
       this.setData({ selectedIndex: index })
-      wx.switchTab({ url })
+      platformApi.switchTab({ url })
     }
   },
   pageLifetimes: {

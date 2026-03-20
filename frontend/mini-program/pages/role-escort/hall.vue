@@ -132,6 +132,7 @@ import OrderCard from '@/components/OrderCard.vue'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import { get, post } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { userPlaceholder } from '@/utils/assets.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -199,7 +200,7 @@ const formatOrderData = (raw) => {
 	const otherRequirement = (raw.customRequirement && raw.customRequirement !== '无') ? raw.customRequirement : ''
 
 	// 接单大厅：出于隐私保护，统一使用本地默认头像（与原陪诊师端一致）
-	const placeholder = '/static/user-placeholder.png'
+	const placeholder = userPlaceholder
 
 	return {
 		id: raw.orderId,

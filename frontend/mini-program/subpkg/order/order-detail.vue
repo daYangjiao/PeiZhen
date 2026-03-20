@@ -474,6 +474,8 @@ import { ref, computed, onUnmounted } from 'vue';
 import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app';
 import { get, post, put, config } from '@/utils/api.js';
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js';
+import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
+import { userPlaceholder } from '@/utils/assets.js';
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -870,7 +872,7 @@ const submitCancelOrder = async () => {
 
 // 获取头像URL
 const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return '/static/user-placeholder.png';
+  if (!avatarPath) return userPlaceholder;
   if (avatarPath.startsWith('http')) return avatarPath;
   const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL;
   const path = avatarPath.startsWith('/') ? avatarPath : '/' + avatarPath;
@@ -918,7 +920,7 @@ const handleContactChoice = (type) => {
 
   if (type === 'phone') {
     if (phone) {
-      uni.makePhoneCall({ phoneNumber: phone });
+      makePhoneCallWithGuard(phone);
     } else {
       uni.showToast({ title: '暂未提供陪诊师电话', icon: 'none' });
     }

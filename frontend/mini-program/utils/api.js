@@ -1,7 +1,79 @@
 import { useSessionStore } from '@/stores/session'
 
+const trimTrailingSlash = (value = '') => value.replace(/\/+$/, '')
+const MINI_PROGRAM_HTTP_FALLBACK_BASE_URL = 'http://101.245.94.141'
+
+const readStorageValue = (keys = []) => {
+  if (typeof uni === 'undefined' || typeof uni.getStorageSync !== 'function') return ''
+
+  for (const key of keys) {
+    const value = uni.getStorageSync(key)
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+
+  return ''
+}
+
+export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
+
+export const canUseRemoteImageUrl = (url = '') => {
+  if (!url) return false
+  if (!isWeixinMiniProgramRuntime()) return true
+  return /^https:\/\//i.test(url)
+}
+
+const resolveMiniProgramApiBaseURL = () => {
+  return trimTrailingSlash(
+    readStorageValue(['mpApiBaseURL', 'apiBaseURL']) || MINI_PROGRAM_HTTP_FALLBACK_BASE_URL
+  )
+}
+
+const resolveMiniProgramAssetBaseURL = () => {
+  return trimTrailingSlash(
+    readStorageValue(['mpAssetBaseURL', 'assetBaseURL']) || resolveMiniProgramApiBaseURL()
+  )
+}
+
+const resolveMiniProgramWsBaseURL = () => {
+  const storedWsBaseURL = readStorageValue(['mpWsBaseURL', 'wsBaseURL'])
+  if (storedWsBaseURL) return trimTrailingSlash(storedWsBaseURL)
+  return resolveMiniProgramApiBaseURL().replace(/^http/i, 'ws')
+}
+
+const resolveBaseURL = () => {
+  if (isWeixinMiniProgramRuntime()) return resolveMiniProgramApiBaseURL()
+
+  const storedBaseUrl = readStorageValue(['apiBaseURL'])
+
+  if (storedBaseUrl) return trimTrailingSlash(storedBaseUrl)
+
+  if (typeof window !== 'undefined' && window.location?.origin && /^https?:/.test(window.location.origin)) {
+    return trimTrailingSlash(window.location.origin)
+  }
+
+  return 'http://localhost:8080'
+}
+
+const resolveAssetBaseURL = () => {
+  if (isWeixinMiniProgramRuntime()) return resolveMiniProgramAssetBaseURL()
+
+  const storedAssetBaseUrl = readStorageValue(['assetBaseURL'])
+  if (storedAssetBaseUrl) return trimTrailingSlash(storedAssetBaseUrl)
+
+  return resolveBaseURL()
+}
+
 export const config = {
-  baseURL: 'http://localhost:8080',
+  get baseURL() {
+    return resolveBaseURL()
+  },
+  get assetBaseURL() {
+    return resolveAssetBaseURL()
+  },
+  get wsBaseURL() {
+    if (isWeixinMiniProgramRuntime()) return resolveMiniProgramWsBaseURL()
+    return this.baseURL.replace(/^http/i, 'ws')
+  },
   timeout: 10000
 }
 
@@ -19,7 +91,7 @@ export const setToken = (token) => {
 
 export const clearToken = () => setToken('')
 
-const buildUrl = (url) => {
+export const buildUrl = (url) => {
   if (url.startsWith('http')) return url
   return config.baseURL + url
 }
@@ -121,7 +193,7 @@ export const upload = (url, filePath, formData = {}, name = 'file') => {
 export const getBackendImageUrl = (path) => {
   if (!path) return ''
   if (path.startsWith('http')) return path
-  let base = config.baseURL
+  let base = config.assetBaseURL
   if (base.endsWith('/')) base = base.slice(0, -1)
   // 已是完整相对路径（如 /uploads/avatar.jpg）
   if (path.startsWith('/uploads/')) return base + path
@@ -130,3 +202,8 @@ export const getBackendImageUrl = (path) => {
   return `${base}/uploads/frontend-images/${name}`
 }
 
+export const getLocalFirstImageUrl = (backendPath, localPath) => {
+  const remoteUrl = getBackendImageUrl(backendPath)
+  if (localPath && !canUseRemoteImageUrl(remoteUrl)) return localPath
+  return remoteUrl
+}

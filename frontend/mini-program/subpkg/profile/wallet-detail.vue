@@ -41,7 +41,7 @@
     <view v-if="activeTag === 'withdraw'" class="card slide-up delay-2">
       <view class="withdraw-head">
         <text class="section-title">提现操作</text>
-        <text class="head-tip">随时可提现</text>
+        <text class="head-tip">{{ withdrawFeatureAvailable ? '随时可提现' : '暂未接入' }}</text>
       </view>
 
       <view class="method-row">
@@ -49,7 +49,7 @@
           <image class="wechat-icon" src="/static/wechat-icon.png" mode="aspectFit"></image>
           <text class="method-name">微信提现</text>
         </view>
-        <text class="method-status">已绑定 · 尾号8912</text>
+        <text class="method-status">{{ withdrawFeatureAvailable ? '已绑定 · 尾号8912' : '暂未开放' }}</text>
       </view>
 
       <view class="input-row">
@@ -66,10 +66,10 @@
         <view class="ghost-btn" @click="setAll"><text>全部提现</text></view>
       </view>
 
-      <text v-if="showEstimate" class="estimate">预计到账：¥{{ amountText }}</text>
+      <text v-if="withdrawFeatureAvailable && showEstimate" class="estimate">预计到账：¥{{ amountText }}</text>
 
       <view class="submit-btn" :class="{ disabled: submitDisabled }" @click="submitWithdraw">
-        <text>{{ submitting ? '提交中...' : '确认提现' }}</text>
+        <text>{{ withdrawFeatureAvailable ? (submitting ? '提交中...' : '确认提现') : '提现功能暂未接入' }}</text>
       </view>
     </view>
 
@@ -78,7 +78,7 @@
         <text class="section-title">{{ activeTag === 'withdraw' ? '近期提现记录' : '收支记录' }}</text>
       </view>
 
-      <view v-if="showNotIntegrated" class="empty-wrap"><text>暂未接入</text></view>
+      <view v-if="showNotIntegrated" class="empty-wrap"><text>{{ notIntegratedText }}</text></view>
       <view v-else-if="recordsLoading" class="empty-wrap"><text>加载中...</text></view>
       <view v-else-if="filteredRecords.length === 0" class="empty-wrap"><text>暂无记录</text></view>
       <view v-else>
@@ -116,6 +116,7 @@ const incomeRecords = ref([])
 const withdrawRecords = ref([])
 const amount = ref('')
 const submitting = ref(false)
+const withdrawFeatureAvailable = false
 
 const tags = [
   { key: 'all', label: '全部' },
@@ -192,7 +193,14 @@ const recordsLoading = computed(() => {
   return false
 })
 
-const showNotIntegrated = computed(() => activeTag.value === 'compensation')
+const showNotIntegrated = computed(() => {
+  return activeTag.value === 'compensation' || (activeTag.value === 'withdraw' && !withdrawFeatureAvailable)
+})
+
+const notIntegratedText = computed(() => {
+  if (activeTag.value === 'withdraw') return '提现功能暂未接入'
+  return '暂未接入'
+})
 
 const allRecords = computed(() => {
   return [...normalizedIncome.value, ...normalizedWithdraw.value]
@@ -211,6 +219,7 @@ const parsedAmount = computed(() => Number(amount.value || 0))
 const amountText = computed(() => formatMoney(parsedAmount.value))
 const showEstimate = computed(() => parsedAmount.value > 0)
 const submitDisabled = computed(() => {
+  if (!withdrawFeatureAvailable) return true
   return submitting.value || parsedAmount.value <= 0 || parsedAmount.value > Number(balance.value || 0)
 })
 
@@ -230,6 +239,9 @@ const onTagChange = (tag) => {
 
 const openWithdraw = () => {
   activeTag.value = 'withdraw'
+  if (!withdrawFeatureAvailable) {
+    uni.showToast({ title: '提现功能暂未接入', icon: 'none' })
+  }
 }
 
 const loadIncome = async (uid) => {
@@ -255,6 +267,11 @@ const loadIncome = async (uid) => {
 }
 
 const loadWithdrawRecords = async (uid) => {
+  if (!withdrawFeatureAvailable) {
+    withdrawRecords.value = []
+    loadingWithdraw.value = false
+    return
+  }
   loadingWithdraw.value = true
   try {
     const res = await get('/attendant/withdraw/records', { userId: uid, page: 0, size: 20 })
@@ -273,6 +290,10 @@ const loadWithdrawRecords = async (uid) => {
 }
 
 const submitWithdraw = async () => {
+  if (!withdrawFeatureAvailable) {
+    uni.showToast({ title: '提现功能暂未接入', icon: 'none' })
+    return
+  }
   if (submitDisabled.value) return
   const uid = userId()
   if (!uid) {

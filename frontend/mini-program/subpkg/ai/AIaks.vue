@@ -89,10 +89,10 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { getBackendImageUrl } from '@/utils/api.js'
-import { askMedicalQuestion } from '@/api/aiaks.js'
+import { getLocalFirstImageUrl } from '@/utils/api.js'
+import { askMedicalQuestion } from './api.js'
 
-const AIAvatar = getBackendImageUrl('ai-avatar.png')
+const AIAvatar = getLocalFirstImageUrl('ai-avatar.png', '/static/mynewlogo.png')
 
 const messages = ref([
   {
@@ -176,12 +176,15 @@ onMounted(() => {
 @import '@/styles/user-ui.scss';
 
 .ai-page {
-  height: 100vh;
+  min-height: 100vh;
+  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
+  height: calc(100dvh - var(--window-top, 0px) - var(--window-bottom, 0px));
   width: 100%;
   overflow: hidden;
   background: linear-gradient(180deg, #edf4ff 0%, #f4f7fb 180rpx, #f5f7fa 100%);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .hero-card {
@@ -245,8 +248,10 @@ onMounted(() => {
 
 .chat-scroll {
   flex: 1;
+  height: 0;
   min-height: 0;
   padding: 0 20rpx;
+  box-sizing: border-box;
 }
 
 .chat-list {
@@ -309,9 +314,13 @@ onMounted(() => {
 
 .composer {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
   background: #fff;
   border-top: 1rpx solid #e7edf5;
   padding: 16rpx 18rpx 8rpx;
+  box-sizing: border-box;
+  box-shadow: 0 -8rpx 24rpx rgba(31, 41, 55, 0.05);
 }
 
 .term-card {
@@ -417,4 +426,15 @@ onMounted(() => {
   border: none;
   box-shadow: none;
 }
+
+/* #ifdef H5 */
+.ai-page {
+  max-height: calc(100dvh - var(--window-top, 0px) - var(--window-bottom, 0px));
+}
+
+.composer {
+  position: sticky;
+  bottom: 0;
+}
+/* #endif */
 </style>

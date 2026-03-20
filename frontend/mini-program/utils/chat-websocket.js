@@ -11,7 +11,7 @@ export const connectChatSocket = () => {
   const token = getToken()
   const userInfo = uni.getStorageSync('userInfo')
 
-  if (!userInfo || !userInfo.id) {
+  if (!token || !userInfo || !userInfo.id) {
     activeUserId = null
     isConnecting = false
     isOpen = false
@@ -41,7 +41,7 @@ export const connectChatSocket = () => {
 
   isConnecting = true
   activeUserId = userId
-  const wsUrl = config.baseURL.replace('http', 'ws') + `/ws/chat?userId=${userId}`
+  const wsUrl = config.wsBaseURL + `/ws/chat?token=${encodeURIComponent(token)}`
 
   socketTask = uni.connectSocket({
     url: wsUrl,

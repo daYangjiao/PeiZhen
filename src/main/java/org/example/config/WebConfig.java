@@ -1,17 +1,23 @@
 package org.example.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Value("${app.upload-dir:${user.dir}/uploads}")
+    private String uploadDir;
+
     @Override
-   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 头像/图片：数据库存 /uploads/xxx，映射到 classpath:/static/uploads/
-        // Spring Boot 会自动处理 src/main/resources/static -> target/classes/static
-       registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("classpath:/static/uploads/");
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations(uploadPath.toUri().toString(), "classpath:/static/uploads/");
     }
 }

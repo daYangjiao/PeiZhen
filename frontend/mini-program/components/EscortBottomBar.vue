@@ -3,19 +3,19 @@
     <view class="bar-inner">
       <view class="bar-item" @click="go('/pages/role-escort/hall')">
         <view class="icon-wrap">
-          <image class="icon" :src="active === 'hall' ? '/static/shouye_active.png' : '/static/shouye.png'" mode="aspectFit" />
+          <image class="icon" :src="active === 'hall' ? tabIcons.hall.active : tabIcons.hall.default" mode="aspectFit" />
         </view>
         <text class="text" :class="{ active: active === 'hall' }">接单厅</text>
       </view>
       <view class="bar-item" @click="go('/pages/role-escort/order')">
         <view class="icon-wrap">
-          <image class="icon" :src="active === 'order' ? '/static/order_active.png' : '/static/order.png'" mode="aspectFit" />
+          <image class="icon" :src="active === 'order' ? tabIcons.order.active : tabIcons.order.default" mode="aspectFit" />
         </view>
         <text class="text" :class="{ active: active === 'order' }">订单</text>
       </view>
       <view class="bar-item" @click="go('/pages/role-escort/message')">
         <view class="icon-wrap">
-          <image class="icon" :src="active === 'message' ? '/static/xiaoxi_2_active.png' : '/static/xiaoxi_2.png'" mode="aspectFit" />
+          <image class="icon" :src="active === 'message' ? tabIcons.message.active : tabIcons.message.default" mode="aspectFit" />
           <view class="message-badge" v-if="messageUnread > 0">
             <text>{{ messageUnread > 99 ? '99+' : messageUnread }}</text>
           </view>
@@ -24,7 +24,7 @@
       </view>
       <view class="bar-item" @click="go('/pages/role-escort/profile')">
         <view class="icon-wrap">
-          <image class="icon" :src="active === 'profile' ? '/static/wode_2_active.png' : '/static/wode_2.png'" mode="aspectFit" />
+          <image class="icon" :src="active === 'profile' ? tabIcons.profile.active : tabIcons.profile.default" mode="aspectFit" />
         </view>
         <text class="text" :class="{ active: active === 'profile' }">我的</text>
       </view>
@@ -35,6 +35,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useMessageStore } from '@/stores/message.js'
+import { escortTabIcons } from '@/utils/assets.js'
 
 defineProps({
   active: { type: String, default: 'hall' }
@@ -42,6 +43,7 @@ defineProps({
 
 const messageStore = useMessageStore()
 const messageUnread = computed(() => messageStore.totalUnreadCount)
+const tabIcons = escortTabIcons
 
 const refreshUnreadBadge = () => {
   messageStore.scheduleRefreshUnreadCounts(120)

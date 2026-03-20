@@ -187,13 +187,7 @@ export const useMessageStore = defineStore('message', {
       const total = this.systemUnreadCount + this.unreadTotal
       try {
         uni.setStorageSync(TABBAR_MESSAGE_BADGE_KEY, total)
-        const role = uni.getStorageSync('role')
-        if (role && role !== 'user') return
-        if (total > 0) {
-          uni.setTabBarBadge({ index: 3, text: total > 99 ? '99+' : String(total) })
-        } else {
-          uni.removeTabBarBadge({ index: 3 })
-        }
+        // 当前项目使用 custom tabBar，徽标由 custom-tab-bar 组件自行从 storage 同步
       } catch (e) {}
     }
   }

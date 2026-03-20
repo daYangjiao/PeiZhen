@@ -2,6 +2,9 @@ package org.example.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
@@ -9,9 +12,9 @@ import org.example.model.User;
 import org.example.service.UserService;
 import org.example.unity.JwtUtil;
 import org.example.util.AuthUtil;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import springfox.documentation.annotations.ApiIgnore;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -30,8 +33,16 @@ public class UserController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    @ApiOperation("用户注册")
-    public ResponseResult<Integer> register(@Valid @RequestBody User user, BindingResult bindingResult) {
+    @ApiOperation(value = "用户注册", notes = "注册普通用户或陪诊师账号。请求体需要提供 username、password、userType 等基础字段。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "注册成功，data 为新用户 ID"),
+            @ApiResponse(code = 400, message = "参数校验失败或用户名已存在"),
+            @ApiResponse(code = 500, message = "注册失败")
+    })
+    public ResponseResult<Integer> register(
+            @ApiParam(value = "用户注册请求体", required = true)
+            @Valid @RequestBody User user,
+            @ApiIgnore BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return ResponseResult.error(bindingResult.getFieldError().getDefaultMessage());
         }
@@ -47,8 +58,15 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    @ApiOperation("用户登录")
-    public ResponseResult<Map<String, Object>> login(@RequestBody User user) {
+    @ApiOperation(value = "用户登录", notes = "使用用户名和密码登录。成功后返回 token 及 userInfo，后续受保护接口需通过请求头携带 token。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "登录成功，返回 token 和用户信息"),
+            @ApiResponse(code = 400, message = "用户名或密码错误"),
+            @ApiResponse(code = 500, message = "服务器内部错误")
+    })
+    public ResponseResult<Map<String, Object>> login(
+            @ApiParam(value = "登录请求体，仅需传入 username 和 password", required = true)
+            @RequestBody User user) {
         try {
             User loggedUser = userService.login(user.getUsername(), user.getPassword());
             if (loggedUser != null) {
@@ -70,8 +88,14 @@ public class UserController {
     }
 
     @GetMapping("/current")
-    @ApiOperation("获取当前用户信息")
-    public ResponseResult<User> getCurrentUser(HttpServletRequest request) {
+    @ApiOperation(value = "获取当前用户信息", notes = "根据请求头中的 token 解析当前登录用户，并返回最新用户资料。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功"),
+            @ApiResponse(code = 401, message = "用户未登录或 token 无效"),
+            @ApiResponse(code = 404, message = "用户不存在"),
+            @ApiResponse(code = 500, message = "获取失败")
+    })
+    public ResponseResult<User> getCurrentUser(@ApiIgnore HttpServletRequest request) {
         try {
             Integer currentUserId = AuthUtil.getCurrentUserId(request);
             if (currentUserId == null) {
@@ -87,17 +111,26 @@ public class UserController {
             return ResponseResult.error("获取失败: " + e.getMessage());
         }
     }
-    
-    // 其他CRUD接口根据需要保留或移除
+
     @GetMapping
-    @ApiOperation("查询所有用户")
+    @ApiOperation(value = "查询所有用户", notes = "后台调试接口，返回系统中的全部用户列表。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功"),
+            @ApiResponse(code = 500, message = "查询失败")
+    })
     public ResponseResult<List<User>> getAllUsers() {
         return ResponseResult.success(userService.findAll());
     }
 
     @GetMapping("/{id}")
-    @ApiOperation("根据ID查询用户")
-    public ResponseResult<User> getUser(@PathVariable Integer id) {
+    @ApiOperation(value = "根据ID查询用户", notes = "按用户主键查询单个用户详情。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功"),
+            @ApiResponse(code = 404, message = "用户不存在")
+    })
+    public ResponseResult<User> getUser(
+            @ApiParam(value = "用户ID", required = true, example = "9")
+            @PathVariable Integer id) {
         User user = userService.findById(id);
         if (user == null) {
             return ResponseResult.error("用户不存在");
@@ -106,8 +139,18 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @ApiOperation("更新用户信息")
-    public ResponseResult<Integer> updateUser(@PathVariable Integer id, @Valid @RequestBody User user, BindingResult bindingResult) {
+    @ApiOperation(value = "更新用户信息", notes = "根据用户 ID 更新基础资料。请求体中的 id 会被路径参数覆盖。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "更新成功，data 为影响行数"),
+            @ApiResponse(code = 400, message = "参数校验失败"),
+            @ApiResponse(code = 500, message = "更新失败")
+    })
+    public ResponseResult<Integer> updateUser(
+            @ApiParam(value = "用户ID", required = true, example = "9")
+            @PathVariable Integer id,
+            @ApiParam(value = "用户更新请求体", required = true)
+            @Valid @RequestBody User user,
+            @ApiIgnore BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return ResponseResult.error(bindingResult.getFieldError().getDefaultMessage());
         }
@@ -117,8 +160,15 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @ApiOperation("删除用户")
-    public ResponseResult<Void> deleteUser(@PathVariable Integer id) {
+    @ApiOperation(value = "删除用户", notes = "按用户 ID 删除指定用户。该接口偏后台管理用途。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "删除成功"),
+            @ApiResponse(code = 404, message = "用户不存在"),
+            @ApiResponse(code = 500, message = "删除失败")
+    })
+    public ResponseResult<Void> deleteUser(
+            @ApiParam(value = "用户ID", required = true, example = "9")
+            @PathVariable Integer id) {
         userService.delete(id);
         return ResponseResult.success(null);
     }

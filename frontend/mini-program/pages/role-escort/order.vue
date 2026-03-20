@@ -105,6 +105,7 @@ import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import { get, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { userPlaceholder } from '@/utils/assets.js'
 
 const searchKeyword = ref('')
 
@@ -210,7 +211,7 @@ const getStatusClass = (status) => {
 }
 
 const getPatientAvatar = (order) => {
-  const placeholder = '/static/user-placeholder.png'
+  const placeholder = userPlaceholder
   if (!order || !order.userAvatar) return placeholder
   const path = order.userAvatar
   if (path.startsWith('http')) return path

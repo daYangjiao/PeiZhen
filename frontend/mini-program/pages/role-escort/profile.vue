@@ -83,6 +83,18 @@ import { useSessionStore } from '@/stores/session'
 import { useUserStore } from '@/stores/user'
 import { clearToken, config } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import {
+  escortRules,
+  escortServiceCenter,
+  escortStats,
+  escortWallet,
+  help,
+  order,
+  ren1,
+  settings,
+  userPlaceholder,
+  xin
+} from '@/utils/assets.js'
 
 const session = useSessionStore()
 const userStore = useUserStore()
@@ -116,14 +128,14 @@ const menuGroups = computed(() => [
     {
       key: 'walletDetail',
       title: '钱包明细',
-      icon: '/static/escort-wallet.svg',
+      icon: escortWallet,
       balance: balance.value,
       route: '/subpkg/profile/wallet-detail'
     },
     {
       key: 'qualification',
       title: '资质管理',
-      icon: '/static/ren_1.png',
+      icon: ren1,
       statusText: attendantInfo.value.qualificationStatusText || '待审核',
       statusType: qualificationStatusType.value,
       route: '/subpkg/profile/qualification'
@@ -133,20 +145,20 @@ const menuGroups = computed(() => [
     {
       key: 'reviews',
       title: '我的评价',
-      icon: '/static/xin.png',
+      icon: xin,
       route: '/subpkg/profile/reviews'
     },
     {
       key: 'historyOrders',
       title: '历史订单',
-      icon: '/static/order.png',
+      icon: order,
       route: '/pages/role-escort/order',
       mode: 'relaunch'
     },
     {
       key: 'serviceStats',
       title: '服务统计',
-      icon: '/static/escort-stats.svg',
+      icon: escortStats,
       route: '/subpkg/profile/service-stats'
     }
   ],
@@ -154,25 +166,25 @@ const menuGroups = computed(() => [
     {
       key: 'platformRules',
       title: '平台规则',
-      icon: '/static/escort-rules.svg',
+      icon: escortRules,
       route: '/subpkg/profile/platform-rules'
     },
     {
       key: 'serviceCenter',
       title: '客服中心',
-      icon: '/static/escort-service-center.svg',
+      icon: escortServiceCenter,
       route: '/subpkg/profile/service-center'
     },
     {
       key: 'helpCenter',
       title: '帮助中心',
-      icon: '/static/help.png',
+      icon: help,
       route: '/subpkg/profile/help'
     },
     {
       key: 'settings',
       title: '设置',
-      icon: '/static/settings.png',
+      icon: settings,
       route: '/subpkg/profile/settings'
     }
   ]
@@ -180,7 +192,7 @@ const menuGroups = computed(() => [
 
 const getFullAvatarUrl = (relativePath) => {
   if (!relativePath) {
-    return '/static/user-placeholder.png'
+    return userPlaceholder
   }
   if (relativePath.startsWith('http')) {
     return relativePath

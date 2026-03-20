@@ -98,8 +98,9 @@ import { useUserStore } from '@/stores/user'
 import { config } from '@/utils/api.js'
 import { getUserById } from '@/api/user.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { userPlaceholder } from '@/utils/assets.js'
 
-const PLACEHOLDER_AVATAR = '/static/user-placeholder.png'
+const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
 const avatarLoadFailed = ref(false)
 
@@ -371,4 +372,3 @@ onShow(() => {
 	font-weight: bold;
 }
 </style>
-

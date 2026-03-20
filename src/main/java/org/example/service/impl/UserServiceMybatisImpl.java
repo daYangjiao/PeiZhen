@@ -6,17 +6,23 @@ import org.example.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class UserServiceMybatisImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceMybatisImpl.class);
+    private static final Pattern BCRYPT_PATTERN = Pattern.compile("^\\$2[aby]?\\$.{56}$");
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public User findById(Integer id) {
@@ -43,8 +49,7 @@ public class UserServiceMybatisImpl implements UserService {
         if (user.getUserType() == null) {
             user.setUserType(0); // 默认为普通用户
         }
-        // 在这里可以添加密码加密逻辑
-        // user.setPassword(passwordEncoder.encode(user.getPassword()));
+        encodePasswordIfNeeded(user);
         userMapper.save(user);
         logger.info("用户 {} 注册成功，ID: {}", user.getUsername(), user.getId());
         return user.getId();
@@ -52,6 +57,7 @@ public class UserServiceMybatisImpl implements UserService {
 
     @Override
     public int update(User user) {
+        encodePasswordIfNeeded(user);
         return userMapper.update(user);
     }
 
@@ -67,19 +73,53 @@ public class UserServiceMybatisImpl implements UserService {
             logger.warn("登录失败：用户 {} 不存在", username);
             return null;
         }
-        // 在这里可以添加密码匹配逻辑
-        // if (passwordEncoder.matches(password, user.getPassword())) {
-        if (user.getPassword().equals(password)) {
-            logger.info("用户 {} 登录成功", username);
-            return user;
-        } else {
-            logger.warn("登录失败：用户 {} 密码错误", username);
+
+        String storedPassword = user.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            logger.warn("登录失败：用户 {} 未设置有效密码", username);
             return null;
         }
+
+        if (isEncodedPassword(storedPassword)) {
+            if (passwordEncoder.matches(password, storedPassword)) {
+                logger.info("用户 {} 登录成功", username);
+                return user;
+            }
+        } else if (storedPassword.equals(password)) {
+            upgradeLegacyPassword(user, password);
+            logger.info("用户 {} 登录成功", username);
+            return user;
+        }
+
+        logger.warn("登录失败：用户 {} 密码错误", username);
+        return null;
     }
     
     @Override
     public User getUserById(Integer userId) {
         return findById(userId);
+    }
+
+    private void encodePasswordIfNeeded(User user) {
+        if (user == null) {
+            return;
+        }
+
+        String password = user.getPassword();
+        if (password == null || password.isBlank() || isEncodedPassword(password)) {
+            return;
+        }
+
+        user.setPassword(passwordEncoder.encode(password));
+    }
+
+    private boolean isEncodedPassword(String password) {
+        return password != null && BCRYPT_PATTERN.matcher(password).matches();
+    }
+
+    private void upgradeLegacyPassword(User user, String rawPassword) {
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        userMapper.update(user);
+        logger.info("用户 {} 的旧版明文密码已升级为加密存储", user.getUsername());
     }
 }

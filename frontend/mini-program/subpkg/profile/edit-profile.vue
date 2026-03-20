@@ -82,10 +82,11 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '@/api/user.js'
 import { config } from '@/utils/api.js'
+import { userPlaceholder } from '@/utils/assets.js'
 
 // 与陪诊师端一致：将数据库头像路径转为完整 URL
 const getFullAvatarUrl = (relativePath) => {
-	if (!relativePath) return '/static/user-placeholder.png'
+	if (!relativePath) return userPlaceholder
 	if (relativePath.startsWith('http')) return relativePath
 	const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
 	const path = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath

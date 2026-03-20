@@ -107,6 +107,7 @@ import { get, config } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
+import { defaultAvatar } from '@/utils/assets.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
@@ -270,7 +271,7 @@ const getStatusClass = (status) => {
 }
 
 const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return '/static/default-avatar.jpg'
+  if (!avatarPath) return defaultAvatar
   if (avatarPath.startsWith('http')) return avatarPath
   if (avatarPath.startsWith('/uploads/')) return config.baseURL + avatarPath
   if (avatarPath.startsWith('/')) return config.baseURL + avatarPath

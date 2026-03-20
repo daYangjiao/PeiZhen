@@ -4,9 +4,10 @@ let socketTask = null
 const listeners = []
 
 export const connectOrderSocket = () => {
+  const token = getToken()
   const userInfo = uni.getStorageSync('userInfo')
-  if (!userInfo?.id) return
-  const wsUrl = config.baseURL.replace('http', 'ws') + `/ws/orders?userId=${userInfo.id}`
+  if (!token || !userInfo?.id) return
+  const wsUrl = config.wsBaseURL + `/ws/orders?token=${encodeURIComponent(token)}`
   socketTask = uni.connectSocket({ url: wsUrl })
   socketTask.onMessage((res) => {
     try {

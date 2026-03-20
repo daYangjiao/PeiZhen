@@ -60,6 +60,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { appointmentDetailIcons } from '@/utils/assets.js'
 
 // 响应式数据
 const selectedService = ref(null) // 存储选中的服务类型 key
@@ -69,33 +70,33 @@ const serviceDetails = ref({
 	general: {
 		title: '普通陪诊服务详情',
 		details: [
-			{ icon: '/static/time.png', text: '2小时起约，可根据需要延长' },
-			{ icon: '/static/ren_1.png', text: '¥50/起步价，1小时可延长活动' },
-			{ icon: '/static/help.png', text: '医院内陪同，包括挂号、缴费、取药等' }
+			{ icon: appointmentDetailIcons.time, text: '2小时起约，可根据需要延长' },
+			{ icon: appointmentDetailIcons.ren1, text: '¥50/起步价，1小时可延长活动' },
+			{ icon: appointmentDetailIcons.help, text: '医院内陪同，包括挂号、缴费、取药等' }
 		]
 	},
 	postop: {
 		title: '术后护理服务详情',
 		details: [
-			{ icon: '/static/time.png', text: '24小时专业护理，术后恢复指导' },
-			{ icon: '/static/ren_1.png', text: '¥80/起步价，专业护理人员' },
-			{ icon: '/static/help.png', text: '术后康复指导、伤口护理、用药提醒' }
+			{ icon: appointmentDetailIcons.time, text: '24小时专业护理，术后恢复指导' },
+			{ icon: appointmentDetailIcons.ren1, text: '¥80/起步价，专业护理人员' },
+			{ icon: appointmentDetailIcons.help, text: '术后康复指导、伤口护理、用药提醒' }
 		]
 	},
 	emergency: {
 		title: '急诊陪同服务详情',
 		details: [
-			{ icon: '/static/time.png', text: '24小时随时响应，紧急情况优先' },
-			{ icon: '/static/ren_1.png', text: '¥100/起步价，急诊专业陪护' },
-			{ icon: '/static/help.png', text: '急诊科陪同、协助医生沟通、家属联系' }
+			{ icon: appointmentDetailIcons.time, text: '24小时随时响应，紧急情况优先' },
+			{ icon: appointmentDetailIcons.ren1, text: '¥100/起步价，急诊专业陪护' },
+			{ icon: appointmentDetailIcons.help, text: '急诊科陪同、协助医生沟通、家属联系' }
 		]
 	},
 	home: {
 		title: '上门陪诊服务详情',
 		details: [
-			{ icon: '/static/time.png', text: '预约上门，专业陪诊师到家服务' },
-			{ icon: '/static/ren_1.png', text: '¥120/起步价，包含交通费用' },
-			{ icon: '/static/help.png', text: '上门接送、全程陪同、专业护理' }
+			{ icon: appointmentDetailIcons.time, text: '预约上门，专业陪诊师到家服务' },
+			{ icon: appointmentDetailIcons.ren1, text: '¥120/起步价，包含交通费用' },
+			{ icon: appointmentDetailIcons.help, text: '上门接送、全程陪同、专业护理' }
 		]
 	}
 })

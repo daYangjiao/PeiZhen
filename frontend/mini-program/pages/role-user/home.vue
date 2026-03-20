@@ -17,7 +17,7 @@
       <swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="3000" duration="500">
         <swiper-item>
           <view class="banner-item">
-            <image class="banner-bg" :src="getBackendImageUrl('banner.jpg')"></image>
+            <image class="banner-bg" :src="bannerImage"></image>
             <view class="banner-content">
               <text class="banner-title">专业医疗陪诊服务</text>
               <text class="banner-subtitle">让您的医疗就诊更加便捷</text>
@@ -98,7 +98,7 @@
         @change="handleFloatingChange"
         @click.stop="navigateToAIaks"
       >
-        <image class="floating-icon" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit" />
+        <image class="floating-icon" :src="assistantEntryIcon" mode="aspectFit" />
       </movable-view>
     </movable-area>
   </view>
@@ -108,20 +108,23 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
-import { config, getBackendImageUrl } from '@/utils/api.js'
+import { canUseRemoteImageUrl, config, getBackendImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
+import { ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
 
 const searchKeyword = ref('')
+const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
+const assistantEntryIcon = getLocalFirstImageUrl('mynewlogo.png', '/static/mynewlogo.png')
 const categories = ref([
-  { name: '门诊陪诊', icon: getBackendImageUrl('category1.jpg') },
-  { name: '住院陪护', icon: getBackendImageUrl('category2.jpg') },
-  { name: '专家会诊', icon: getBackendImageUrl('category3.jpg') },
-  { name: '检查陪同', icon: getBackendImageUrl('category4.jpg') }
+  { name: '门诊陪诊', icon: getLocalFirstImageUrl('category1.jpg', '/static/category1.jpg') },
+  { name: '住院陪护', icon: getLocalFirstImageUrl('category2.jpg', '/static/category2.jpg') },
+  { name: '专家会诊', icon: getLocalFirstImageUrl('category3.jpg', '/static/category3.jpg') },
+  { name: '检查陪同', icon: getLocalFirstImageUrl('category4.jpg', '/static/category4.jpg') }
 ])
 const services = ref([
-  { name: '预约服务', icon: '/static/yvyue_2.png' },
-  { name: '匹配陪诊员', icon: '/static/ren_1.png' },
-  { name: '专业陪诊', icon: '/static/xin.png' },
-  { name: '评价反馈', icon: '/static/wujiaoxin.png' }
+  { name: '预约服务', icon: yvyue2 },
+  { name: '匹配陪诊员', icon: ren1 },
+  { name: '专业陪诊', icon: xin },
+  { name: '评价反馈', icon: wujiaoxin }
 ])
 const companions = ref([])
 
@@ -269,11 +272,15 @@ const handleSearch = () => {
 }
 
 const getFullAvatarUrl = (relativePath) => {
-  if (!relativePath) return getBackendImageUrl('default-avatar.jpg')
-  if (relativePath.startsWith('http')) return relativePath
-  const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
+  const defaultAvatar = '/static/default-avatar.jpg'
+  if (!relativePath) return getLocalFirstImageUrl('default-avatar.jpg', defaultAvatar)
+  if (relativePath.startsWith('http')) {
+    return canUseRemoteImageUrl(relativePath) ? relativePath : defaultAvatar
+  }
+  const baseUrl = config.assetBaseURL.endsWith('/') ? config.assetBaseURL : config.assetBaseURL + '/'
   const avatarPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath
-  return baseUrl + avatarPath
+  const fullUrl = baseUrl + avatarPath
+  return canUseRemoteImageUrl(fullUrl) ? fullUrl : defaultAvatar
 }
 
 const fetchAttendants = async () => {

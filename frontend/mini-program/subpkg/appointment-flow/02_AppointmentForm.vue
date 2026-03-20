@@ -219,6 +219,7 @@ import { onLoad } from '@dcloudio/uni-app' // 使用 onLoad 获取参数
 
 // --- 导入你的 API 文件 ---
 import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 get
+import { appointmentServiceLogos } from '@/utils/assets.js'
 
 // --- 接收页面参数 ---
 // 使用 onLoad 钩子接收从上一个页面传递的参数
@@ -392,14 +393,7 @@ const isFormComplete = computed(() => {
 
 // --- 获取服务图标路径 ---
 const getServiceIcon = (typeNumber) => {
-	// 根据服务类型数字返回对应的图标路径
-	switch(typeNumber) {
-		case 1: return '/static/logo_1.png'; // 普通陪诊
-		case 2: return '/static/logo_2.png'; // 术后护理
-		case 3: return '/static/logo_3.jpg'; // 急诊陪同
-		case 4: return '/static/logo_4.jpg'; // 上门陪诊
-		default: return '/static/logo_1.png'; // 默认图标
-	}
+	return appointmentServiceLogos[typeNumber] || appointmentServiceLogos[1]
 }
 
 // --- 新增：症状选择方法 ---
@@ -617,8 +611,10 @@ onMounted(async () => {
 	uni.getSystemInfo({
 		success: (res) => {
 			statusBarHeight.value = res.statusBarHeight
-			// 设置 CSS 变量 (如果需要)
-			document.documentElement.style.setProperty('--status-bar-height', `${res.statusBarHeight}px`);
+			// 仅 H5 存在 document，小程序环境直接使用响应式数据即可
+			if (typeof document !== 'undefined' && document.documentElement?.style) {
+				document.documentElement.style.setProperty('--status-bar-height', `${res.statusBarHeight}px`)
+			}
 		}
 	})
 	

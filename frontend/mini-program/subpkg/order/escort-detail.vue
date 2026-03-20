@@ -461,6 +461,7 @@
 <script>
 import { get, post, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
+import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runtime.js'
 import placeholderImg from '../../static/user-placeholder.png'
 
 function fullAvatarUrl(path) {
@@ -801,7 +802,7 @@ export default {
 			this.showContactPatientModal = false
 			if (type === 'phone') {
 				if (this.orderInfo.patientPhone) {
-					uni.makePhoneCall({ phoneNumber: this.orderInfo.patientPhone })
+					makePhoneCallWithGuard(this.orderInfo.patientPhone)
 				} else {
 					uni.showToast({ title: '暂无患者电话', icon: 'none' })
 				}
@@ -831,11 +832,12 @@ export default {
 			this.showSimulateModal = true
 		},
 		scanCode() {
-			uni.scanCode({
+			scanCodeWithGuard({
 				success: (res) => {
 					this.verifyQrCode(res.result)
 				},
 				fail: (err) => {
+					if (err?.message === 'unsupported') return
 					console.error('扫码失败', err)
 					uni.showToast({ title: '扫码失败', icon: 'none' })
 				}

@@ -1,19 +1,26 @@
 package org.example.model;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+
 import java.util.List;
 
 /**
  * 订单创建返回VO
  */
 @Data
+@ApiModel(description = "AI导诊创建订单后的响应")
 public class OrderCreateResponse {
-    // 订单编号
+    @ApiModelProperty(value = "订单编号", example = "ORD202603200001")
     private String orderNo;
-    // 服务类型列表
+
+    @ApiModelProperty(value = "服务类型列表", example = "[\"门诊陪诊\",\"挂号协助\"]")
     private List<String> serviceTypes;
-    // 陪诊师姓名
+
+    @ApiModelProperty(value = "陪诊师姓名", example = "李医生")
     private String attendantName;
-    // 支付金额
+
+    @ApiModelProperty(value = "支付金额，单位元", example = "80.0")
     private Double payAmount;
 }

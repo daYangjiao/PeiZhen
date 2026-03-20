@@ -1,10 +1,8 @@
 import { post } from '@/utils/api.js'
 
-// AI 医疗问答接口
 export async function askMedicalQuestion(question) {
   try {
     const res = await post('/ai/medical/qa', { question })
-    // 兼容 {code, data} 或直接返回 data
     if (res && (res.code === 200 || res.code === 0) && res.data) return res.data
     if (res && res.answer) return res
     return null

@@ -1,2 +1,8 @@
 # 项目排除路径
 /target/
+.DS_Store
+.idea/
+audit/
+frontend/mini-program/node_modules/
+frontend/mini-program/dist/
+frontend/mini-program/unpackage/

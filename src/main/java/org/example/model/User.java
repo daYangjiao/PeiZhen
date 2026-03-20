@@ -2,6 +2,7 @@ package org.example.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -20,7 +21,8 @@ public class User {
     @ApiModelProperty(value = "登录用户名", required = true, example = "lihuai")
     private String username;
 
-    @ApiModelProperty(value = "登录密码", required = true, example = "123456")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @ApiModelProperty(value = "登录密码，仅请求时传入，响应中不会回传", required = true, example = "123456")
     private String password;
 
     @ApiModelProperty(value = "真实姓名或昵称", example = "李怀")

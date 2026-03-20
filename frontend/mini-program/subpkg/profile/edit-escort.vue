@@ -54,6 +54,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { get, put, upload, config } from '@/utils/api.js'
+import { userPlaceholder } from '@/utils/assets.js'
 
 const userStore = useUserStore()
 const saving = ref(false)
@@ -73,7 +74,7 @@ const form = reactive({
 })
 
 const getFullAvatarUrl = (relativePath) => {
-  if (!relativePath) return '/static/user-placeholder.png'
+  if (!relativePath) return userPlaceholder
   if (relativePath.startsWith('http')) return relativePath
   const base = config.baseURL.endsWith('/') ? config.baseURL : `${config.baseURL}/`
   const path = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath
