@@ -13,9 +13,6 @@ public class AttendantProfileResponse {
     @ApiModelProperty("用户ID")
     private Integer id;
 
-    @ApiModelProperty("登录用户名")
-    private String username;
-
     @ApiModelProperty("姓名")
     private String name;
 

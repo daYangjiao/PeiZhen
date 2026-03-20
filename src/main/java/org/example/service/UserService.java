@@ -7,7 +7,7 @@ public interface UserService {
 
     User findById(Integer id);
 
-    User findByUsername(String username);
+    User findByPhone(String phone);
 
     List<User> findAll();
 
@@ -17,7 +17,7 @@ public interface UserService {
 
     int delete(Integer id);
 
-    User login(String username, String password);
+    User login(String phone, String password);
     
     /**
      * 根据ID获取用户

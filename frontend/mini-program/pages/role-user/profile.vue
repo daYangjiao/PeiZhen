@@ -190,7 +190,7 @@ const fetchUserDetail = async () => {
 			const updatedUserInfo = {
 				...userStore.userInfo,
 				name: userDetailResponse.data.name,
-				username: userDetailResponse.data.username,
+				phone: userDetailResponse.data.phone,
 				avatar: userDetailResponse.data.avatar
 			}
 			userStore.setUserInfo(updatedUserInfo)

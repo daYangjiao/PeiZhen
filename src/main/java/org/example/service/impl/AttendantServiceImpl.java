@@ -42,9 +42,12 @@ public class AttendantServiceImpl implements AttendantService {
     @Override
     @Transactional
     public int registerAttendant(User user, Attendant attendant) {
-        // 1. 校验用户名是否已存在
-        if (userMapper.findByUsername(user.getUsername()) != null) {
-            throw new IllegalArgumentException("用户名已存在");
+        // 1. 校验手机号是否已存在
+        if (user.getPhone() == null || user.getPhone().isBlank()) {
+            throw new IllegalArgumentException("手机号不能为空");
+        }
+        if (userMapper.findByPhone(user.getPhone()) != null) {
+            throw new IllegalArgumentException("手机号已存在");
         }
         
         // 2. 创建 User 账号，并设置为陪诊师角色
@@ -87,8 +90,7 @@ public class AttendantServiceImpl implements AttendantService {
 
         AttendantProfileResponse response = new AttendantProfileResponse();
         response.setId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setName(user.getName() != null ? user.getName() : user.getUsername());
+        response.setName(user.getName() != null ? user.getName() : user.getPhone());
         response.setPhone(user.getPhone());
         response.setAvatarUrl(user.getAvatar());
 

@@ -10,10 +10,6 @@
 
     <view class="form-card">
       <view class="input-item">
-        <text class="label">用户名</text>
-        <input class="input" v-model="form.username" placeholder="设置登录用户名" />
-      </view>
-      <view class="input-item">
         <text class="label">登录密码</text>
         <input class="input" v-model="form.password" type="password" placeholder="设置登录密码" />
       </view>
@@ -48,7 +44,6 @@ import { ref } from 'vue'
 import { post } from '@/utils/api.js'
 
 const form = ref({
-  username: '',
   password: '',
   name: '',
   phone: '',
@@ -66,7 +61,7 @@ const goLogin = () => {
 }
 
 const handleRegister = async () => {
-  if (!form.value.username || !form.value.password || !form.value.name || !form.value.phone) {
+  if (!form.value.password || !form.value.name || !form.value.phone) {
     uni.showToast({ title: '请填写必填项', icon: 'none' })
     return
   }

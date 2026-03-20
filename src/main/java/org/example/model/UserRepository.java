@@ -39,20 +39,20 @@ public class UserRepository {
         return jdbcTemplate.update( sql, id );
     }
 
-    public User findByUsername(String username) {
-        String sql = "SELECT * FROM user WHERE username = ?";
-        List<User> users = jdbcTemplate.query(sql, new Object[]{username}, new BeanPropertyRowMapper<>(User.class));
+    public User findByPhone(String phone) {
+        String sql = "SELECT * FROM user WHERE phone = ?";
+        List<User> users = jdbcTemplate.query(sql, new Object[]{phone}, new BeanPropertyRowMapper<>(User.class));
         return users.isEmpty()? null : users.get(0);
     }
 
     public int save(User user) {
         logger.info("保存用户信息: {}" );
-        String sql = "INSERT INTO user (name, age, sex, username, password) VALUES (?, ?, ?, ?, ?)";
-        return jdbcTemplate.update(sql, user.getName(), user.getAge(), user.getSex(), user.getUsername(), user.getPassword());
+        String sql = "INSERT INTO user (name, age, sex, phone, password) VALUES (?, ?, ?, ?, ?)";
+        return jdbcTemplate.update(sql, user.getName(), user.getAge(), user.getSex(), user.getPhone(), user.getPassword());
     }
 
     public int register(User user) {
-        // 可添加注册前校验逻辑，如用户名是否已存在等
+        // 可添加注册前校验逻辑，如手机号是否已存在等
         return save(user);
     }
 }

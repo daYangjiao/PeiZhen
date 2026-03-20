@@ -33,10 +33,10 @@ public class UserController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    @ApiOperation(value = "用户注册", notes = "注册普通用户或陪诊师账号。请求体需要提供 username、password、userType 等基础字段。")
+    @ApiOperation(value = "用户注册", notes = "注册普通用户或陪诊师账号。请求体需要提供 phone、password、name、userType 等基础字段。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "注册成功，data 为新用户 ID"),
-            @ApiResponse(code = 400, message = "参数校验失败或用户名已存在"),
+            @ApiResponse(code = 400, message = "参数校验失败或手机号已存在"),
             @ApiResponse(code = 500, message = "注册失败")
     })
     public ResponseResult<Integer> register(
@@ -58,31 +58,30 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    @ApiOperation(value = "用户登录", notes = "使用用户名和密码登录。成功后返回 token 及 userInfo，后续受保护接口需通过请求头携带 token。")
+    @ApiOperation(value = "用户登录", notes = "使用手机号和密码登录。成功后返回 token 及 userInfo，后续受保护接口需通过请求头携带 token。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "登录成功，返回 token 和用户信息"),
-            @ApiResponse(code = 400, message = "用户名或密码错误"),
+            @ApiResponse(code = 400, message = "手机号或密码错误"),
             @ApiResponse(code = 500, message = "服务器内部错误")
     })
     public ResponseResult<Map<String, Object>> login(
-            @ApiParam(value = "登录请求体，仅需传入 username 和 password", required = true)
+            @ApiParam(value = "登录请求体，仅需传入 phone 和 password", required = true)
             @RequestBody User user) {
         try {
-            User loggedUser = userService.login(user.getUsername(), user.getPassword());
+            User loggedUser = userService.login(user.getPhone(), user.getPassword());
             if (loggedUser != null) {
                 String token = jwtUtil.generateToken(loggedUser.getId());
                 Map<String, Object> userInfo = new HashMap<>();
                 userInfo.put("id", loggedUser.getId());
-                userInfo.put("username", loggedUser.getUsername());
                 userInfo.put("name", loggedUser.getName());
                 userInfo.put("userType", loggedUser.getUserType());
                 userInfo.put("phone", loggedUser.getPhone());
                 userInfo.put("avatar", loggedUser.getAvatar());
                 return ResponseResult.success(Map.of("token", token, "userInfo", userInfo));
             }
-            return ResponseResult.error("用户名或密码错误");
+            return ResponseResult.error("手机号或密码错误");
         } catch (Exception e) {
-            log.error("登录异常: {}", user.getUsername(), e);
+            log.error("登录异常: {}", user.getPhone(), e);
             return ResponseResult.error("服务器内部错误");
         }
     }
@@ -154,9 +153,13 @@ public class UserController {
         if (bindingResult.hasErrors()) {
             return ResponseResult.error(bindingResult.getFieldError().getDefaultMessage());
         }
-        user.setId(id);
-        int rows = userService.update(user);
-        return ResponseResult.success(Integer.valueOf(rows));
+        try {
+            user.setId(id);
+            int rows = userService.update(user);
+            return ResponseResult.success(Integer.valueOf(rows));
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.error(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -16,8 +16,6 @@ public interface UserMapper {
 
     User findById(Integer id);
 
-    User findByUsername(String username);
-    
     User findByPhone(String phone);
 
     User findByOpenid(String openid);

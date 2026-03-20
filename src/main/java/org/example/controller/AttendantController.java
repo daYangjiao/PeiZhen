@@ -129,6 +129,8 @@ public class AttendantController {
             }
 
             return ResponseResult.success("更新成功");
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.error(e.getMessage());
         } catch (Exception e) {
             log.error("更新陪诊师资料失败，userId={}", userId, e);
             return ResponseResult.error("更新失败");
@@ -640,6 +642,7 @@ public class AttendantController {
                     map.put("professionalField", attendant.getProfessionalField());
                     map.put("score", attendant.getScore());
                     map.put("experienceYears", attendant.getExperienceYears());
+                    map.put("serviceCount", attendant.getServiceCount() == null ? 0 : attendant.getServiceCount());
                     result.add(map);
                 }
             }

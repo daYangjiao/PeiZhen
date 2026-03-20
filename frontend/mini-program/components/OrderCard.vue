@@ -5,7 +5,7 @@
 				<image class="avatar" :src="displayAvatar" mode="aspectFill" @error="onAvatarError"></image>
 				<view class="user-details">
 					<view class="name-row">
-						<text class="username">{{ orderData.userName }}</text>
+						<text class="display-name">{{ orderData.userName }}</text>
 						<view class="tags">
 							<text class="tag age" v-if="orderData.userAge">{{ orderData.userAge }}岁</text>
 							<text class="tag gender" v-if="orderData.userGender">{{ orderData.userGender }}</text>
@@ -183,7 +183,7 @@ const handleMainAction = () => {
 				display: flex;
 				align-items: center;
 				margin-bottom: 8rpx;
-				.username {
+				.display-name {
 					font-size: 28rpx;
 					font-weight: 600;
 					color: #1f2937;

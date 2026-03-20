@@ -1,139 +1,50 @@
 /*
- Navicat Premium Dump SQL
-
- Source Server         : localhost_3306
- Source Server Type    : MySQL
- Source Server Version : 90600 (9.6.0)
- Source Host           : localhost:3306
- Source Schema         : student
-
- Target Server Type    : MySQL
- Target Server Version : 90600 (9.6.0)
- File Encoding         : 65001
-
- Date: 18/03/2026 12:07:44
+ Demo database baseline rebuilt on 2026-03-20
 */
-
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ----------------------------
--- Table structure for ai_medical_qa
--- ----------------------------
+
+DROP TABLE IF EXISTS `order_evaluation`;
+DROP TABLE IF EXISTS `chat_message`;
+DROP TABLE IF EXISTS `guide_appointment`;
 DROP TABLE IF EXISTS `ai_medical_qa`;
-CREATE TABLE `ai_medical_qa` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `conversation_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '对话会话ID，用于关联同一场对话的所有消息',
-  `question` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户提问内容',
-  `answer` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT 'AI回答内容',
-  `qa_status` tinyint NOT NULL DEFAULT '0' COMMENT '问答状态：0-处理中，1-完成，2-失败',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
-  `thinking_process` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '' COMMENT 'AI思考过程',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `idx_conversation_id` (`conversation_id`) USING BTREE,
-  KEY `idx_create_time` (`create_time`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='AI医疗问答记录表';
-
--- ----------------------------
--- Records of ai_medical_qa
--- ----------------------------
-BEGIN;
-COMMIT;
-
--- ----------------------------
--- Migration for existing DBs: 身份证正反面字段补齐与数据迁移
--- ----------------------------
-SET @tbl_exists := (
-  SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.TABLES
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'attendant_qualification'
-);
-
-SET @col_exists := (
-  SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'attendant_qualification'
-    AND COLUMN_NAME = 'id_card_front_file_url'
-);
-SET @ddl_sql := IF(
-  @tbl_exists = 1 AND @col_exists = 0,
-  'ALTER TABLE attendant_qualification ADD COLUMN id_card_front_file_url VARCHAR(255) NULL COMMENT ''身份证正面文件地址'' AFTER id_card_file_url',
-  'SELECT 1'
-);
-PREPARE stmt FROM @ddl_sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET @col_exists := (
-  SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'attendant_qualification'
-    AND COLUMN_NAME = 'id_card_back_file_url'
-);
-SET @ddl_sql := IF(
-  @tbl_exists = 1 AND @col_exists = 0,
-  'ALTER TABLE attendant_qualification ADD COLUMN id_card_back_file_url VARCHAR(255) NULL COMMENT ''身份证背面文件地址'' AFTER id_card_front_file_url',
-  'SELECT 1'
-);
-PREPARE stmt FROM @ddl_sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET @dml_sql := IF(
-  @tbl_exists = 1,
-  'UPDATE attendant_qualification
-   SET id_card_front_file_url = id_card_file_url
-   WHERE (id_card_front_file_url IS NULL OR id_card_front_file_url = '''')
-     AND id_card_file_url IS NOT NULL
-     AND id_card_file_url <> ''''',
-  'SELECT 1'
-);
-PREPARE stmt FROM @dml_sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- ----------------------------
--- Table structure for attendant
--- ----------------------------
+DROP TABLE IF EXISTS `attendant_qualification`;
 DROP TABLE IF EXISTS `attendant`;
+DROP TABLE IF EXISTS `service_type_mapping`;
+DROP TABLE IF EXISTS `user`;
+
+CREATE TABLE `user` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `password` varchar(100) NOT NULL COMMENT '登录密码',
+  `name` varchar(50) DEFAULT NULL COMMENT '真实姓名/昵称',
+  `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
+  `sex` varchar(10) DEFAULT '未知' COMMENT '性别',
+  `age` int DEFAULT '0' COMMENT '年龄',
+  `avatar` varchar(255) DEFAULT NULL COMMENT '头像URL',
+  `user_type` int NOT NULL DEFAULT '0' COMMENT '角色：0=普通用户,1=陪诊师,2=管理员',
+  `openid` varchar(64) DEFAULT NULL COMMENT '微信OpenID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_phone` (`phone`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='用户表';
+
 CREATE TABLE `attendant` (
   `user_id` int NOT NULL COMMENT '关联user表ID',
-  `certificate` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '资格证书编号',
-  `status` int DEFAULT '1' COMMENT '状态：0=审核中, 1=正常, 2=封禁, 3=审核失败',
+  `certificate` varchar(100) DEFAULT NULL COMMENT '资格证书编号',
+  `status` int DEFAULT '1' COMMENT '状态：0=审核中,1=正常,2=封禁,3=审核失败',
   `qualification_fail_reason` varchar(255) DEFAULT NULL COMMENT '资质审核失败原因',
-  `introduction` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '个人简介',
-  `professional_field` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '擅长领域',
+  `introduction` text COMMENT '个人简介',
+  `professional_field` varchar(255) DEFAULT NULL COMMENT '擅长领域',
   `score` decimal(2,1) DEFAULT '5.0' COMMENT '评分',
   `experience_years` int DEFAULT '0' COMMENT '从业年限',
-  `hospital_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '常驻医院',
+  `hospital_name` varchar(100) DEFAULT NULL COMMENT '常驻医院',
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`) USING BTREE,
   CONSTRAINT `attendant_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='陪诊师扩展信息表';
 
--- ----------------------------
--- Records of attendant
--- ----------------------------
-BEGIN;
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (1, 'CP20230802', 1, NULL, '多年陪诊经验，擅长老年陪护', '老年患者陪诊', 4.7, 6, NULL, '2025-07-01 10:22:35', '2026-02-09 14:51:23');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (21, NULL, 1, NULL, '资深陪诊师，熟悉各大医院流程，服务态度好。', '全科,术后护理,挂号引导', 5.0, 5, NULL, '2026-02-12 00:09:40', '2026-02-12 00:09:40');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (22, 'CP20230802', 0, NULL, '新手陪诊师，正在学习', '新手陪诊', 4.0, 0, NULL, '2025-07-01 10:06:05', '2025-09-09 15:58:15');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (23, 'CP20230802', 1, NULL, '多年陪诊经验，擅长老年陪护', '老年陪护', 5.0, 5, NULL, '2025-07-01 10:22:35', '2025-09-09 15:58:38');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (24, 'MED2023001', 1, NULL, '资深陪诊师', '普通陪诊', 5.0, 3, NULL, '2025-07-02 11:06:37', '2025-09-09 15:59:26');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (25, NULL, 1, NULL, '膝关节手术,术后护理,综合陪诊服务 (参考价格: 198.00)', '术后护理,综合陪诊服务', 4.8, 5, '北京协和医院', '2025-11-29 22:09:24', '2025-12-01 21:27:49');
-INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (26, NULL, 0, NULL, '膝关节手术,术后护理,综合陪诊 (参考价格: 198.00)', '术后护理,综合陪诊', 4.8, 5, NULL, '2025-12-15 21:24:59', '2025-12-15 21:24:59');
-COMMIT;
-
--- ----------------------------
--- Table structure for attendant_qualification
--- ----------------------------
-DROP TABLE IF EXISTS `attendant_qualification`;
 CREATE TABLE `attendant_qualification` (
   `user_id` int NOT NULL COMMENT '关联user表ID',
   `id_card_uploaded` tinyint(1) DEFAULT '0' COMMENT '身份证是否上传：0=未上传,1=已上传',
@@ -148,490 +59,309 @@ CREATE TABLE `attendant_qualification` (
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`) USING BTREE,
   CONSTRAINT `attendant_qualification_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='陪诊师三证资质表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='陪诊师资质信息表';
 
--- ----------------------------
--- Records of attendant_qualification
--- ----------------------------
-BEGIN;
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (1, 1, 1, 1, '/uploads/qualification/idcard_1.jpg', '/uploads/qualification/idcard_1.jpg', NULL, '/uploads/qualification/practice_1.jpg', '/uploads/qualification/health_1.jpg', '2025-07-01 10:22:35', '2026-02-09 14:51:23');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (21, 1, 1, 0, '/uploads/qualification/idcard_21.jpg', '/uploads/qualification/idcard_21.jpg', NULL, '/uploads/qualification/practice_21.jpg', NULL, '2026-02-12 00:09:40', '2026-02-12 00:09:40');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (22, 0, 1, 0, NULL, NULL, NULL, '/uploads/qualification/practice_22.jpg', NULL, '2025-07-01 10:06:05', '2025-09-09 15:58:15');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (23, 1, 1, 1, '/uploads/qualification/idcard_23.jpg', '/uploads/qualification/idcard_23.jpg', NULL, '/uploads/qualification/practice_23.jpg', '/uploads/qualification/health_23.jpg', '2025-07-01 10:22:35', '2025-09-09 15:58:38');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (24, 1, 1, 1, '/uploads/qualification/idcard_24.jpg', '/uploads/qualification/idcard_24.jpg', NULL, '/uploads/qualification/practice_24.jpg', '/uploads/qualification/health_24.jpg', '2025-07-02 11:06:37', '2025-09-09 15:59:26');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (25, 1, 0, 0, '/uploads/qualification/idcard_25.jpg', '/uploads/qualification/idcard_25.jpg', NULL, NULL, NULL, '2025-11-29 22:09:24', '2025-12-01 21:27:49');
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (26, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, '2025-12-15 21:24:59', '2025-12-15 21:24:59');
-COMMIT;
-
--- ----------------------------
--- Table structure for chat_message
--- ----------------------------
-DROP TABLE IF EXISTS `chat_message`;
-CREATE TABLE `chat_message` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `sender_id` int NOT NULL COMMENT '发送者ID',
-  `receiver_id` int NOT NULL COMMENT '接收者ID',
-  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '消息内容',
-  `msg_type` int DEFAULT '1' COMMENT '消息类型：1=文本, 2=图片',
-  `is_read` tinyint(1) DEFAULT '0' COMMENT '是否已读：0=未读, 1=已读',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `idx_sender_receiver` (`sender_id`,`receiver_id`) USING BTREE,
-  KEY `idx_receiver_read` (`receiver_id`,`is_read`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=448 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='聊天消息表';
-
--- ----------------------------
--- Records of chat_message
--- ----------------------------
-BEGIN;
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (266, 0, 15, '恭喜您!订单No.ORD17720940252105599f3支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-26 16:20:27');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (267, 0, 15, '您预约的(02月26日)12:30-18:00有成都市人民医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-26 16:20:36');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (268, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-26 16:20:36');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (269, 0, 15, '您的订单No.ORD17720940252105599f3服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-26 16:21:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (270, 0, 21, '您已开始为订单 ORD17720940252105599f3 提供服务，请按时完成服务。', 1, 1, '2026-02-26 16:21:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (271, 0, 15, '您的陪诊服务(订单No.ORD17720940252105599f3)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-26 16:21:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (272, 0, 21, '您已结束订单 ORD17720940252105599f3 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-26 16:21:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (273, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-26 16:21:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (274, 0, 21, '用户已确认订单 ORD17720940252105599f3 的时长与费用，订单已完成。', 1, 1, '2026-02-26 16:21:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (275, 0, 15, '恭喜您!订单No.ORD17720947028516784c9支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-26 16:31:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (276, 0, 15, '您预约的(02月27日)08:00-14:00有成都市中医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-26 16:32:08');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (277, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-26 16:32:08');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (278, 0, 15, '您的订单No.ORD17720947028516784c9服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-26 16:32:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (279, 0, 21, '您已开始为订单 ORD17720947028516784c9 提供服务，请按时完成服务。', 1, 1, '2026-02-26 16:32:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (280, 0, 15, '您的陪诊服务(订单No.ORD17720947028516784c9)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-26 16:32:59');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (281, 0, 21, '您已结束订单 ORD17720947028516784c9 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-26 16:32:59');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (282, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-26 16:33:07');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (283, 0, 21, '用户已确认订单 ORD17720947028516784c9 的时长与费用，订单已完成。', 1, 1, '2026-02-26 16:33:07');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (284, 0, 15, '恭喜您!订单No.ORD1772167293352229bec支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 12:43:16');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (285, 0, 15, '您已成功创建订单 ORD1772168983757104052，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:09:43');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (286, 0, 15, '您已成功创建订单 ORD17721696183899bc4ab，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:20:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (287, 0, 15, '您已成功创建订单 ORD177216971527054773c，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:21:55');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (288, 0, 15, '您已成功创建订单 ORD1772170307910028ccb，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 13:31:47');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (289, 0, 15, '您的订单ORD17721684470500a92ae已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 14:55:56');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (290, 0, 15, '您已成功创建订单 ORD177217538128245f6c9，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 14:56:21');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (291, 0, 15, '恭喜您!订单No.ORD177217538128245f6c9支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 14:56:36');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (292, 0, 15, '您已成功创建订单 ORD17721767672500e0d4f，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:19:27');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (293, 0, 15, '恭喜您!订单No.ORD17721767672500e0d4f支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:19:29');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (294, 0, 15, '您已成功创建订单 ORD17721772386768f50f7，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:27:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (295, 0, 15, '恭喜您!订单No.ORD17721772386768f50f7支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:27:20');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (296, 0, 15, '您已成功创建订单 ORD1772177339845b88d27，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 15:28:59');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (297, 0, 15, '恭喜您!订单No.ORD1772177339845b88d27支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 15:29:02');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (298, 0, 15, '您已成功创建订单 ORD1772184911870ee26b8，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:35:11');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (299, 0, 15, '恭喜您!订单No.ORD1772184911870ee26b8支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:35:13');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (300, 0, 15, '您预约的(02月27日)08:00-12:30有cda的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 17:36:37');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (301, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 17:36:37');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (302, 0, 15, '您的订单No.ORD1772184911870ee26b8服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 17:36:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (303, 0, 21, '您已开始为订单 ORD1772184911870ee26b8 提供服务，请按时完成服务。', 1, 1, '2026-02-27 17:36:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (304, 0, 15, '您的陪诊服务(订单No.ORD1772184911870ee26b8)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 17:37:02');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (305, 0, 21, '您已结束订单 ORD1772184911870ee26b8 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 17:37:02');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (306, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 17:37:39');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (307, 0, 21, '用户已确认订单 ORD1772184911870ee26b8 的时长与费用，订单已完成。', 1, 1, '2026-02-27 17:37:39');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (308, 0, 15, '您已成功创建订单 ORD17721851897289aebd7，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:39:49');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (309, 0, 15, '恭喜您!订单No.ORD17721851897289aebd7支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:39:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (310, 0, 15, '您已成功创建订单 ORD1772185891805b1f712，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 17:51:31');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (311, 0, 15, '恭喜您!订单No.ORD1772185891805b1f712支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 17:51:32');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (312, 0, 15, '您预约的(02月27日)08:00-12:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 17:54:55');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (313, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 17:54:55');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (314, 0, 15, '您的订单No.ORD17721851897289aebd7服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 17:55:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (315, 0, 21, '您已开始为订单 ORD17721851897289aebd7 提供服务，请按时完成服务。', 1, 1, '2026-02-27 17:55:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (316, 0, 15, '您的陪诊服务(订单No.ORD17721851897289aebd7)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 17:55:22');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (317, 0, 21, '您已结束订单 ORD17721851897289aebd7 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 17:55:22');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (318, 0, 15, '您已成功创建订单 ORD17721864203592d5f4c，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:00:20');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (319, 0, 15, '恭喜您!订单No.ORD17721864203592d5f4c支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 18:00:21');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (320, 0, 15, '您已成功创建订单 ORD17721864910689bda5e，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:01:31');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (321, 0, 15, '您已成功创建订单 ORD1772186820885b73960，请在15分钟内完成支付，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:07:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (322, 0, 15, '您已成功创建订单 ORD17721883993729bc4e8，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-27 18:33:19');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (323, 0, 15, '恭喜您!订单No.ORD17721883993729bc4e8支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 18:33:26');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (324, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:34:08');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (325, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:34:08');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (326, 0, 15, '您的订单No.ORD17721883993729bc4e8服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:34:14');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (327, 0, 21, '您已开始为订单 ORD17721883993729bc4e8 提供服务，请按时完成服务。', 1, 1, '2026-02-27 18:34:14');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (328, 0, 15, '您的陪诊服务(订单No.ORD17721883993729bc4e8)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 18:34:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (329, 0, 21, '您已结束订单 ORD17721883993729bc4e8 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 18:34:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (330, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 18:34:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (331, 0, 21, '用户已确认订单 ORD17721883993729bc4e8 的时长与费用，订单已完成。', 1, 1, '2026-02-27 18:34:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (332, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:35:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (333, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:35:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (334, 0, 15, '您的订单No.ORD17721864203592d5f4c服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:36:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (335, 0, 21, '您已开始为订单 ORD17721864203592d5f4c 提供服务，请按时完成服务。', 1, 1, '2026-02-27 18:36:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (336, 0, 15, '您预约的(02月27日)08:00-12:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 18:36:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (337, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 18:36:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (338, 0, 15, '您的订单No.ORD1772185891805b1f712服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 18:36:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (339, 0, 21, '您已开始为订单 ORD1772185891805b1f712 提供服务，请按时完成服务。', 1, 1, '2026-02-27 18:36:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (340, 0, 15, '您的陪诊服务(订单No.ORD1772185891805b1f712)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 18:41:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (341, 0, 21, '您已结束订单 ORD1772185891805b1f712 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 18:41:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (342, 0, 15, '您的订单ORD1772186820885b73960已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 18:41:39');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (343, 0, 15, '您的订单ORD17721864910689bda5e已取消。取消原因：超时未支付自动取消', 1, 1, '2026-02-27 18:41:42');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (344, 0, 15, '您已成功创建订单 ORD1772191228942f306f5，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-27 19:20:28');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (345, 0, 15, '恭喜您!订单No.ORD1772191228942f306f5支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-27 19:20:32');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (346, 0, 15, '您预约的(02月27日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-27 19:21:31');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (347, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-27 19:21:31');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (348, 0, 15, '您的订单No.ORD1772191228942f306f5服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-27 19:21:38');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (349, 0, 21, '您已开始为订单 ORD1772191228942f306f5 提供服务，请按时完成服务。', 1, 1, '2026-02-27 19:21:38');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (350, 0, 15, '您的陪诊服务(订单No.ORD1772191228942f306f5)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-27 19:26:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (351, 0, 21, '您已结束订单 ORD1772191228942f306f5 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-27 19:26:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (352, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-27 19:29:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (353, 0, 21, '用户已确认订单 ORD1772191228942f306f5 的时长与费用，订单已完成。', 1, 1, '2026-02-27 19:29:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (354, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-28 01:06:12');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (355, 0, 21, '用户已确认订单 ORD1772185891805b1f712 的时长与费用，订单已完成。', 1, 1, '2026-02-28 01:06:12');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (356, 0, 15, '您预约的(02月27日)08:00-10:30有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-28 01:08:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (357, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-28 01:08:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (358, 0, 15, '您的陪诊服务(订单No.ORD17721864203592d5f4c)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-02-28 01:08:57');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (359, 0, 21, '您已结束订单 ORD17721864203592d5f4c 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-02-28 01:08:57');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (360, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-02-28 01:19:10');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (361, 0, 21, '用户已确认订单 ORD17721864203592d5f4c 的时长与费用，订单已完成。', 1, 1, '2026-02-28 01:19:10');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (362, 0, 15, '您已成功创建订单 ORD1772262390131755423，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-28 15:06:30');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (363, 0, 15, '恭喜您!订单No.ORD1772262390131755423支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-28 15:06:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (364, 0, 15, '您的订单ORD1772262390131755423已取消。取消原因：计划有变，暂不就诊', 1, 1, '2026-02-28 15:52:07');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (365, 0, 15, '您的订单No.ORD1772177339845b88d27服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-28 15:52:58');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (366, 0, 21, '您已开始为订单 ORD1772177339845b88d27 提供服务，请按时完成服务。', 1, 1, '2026-02-28 15:52:58');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (367, 0, 15, '您预约的(02月27日)08:00-09:30有成都的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-28 21:51:29');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (368, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-28 21:51:29');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (369, 0, 15, '您已成功创建订单 ORD1772287600519548ca7，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-02-28 22:06:40');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (370, 0, 15, '恭喜您!订单No.ORD1772287600519548ca7支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-02-28 22:06:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (371, 0, 15, '您预约的(02月27日)08:00-10:30有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-02-28 22:08:25');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (372, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-02-28 22:08:25');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (373, 0, 15, '您的订单No.ORD17721772386768f50f7服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-02-28 22:08:45');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (374, 0, 21, '您已开始为订单 ORD17721772386768f50f7 提供服务，请按时完成服务。', 1, 1, '2026-02-28 22:08:45');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (375, 15, 21, '11', 1, 1, '2026-02-28 22:27:55');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (376, 21, 15, '22', 1, 1, '2026-02-28 22:30:32');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (377, 15, 21, '11', 1, 1, '2026-02-28 22:30:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (378, 15, 21, '22', 1, 1, '2026-03-03 09:56:01');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (379, 21, 15, 'nih ', 1, 1, '2026-03-03 09:56:11');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (380, 15, 21, '22', 1, 1, '2026-03-03 09:56:16');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (381, 21, 15, '22', 1, 1, '2026-03-03 09:56:21');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (382, 21, 15, '【紧急求助】请立即联系我！', 1, 1, '2026-03-03 09:56:38');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (383, 15, 21, '😂😂', 1, 1, '2026-03-03 09:57:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (384, 21, 15, '😃😃', 1, 1, '2026-03-03 09:57:12');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (385, 21, 15, '11', 1, 1, '2026-03-10 20:08:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (386, 15, 21, '22', 1, 1, '2026-03-10 20:08:12');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (387, 0, 15, '您已成功创建订单 ORD177315249372547cc64，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-03-10 22:21:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (388, 0, 15, '恭喜您!订单No.ORD177315249372547cc64支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-03-10 22:21:44');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (389, 0, 15, '您预约的(03月11日)08:00-11:00有成都市中医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-03-10 22:22:01');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (390, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-03-10 22:22:01');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (391, 0, 15, '您的订单No.ORD177315249372547cc64服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-03-10 22:22:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (392, 0, 21, '您已开始为订单 ORD177315249372547cc64 提供服务，请按时完成服务。', 1, 1, '2026-03-10 22:22:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (393, 21, 15, '11', 1, 1, '2026-03-10 22:22:37');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (394, 0, 15, '您的陪诊服务(订单No.ORD177315249372547cc64)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-03-10 22:22:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (395, 0, 21, '您已结束订单 ORD177315249372547cc64 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-03-10 22:22:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (396, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-03-10 22:23:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (397, 0, 21, '用户已确认订单 ORD177315249372547cc64 的时长与费用，订单已完成。', 1, 1, '2026-03-10 22:23:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (398, 0, 15, '您已成功创建订单 ORD1773298044420e4b1ab，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-03-12 14:47:24');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (399, 0, 15, '恭喜您!订单No.ORD1773298044420e4b1ab支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-03-12 14:47:37');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (400, 0, 15, '您预约的(03月13日)08:00-10:00有都江堰市医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-03-12 14:47:57');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (401, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-03-12 14:47:57');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (402, 0, 15, '您的订单No.ORD1773298044420e4b1ab服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-03-12 14:48:25');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (403, 0, 21, '您已开始为订单 ORD1773298044420e4b1ab 提供服务，请按时完成服务。', 1, 1, '2026-03-12 14:48:25');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (404, 0, 15, '您的陪诊服务(订单No.ORD1773298044420e4b1ab)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-03-12 14:48:47');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (405, 0, 21, '您已结束订单 ORD1773298044420e4b1ab 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-03-12 14:48:47');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (406, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-03-12 14:48:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (407, 0, 21, '用户已确认订单 ORD1773298044420e4b1ab 的时长与费用，订单已完成。', 1, 1, '2026-03-12 14:48:52');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (408, 0, 15, '您已成功创建订单 ORD1773310486563a96d40，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-03-12 18:14:46');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (409, 0, 15, '恭喜您!订单No.ORD1773310486563a96d40支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-03-12 18:15:06');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (410, 0, 15, '您预约的(03月12日)08:00-11:30有都江堰医院的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-03-12 18:15:34');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (411, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-03-12 18:15:34');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (412, 0, 15, '您的订单No.ORD1773310486563a96d40服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-03-12 18:15:56');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (413, 0, 21, '您已开始为订单 ORD1773310486563a96d40 提供服务，请按时完成服务。', 1, 1, '2026-03-12 18:15:56');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (414, 0, 15, '您的陪诊服务(订单No.ORD1773310486563a96d40)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-03-12 18:16:23');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (415, 0, 21, '您已结束订单 ORD1773310486563a96d40 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-03-12 18:16:23');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (416, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-03-12 18:16:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (417, 0, 21, '用户已确认订单 ORD1773310486563a96d40 的时长与费用，订单已完成。', 1, 1, '2026-03-12 18:16:35');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (418, 21, 15, '22', 1, 1, '2026-03-12 18:17:22');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (419, 15, 21, '11', 1, 1, '2026-03-12 18:17:24');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (420, 0, 15, '您已成功创建订单 ORD1773374717841e7be28，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-03-13 12:05:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (421, 0, 15, '恭喜您!订单No.ORD1773374717841e7be28支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-03-13 12:05:23');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (422, 0, 15, '您预约的(03月13日)08:00-11:00有成都市的就诊安排，陪诊师李怀已接单。请携带身份证、医保卡及相关检查报告。', 1, 1, '2026-03-13 12:22:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (423, 21, 15, '您好！我是陪诊师李怀，很高兴为您服务。我会尽快与您联系确认服务细节。', 1, 1, '2026-03-13 12:22:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (424, 0, 15, '您已成功创建订单 ORD1773406248529bae071，请在15分钟内完成预付款，逾期系统将自动取消订单。', 1, 1, '2026-03-13 20:50:48');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (425, 0, 15, '恭喜您!订单No.ORD1773406248529bae071支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。', 1, 1, '2026-03-13 20:50:53');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (426, 21, 15, '你好', 1, 1, '2026-03-13 20:53:00');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (427, 0, 15, '您的订单No.ORD1773374717841e7be28服务已开始。陪诊师已到达指定位置，请准备就诊。', 1, 1, '2026-03-13 23:31:51');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (428, 0, 21, '您已开始为订单 ORD1773374717841e7be28 提供服务，请按时完成服务。', 1, 1, '2026-03-13 23:31:51');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (429, 0, 15, '您的陪诊服务(订单No.ORD1773374717841e7be28)已结束，请确认本次服务时长和费用（多退少补）。', 1, 1, '2026-03-13 23:32:04');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (430, 0, 21, '您已结束订单 ORD1773374717841e7be28 的服务，请提醒用户确认时长与费用。', 1, 1, '2026-03-13 23:32:04');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (431, 0, 15, '您已确认本次陪诊服务时长与费用，订单已完成。', 1, 1, '2026-03-13 23:36:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (432, 0, 21, '用户已确认订单 ORD1773374717841e7be28 的时长与费用，订单已完成。', 1, 1, '2026-03-13 23:36:18');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (433, 21, 15, '2', 1, 1, '2026-03-14 10:33:17');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (434, 15, 21, '2', 1, 1, '2026-03-14 10:33:58');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (435, 21, 15, '33', 1, 0, '2026-03-15 12:55:09');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (436, 21, 15, '22', 1, 0, '2026-03-15 12:58:29');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (437, 21, 15, '11', 1, 0, '2026-03-15 12:58:32');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (438, 21, 15, '22', 1, 0, '2026-03-15 12:58:33');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (439, 21, 15, '333', 1, 0, '2026-03-15 12:58:39');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (440, 21, 15, '3', 1, 0, '2026-03-15 12:58:41');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (441, 21, 15, '1', 1, 0, '2026-03-15 12:58:54');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (442, 21, 15, '22', 1, 0, '2026-03-15 12:58:55');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (443, 21, 15, '3', 1, 0, '2026-03-15 12:58:56');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (444, 21, 15, '😃', 1, 0, '2026-03-15 12:58:58');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (445, 21, 15, '1', 1, 0, '2026-03-15 13:01:05');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (446, 21, 15, '11', 1, 0, '2026-03-15 13:02:22');
-INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (447, 21, 15, '22', 1, 0, '2026-03-15 13:02:39');
-COMMIT;
-
--- ----------------------------
--- Table structure for guide_appointment
--- ----------------------------
-DROP TABLE IF EXISTS `guide_appointment`;
-CREATE TABLE `guide_appointment` (
+CREATE TABLE `service_type_mapping` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `appointment_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '预约编号',
-  `user_id` int DEFAULT NULL COMMENT '提交人ID',
-  `patient_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '就诊人',
-  `patient_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `symptoms` json DEFAULT NULL COMMENT '症状描述',
-  `hospital_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `service_type_number` int DEFAULT '1' COMMENT '服务类型编号',
-  `service_date` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `service_start_time` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `service_end_time` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `other_requirement` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '其他需求',
+  `service_type_number` int NOT NULL,
+  `service_type_name` varchar(100) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `price_base` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `price_per_hour` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `uk_appt_no` (`appointment_no`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=66 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='AI导诊需求单';
+  UNIQUE KEY `uk_service_type_number` (`service_type_number`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='服务类型映射表';
 
--- ----------------------------
--- Records of guide_appointment
--- ----------------------------
-BEGIN;
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (47, 'APP177217538122848db2c', NULL, '范涵伶', '15520765697', '[\"发热\"]', '成都市', 3, '2026-02-27', '08:00', '10:30', '', '2026-02-27 14:56:21');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (48, 'APP1772176767195ecf6f7', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:00', '', '2026-02-27 15:19:27');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (49, 'APP17721772386522ac459', NULL, '范涵伶', '15520765697', '[]', '成都', 1, '2026-02-27', '08:00', '09:30', '', '2026-02-27 15:27:19');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (50, 'APP1772177339818d6120c', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:30', '', '2026-02-27 15:29:00');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (51, 'APP1772184911807e9d59e', NULL, '范涵伶', '15520765697', '[\"恶心呕吐\"]', 'cda', 1, '2026-02-27', '08:00', '12:30', '', '2026-02-27 17:35:12');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (52, 'APP17721851896979a985d', NULL, '范涵伶', '15520765697', '[]', '成都市', 1, '2026-02-27', '08:00', '12:00', '', '2026-02-27 17:39:50');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (53, 'APP1772185891746594f49', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '12:00', '', '2026-02-27 17:51:32');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (54, 'APP177218642031426bb39', NULL, '范涵伶', '15520765697', '[\"腹痛\"]', '成都市', 1, '2026-02-27', '08:00', '11:00', '', '2026-02-27 18:00:20');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (55, 'APP1772186491023186247', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:00', '', '2026-02-27 18:01:31');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (56, 'APP1772186820807f55fd5', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-02-27', '08:00', '10:30', '', '2026-02-27 18:07:01');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (57, 'APP1772188399298b3f3bb', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 3, '2026-02-27', '08:00', '11:00', '', '2026-02-27 18:33:19');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (58, 'APP17721912288718621a7', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 3, '2026-02-27', '08:00', '11:00', '', '2026-02-27 19:20:29');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (59, 'APP17722623900267c0721', NULL, '范涵伶', '15520765697', '[\"发热\"]', '成都市', 4, '2026-02-28', '08:00', '11:00', '', '2026-02-28 15:06:30');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (60, 'APP1772287600469d5925e', NULL, '范涵伶', '15520765697', '[\"恶心呕吐\", \"腹痛\"]', '成都市医院', 2, '2026-02-28', '08:00', '11:30', '', '2026-02-28 22:06:40');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (61, 'APP1773152493668c50d89', NULL, '范涵伶', '15520765697', '[\"胸痛\", \"头痛\"]', '成都市中医院', 1, '2026-03-11', '08:00', '11:00', '', '2026-03-10 22:21:34');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (62, 'APP177329804436434b23f', NULL, '范涵伶', '15520765697', '[\"发热\"]', '都江堰市医院', 3, '2026-03-13', '08:00', '10:00', '', '2026-03-12 14:47:24');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (63, 'APP1773310486529195c5c', NULL, '范涵伶', '15520765697', '[\"发热\"]', '都江堰医院', 1, '2026-03-12', '08:00', '11:30', '', '2026-03-12 18:14:47');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (64, 'APP17733747177927ecbfe', NULL, '范涵伶', '15520765697', '[\"胸痛\"]', '成都市', 1, '2026-03-13', '08:00', '11:00', '', '2026-03-13 12:05:18');
-INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (65, 'APP1773406248498a72a32', NULL, '范涵伶', '15520765697', '[\"发热\"]', '成都市中医院', 1, '2026-03-14', '08:00', '10:30', '有经验', '2026-03-13 20:50:48');
-COMMIT;
-
--- ----------------------------
--- Table structure for order
--- ----------------------------
-DROP TABLE IF EXISTS `order`;
 CREATE TABLE `order` (
   `order_id` int NOT NULL AUTO_INCREMENT,
-  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单号',
+  `order_no` varchar(64) NOT NULL COMMENT '订单号',
   `user_id` int NOT NULL COMMENT '下单用户ID',
   `attendant_id` int DEFAULT NULL COMMENT '接单陪诊师ID',
-  `attendant_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '陪诊师姓名',
-  `attendant_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '陪诊师电话',
-  `patient_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '就诊人姓名',
+  `attendant_name` varchar(50) DEFAULT NULL COMMENT '陪诊师姓名',
+  `attendant_phone` varchar(20) DEFAULT NULL COMMENT '陪诊师电话',
+  `patient_name` varchar(50) NOT NULL COMMENT '就诊人姓名',
   `patient_age` int DEFAULT '0' COMMENT '就诊人年龄',
-  `patient_sex` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '未知' COMMENT '就诊人性别',
-  `contact_person` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `contact_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `hospital` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `service_content` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `patient_sex` varchar(10) DEFAULT '未知' COMMENT '就诊人性别',
+  `contact_person` varchar(50) NOT NULL,
+  `contact_phone` varchar(20) NOT NULL,
+  `hospital` varchar(100) NOT NULL,
+  `service_content` varchar(100) DEFAULT NULL,
   `clinic_type` int DEFAULT '1',
-  `service_date` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `service_time_slot` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `special_requirements` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '特殊需求',
-  `custom_requirement` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '自定义需求',
+  `service_date` varchar(20) DEFAULT NULL,
+  `service_time_slot` varchar(50) DEFAULT NULL,
+  `special_requirements` text COMMENT '特殊需求',
+  `custom_requirement` text COMMENT '自定义需求',
   `order_amount` decimal(10,2) NOT NULL DEFAULT '0.00',
-  `payment_status` int DEFAULT '0' COMMENT '0=待支付, 1=已支付',
+  `payment_status` int DEFAULT '0' COMMENT '0=待支付,1=已支付',
   `payment_time` datetime DEFAULT NULL,
-  `order_status` int DEFAULT '0' COMMENT '0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长费用, 5=时长费用有争议, 6=已完成, 7=已取消',
-  `cancel_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '取消原因',
+  `order_status` int DEFAULT '0' COMMENT '0=待支付,1=待接单,2=待服务,3=服务中,4=待确认时长费用,5=时长费用有争议,6=已完成,7=已取消',
+  `cancel_reason` text COMMENT '取消原因',
   `cancel_time` datetime DEFAULT NULL COMMENT '取消时间',
   `cancel_by` tinyint DEFAULT NULL COMMENT '取消方：0用户 1陪诊师 2系统',
   `penalty_rate` decimal(5,2) DEFAULT NULL COMMENT '违约金比例(0-1)',
   `penalty_amount` decimal(10,2) DEFAULT NULL COMMENT '违约金金额',
   `refund_amount` decimal(10,2) DEFAULT NULL COMMENT '退款金额',
-  `qr_code_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '核销二维码URL',
+  `qr_code_url` varchar(255) DEFAULT NULL COMMENT '核销二维码URL',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `service_start_time` datetime DEFAULT NULL COMMENT '服务开始时间',
   `service_end_time` datetime DEFAULT NULL COMMENT '服务结束时间',
-  `service_progress_step` tinyint DEFAULT NULL COMMENT '服务进度：1=已到院, 2=候诊中, 3=检查中, 4=就诊完成',
+  `service_progress_step` tinyint DEFAULT NULL COMMENT '服务进度：1=已到院,2=候诊中,3=检查中,4=就诊完成',
   `estimated_duration` decimal(5,2) DEFAULT NULL COMMENT '预估服务时长(小时)',
   `actual_duration` decimal(5,2) DEFAULT NULL COMMENT '实际服务时长(小时)',
   `balance_amount` decimal(10,2) DEFAULT NULL COMMENT '差价金额（正数需补付，负数自动退款）',
   `time_dispute_user_duration` decimal(5,2) DEFAULT NULL COMMENT '用户申诉的实际时长(小时)',
-  `time_dispute_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '用户申诉说明',
+  `time_dispute_reason` text COMMENT '用户申诉说明',
   PRIMARY KEY (`order_id`) USING BTREE,
   UNIQUE KEY `uk_order_no` (`order_no`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='正式订单表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='订单表';
 
--- ----------------------------
--- Records of order
--- ----------------------------
-BEGIN;
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (45, 'ORD177217538128245f6c9', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-10:30', '发热', '无', 180.00, 1, '2026-02-27 14:56:37', 2, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_45', '2026-02-27 14:56:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (46, 'ORD17721767672500e0d4f', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:00', '胸痛', '无', 50.00, 1, '2026-02-27 15:19:29', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-27 15:19:27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (47, 'ORD17721772386768f50f7', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都', '普通陪诊', 1, '2026-02-27', '08:00-09:30', NULL, '无', 50.00, 1, '2026-02-27 15:27:20', 3, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_47', '2026-02-27 15:27:19', '2026-02-28 22:08:45', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (48, 'ORD1772177339845b88d27', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:30', '胸痛', '无', 80.00, 1, '2026-02-27 15:29:02', 3, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_48', '2026-02-27 15:29:00', '2026-02-28 15:52:59', NULL, 4, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (49, 'ORD1772184911870ee26b8', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', 'cda', '普通陪诊', 1, '2026-02-27', '08:00-12:30', '恶心呕吐', '无', 170.00, 1, '2026-02-27 17:35:13', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_49', '2026-02-27 17:35:12', '2026-02-27 17:36:53', '2026-02-27 17:37:02', 4, 4.50, 5.50, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (50, 'ORD17721851897289aebd7', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-12:00', NULL, '无', 110.00, 1, '2026-02-27 17:39:52', 4, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_50', '2026-02-27 17:39:50', '2026-02-27 17:55:17', '2026-02-27 17:55:23', 4, 4.00, 4.50, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (51, 'ORD1772185891805b1f712', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-12:00', '胸痛', '无', 140.00, 1, '2026-02-27 17:51:40', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_51', '2026-02-27 17:51:32', '2026-02-27 18:36:45', '2026-02-27 18:41:34', 4, 4.00, 4.50, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (52, 'ORD17721864203592d5f4c', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-11:00', '腹痛', '无', 140.00, 1, '2026-02-27 18:00:22', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_52', '2026-02-27 18:00:20', '2026-02-27 18:36:01', '2026-02-28 01:08:57', 4, 3.00, 4.50, 60.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (53, 'ORD17721864910689bda5e', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:00', '胸痛', '无', 50.00, 0, NULL, 7, '超时未支付自动取消', '2026-02-27 18:41:43', 0, 0.00, 0.00, 50.00, NULL, '2026-02-27 18:01:31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (54, 'ORD1772186820885b73960', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-02-27', '08:00-10:30', '胸痛', '无', 80.00, 0, NULL, 7, '超时未支付自动取消', '2026-02-27 18:41:40', 0, 0.00, 0.00, 80.00, NULL, '2026-02-27 18:07:01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (55, 'ORD17721883993729bc4e8', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-11:00', '胸痛', '无', 210.00, 1, '2026-02-27 18:33:27', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_55', '2026-02-27 18:33:19', '2026-02-27 18:34:14', '2026-02-27 18:34:18', NULL, 3.00, 4.00, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (56, 'ORD1772191228942f306f5', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '急诊陪同', 3, '2026-02-27', '08:00-11:00', '胸痛', '无', 150.00, 1, '2026-02-27 19:20:33', 6, NULL, NULL, NULL, NULL, NULL, 30.00, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_56', '2026-02-27 19:20:29', '2026-02-27 19:21:38', '2026-02-27 19:26:06', 4, 3.00, 2.00, -30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (57, 'ORD1772262390131755423', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '上门陪诊', 4, '2026-02-28', '08:00-11:00', '发热', '无', 110.00, 1, '2026-02-28 15:06:41', 7, '计划有变，暂不就诊', '2026-02-28 15:52:07', 0, 0.00, 0.00, 110.00, NULL, '2026-02-28 15:06:30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (58, 'ORD1772287600519548ca7', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市医院', '术后护理', 2, '2026-02-28', '08:00-11:30', '恶心呕吐,腹痛', '无', 180.00, 1, '2026-02-28 22:06:42', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-28 22:06:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (59, 'ORD177315249372547cc64', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市中医院', '普通陪诊', 1, '2026-03-11', '08:00-11:00', '胸痛,头痛', '无', 110.00, 1, '2026-03-10 22:21:45', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_59', '2026-03-10 22:21:34', '2026-03-10 22:22:19', '2026-03-10 22:22:52', 4, 3.00, 4.00, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (60, 'ORD1773298044420e4b1ab', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '都江堰市医院', '急诊陪同', 3, '2026-03-13', '08:00-10:00', '发热', '无', 210.00, 1, '2026-03-12 14:47:38', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_60', '2026-03-12 14:47:24', '2026-03-12 14:48:25', '2026-03-12 14:48:48', 4, 2.00, 3.50, 60.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (61, 'ORD1773310486563a96d40', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '都江堰医院', '普通陪诊', 1, '2026-03-12', '08:00-11:30', '发热', '无', 140.00, 1, '2026-03-12 18:15:07', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_61', '2026-03-12 18:14:47', '2026-03-12 18:15:57', '2026-03-12 18:16:24', 4, 3.50, 4.50, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (62, 'ORD1773374717841e7be28', 15, 21, '李怀', NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市', '普通陪诊', 1, '2026-03-13', '08:00-11:00', '胸痛', '无', 110.00, 1, '2026-03-13 12:05:23', 6, NULL, NULL, NULL, NULL, NULL, NULL, 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_62', '2026-03-13 12:05:18', '2026-03-13 23:31:52', '2026-03-13 23:32:05', 4, 3.00, 4.00, 30.00, NULL, NULL);
-INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (63, 'ORD1773406248529bae071', 15, NULL, NULL, NULL, '范涵伶', 22, '男', '范涵伶', '15520765697', '成都市中医院', '普通陪诊', 1, '2026-03-14', '08:00-10:30', '发热', '有经验', 80.00, 1, '2026-03-13 20:50:53', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-13 20:50:49', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-COMMIT;
-
--- ----------------------------
--- Table structure for order_evaluation
--- ----------------------------
-DROP TABLE IF EXISTS `order_evaluation`;
 CREATE TABLE `order_evaluation` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_id` int NOT NULL COMMENT '订单ID',
-  `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单号',
+  `order_no` varchar(64) NOT NULL COMMENT '订单号',
   `user_id` int NOT NULL COMMENT '评价用户ID',
   `attendant_id` int DEFAULT NULL COMMENT '陪诊师用户ID',
   `rating` int NOT NULL COMMENT '总体评分（1-5星）',
-  `tags` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '服务亮点标签，逗号分隔',
-  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '评价内容',
-  `attendant_reply` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '陪诊师回复内容',
+  `tags` varchar(255) DEFAULT NULL COMMENT '服务亮点标签，逗号分隔',
+  `content` text COMMENT '评价内容',
+  `attendant_reply` text COMMENT '陪诊师回复内容',
   `reply_time` datetime DEFAULT NULL COMMENT '陪诊师回复时间',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `uk_order_id` (`order_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='订单评价表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='订单评价表';
 
--- ----------------------------
--- Records of order_evaluation
--- ----------------------------
-BEGIN;
-INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (1, 55, 'ORD17721883993729bc4e8', 15, 21, 5, '沟通耐心', '很耐心', '谢谢', '2026-02-28 21:17:24', '2026-02-28 16:35:59', '2026-02-28 21:17:23');
-INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (2, 59, 'ORD177315249372547cc64', 15, 21, 5, '沟通耐心', '很好', '谢谢', '2026-03-10 22:23:32', '2026-03-10 22:23:23', '2026-03-10 22:23:31');
-INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (3, 60, 'ORD1773298044420e4b1ab', 15, 21, 5, '沟通耐心', '', '谢谢', '2026-03-12 14:49:16', '2026-03-12 14:49:06', '2026-03-12 14:49:15');
-INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (4, 61, 'ORD1773310486563a96d40', 15, 21, 5, '沟通耐心', '很好', '谢谢', '2026-03-12 18:16:57', '2026-03-12 18:16:47', '2026-03-12 18:16:56');
-INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (5, 62, 'ORD1773374717841e7be28', 15, 21, 5, '沟通耐心,时间准时', 'henhao', NULL, NULL, '2026-03-13 23:36:31', '2026-03-13 23:36:31');
-COMMIT;
-
--- ----------------------------
--- Table structure for service_type_mapping
--- ----------------------------
-DROP TABLE IF EXISTS `service_type_mapping`;
-CREATE TABLE `service_type_mapping` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `service_type_number` int NOT NULL,
-  `service_type_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `price_base` decimal(10,2) DEFAULT '0.00',
-  `price_per_hour` decimal(10,2) DEFAULT '0.00',
-  `is_active` tinyint(1) DEFAULT '1',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE `chat_message` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `sender_id` int NOT NULL COMMENT '发送者ID',
+  `receiver_id` int NOT NULL COMMENT '接收者ID',
+  `content` text COMMENT '消息内容',
+  `msg_type` int DEFAULT '1' COMMENT '消息类型：1=文本, 2=图片',
+  `is_read` tinyint(1) DEFAULT '0' COMMENT '是否已读：0=未读,1=已读',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `service_type_number` (`service_type_number`) USING BTREE,
-  KEY `idx_service_type_number` (`service_type_number`) USING BTREE,
-  KEY `idx_is_active` (`is_active`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='服务类型映射表';
+  KEY `idx_sender_receiver` (`sender_id`,`receiver_id`) USING BTREE,
+  KEY `idx_receiver_read` (`receiver_id`,`is_read`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='聊天消息表';
 
--- ----------------------------
--- Records of service_type_mapping
--- ----------------------------
-BEGIN;
-INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (1, 1, '普通陪诊', '基础陪诊服务，包括陪同就诊、取药等', 50.00, 30.00, 1, '2026-02-09 18:36:02', '2026-02-09 18:36:02');
-INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (2, 2, '术后护理', '专业术后护理服务', 0.00, 45.00, 1, '2026-02-09 18:36:02', '2026-02-09 18:36:02');
-INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (3, 3, '急诊陪同', '急诊情况下的陪诊服务', 50.00, 30.00, 1, '2026-02-09 18:36:02', '2026-02-09 18:36:02');
-INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (4, 4, '上门陪诊', '上门提供陪诊服务', 50.00, 30.00, 1, '2026-02-09 18:36:02', '2026-02-09 18:36:02');
-COMMIT;
-
--- ----------------------------
--- Table structure for user
--- ----------------------------
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
+CREATE TABLE `guide_appointment` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '登录用户名',
-  `password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '登录密码',
-  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '真实姓名/昵称',
-  `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '手机号',
-  `sex` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '未知' COMMENT '性别',
-  `age` int DEFAULT '0' COMMENT '年龄',
-  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '头像URL',
-  `user_type` int NOT NULL DEFAULT '0' COMMENT '角色：0=普通用户, 1=陪诊师, 2=管理员',
-  `openid` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '微信OpenID',
+  `appointment_no` varchar(64) NOT NULL COMMENT '预约编号',
+  `user_id` int DEFAULT NULL COMMENT '提交人ID',
+  `patient_name` varchar(50) DEFAULT NULL COMMENT '就诊人',
+  `patient_phone` varchar(20) DEFAULT NULL,
+  `symptoms` json DEFAULT NULL COMMENT '症状描述',
+  `hospital_name` varchar(100) DEFAULT NULL,
+  `service_type_number` int DEFAULT '1' COMMENT '服务类型编号',
+  `service_date` varchar(20) DEFAULT NULL,
+  `service_start_time` varchar(20) DEFAULT NULL,
+  `service_end_time` varchar(20) DEFAULT NULL,
+  `other_requirement` text COMMENT '其他需求',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `uk_username` (`username`) USING BTREE,
-  UNIQUE KEY `uk_phone` (`phone`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='基础用户表';
+  UNIQUE KEY `uk_appt_no` (`appointment_no`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='AI导诊预约记录表';
 
--- ----------------------------
--- Records of user
--- ----------------------------
+CREATE TABLE `ai_medical_qa` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `conversation_id` varchar(64) NOT NULL COMMENT '对话会话ID',
+  `question` text NOT NULL COMMENT '用户提问内容',
+  `answer` text COMMENT 'AI回答内容',
+  `qa_status` tinyint NOT NULL DEFAULT '0' COMMENT '问答状态：0-处理中，1-完成，2-失败',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '逻辑删除：0-未删除，1-已删除',
+  `thinking_process` varchar(500) DEFAULT '' COMMENT 'AI思考过程',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_conversation_id` (`conversation_id`) USING BTREE,
+  KEY `idx_create_time` (`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='AI医疗问答记录表';
+
+-- Data for user
 BEGIN;
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (1, 'sasa', 'testpassword', 'sara', '13812345678', '女', 25, NULL, 0, 'o123abc456def', '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (9, '小明', 'testpassword', '小明', '13987654321', '男', 25, NULL, 0, 'o789xyz012uvw', '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (10, '小小', '123456', '小小', '13765432109', '女', 36, NULL, 1, 'oabc123def456', '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (11, '小王', '123456', '小王', '13698765432', '男', 25, '', 1, 'odef789ghi012', '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (13, 'liufang', 'liufang', '刘芳', '13806580001', '女', 32, NULL, 1, NULL, '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (15, 'fanfan', '123456', '范涵伶', '15520765697', '男', 22, '/uploads/user1.jpg', 0, NULL, '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (20, 'patient_test', '123456', '张三', '13800138001', '男', 30, NULL, 0, NULL, '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (21, 'xiaoyang', '123456', '小羊', '13900139002', '男', 35, '/uploads/03_Medicalcompanion.jpg', 1, NULL, '2026-02-12 01:55:08');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (22, 'attendant002', '加密后的密码2', '李四', '13800138002', '女', 28, '/uploads/01_Medicalcompanion.jpg', 1, NULL, '2025-07-01 10:06:05');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (23, 'attendant003', '加密后的密码3', '王五', '13800138003', '男', 35, '/uploads/04_Medicalcompanion.jpg', 1, NULL, '2025-07-01 10:22:35');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (24, 'attendant123', '加密后的密码', '小张', '13800138000', '女', 30, '/uploads/02_Medicalcompanion.jpg', 1, NULL, '2025-07-02 11:06:37');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (25, 'youning', '123456', '优宁', '13899990001', '女', 30, '/uploads/03_Medicalcompanion.jpg', 1, NULL, '2025-11-29 22:09:24');
-INSERT INTO `user` (`id`, `username`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (26, 'attendant_temp_02', '123456', '张三', '13899990002', '女', 30, '/uploads/04_Medicalcompanion.jpg', 1, NULL, '2025-12-15 21:24:59');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (1, '$2b$10$irw4AvTW.r0OgNJC62XF.efa1RlSSA/kBTZYd0hXx3bv1t4I5dJuy', '平台管理员', '18800000001', '男', 38, '/uploads/mynewlogo.png', 2, NULL, '2026-03-01 09:00:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (15, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '范涵伶', '15520765697', '女', 26, '/uploads/user1.jpg', 0, 'wx_demo_user_15520765697', '2026-03-02 10:10:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (16, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '柳清禾', '13800138016', '女', 31, '/uploads/user-avatar.jpg', 0, 'wx_demo_user_13800138016', '2026-03-02 10:20:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (17, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '周铭', '13800138017', '男', 35, '/uploads/doctor1.jpg', 0, NULL, '2026-03-02 10:30:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (18, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '陈雨桐', '13800138018', '女', 29, '/uploads/doctor2.jpg', 0, NULL, '2026-03-02 10:40:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (19, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '宋嘉宁', '13800138019', '女', 42, '/uploads/34a8f1d4d56a3870535ce50749d3f5e4.jpg', 0, NULL, '2026-03-02 10:50:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (20, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '何子安', '13800138020', '男', 33, '/uploads/38da0ad384c9103b9b6de1a987e16191.jpg', 0, NULL, '2026-03-02 11:00:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (21, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '肖阳', '13900139021', '男', 34, '/uploads/03_Medicalcompanion.jpg', 1, 'wx_demo_attendant_13900139021', '2026-03-01 11:00:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (22, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '林知夏', '13900139022', '女', 30, '/uploads/05_Medicalcompanion.jpg', 1, NULL, '2026-03-01 11:10:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (23, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '周可宁', '13900139023', '女', 32, '/uploads/06_Medicalcompanion.jpg', 1, NULL, '2026-03-01 11:20:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (24, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '唐思雨', '13900139024', '女', 29, '/uploads/02_Medicalcompanion.jpg', 1, NULL, '2026-03-01 11:30:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (25, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '许嘉辰', '13900139025', '男', 27, '/uploads/04_Medicalcompanion.jpg', 1, NULL, '2026-03-01 11:40:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (26, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '顾念安', '13900139026', '女', 36, '/uploads/01_Medicalcompanion.jpg', 1, NULL, '2026-03-01 11:50:00');
 COMMIT;
 
--- ----------------------------
--- Procedure structure for AddColumnsToGuideAppointment
--- ----------------------------
-DROP PROCEDURE IF EXISTS `AddColumnsToGuideAppointment`;
-delimiter ;;
-CREATE PROCEDURE `AddColumnsToGuideAppointment`()
-BEGIN
-    -- 检查并添加 hospital_name
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'hospital_name') THEN
-        ALTER TABLE guide_appointment ADD COLUMN hospital_name VARCHAR(100) DEFAULT '' NOT NULL COMMENT '医院名称' AFTER id;
-    END IF;
-    
-    -- 检查并添加 service_date（给默认值，避免已有数据报错）
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'service_date') THEN
-        ALTER TABLE guide_appointment ADD COLUMN service_date DATE DEFAULT '1970-01-01' NOT NULL COMMENT '服务日期' AFTER hospital_name;
-    END IF;
-    
-    -- 检查并添加 service_start_time
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'service_start_time') THEN
-        ALTER TABLE guide_appointment ADD COLUMN service_start_time TIME DEFAULT '00:00:00' NOT NULL COMMENT '服务开始时间' AFTER service_date;
-    END IF;
-    
-    -- 检查并添加 service_end_time
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'service_end_time') THEN
-        ALTER TABLE guide_appointment ADD COLUMN service_end_time TIME DEFAULT '00:00:00' NOT NULL COMMENT '服务结束时间' AFTER service_start_time;
-    END IF;
-    
-    -- 检查并添加 service_type_number
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'service_type_number') THEN
-        ALTER TABLE guide_appointment ADD COLUMN service_type_number INT DEFAULT 0 NOT NULL COMMENT '服务类型编号' AFTER service_end_time;
-    END IF;
-    
-    -- 检查并添加 symptoms（JSON类型，允许为空）
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'symptoms') THEN
-        ALTER TABLE guide_appointment ADD COLUMN symptoms JSON COMMENT '症状列表' AFTER service_type_number;
-    END IF;
-    
-    -- 检查并添加 other_requirement
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guide_appointment' AND COLUMN_NAME = 'other_requirement') THEN
-        ALTER TABLE guide_appointment ADD COLUMN other_requirement TEXT COMMENT '其他需求' AFTER symptoms;
-    END IF;
-END
-;;
-delimiter ;
+-- Data for attendant
+BEGIN;
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (21, 'CD-PZ-2026-021', 1, NULL, '熟悉华西医院、四川省人民医院门诊流程，擅长老年就诊陪同与检查引导。', '门诊陪诊,老人陪护,检查引导', '4.9', 8, '四川大学华西医院', '2026-03-01 11:00:00', '2026-03-20 09:00:00');
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (22, 'CD-PZ-2026-022', 1, NULL, '擅长女性患者全流程陪诊、报告领取与术后复查安排，沟通细致耐心。', '术后复查,挂号取号,女性陪诊', '4.8', 6, '四川省人民医院', '2026-03-01 11:10:00', '2026-03-20 09:05:00');
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (23, 'CD-PZ-2026-023', 1, NULL, '熟悉儿童医院与综合医院检查路径，可陪同看诊、缴费、取药。', '检查陪同,儿科陪诊,门诊协助', '4.7', 5, '成都市妇女儿童中心医院', '2026-03-01 11:20:00', '2026-03-20 09:10:00');
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (24, 'CD-PZ-2026-024', 1, NULL, '擅长异地就医陪同与住院流程办理，服务节奏稳定，擅长术前陪护。', '住院陪护,异地就医,术前陪诊', '4.6', 4, '成都市第三人民医院', '2026-03-01 11:30:00', '2026-03-20 09:15:00');
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (25, 'CD-PZ-2026-025', 0, NULL, '正在完善资质材料，已具备基础门诊陪诊经验。', '基础门诊陪诊,报告领取', '4.5', 2, '成都中医药大学附属医院', '2026-03-01 11:40:00', '2026-03-18 14:00:00');
+INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `create_time`, `update_time`) VALUES (26, 'CD-PZ-2026-026', 3, '健康证已过期，请更新后重新提交。', '擅长术后护理与复诊安排，待补齐资质后重新开放接单。', '术后护理,复诊陪诊', '4.4', 7, '成都市第一人民医院', '2026-03-01 11:50:00', '2026-03-17 18:00:00');
+COMMIT;
+
+-- Data for attendant_qualification
+BEGIN;
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (21, 1, 1, 1, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', '/uploads/qualification/health-cert.jpg', '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (22, 1, 1, 1, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', '/uploads/qualification/health-cert.jpg', '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (23, 1, 1, 1, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', '/uploads/qualification/health-cert.jpg', '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (24, 1, 1, 1, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', '/uploads/qualification/health-cert.jpg', '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (25, 1, 1, 0, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', NULL, '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES (26, 1, 1, 1, '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-front.jpg', '/uploads/qualification/idcard-back.jpg', '/uploads/qualification/practice-cert.jpg', '/uploads/qualification/health-cert.jpg', '2026-03-01 12:00:00', '2026-03-20 09:30:00');
+COMMIT;
+
+-- Data for service_type_mapping
+BEGIN;
+INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (1, 1, '门诊陪诊', '基础门诊陪诊服务，包括挂号、候诊、缴费、取药。', '80.00', '35.00', 1, '2026-03-01 08:00:00', '2026-03-01 08:00:00');
+INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (2, 2, '检查陪同', '陪同完成检验检查、取报告与结果解读辅助。', '100.00', '40.00', 1, '2026-03-01 08:00:00', '2026-03-01 08:00:00');
+INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (3, 3, '住院陪护', '协助住院办理、术前术后沟通与陪护支持。', '120.00', '45.00', 1, '2026-03-01 08:00:00', '2026-03-01 08:00:00');
+INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES (4, 4, '异地就医协助', '异地就医流程引导、交通接驳与院内陪同。', '150.00', '50.00', 1, '2026-03-01 08:00:00', '2026-03-01 08:00:00');
+COMMIT;
+
+-- Data for order
+BEGIN;
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1001, 'ORD20260310001', 15, 21, '肖阳', '13900139021', '范涵伶', 26, '女', '范涵伶', '15520765697', '四川大学华西医院', '门诊陪诊', 1, '2026-03-10', '08:30-11:30', '父亲复诊，需要陪同排队取号。', '携带既往CT报告', '185.00', 1, '2026-03-10 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-10 07:00:00', '2026-03-10 08:25:00', '2026-03-10 11:40:00', 4, '3.00', '3.20', '12.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1002, 'ORD20260310002', 16, 21, '肖阳', '13900139021', '柳清禾', 31, '女', '柳清禾', '13800138016', '四川大学华西医院', '检查陪同', 2, '2026-03-10', '13:00-16:00', '胃镜检查，需要全程陪同。', '检查前需空腹', '220.00', 1, '2026-03-10 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-10 07:00:00', '2026-03-10 12:55:00', '2026-03-10 16:10:00', 4, '3.00', '3.10', '0.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1003, 'ORD20260311001', 17, 21, '肖阳', '13900139021', '周铭', 35, '男', '周铭', '13800138017', '四川省人民医院', '门诊陪诊', 1, '2026-03-11', '09:00-12:00', '高血压复诊，希望协助问诊记录。', '需要帮助整理用药清单', '190.00', 1, '2026-03-11 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-11 07:00:00', '2026-03-11 08:50:00', '2026-03-11 12:05:00', 4, '3.00', '3.00', '5.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1004, 'ORD20260312001', 18, 21, '肖阳', '13900139021', '陈雨桐', 29, '女', '陈雨桐', '13800138018', '四川大学华西医院', '住院陪护', 3, '2026-03-12', '10:00-15:00', '母亲住院办理手续。', '需协助办理住院与缴费', '320.00', 1, '2026-03-12 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-12 07:00:00', '2026-03-12 09:45:00', '2026-03-12 15:10:00', 4, '5.00', '5.20', '25.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1005, 'ORD20260313001', 19, 21, '肖阳', '13900139021', '宋嘉宁', 42, '女', '宋嘉宁', '13800138019', '成都市第三人民医院', '异地就医协助', 4, '2026-03-13', '08:00-12:00', '从外地过来复查，希望院内全流程指引。', '需协助打印发票', '260.00', 1, '2026-03-13 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-13 07:00:00', '2026-03-13 07:55:00', '2026-03-13 12:00:00', 4, '4.00', '4.00', '0.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1006, 'ORD20260314001', 20, 22, '林知夏', '13900139022', '何子安', 33, '男', '何子安', '13800138020', '四川省人民医院', '门诊陪诊', 1, '2026-03-14', '09:00-11:30', '术后拆线复诊。', '行动缓慢，需要陪同轮椅', '180.00', 1, '2026-03-14 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-14 07:00:00', '2026-03-14 08:50:00', '2026-03-14 11:35:00', 4, '2.50', '2.80', '10.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1007, 'ORD20260314002', 15, 22, '林知夏', '13900139022', '范涵伶', 26, '女', '范涵伶', '15520765697', '成都中医药大学附属医院', '检查陪同', 2, '2026-03-14', '14:00-17:00', '乳腺彩超检查。', '希望女性陪诊师陪同', '210.00', 1, '2026-03-14 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-14 07:00:00', '2026-03-14 13:55:00', '2026-03-14 17:10:00', 4, '3.00', '3.10', '8.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1008, 'ORD20260315001', 16, 22, '林知夏', '13900139022', '柳清禾', 31, '女', '柳清禾', '13800138016', '四川省人民医院', '门诊陪诊', 1, '2026-03-15', '08:30-10:30', '孕检复查。', '需要协助候诊与拿化验单', '170.00', 1, '2026-03-15 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-15 07:00:00', '2026-03-15 08:25:00', '2026-03-15 10:40:00', 4, '2.00', '2.20', '5.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1009, 'ORD20260315002', 17, 23, '周可宁', '13900139023', '周铭', 35, '男', '周铭', '13800138017', '成都市妇女儿童中心医院', '检查陪同', 2, '2026-03-15', '13:30-16:30', '孩子发热复诊。', '儿科检查流程需要熟悉', '230.00', 1, '2026-03-15 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-15 07:00:00', '2026-03-15 13:20:00', '2026-03-15 16:40:00', 4, '3.00', '3.30', '15.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1010, 'ORD20260316001', 18, 23, '周可宁', '13900139023', '陈雨桐', 29, '女', '陈雨桐', '13800138018', '成都市妇女儿童中心医院', '门诊陪诊', 1, '2026-03-16', '09:00-11:00', '儿童复查，需要帮助记录医嘱。', '孩子比较怕生', '165.00', 1, '2026-03-16 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-16 07:00:00', '2026-03-16 08:55:00', '2026-03-16 11:10:00', 4, '2.00', '2.10', '0.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1011, 'ORD20260316002', 19, 24, '唐思雨', '13900139024', '宋嘉宁', 42, '女', '宋嘉宁', '13800138019', '成都市第三人民医院', '住院陪护', 3, '2026-03-16', '10:00-14:00', '家属白天无法陪同，需要协助病房手续。', '需提醒术前禁食', '280.00', 1, '2026-03-16 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-16 07:00:00', '2026-03-16 09:50:00', '2026-03-16 14:20:00', 4, '4.00', '4.30', '18.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1012, 'ORD20260317001', 20, 24, '唐思雨', '13900139024', '何子安', 33, '男', '何子安', '13800138020', '成都市第一人民医院', '异地就医协助', 4, '2026-03-17', '08:30-12:30', '帮助完成复诊和医保材料整理。', '需要协助打印病历', '300.00', 1, '2026-03-17 07:30:00', 6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 07:00:00', '2026-03-17 08:20:00', '2026-03-17 12:45:00', 4, '4.00', '4.20', '20.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1013, 'ORD20260321001', 15, NULL, NULL, NULL, '范涵伶', 26, '女', '范涵伶', '15520765697', '四川大学华西医院', '门诊陪诊', 1, '2026-03-21', '08:30-11:30', '明天复诊，希望有熟悉流程的陪诊员。', '优先熟悉内分泌科', '185.00', 1, '2026-03-21 07:30:00', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-21 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1014, 'ORD20260321002', 16, NULL, NULL, NULL, '柳清禾', 31, '女', '柳清禾', '13800138016', '四川省人民医院', '检查陪同', 2, '2026-03-21', '13:30-15:30', '核磁检查陪同。', '需要提醒检查注意事项', '205.00', 1, '2026-03-21 07:30:00', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-21 07:00:00', NULL, NULL, NULL, '2.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1015, 'ORD20260320001', 17, 21, '肖阳', '13900139021', '周铭', 35, '男', '周铭', '13800138017', '四川大学华西医院', '门诊陪诊', 1, '2026-03-20', '14:00-17:00', '今日下午复诊。', '已与陪诊师电话确认', '190.00', 1, '2026-03-20 07:30:00', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-20 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1016, 'ORD20260320002', 18, 22, '林知夏', '13900139022', '陈雨桐', 29, '女', '陈雨桐', '13800138018', '四川省人民医院', '检查陪同', 2, '2026-03-20', '15:00-18:00', '抽血和B超检查。', '需帮忙取报告', '215.00', 1, '2026-03-20 07:30:00', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-20 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1017, 'ORD20260320003', 19, 23, '周可宁', '13900139023', '宋嘉宁', 42, '女', '宋嘉宁', '13800138019', '成都市妇女儿童中心医院', '检查陪同', 2, '2026-03-20', '09:00-12:00', '儿童复诊进行中。', '保持手机畅通', '225.00', 1, '2026-03-20 07:30:00', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-20 07:00:00', '2026-03-20 09:05:00', NULL, 2, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1018, 'ORD20260320004', 20, 24, '唐思雨', '13900139024', '何子安', 33, '男', '何子安', '13800138020', '成都市第三人民医院', '住院陪护', 3, '2026-03-20', '08:30-13:30', '住院办理中。', '需要协助办理押金', '295.00', 1, '2026-03-20 07:30:00', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-20 07:00:00', '2026-03-20 08:35:00', NULL, 2, '5.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1019, 'ORD20260320005', 15, 21, '肖阳', '13900139021', '范涵伶', 26, '女', '范涵伶', '15520765697', '四川大学华西医院', '门诊陪诊', 1, '2026-03-20', '10:00-13:00', '门诊就诊进行中。', '需要陪同取药', '205.00', 1, '2026-03-20 07:30:00', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-20 07:00:00', '2026-03-20 10:05:00', NULL, 2, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1020, 'ORD20260319001', 16, 22, '林知夏', '13900139022', '柳清禾', 31, '女', '柳清禾', '13800138016', '四川省人民医院', '门诊陪诊', 1, '2026-03-19', '14:00-17:00', '昨日服务已结束，待确认时长。', '用户对时长无异议', '200.00', 1, '2026-03-19 07:30:00', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-19 07:00:00', '2026-03-19 14:05:00', '2026-03-19 17:05:00', 4, '3.00', '3.10', '10.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1021, 'ORD20260319002', 17, 21, '肖阳', '13900139021', '周铭', 35, '男', '周铭', '13800138017', '四川大学华西医院', '检查陪同', 2, '2026-03-19', '09:00-12:00', '待用户确认本次陪诊费用。', '需确认补缴费用', '230.00', 1, '2026-03-19 07:30:00', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-19 07:00:00', '2026-03-19 09:05:00', '2026-03-19 12:15:00', 4, '3.00', '3.20', '18.00', NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1022, 'ORD20260318001', 18, 24, '唐思雨', '13900139024', '陈雨桐', 29, '女', '陈雨桐', '13800138018', '成都市第一人民医院', '异地就医协助', 4, '2026-03-18', '08:00-12:00', '用户对时长有异议。', '用户认为实际时长更短', '280.00', 1, '2026-03-18 07:30:00', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-18 07:00:00', '2026-03-18 08:10:00', '2026-03-18 12:30:00', 4, '4.00', '4.50', '25.00', '3.50', '用户在检查空档自行离院一小时');
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1023, 'ORD20260322001', 19, NULL, NULL, NULL, '宋嘉宁', 42, '女', '宋嘉宁', '13800138019', '成都市第三人民医院', '门诊陪诊', 1, '2026-03-22', '08:30-11:30', '已创建订单，等待支付。', '需要短信提醒支付', '185.00', 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-22 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1024, 'ORD20260318002', 20, 23, '周可宁', '13900139023', '何子安', 33, '男', '何子安', '13800138020', '成都市妇女儿童中心医院', '检查陪同', 2, '2026-03-18', '13:00-16:00', '因家属临时有事取消。', '系统已释放陪诊师', '210.00', 1, '2026-03-18 07:30:00', 7, '家属临时无法到院', '2026-03-18 11:20:00', 0, NULL, NULL, NULL, NULL, '2026-03-18 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+COMMIT;
+
+-- Data for order_evaluation
+BEGIN;
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (1, 1001, 'ORD20260310001', 15, 21, 5, '沟通耐心,时间准时', '沟通特别清晰，整个就诊流程都安排得很稳。', '感谢认可，祝您早日康复。', '2026-03-10 14:40:00', '2026-03-10 12:40:00', '2026-03-10 14:40:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (2, 1002, 'ORD20260310002', 16, 21, 5, '路线熟悉,协助取号', '陪同检查很细致，取报告也很及时。', '谢谢信任，有需要随时联系。', '2026-03-10 19:10:00', '2026-03-10 17:10:00', '2026-03-10 19:10:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (3, 1003, 'ORD20260311001', 17, 21, 5, '服务细致,流程熟悉', '对医院路线很熟，节省了很多时间。', '很高兴帮到您，后续复诊也可以联系我。', '2026-03-11 15:05:00', '2026-03-11 13:05:00', '2026-03-11 15:05:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (4, 1004, 'ORD20260312001', 18, 21, 4, '态度温和,解释清楚', '服务很认真，态度耐心。', NULL, NULL, '2026-03-12 16:10:00', '2026-03-12 16:10:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (5, 1005, 'ORD20260313001', 19, 21, 5, '照顾周到,医院熟悉', '长辈反馈很好，整个过程都很安心。', '感谢认可，祝您早日康复。', '2026-03-13 15:00:00', '2026-03-13 13:00:00', '2026-03-13 15:00:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (6, 1006, 'ORD20260314001', 20, 22, 5, '主动提醒,效率高', '陪诊师提醒事项很到位，体验不错。', '谢谢信任，有需要随时联系。', '2026-03-14 14:35:00', '2026-03-14 12:35:00', '2026-03-14 14:35:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (7, 1007, 'ORD20260314002', 15, 22, 4, '陪同细致,耐心负责', '排队和缴费都帮忙处理得很顺畅。', '很高兴帮到您，后续复诊也可以联系我。', '2026-03-14 20:10:00', '2026-03-14 18:10:00', '2026-03-14 20:10:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (8, 1008, 'ORD20260315001', 16, 22, 5, '报告领取及时,讲解清楚', '对检查流程很熟，省心很多。', NULL, NULL, '2026-03-15 11:40:00', '2026-03-15 11:40:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (9, 1009, 'ORD20260315002', 17, 23, 5, '排队高效,态度温柔', '全程耐心陪同，沟通很舒服。', '感谢认可，祝您早日康复。', '2026-03-15 19:40:00', '2026-03-15 17:40:00', '2026-03-15 19:40:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (10, 1010, 'ORD20260316001', 18, 23, 4, '服务稳定,响应迅速', '整体服务不错，后续提醒也及时。', '谢谢信任，有需要随时联系。', '2026-03-16 14:10:00', '2026-03-16 12:10:00', '2026-03-16 14:10:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (11, 1011, 'ORD20260316002', 19, 24, 5, '专业可靠,沟通顺畅', '照顾患者情绪很到位，专业度高。', '很高兴帮到您，后续复诊也可以联系我。', '2026-03-16 17:20:00', '2026-03-16 15:20:00', '2026-03-16 17:20:00');
+INSERT INTO `order_evaluation` (`id`, `order_id`, `order_no`, `user_id`, `attendant_id`, `rating`, `tags`, `content`, `attendant_reply`, `reply_time`, `create_time`, `update_time`) VALUES (12, 1012, 'ORD20260317001', 20, 24, 5, '就诊协助到位,很安心', '复诊流程安排合理，体验很好。', NULL, NULL, '2026-03-17 13:45:00', '2026-03-17 13:45:00');
+COMMIT;
+
+-- Data for chat_message
+BEGIN;
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (1, 0, 15, '您已成功支付订单 ORD20260310001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-10 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (2, 0, 15, '您预约的2026-03-10 08:30-11:30 四川大学华西医院 服务已由陪诊师肖阳接单，请保持电话畅通。', 1, 1, '2026-03-10 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (3, 21, 15, '您好，我是陪诊师肖阳，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-10 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (4, 0, 15, '您的订单 ORD20260310001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-10 11:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (5, 0, 21, '订单 ORD20260310001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-10 11:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (6, 0, 16, '您已成功支付订单 ORD20260310002，平台已为您锁定陪诊服务。', 1, 1, '2026-03-10 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (7, 0, 16, '您预约的2026-03-10 13:00-16:00 四川大学华西医院 服务已由陪诊师肖阳接单，请保持电话畅通。', 1, 1, '2026-03-10 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (8, 21, 16, '您好，我是陪诊师肖阳，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-10 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (9, 0, 16, '您的订单 ORD20260310002 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-10 16:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (10, 0, 21, '订单 ORD20260310002 已由用户确认完成，辛苦了。', 1, 1, '2026-03-10 16:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (11, 0, 17, '您已成功支付订单 ORD20260311001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-11 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (12, 0, 17, '您预约的2026-03-11 09:00-12:00 四川省人民医院 服务已由陪诊师肖阳接单，请保持电话畅通。', 1, 1, '2026-03-11 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (13, 21, 17, '您好，我是陪诊师肖阳，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-11 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (14, 0, 17, '您的订单 ORD20260311001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-11 12:15:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (15, 0, 21, '订单 ORD20260311001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-11 12:15:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (16, 0, 18, '您已成功支付订单 ORD20260312001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-12 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (17, 0, 18, '您预约的2026-03-12 10:00-15:00 四川大学华西医院 服务已由陪诊师肖阳接单，请保持电话畅通。', 1, 1, '2026-03-12 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (18, 21, 18, '您好，我是陪诊师肖阳，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-12 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (19, 0, 18, '您的订单 ORD20260312001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-12 15:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (20, 0, 21, '订单 ORD20260312001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-12 15:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (21, 0, 19, '您已成功支付订单 ORD20260313001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-13 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (22, 0, 19, '您预约的2026-03-13 08:00-12:00 成都市第三人民医院 服务已由陪诊师肖阳接单，请保持电话畅通。', 1, 1, '2026-03-13 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (23, 21, 19, '您好，我是陪诊师肖阳，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-13 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (24, 0, 19, '您的订单 ORD20260313001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-13 12:10:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (25, 0, 21, '订单 ORD20260313001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-13 12:10:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (26, 0, 20, '您已成功支付订单 ORD20260314001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-14 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (27, 0, 20, '您预约的2026-03-14 09:00-11:30 四川省人民医院 服务已由陪诊师林知夏接单，请保持电话畅通。', 1, 1, '2026-03-14 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (28, 22, 20, '您好，我是陪诊师林知夏，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-14 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (29, 0, 20, '您的订单 ORD20260314001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-14 11:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (30, 0, 22, '订单 ORD20260314001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-14 11:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (31, 0, 15, '您已成功支付订单 ORD20260314002，平台已为您锁定陪诊服务。', 1, 1, '2026-03-14 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (32, 0, 15, '您预约的2026-03-14 14:00-17:00 成都中医药大学附属医院 服务已由陪诊师林知夏接单，请保持电话畅通。', 1, 1, '2026-03-14 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (33, 22, 15, '您好，我是陪诊师林知夏，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-14 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (34, 0, 15, '您的订单 ORD20260314002 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-14 17:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (35, 0, 22, '订单 ORD20260314002 已由用户确认完成，辛苦了。', 1, 1, '2026-03-14 17:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (36, 0, 16, '您已成功支付订单 ORD20260315001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-15 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (37, 0, 16, '您预约的2026-03-15 08:30-10:30 四川省人民医院 服务已由陪诊师林知夏接单，请保持电话畅通。', 1, 1, '2026-03-15 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (38, 22, 16, '您好，我是陪诊师林知夏，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-15 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (39, 0, 16, '您的订单 ORD20260315001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-15 10:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (40, 0, 22, '订单 ORD20260315001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-15 10:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (41, 0, 17, '您已成功支付订单 ORD20260315002，平台已为您锁定陪诊服务。', 1, 1, '2026-03-15 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (42, 0, 17, '您预约的2026-03-15 13:30-16:30 成都市妇女儿童中心医院 服务已由陪诊师周可宁接单，请保持电话畅通。', 1, 1, '2026-03-15 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (43, 23, 17, '您好，我是陪诊师周可宁，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-15 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (44, 0, 17, '您的订单 ORD20260315002 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-15 16:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (45, 0, 23, '订单 ORD20260315002 已由用户确认完成，辛苦了。', 1, 1, '2026-03-15 16:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (46, 0, 18, '您已成功支付订单 ORD20260316001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-16 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (47, 0, 18, '您预约的2026-03-16 09:00-11:00 成都市妇女儿童中心医院 服务已由陪诊师周可宁接单，请保持电话畅通。', 1, 1, '2026-03-16 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (48, 23, 18, '您好，我是陪诊师周可宁，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-16 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (49, 0, 18, '您的订单 ORD20260316001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-16 11:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (50, 0, 23, '订单 ORD20260316001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-16 11:20:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (51, 0, 19, '您已成功支付订单 ORD20260316002，平台已为您锁定陪诊服务。', 1, 1, '2026-03-16 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (52, 0, 19, '您预约的2026-03-16 10:00-14:00 成都市第三人民医院 服务已由陪诊师唐思雨接单，请保持电话畅通。', 1, 1, '2026-03-16 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (53, 24, 19, '您好，我是陪诊师唐思雨，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-16 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (54, 0, 19, '您的订单 ORD20260316002 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-16 14:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (55, 0, 24, '订单 ORD20260316002 已由用户确认完成，辛苦了。', 1, 1, '2026-03-16 14:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (56, 0, 20, '您已成功支付订单 ORD20260317001，平台已为您锁定陪诊服务。', 1, 1, '2026-03-17 07:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (57, 0, 20, '您预约的2026-03-17 08:30-12:30 成都市第一人民医院 服务已由陪诊师唐思雨接单，请保持电话畅通。', 1, 1, '2026-03-17 07:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (58, 24, 20, '您好，我是陪诊师唐思雨，已经看到您的订单，我会在服务前与您再次确认细节。', 1, 1, '2026-03-17 07:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (59, 0, 20, '您的订单 ORD20260317001 已完成，如对本次服务满意，欢迎提交评价。', 1, 1, '2026-03-17 12:55:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (60, 0, 24, '订单 ORD20260317001 已由用户确认完成，辛苦了。', 1, 1, '2026-03-17 12:55:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (61, 0, 15, '您的订单 ORD20260321001 已创建成功，请在 15 分钟内完成支付。', 1, 0, '2026-03-20 12:30:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (62, 0, 15, '您有一条新的平台提醒：若需改期，请至少提前 12 小时操作。', 1, 0, '2026-03-20 12:40:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (63, 21, 15, '明天的复诊我已经提前帮您看好路线了，您有新增需求可以直接告诉我。', 1, 0, '2026-03-20 12:45:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (64, 0, 16, '您的订单 ORD20260321002 已完成支付，陪诊师将在今晚与您联系。', 1, 1, '2026-03-20 12:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (65, 22, 16, '您好，我是林知夏，明天下午我会提前 20 分钟到医院门口等您。', 1, 0, '2026-03-20 12:55:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (66, 0, 21, '您有新的待服务订单 ORD20260320005，请留意服务时间。', 1, 1, '2026-03-20 09:50:00');
+INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_type`, `is_read`, `create_time`) VALUES (67, 0, 22, '订单 ORD20260319001 正等待用户确认时长，请您稍后关注结果。', 1, 1, '2026-03-19 17:20:00');
+COMMIT;
+
+-- Data for guide_appointment
+BEGIN;
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (301, 'APT2026032001', 15, '范涵伶', '15520765697', '["头晕", "高血压复诊"]', '四川大学华西医院', 1, '2026-03-21', '08:30', '11:30', '希望优先安排熟悉华西医院的陪诊师', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (302, 'APT2026032002', 16, '柳清禾', '13800138016', '["胃痛", "胃镜复查"]', '四川省人民医院', 2, '2026-03-22', '13:00', '16:00', '检查后需要陪同取报告', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (303, 'APT2026032003', 17, '周铭', '13800138017', '["高血压", "心悸"]', '四川省人民医院', 1, '2026-03-23', '09:00', '12:00', '希望帮助记录医嘱', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (304, 'APT2026032004', 18, '陈雨桐', '13800138018', '["儿童发热", "咳嗽"]', '成都市妇女儿童中心医院', 2, '2026-03-23', '14:00', '17:00', '孩子比较怕生，希望沟通温和', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (305, 'APT2026032005', 19, '宋嘉宁', '13800138019', '["住院办理", "术前准备"]', '成都市第三人民医院', 3, '2026-03-24', '08:00', '12:00', '需协助办理住院及缴费', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (306, 'APT2026032006', 20, '何子安', '13800138020', '["异地复诊", "医保材料"]', '成都市第一人民医院', 4, '2026-03-24', '13:00', '17:00', '需协助打印病历及票据', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (307, 'APT2026032007', 15, '范涵伶', '15520765697', '["甲状腺复诊"]', '四川大学华西医院', 1, '2026-03-25', '09:00', '11:00', '最好能熟悉内分泌门诊', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (308, 'APT2026032008', 16, '柳清禾', '13800138016', '["彩超检查"]', '成都中医药大学附属医院', 2, '2026-03-25', '14:00', '16:00', '女性陪诊优先', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (309, 'APT2026032009', 17, '周铭', '13800138017', '["取药复诊"]', '四川省人民医院', 1, '2026-03-26', '08:30', '10:30', '希望节省排队时间', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (310, 'APT2026032010', 18, '陈雨桐', '13800138018', '["儿童复查"]', '成都市妇女儿童中心医院', 2, '2026-03-26', '13:30', '16:30', '需协助安抚孩子情绪', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (311, 'APT2026032011', 19, '宋嘉宁', '13800138019', '["术后拆线"]', '成都市第三人民医院', 3, '2026-03-27', '09:00', '12:00', '家属白天无法陪同', '2026-03-20 10:00:00');
+INSERT INTO `guide_appointment` (`id`, `appointment_no`, `user_id`, `patient_name`, `patient_phone`, `symptoms`, `hospital_name`, `service_type_number`, `service_date`, `service_start_time`, `service_end_time`, `other_requirement`, `create_time`) VALUES (312, 'APT2026032012', 20, '何子安', '13800138020', '["异地就医备案"]', '成都市第一人民医院', 4, '2026-03-27', '14:00', '17:30', '需要熟悉医保异地就医流程', '2026-03-20 10:00:00');
+COMMIT;
+
+-- Data for ai_medical_qa
+BEGIN;
+INSERT INTO `ai_medical_qa` (`id`, `conversation_id`, `question`, `answer`, `qa_status`, `create_time`, `update_time`, `deleted`, `thinking_process`) VALUES (1, 'qa_demo_001', '高血压患者复诊前要注意什么？', '建议提前整理近期血压记录、既往用药清单，并携带最近的化验和影像资料。', 1, '2026-03-18 09:00:00', '2026-03-18 09:00:10', 0, '根据复诊准备场景，优先提醒病历与用药记录。');
+INSERT INTO `ai_medical_qa` (`id`, `conversation_id`, `question`, `answer`, `qa_status`, `create_time`, `update_time`, `deleted`, `thinking_process`) VALUES (2, 'qa_demo_002', '做胃镜前需要空腹多久？', '通常需要空腹 6-8 小时，具体请以医院检查单和医生要求为准。', 1, '2026-03-18 09:05:00', '2026-03-18 09:05:08', 0, '结合常规检查准备要求进行回答。');
+INSERT INTO `ai_medical_qa` (`id`, `conversation_id`, `question`, `answer`, `qa_status`, `create_time`, `update_time`, `deleted`, `thinking_process`) VALUES (3, 'qa_demo_003', '异地就医复诊要准备哪些材料？', '建议准备身份证、医保卡、病历资料、近期检查报告以及异地就医备案信息。', 1, '2026-03-18 09:10:00', '2026-03-18 09:10:12', 0, '从异地就医备案和复诊材料两个角度回答。');
+COMMIT;
 
 SET FOREIGN_KEY_CHECKS = 1;

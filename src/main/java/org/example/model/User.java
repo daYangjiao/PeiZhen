@@ -18,9 +18,6 @@ public class User {
     @ApiModelProperty(value = "用户ID", example = "1")
     private Integer id;
 
-    @ApiModelProperty(value = "登录用户名", required = true, example = "lihuai")
-    private String username;
-
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @ApiModelProperty(value = "登录密码，仅请求时传入，响应中不会回传", required = true, example = "123456")
     private String password;

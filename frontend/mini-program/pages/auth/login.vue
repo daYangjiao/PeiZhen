@@ -30,7 +30,7 @@
       <view class="input-group">
         <view class="input-item">
           <text class="iconfont">👤</text>
-          <input class="input" v-model="username" placeholder="请输入用户名" />
+          <input class="input" v-model="phone" type="number" maxlength="11" placeholder="请输入手机号" />
         </view>
         <view class="input-item">
           <text class="iconfont">🔒</text>
@@ -70,7 +70,7 @@ import { useMessageStore } from '@/stores/message'
 import { ensureChatConnected } from '@/utils/ws-manager.js'
 
 const currentRole = ref('user')
-const username = ref('')
+const phone = ref('')
 const password = ref('')
 const agreed = ref(false)
 const loading = ref(false)
@@ -112,7 +112,7 @@ const handleLogin = async () => {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
   }
-  if (!username.value || !password.value) {
+  if (!phone.value || !password.value) {
     uni.showToast({ title: '请输入账号密码', icon: 'none' })
     return
   }
@@ -121,7 +121,7 @@ const handleLogin = async () => {
   uni.showLoading({ title: '登录中...' })
   try {
     const res = await post('/api/users/login', {
-      username: username.value,
+      phone: phone.value,
       password: password.value
     })
     uni.hideLoading()

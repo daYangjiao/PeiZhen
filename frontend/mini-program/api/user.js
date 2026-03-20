@@ -35,7 +35,6 @@ export const updateUserInfo = (data) => {
   }
 
   if (data.name !== undefined) requestData.name = data.name
-  if (data.username !== undefined) requestData.username = data.username
   if (data.sex !== undefined) requestData.sex = data.sex
   if (data.age !== undefined) requestData.age = data.age
   if (data.phone !== undefined) requestData.phone = data.phone
@@ -68,4 +67,3 @@ export const uploadAvatar = async (filePath) => {
   store.setUserInfo({ ...userInfo, avatar: avatarPath })
   return { code: 200, data: { avatarUrl: avatarPath } }
 }
-

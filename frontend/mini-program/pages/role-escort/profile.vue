@@ -105,7 +105,7 @@ const formatAmount = (value) => {
   return Number.isFinite(num) ? num.toFixed(2) : '0.00'
 }
 
-const displayName = computed(() => attendantInfo.value.name || attendantInfo.value.username || '陪诊师')
+const displayName = computed(() => attendantInfo.value.name || attendantInfo.value.phone || '陪诊师')
 
 const dashboardCards = computed(() => [
   { key: 'todayService', label: '今日服务', value: `${todayService.value}` },

@@ -4,7 +4,6 @@ import { useMessageStore } from '@/stores/message'
 
 const createDefaultAttendantInfo = () => ({
   id: null,
-  username: '',
   name: '',
   phone: '',
   avatarUrl: '',
@@ -47,7 +46,7 @@ export const useUserStore = defineStore('user', {
   getters: {
     displayName: (state) => {
       if (!state.userInfo) return ''
-      return state.userInfo.nickName || state.userInfo.name || '用户'
+      return state.userInfo.nickName || state.userInfo.name || state.userInfo.phone || '用户'
     },
     avatar: (state) => {
       if (!state.userInfo) return ''
@@ -73,8 +72,8 @@ export const useUserStore = defineStore('user', {
       this.isLoggedIn = true
       this.isGuestMode = false
       this.loginTime = Date.now()
-      if (!this.userInfo.nickName && this.userInfo.username) {
-        this.userInfo.nickName = this.userInfo.username
+      if (!this.userInfo.nickName) {
+        this.userInfo.nickName = this.userInfo.name || this.userInfo.phone || '用户'
       }
       if (userInfo.token) {
         uni.setStorageSync('token', userInfo.token)
@@ -122,8 +121,8 @@ export const useUserStore = defineStore('user', {
         const loginTime = uni.getStorageSync('loginTime')
         if (userInfo && isLoggedIn) {
           this.userInfo = userInfo
-          if (!this.userInfo.nickName && this.userInfo.username) {
-            this.userInfo.nickName = this.userInfo.username
+          if (!this.userInfo.nickName) {
+            this.userInfo.nickName = this.userInfo.name || this.userInfo.phone || '用户'
             uni.setStorageSync('userInfo', this.userInfo)
           }
           this.isLoggedIn = true

@@ -6,7 +6,6 @@
 
     <resultMap id="UserResultMap" type="org.example.model.User">
         <id column="id" property="id"/>
-        <result column="username" property="username"/>
         <result column="password" property="password"/>
         <result column="name" property="name"/>
         <result column="phone" property="phone"/>
@@ -30,15 +29,14 @@
 
     <!-- 保存用户 -->
     <insert id="save" parameterType="org.example.model.User" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO user (username, password, name, phone, sex, age, avatar, user_type, openid)
-        VALUES (#{username}, #{password}, #{name}, #{phone}, #{sex}, #{age}, #{avatar}, #{userType}, #{openid})
+        INSERT INTO user (password, name, phone, sex, age, avatar, user_type, openid)
+        VALUES (#{password}, #{name}, #{phone}, #{sex}, #{age}, #{avatar}, #{userType}, #{openid})
     </insert>
 
     <!-- 更新用户信息 -->
     <update id="update" parameterType="org.example.model.User">
         UPDATE user
         <set>
-            <if test="username != null">username = #{username},</if>
             <if test="password != null">password = #{password},</if>
             <if test="name != null">name = #{name},</if>
             <if test="phone != null">phone = #{phone},</if>
@@ -55,11 +53,6 @@
     <delete id="delete" parameterType="int">
         DELETE FROM user WHERE id = #{id}
     </delete>
-
-    <!-- 根据用户名查询用户 -->
-    <select id="findByUsername" parameterType="string" resultMap="UserResultMap">
-        SELECT * FROM user WHERE username = #{username} LIMIT 1
-    </select>
 
     <!-- 根据手机号查询用户 -->
     <select id="findByPhone" parameterType="string" resultMap="UserResultMap">

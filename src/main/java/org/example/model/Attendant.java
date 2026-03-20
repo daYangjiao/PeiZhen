@@ -67,6 +67,9 @@ public class Attendant {
     
     @ApiModelProperty(value = "医院")
     private String hospital;
+
+    @ApiModelProperty(value = "已完成服务人次")
+    private Integer serviceCount;
     
     // 手动添加缺失的getter方法
     public String getName() {
@@ -109,8 +112,7 @@ public class Attendant {
         return this.introduction;
     }
     
-    public String getUsername() {
-        // 可能需要从关联的User对象获取
-        return "attendant_" + (this.id != null ? this.id : "unknown");
+    public Integer getServiceCount() {
+        return this.serviceCount;
     }
 }

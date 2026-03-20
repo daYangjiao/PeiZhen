@@ -21,13 +21,6 @@
 					<input v-else class="form-input" type="text" v-model="userForm.name" :placeholder="originalUserData.name || '请输入姓名'" />
 				</view>
 				
-				<!-- 用户名 -->
-				<view class="form-item">
-					<text class="form-label">用户名</text>
-					<view v-if="!isEditing" class="info-display">{{originalUserData.username || '未设置'}}</view>
-					<input v-else class="form-input" type="text" v-model="userForm.username" :placeholder="originalUserData.username || '请输入用户名'" />
-				</view>
-				
 				<!-- 性别 -->
 				<view class="form-item">
 					<text class="form-label">性别</text>
@@ -101,7 +94,6 @@ const isEditing = ref(false)
 const originalUserData = ref({
 	avatar: '',
 	name: '',
-	username: '',
 	sex: '', // 男/女
 	age: null,
 	phone: '',
@@ -111,7 +103,6 @@ const originalUserData = ref({
 const userForm = ref({
 	avatar: '',
 	name: '',
-	username: '',
 	sex: '',
 	age: null,
 	phone: '',
@@ -154,7 +145,6 @@ const loadUserInfo = async () => {
 				userId: userData.userId || userData.id || localUserInfo.id,
 				avatar: userData.avatar || '',
 				name: userData.name || '',
-				username: userData.username || '',
 				sex: userData.sex || '',
 				age: userData.age || null,
 				phone: userData.phone || '',
@@ -215,7 +205,6 @@ const startEditing = () => {
 	userForm.value = {
 		avatar: originalUserData.value.avatar || '',
 		name: originalUserData.value.name || '',
-		username: originalUserData.value.username || '',
 		sex: originalUserData.value.sex || '',
 		age: originalUserData.value.age || null,
 		phone: originalUserData.value.phone || '',
@@ -230,7 +219,6 @@ const cancelEditing = () => {
 	userForm.value = {
 		avatar: '',
 		name: '',
-		username: '',
 		sex: '',
 		age: null,
 		phone: '',
@@ -305,19 +293,11 @@ const saveProfile = async () => {
 			
 			// 只有当值确实发生变化时才包含在更新中
 			if (normalizedNewValue !== normalizedOriginalValue && normalizedNewValue !== '') {
-				// 字段名映射：前端字段名 -> 后端字段名
-				let backendKey = key
-				if (key === 'name') {
-					backendKey = 'realName'
-				} else if (key === 'sex') {
-					backendKey = 'gender'
-				}
-				
 				// 对于age字段，确保是数字类型
 				if (key === 'age' && newValue) {
-					updatedFields[backendKey] = parseInt(newValue)
+					updatedFields[key] = parseInt(newValue)
 				} else {
-					updatedFields[backendKey] = newValue
+					updatedFields[key] = newValue
 				}
 			}
 		})

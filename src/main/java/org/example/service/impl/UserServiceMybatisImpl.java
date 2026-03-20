@@ -30,8 +30,8 @@ public class UserServiceMybatisImpl implements UserService {
     }
 
     @Override
-    public User findByUsername(String username) {
-        return userMapper.findByUsername(username);
+    public User findByPhone(String phone) {
+        return userMapper.findByPhone(phone);
     }
 
     @Override
@@ -42,21 +42,30 @@ public class UserServiceMybatisImpl implements UserService {
     @Transactional
     @Override
     public int register(User user) {
-        if (userMapper.findByUsername(user.getUsername()) != null) {
-            logger.warn("用户名 {} 已存在，拒绝注册", user.getUsername());
-            throw new IllegalArgumentException("用户名已存在");
+        if (user.getPhone() == null || user.getPhone().isBlank()) {
+            throw new IllegalArgumentException("手机号不能为空");
+        }
+        if (userMapper.findByPhone(user.getPhone()) != null) {
+            logger.warn("手机号 {} 已存在，拒绝注册", user.getPhone());
+            throw new IllegalArgumentException("手机号已存在");
         }
         if (user.getUserType() == null) {
             user.setUserType(0); // 默认为普通用户
         }
         encodePasswordIfNeeded(user);
         userMapper.save(user);
-        logger.info("用户 {} 注册成功，ID: {}", user.getUsername(), user.getId());
+        logger.info("用户手机号 {} 注册成功，ID: {}", user.getPhone(), user.getId());
         return user.getId();
     }
 
     @Override
     public int update(User user) {
+        if (user != null && user.getPhone() != null && !user.getPhone().isBlank()) {
+            User existing = userMapper.findByPhone(user.getPhone());
+            if (existing != null && !existing.getId().equals(user.getId())) {
+                throw new IllegalArgumentException("手机号已存在");
+            }
+        }
         encodePasswordIfNeeded(user);
         return userMapper.update(user);
     }
@@ -67,31 +76,31 @@ public class UserServiceMybatisImpl implements UserService {
     }
 
     @Override
-    public User login(String username, String password) {
-        User user = userMapper.findByUsername(username);
+    public User login(String phone, String password) {
+        User user = userMapper.findByPhone(phone);
         if (user == null) {
-            logger.warn("登录失败：用户 {} 不存在", username);
+            logger.warn("登录失败：手机号 {} 不存在", phone);
             return null;
         }
 
         String storedPassword = user.getPassword();
         if (storedPassword == null || storedPassword.isBlank()) {
-            logger.warn("登录失败：用户 {} 未设置有效密码", username);
+            logger.warn("登录失败：手机号 {} 未设置有效密码", phone);
             return null;
         }
 
         if (isEncodedPassword(storedPassword)) {
             if (passwordEncoder.matches(password, storedPassword)) {
-                logger.info("用户 {} 登录成功", username);
+                logger.info("手机号 {} 登录成功", phone);
                 return user;
             }
         } else if (storedPassword.equals(password)) {
             upgradeLegacyPassword(user, password);
-            logger.info("用户 {} 登录成功", username);
+            logger.info("手机号 {} 登录成功", phone);
             return user;
         }
 
-        logger.warn("登录失败：用户 {} 密码错误", username);
+        logger.warn("登录失败：手机号 {} 密码错误", phone);
         return null;
     }
     
@@ -120,6 +129,6 @@ public class UserServiceMybatisImpl implements UserService {
     private void upgradeLegacyPassword(User user, String rawPassword) {
         user.setPassword(passwordEncoder.encode(rawPassword));
         userMapper.update(user);
-        logger.info("用户 {} 的旧版明文密码已升级为加密存储", user.getUsername());
+        logger.info("手机号 {} 的旧版明文密码已升级为加密存储", user.getPhone());
     }
 }
