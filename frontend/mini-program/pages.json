@@ -116,6 +116,12 @@
           }
         },
         {
+          "path": "auth/wechat-bind",
+          "style": {
+            "navigationBarTitleText": "绑定手机号"
+          }
+        },
+        {
           "path": "appointment-flow/01_AppointmentSelection",
           "style": {
             "navigationBarTitleText": "预约类型选择"

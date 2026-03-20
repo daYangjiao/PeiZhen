@@ -50,8 +50,12 @@ public class JwtUtil {
      * @return JWT Token字符串
      */
     public String generateToken(Integer userId, Map<String, Object> additionalClaims) {
+        return generateToken(userId, additionalClaims, expirationTime);
+    }
+
+    public String generateToken(Integer userId, Map<String, Object> additionalClaims, long customExpirationTime) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime);
+        Date expiryDate = new Date(now.getTime() + customExpirationTime);
         
         // 构建基础声明
         Map<String, Object> claims = new HashMap<>();

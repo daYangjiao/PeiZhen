@@ -27,6 +27,12 @@
         </view>
       </view>
 
+      <button class="wechat-login-btn" :disabled="wechatLoading" @click="handleWechatLogin">
+        {{ wechatLoading ? '处理中...' : '微信登录' }}
+      </button>
+
+      <view class="wechat-tip">当前支持手机号密码登录，微信登录开通后这里会直接一键进入</view>
+
       <view class="input-group">
         <view class="input-item">
           <text class="iconfont">👤</text>
@@ -64,19 +70,16 @@
 import { ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { post } from '@/utils/api.js'
-import { useSessionStore } from '@/stores/session'
-import { useUserStore } from '@/stores/user'
-import { useMessageStore } from '@/stores/message'
-import { ensureChatConnected } from '@/utils/ws-manager.js'
+import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
+import { completeLoginSession } from '@/utils/auth-session.js'
 
 const currentRole = ref('user')
 const phone = ref('')
 const password = ref('')
 const agreed = ref(false)
 const loading = ref(false)
-const session = useSessionStore()
-const userStore = useUserStore()
-const messageStore = useMessageStore()
+const wechatLoading = ref(false)
+const wechatEnabled = ref(false)
 const fromGuard = ref(false)
 
 onLoad((options) => {
@@ -86,6 +89,7 @@ onLoad((options) => {
   if (options?.from === 'guard') {
     fromGuard.value = true
   }
+  loadWechatConfigStatus()
 })
 
 onUnload(() => {
@@ -128,41 +132,15 @@ const handleLogin = async () => {
 
     if (res.code === 200 && res.data) {
       const { token, userInfo } = res.data
-      const syncMessageStatus = async () => {
-        try {
-          ensureChatConnected()
-          await messageStore.initMessageStatus()
-          messageStore.updateTabBarBadge()
-          messageStore.scheduleRefreshUnreadCounts(600)
-          uni.$emit('session:changed')
-        } catch {}
-      }
-
-      if (currentRole.value === 'user') {
-        if (userInfo.userType === 1) {
-          uni.showToast({ title: '该账号是陪诊师，请切换到陪诊师登录', icon: 'none' })
-          return
+      const targetUrl = await completeLoginSession({ role: currentRole.value, token, userInfo })
+      uni.showToast({ title: '登录成功', icon: 'success' })
+      setTimeout(() => {
+        if (currentRole.value === 'escort') {
+          uni.reLaunch({ url: targetUrl })
+        } else {
+          uni.switchTab({ url: targetUrl })
         }
-        session.setSession({ role: 'user', token, userInfo })
-        userStore.setUserInfo({ ...userInfo, token })
-        await syncMessageStatus()
-        uni.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => {
-          uni.switchTab({ url: '/pages/role-user/home' })
-        }, 400)
-      } else {
-        if (userInfo.userType !== 1) {
-          uni.showToast({ title: '该账号不是陪诊师', icon: 'none' })
-          return
-        }
-        session.setSession({ role: 'escort', token, userInfo })
-        uni.setStorageSync('userInfo', userInfo)
-        await syncMessageStatus()
-        uni.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => {
-          uni.reLaunch({ url: '/pages/role-escort/hall' })
-        }, 400)
-      }
+      }, 400)
     } else {
       uni.showToast({ title: res.message || '登录失败', icon: 'none' })
     }
@@ -171,6 +149,77 @@ const handleLogin = async () => {
     uni.showToast({ title: e.message || '登录失败', icon: 'none' })
   } finally {
     loading.value = false
+  }
+}
+
+const loadWechatConfigStatus = async () => {
+  try {
+    const res = await getWechatConfigStatus()
+    wechatEnabled.value = !!res?.data?.enabled
+  } catch {
+    wechatEnabled.value = false
+  }
+}
+
+const showWechatUnavailable = (message = '微信登录暂未开通') => {
+  uni.showToast({ title: message, icon: 'none' })
+}
+
+const loginWithUniWechat = () => new Promise((resolve, reject) => {
+  uni.login({
+    provider: 'weixin',
+    success: resolve,
+    fail: reject
+  })
+})
+
+const handleWechatLogin = async () => {
+  if (!agreed.value) {
+    uni.showToast({ title: '请先同意协议', icon: 'none' })
+    return
+  }
+  if (currentRole.value !== 'user') {
+    showWechatUnavailable('陪诊师微信登录暂未开通')
+    return
+  }
+  // #ifndef MP-WEIXIN
+  showWechatUnavailable()
+  return
+  // #endif
+  if (!wechatEnabled.value) {
+    showWechatUnavailable()
+    return
+  }
+  wechatLoading.value = true
+  uni.showLoading({ title: '登录中...' })
+  try {
+    const loginRes = await loginWithUniWechat()
+    const res = await loginByWechat(loginRes.code, currentRole.value)
+    uni.hideLoading()
+    if (res.code !== 200 || !res.data) {
+      showWechatUnavailable(res.message || '微信登录失败')
+      return
+    }
+    if (res.data.bindStatus === 'UNBOUND') {
+      uni.setStorageSync('wechatBindTokenPending', res.data.wechatBindToken)
+      uni.setStorageSync('wechatBindRolePending', currentRole.value)
+      uni.navigateTo({ url: `/subpkg/auth/wechat-bind?role=${currentRole.value}` })
+      return
+    }
+    const targetUrl = await completeLoginSession({
+      role: currentRole.value,
+      token: res.data.token,
+      userInfo: res.data.userInfo
+    })
+    uni.showToast({ title: '登录成功', icon: 'success' })
+    setTimeout(() => {
+      uni.switchTab({ url: targetUrl })
+    }, 400)
+  } catch (error) {
+    uni.hideLoading()
+    showWechatUnavailable(error?.message || '微信登录失败')
+  } finally {
+    wechatLoading.value = false
   }
 }
 </script>
@@ -294,6 +343,26 @@ const handleLogin = async () => {
       font-size: 16px;
     }
   }
+}
+
+.wechat-login-btn {
+  width: 100%;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #29c261, #17a34a);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin: 20rpx 0 12rpx;
+  box-shadow: 0 10rpx 24rpx rgba(41, 194, 97, 0.24);
+}
+
+.wechat-tip {
+  text-align: center;
+  color: #7b8794;
+  font-size: 24rpx;
+  margin-bottom: 18rpx;
 }
 
 .agreement-row {

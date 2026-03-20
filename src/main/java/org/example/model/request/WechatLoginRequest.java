@@ -1,0 +1,16 @@
+package org.example.model.request;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+
+@Data
+@ApiModel(description = "微信小程序登录请求")
+public class WechatLoginRequest {
+
+    @ApiModelProperty(value = "wx.login 返回的 code", required = true, example = "031m7qGa1b0abcDEF1234567890")
+    private String code;
+
+    @ApiModelProperty(value = "当前登录角色，当前阶段仅支持 user", example = "user")
+    private String role;
+}

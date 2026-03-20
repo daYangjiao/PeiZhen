@@ -9,7 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
 import org.example.model.User;
+import org.example.model.request.WechatBindPhoneRequest;
+import org.example.model.request.WechatLoginRequest;
 import org.example.service.UserService;
+import org.example.service.WechatAuthService;
 import org.example.unity.JwtUtil;
 import org.example.util.AuthUtil;
 import org.springframework.validation.BindingResult;
@@ -30,6 +33,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final WechatAuthService wechatAuthService;
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
@@ -83,6 +87,52 @@ public class UserController {
         } catch (Exception e) {
             log.error("登录异常: {}", user.getPhone(), e);
             return ResponseResult.error("服务器内部错误");
+        }
+    }
+
+    @GetMapping("/wechat/config-status")
+    @ApiOperation(value = "获取微信登录配置状态", notes = "前端用于判断微信登录按钮当前是否可真正启用。未配置时只返回未开通状态，不抛服务异常。")
+    public ResponseResult<Map<String, Object>> getWechatConfigStatus() {
+        return ResponseResult.success(wechatAuthService.getConfigStatus());
+    }
+
+    @PostMapping("/wechat/login")
+    @ApiOperation(value = "微信小程序登录", notes = "使用 wx.login 返回的 code 发起登录。若用户已绑定 openid 则直接返回 token；否则返回 wechatBindToken 进入手机号绑定。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "调用成功"),
+            @ApiResponse(code = 400, message = "微信登录未开通、code 无效或当前角色暂不支持"),
+            @ApiResponse(code = 500, message = "登录失败")
+    })
+    public ResponseResult<Map<String, Object>> wechatLogin(
+            @ApiParam(value = "微信登录请求体", required = true)
+            @RequestBody WechatLoginRequest request) {
+        try {
+            return ResponseResult.success(wechatAuthService.login(request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("微信登录失败", e);
+            return ResponseResult.error("微信登录失败");
+        }
+    }
+
+    @PostMapping("/wechat/bind-phone")
+    @ApiOperation(value = "微信登录绑定手机号", notes = "微信登录未绑定手机号时，使用短期 wechatBindToken 携带 openid 完成手机号绑定，并直接返回登录态。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "绑定成功"),
+            @ApiResponse(code = 400, message = "参数错误、凭证失效、手机号已绑定其他微信账号或当前角色不支持"),
+            @ApiResponse(code = 500, message = "绑定失败")
+    })
+    public ResponseResult<Map<String, Object>> bindWechatPhone(
+            @ApiParam(value = "微信绑定手机号请求体", required = true)
+            @RequestBody WechatBindPhoneRequest request) {
+        try {
+            return ResponseResult.success(wechatAuthService.bindPhone(request));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("微信绑定手机号失败", e);
+            return ResponseResult.error("绑定失败");
         }
     }
 
