@@ -31,7 +31,7 @@
         {{ wechatLoading ? '处理中...' : '微信登录' }}
       </button>
 
-      <view class="wechat-tip">当前支持手机号密码登录，微信登录开通后这里会直接一键进入</view>
+      <view class="wechat-tip">{{ wechatTip }}</view>
 
       <view class="input-group">
         <view class="input-item">
@@ -80,7 +80,9 @@ const agreed = ref(false)
 const loading = ref(false)
 const wechatLoading = ref(false)
 const wechatEnabled = ref(false)
+const wechatStatusReason = ref('微信登录暂未开通')
 const fromGuard = ref(false)
+const wechatTip = ref('当前支持手机号密码登录，微信登录开通后这里会直接一键进入')
 
 onLoad((options) => {
   if (options?.role === 'user' || options?.role === 'escort') {
@@ -156,12 +158,18 @@ const loadWechatConfigStatus = async () => {
   try {
     const res = await getWechatConfigStatus()
     wechatEnabled.value = !!res?.data?.enabled
+    wechatStatusReason.value = res?.data?.reason || '微信登录暂未开通'
+    wechatTip.value = wechatEnabled.value
+      ? '微信登录已可用，点击上方按钮即可一键进入'
+      : `${wechatStatusReason.value}，当前可继续使用手机号密码登录`
   } catch {
     wechatEnabled.value = false
+    wechatStatusReason.value = '微信登录暂未开通'
+    wechatTip.value = '当前支持手机号密码登录，微信登录开通后这里会直接一键进入'
   }
 }
 
-const showWechatUnavailable = (message = '微信登录暂未开通') => {
+const showWechatUnavailable = (message = wechatStatusReason.value || '微信登录暂未开通') => {
   uni.showToast({ title: message, icon: 'none' })
 }
 

@@ -80,6 +80,25 @@ REMOTE_ROOT=/home/ops/PZ_yuanbao \
 bash deploy/scripts/publish-frontend.sh
 ```
 
+WeChat mini-program login placeholders:
+
+- The unified login page now shows the WeChat entry button on both H5 and MP-WEIXIN.
+- Before real WeChat login is enabled, both ends will display the backend-provided reason, currently `微信登录暂未开通`.
+- To enable real mini-program login later, set these variables in `/etc/pz-app/pz-app.env` and redeploy the backend:
+
+```bash
+WECHAT_MINI_APP_ID=your-mini-app-id
+WECHAT_MINI_APP_SECRET=your-mini-app-secret
+WECHAT_BIND_TOKEN_EXPIRATION_MS=600000
+```
+
+After that, complete the remaining platform setup before opening the button for real traffic:
+
+- ICP/filed domain ready
+- HTTPS available
+- WeChat request/download/socket legal domains configured
+- Mini-program AppID/Secret verified against the same project
+
 Validation:
 
 ```bash
