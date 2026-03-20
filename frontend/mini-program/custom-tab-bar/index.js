@@ -14,6 +14,7 @@ const escortTabs = [
 ]
 
 const MESSAGE_BADGE_STORAGE_KEY = 'tabbar_message_badge'
+const MESSAGE_BADGE_UPDATED_EVENT = 'message:badge-updated'
 const platformApi = typeof uni !== 'undefined' ? uni : wx
 
 const isMessageTab = (pagePath) => /\/message$/.test(pagePath || '')
@@ -32,11 +33,21 @@ Component({
   },
   attached() {
     this.updateTabs()
+    if (platformApi.$on) {
+      this.handleBadgeUpdated = (badgeCount) => {
+        this.applyBadgeCount(Number(badgeCount || 0))
+      }
+      platformApi.$on(MESSAGE_BADGE_UPDATED_EVENT, this.handleBadgeUpdated)
+    }
     this.badgeTimer = setInterval(() => {
       this.syncBadge()
     }, 800)
   },
   detached() {
+    if (platformApi.$off && this.handleBadgeUpdated) {
+      platformApi.$off(MESSAGE_BADGE_UPDATED_EVENT, this.handleBadgeUpdated)
+      this.handleBadgeUpdated = null
+    }
     if (this.badgeTimer) {
       clearInterval(this.badgeTimer)
       this.badgeTimer = null
@@ -60,6 +71,9 @@ Component({
     syncBadge() {
       const nextBadgeCount = Number(platformApi.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
       if (nextBadgeCount === this.data.badgeCount) return
+      this.applyBadgeCount(nextBadgeCount)
+    },
+    applyBadgeCount(nextBadgeCount) {
       const tabs = (this.data.tabs || []).map(tab => Object.assign({}, tab, {
         badge: isMessageTab(tab.pagePath) ? nextBadgeCount : 0
       }))

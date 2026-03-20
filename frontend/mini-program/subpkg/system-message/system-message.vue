@@ -44,9 +44,10 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { get } from '@/utils/api.js'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import { get, post } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
+import { useMessageStore } from '@/stores/message.js'
 
 const systemMessages = ref([])
 const scrollTop = ref(0)
@@ -55,10 +56,15 @@ const currentTab = ref(0)
 const tabs = ['全部', '订单状态', '服务提醒', '平台公告', '账户相关']
 const role = ref(uni.getStorageSync('role') || 'user')
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
+const messageStore = useMessageStore()
 
 onLoad(() => {
-  loadSystemMessages()
+  syncSystemMessages()
   addChatListener(handleNewMessage)
+})
+
+onShow(() => {
+  syncSystemMessages()
 })
 
 onUnmounted(() => {
@@ -66,7 +72,7 @@ onUnmounted(() => {
 })
 
 const handleNewMessage = () => {
-  loadSystemMessages()
+  syncSystemMessages()
 }
 
 const loadSystemMessages = async () => {
@@ -86,6 +92,24 @@ const loadSystemMessages = async () => {
   } catch {
     systemMessages.value = []
   }
+}
+
+const markSystemMessagesRead = async () => {
+  try {
+    await post('/api/chat/read?senderId=0')
+  } catch {}
+  messageStore.resetSystemUnread()
+  messageStore.updateTabBarBadge()
+}
+
+const syncSystemMessages = async () => {
+  await loadSystemMessages()
+  if (systemMessages.value.length > 0) {
+    await markSystemMessagesRead()
+    return
+  }
+  messageStore.resetSystemUnread()
+  messageStore.updateTabBarBadge()
 }
 
 const inferType = (content) => {

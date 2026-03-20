@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { get } from '@/utils/api.js'
 
 const TABBAR_MESSAGE_BADGE_KEY = 'tabbar_message_badge'
+const TABBAR_BADGE_UPDATED_EVENT = 'message:badge-updated'
 
 export const useMessageStore = defineStore('message', {
   state: () => ({
@@ -187,7 +188,7 @@ export const useMessageStore = defineStore('message', {
       const total = this.systemUnreadCount + this.unreadTotal
       try {
         uni.setStorageSync(TABBAR_MESSAGE_BADGE_KEY, total)
-        // 当前项目使用 custom tabBar，徽标由 custom-tab-bar 组件自行从 storage 同步
+        uni.$emit(TABBAR_BADGE_UPDATED_EVENT, total)
       } catch (e) {}
     }
   }
