@@ -116,6 +116,12 @@
           }
         },
         {
+          "path": "auth/user-register",
+          "style": {
+            "navigationBarTitleText": "用户注册"
+          }
+        },
+        {
           "path": "auth/wechat-bind",
           "style": {
             "navigationBarTitleText": "绑定手机号"

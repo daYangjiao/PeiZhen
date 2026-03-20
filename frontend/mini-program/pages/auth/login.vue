@@ -58,6 +58,8 @@
       </button>
 
       <view class="footer-links">
+        <text v-if="currentRole === 'user'" @click="goUserRegister">立即注册</text>
+        <text v-if="currentRole === 'user'" class="divider">|</text>
         <text v-if="currentRole === 'escort'" @click="goEscortRegister">陪诊师入驻</text>
         <text v-if="currentRole === 'escort'" class="divider">|</text>
         <text>找回密码</text>
@@ -72,8 +74,10 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { post } from '@/utils/api.js'
 import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
 import { completeLoginSession } from '@/utils/auth-session.js'
+import { useSessionStore } from '@/stores/session'
 
 const currentRole = ref('user')
+const session = useSessionStore()
 const phone = ref('')
 const password = ref('')
 const agreed = ref(false)
@@ -111,6 +115,10 @@ const onCheckChange = (e) => {
 
 const goEscortRegister = () => {
   uni.navigateTo({ url: '/subpkg/auth/escort-register' })
+}
+
+const goUserRegister = () => {
+  uni.navigateTo({ url: '/subpkg/auth/user-register' })
 }
 
 const handleLogin = async () => {
