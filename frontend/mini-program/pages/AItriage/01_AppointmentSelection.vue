@@ -9,24 +9,24 @@
 		<view class="service-types">
 			<view class="service-row">
 				<view class="service-item" :class="{ 'selected': selectedService === 'general' }" @click="selectService('general')">
-					<image class="service-icon" src="/static/logo_1.png" mode="aspectFit"></image>
+					<image class="service-icon" src="/static/service-general.png" mode="aspectFit"></image>
 					<text class="service-title">普通陪诊</text>
 					<text class="service-desc">专业陪诊师 贴心服务</text>
 				</view>
 				<view class="service-item" :class="{ 'selected': selectedService === 'postop' }" @click="selectService('postop')">
-					<image class="service-icon" src="/static/logo_2.png" mode="aspectFit"></image>
+					<image class="service-icon" src="/static/service-postop.png" mode="aspectFit"></image>
 					<text class="service-title">术后护理</text>
 					<text class="service-desc">专业术后照顾 安心恢复</text>
 				</view>
 			</view>
 			<view class="service-row">
 				<view class="service-item" :class="{ 'selected': selectedService === 'emergency' }" @click="selectService('emergency')">
-					<image class="service-icon" src="/static/logo_3.jpg" mode="aspectFit"></image>
+					<image class="service-icon" src="/static/service-emergency.png" mode="aspectFit"></image>
 					<text class="service-title">急诊陪同</text>
 					<text class="service-desc">紧急情况 快速响应</text>
 				</view>
 				<view class="service-item" :class="{ 'selected': selectedService === 'home' }" @click="selectService('home')">
-					<image class="service-icon" src="/static/logo_4.jpg" mode="aspectFit"></image>
+					<image class="service-icon" src="/static/service-home.png" mode="aspectFit"></image>
 					<text class="service-title">上门陪诊</text>
 					<text class="service-desc">专门专业陪诊师 贴心陪伴</text>
 				</view>

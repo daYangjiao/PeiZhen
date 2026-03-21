@@ -4,7 +4,7 @@
 		<view class="header-section">
 			<view class="circle-1"></view>
 			<view class="circle-2"></view>
-			<image class="logo" src="/static/mynewlogo.png" mode="aspectFit"></image>
+			<image class="logo" src="/static/brand-logo.png" mode="aspectFit"></image>
 			<text class="welcome-text">欢迎回来，陪诊师</text>
 		</view>
 		

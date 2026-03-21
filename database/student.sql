@@ -183,7 +183,7 @@ CREATE TABLE `ai_medical_qa` (
 
 -- Data for user
 BEGIN;
-INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (1, '$2b$10$irw4AvTW.r0OgNJC62XF.efa1RlSSA/kBTZYd0hXx3bv1t4I5dJuy', '平台管理员', '18800000001', '男', 38, '/uploads/mynewlogo.png', 2, NULL, '2026-03-01 09:00:00');
+INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (1, '$2b$10$irw4AvTW.r0OgNJC62XF.efa1RlSSA/kBTZYd0hXx3bv1t4I5dJuy', '平台管理员', '18800000001', '男', 38, '/uploads/brand-logo.png', 2, NULL, '2026-03-01 09:00:00');
 INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (15, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '范涵伶', '18600010001', '女', 26, '/uploads/user1.jpg', 0, 'wx_demo_user_18600010001', '2026-03-02 10:10:00');
 INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (16, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '柳清禾', '13800138016', '女', 31, '/uploads/user-avatar.jpg', 0, 'wx_demo_user_13800138016', '2026-03-02 10:20:00');
 INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `openid`, `create_time`) VALUES (17, '$2b$10$1fVqCCDaY4nWsrwW2zlnneDk2B1cgNN94lXsx4.O1HBug/87UppJm', '周铭', '13800138017', '男', 35, '/uploads/doctor1.jpg', 0, NULL, '2026-03-02 10:30:00');

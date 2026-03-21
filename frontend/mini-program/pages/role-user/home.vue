@@ -109,16 +109,16 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { canUseRemoteImageUrl, config, getBackendImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
-import { ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
+import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
 
 const searchKeyword = ref('')
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
-const assistantEntryIcon = getLocalFirstImageUrl('mynewlogo.png', '/static/mynewlogo.png')
+const assistantEntryIcon = brandLogo
 const categories = ref([
-  { name: '普通陪诊', icon: getLocalFirstImageUrl('category1.jpg', '/static/category1.jpg') },
-  { name: '术后护理', icon: getLocalFirstImageUrl('category2.jpg', '/static/category2.jpg') },
-  { name: '急诊陪同', icon: getLocalFirstImageUrl('category3.jpg', '/static/category3.jpg') },
-  { name: '上门陪诊', icon: getLocalFirstImageUrl('category4.jpg', '/static/category4.jpg') }
+  { name: '普通陪诊', icon: appointmentServiceLogos[1] },
+  { name: '术后护理', icon: appointmentServiceLogos[2] },
+  { name: '急诊陪同', icon: appointmentServiceLogos[3] },
+  { name: '上门陪诊', icon: appointmentServiceLogos[4] }
 ])
 const services = ref([
   { name: '预约服务', icon: yvyue2 },

@@ -89,10 +89,10 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { askMedicalQuestion } from './api.js'
+import { brandAiAvatar } from '@/utils/assets.js'
 
-const AIAvatar = getLocalFirstImageUrl('ai-avatar.png', '/static/mynewlogo.png')
+const AIAvatar = brandAiAvatar
 
 const messages = ref([
   {

@@ -8,7 +8,7 @@
       <!-- 系统消息卡片 -->
       <view class="message-card system-card" @click="openSystemChat">
         <view class="avatar-container system-avatar-container">
-          <image class="avatar" src="/static/mynewlogo.png" mode="aspectFill"></image>
+          <image class="avatar" src="/static/brand-logo.png" mode="aspectFill"></image>
           <view class="unread-badge" v-if="systemUnreadCount > 0">
             <text>{{ systemUnreadCount > 99 ? '99+' : systemUnreadCount }}</text>
           </view>

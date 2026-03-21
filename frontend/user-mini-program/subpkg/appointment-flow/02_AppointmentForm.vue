@@ -394,10 +394,10 @@ const isFormComplete = computed(() => {
 const getServiceIcon = (typeNumber) => {
 	// 根据服务类型数字返回对应的图标路径
 	switch(typeNumber) {
-		case 1: return '/static/logo_1.png'; // 普通陪诊
-		case 2: return '/static/logo_2.png'; // 术后护理
-		case 3: return '/static/logo_3.jpg'; // 急诊陪同
-		case 4: return '/static/logo_4.jpg'; // 上门陪诊
+		case 1: return '/static/service-general.png'; // 普通陪诊
+		case 2: return '/static/service-postop.png'; // 术后护理
+		case 3: return '/static/service-emergency.png'; // 急诊陪同
+		case 4: return '/static/service-home.png'; // 上门陪诊
 		default: return '/static/default_icon.png'; // 默认图标
 	}
 }

@@ -1,4 +1,6 @@
 import albumIcon from '@/static/icons/album.png'
+import brandAiAvatarImage from '@/static/brand-ai-avatar.png'
+import brandLogoImage from '@/static/brand-logo.png'
 import callIcon from '@/static/icons/call.png'
 import cameraIcon from '@/static/icons/camera.png'
 import defaultAvatarImage from '@/static/default-avatar.jpg'
@@ -12,10 +14,10 @@ import escortWalletIcon from '@/static/escort-wallet.svg'
 import helpIcon from '@/static/help.png'
 import keyboardIcon from '@/static/icons/keyboard.png'
 import locationIcon from '@/static/icons/location.png'
-import logo1Image from '@/static/logo_1.png'
-import logo2Image from '@/static/logo_2.png'
-import logo3Image from '@/static/logo_3.jpg'
-import logo4Image from '@/static/logo_4.jpg'
+import serviceEmergencyImage from '@/static/service-emergency.png'
+import serviceGeneralImage from '@/static/service-general.png'
+import serviceHomeImage from '@/static/service-home.png'
+import servicePostopImage from '@/static/service-postop.png'
 import orderIcon from '@/static/order.png'
 import orderActiveIcon from '@/static/order_active.png'
 import plusIcon from '@/static/icons/plus.png'
@@ -37,6 +39,8 @@ import yvyue2Icon from '@/static/yvyue_2.png'
 import yvyue2ActiveIcon from '@/static/yvyue_2_active.png'
 
 export const album = albumIcon
+export const brandAiAvatar = brandAiAvatarImage
+export const brandLogo = brandLogoImage
 export const call = callIcon
 export const camera = cameraIcon
 export const defaultAvatar = defaultAvatarImage
@@ -71,10 +75,10 @@ export const yvyue2 = yvyue2Icon
 export const yvyue2Active = yvyue2ActiveIcon
 
 export const appointmentServiceLogos = {
-  1: logo1Image,
-  2: logo2Image,
-  3: logo3Image,
-  4: logo4Image,
+  1: serviceGeneralImage,
+  2: servicePostopImage,
+  3: serviceEmergencyImage,
+  4: serviceHomeImage,
 }
 
 export const appointmentDetailIcons = {

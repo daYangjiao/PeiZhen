@@ -62,18 +62,18 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { get, post, config, canUseRemoteImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
+import { get, post, config, canUseRemoteImageUrl } from '@/utils/api.js'
 import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
-import { defaultAvatar } from '@/utils/assets.js'
+import { brandLogo, defaultAvatar } from '@/utils/assets.js'
 
 const contacts = ref([])
 const lastSystemMsg = ref({})
 const messageStore = useMessageStore()
 
 const systemUnreadCount = computed(() => messageStore.systemUnreadCount)
-const systemNoticeAvatar = getLocalFirstImageUrl('mynewlogo.png', '/static/mynewlogo.png')
+const systemNoticeAvatar = brandLogo
 
 let cleanupTimer = null
 let isRefreshing = false

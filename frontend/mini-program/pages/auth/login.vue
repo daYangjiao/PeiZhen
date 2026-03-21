@@ -4,7 +4,7 @@
     <view class="header-section">
       <view class="circle-1"></view>
       <view class="circle-2"></view>
-      <image class="logo" src="/static/mynewlogo.png" mode="aspectFit"></image>
+      <image class="logo" :src="brandLogo" mode="aspectFit"></image>
       <text class="welcome-text">{{ currentRole === 'user' ? '欢迎回来，用户' : '欢迎回来，陪诊师' }}</text>
     </view>
 
@@ -75,6 +75,7 @@ import { post } from '@/utils/api.js'
 import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
 import { completeLoginSession } from '@/utils/auth-session.js'
 import { useSessionStore } from '@/stores/session'
+import { brandLogo } from '@/utils/assets.js'
 
 const currentRole = ref('user')
 const session = useSessionStore()

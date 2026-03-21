@@ -3,7 +3,7 @@
     <view class="header-section">
       <view class="circle-1"></view>
       <view class="circle-2"></view>
-      <image class="logo" src="/static/mynewlogo.png" mode="aspectFit"></image>
+      <image class="logo" :src="brandLogo" mode="aspectFit"></image>
       <text class="welcome-text">创建用户账号</text>
       <text class="header-tip">注册后可直接预约陪诊、查看订单并与陪诊师沟通</text>
     </view>
@@ -54,6 +54,7 @@
 <script setup>
 import { ref } from 'vue'
 import { post } from '@/utils/api.js'
+import { brandLogo } from '@/utils/assets.js'
 
 const phonePattern = /^1\d{10}$/
 

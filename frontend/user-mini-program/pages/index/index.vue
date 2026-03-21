@@ -102,7 +102,7 @@
       @mouseleave="isDragging = false"
       @click.stop="navigateToAIaks"
     >
-      <image class="floating-icon" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit" />
+      <image class="floating-icon" src="/static/brand-logo.png" mode="aspectFit" />
     </view>
   </view>
 </template>
@@ -115,10 +115,10 @@ import { config, getBackendImageUrl } from '../../utils/api.js'
 // 响应式数据
 const searchKeyword = ref('')
 const categories = ref([
-  { name: '普通陪诊', icon: getBackendImageUrl('category1.jpg') },
-  { name: '术后护理', icon: getBackendImageUrl('category2.jpg') },
-  { name: '急诊陪同', icon: getBackendImageUrl('category3.jpg') },
-  { name: '上门陪诊', icon: getBackendImageUrl('category4.jpg') }
+  { name: '普通陪诊', icon: '/static/service-general.png' },
+  { name: '术后护理', icon: '/static/service-postop.png' },
+  { name: '急诊陪同', icon: '/static/service-emergency.png' },
+  { name: '上门陪诊', icon: '/static/service-home.png' }
 ])
 const services = ref([
   { name: '预约服务', icon: '/static/yvyue_2.png' },

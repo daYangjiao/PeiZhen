@@ -84,7 +84,7 @@ import { getBackendImageUrl } from '@/utils/api.js'
 import { askMedicalQuestion } from '@/api/aiaks.js'
 
 // 定义后端图片 URL
-const AIAvatar = getBackendImageUrl('ai-avatar.png')
+const AIAvatar = '/static/brand-ai-avatar.png'
 
 // 消息列表
 const messages = ref([

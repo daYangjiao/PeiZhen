@@ -9,7 +9,7 @@
 		
 		<!-- Logo和标题 -->
 		<view class="logo-section">
-			<image class="logo" :src="getBackendImageUrl('mynewlogo.png')" mode="aspectFit"></image>
+			<image class="logo" src="/static/brand-logo.png" mode="aspectFit"></image>
 			<text class="app-name">愈安伴</text>
 			<text class="app-desc">专业贴心的医疗陪护服务</text>
 		</view>
