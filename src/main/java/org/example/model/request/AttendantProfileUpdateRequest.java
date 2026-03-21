@@ -17,7 +17,7 @@ public class AttendantProfileUpdateRequest {
     @ApiModelProperty(value = "头像地址", example = "/uploads/avatar_20260320.png")
     private String avatarUrl;
 
-    @ApiModelProperty(value = "个人简介", example = "擅长三甲医院门诊陪诊，沟通耐心细致。")
+    @ApiModelProperty(value = "个人简介", example = "擅长普通陪诊与术后护理，沟通耐心细致。")
     private String introduction;
 
     @ApiModelProperty(value = "擅长领域", example = "肿瘤科, 心内科")

@@ -115,10 +115,10 @@ import { config, getBackendImageUrl } from '../../utils/api.js'
 // 响应式数据
 const searchKeyword = ref('')
 const categories = ref([
-  { name: '门诊陪诊', icon: getBackendImageUrl('category1.jpg') },
-  { name: '住院陪护', icon: getBackendImageUrl('category2.jpg') },
-  { name: '专家会诊', icon: getBackendImageUrl('category3.jpg') },
-  { name: '检查陪同', icon: getBackendImageUrl('category4.jpg') }
+  { name: '普通陪诊', icon: getBackendImageUrl('category1.jpg') },
+  { name: '术后护理', icon: getBackendImageUrl('category2.jpg') },
+  { name: '急诊陪同', icon: getBackendImageUrl('category3.jpg') },
+  { name: '上门陪诊', icon: getBackendImageUrl('category4.jpg') }
 ])
 const services = ref([
   { name: '预约服务', icon: '/static/yvyue_2.png' },

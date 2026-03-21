@@ -27,7 +27,7 @@ public class AttendantMatchResponse {
         @ApiModelProperty(value = "陪诊师姓名", example = "李医生")
         private String name;
 
-        @ApiModelProperty(value = "陪诊师简介", example = "三甲医院门诊陪诊经验 7 年")
+        @ApiModelProperty(value = "陪诊师简介", example = "三甲医院普通陪诊经验 7 年")
         private String introduction;
 
         @ApiModelProperty(value = "评分", example = "4.9")

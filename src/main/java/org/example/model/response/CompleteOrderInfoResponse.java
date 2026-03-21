@@ -35,7 +35,7 @@ public class CompleteOrderInfoResponse {
     @ApiModelProperty(value = "总价格", example = "80.00")
     private BigDecimal totalPrice;
     
-    @ApiModelProperty(value = "价格计算说明", example = "门诊陪诊 2.0小时＝起步价50元+延长时间费30元")
+    @ApiModelProperty(value = "价格计算说明", example = "普通陪诊 2.0小时＝起步价50元+延长时间费30元")
     private String priceCalculation;
     
     // 医院和时间信息
@@ -51,7 +51,7 @@ public class CompleteOrderInfoResponse {
     @ApiModelProperty(value = "服务类型编号", example = "1")
     private Integer serviceTypeNumber;
     
-    @ApiModelProperty(value = "服务类型名称", example = "门诊陪诊")
+    @ApiModelProperty(value = "服务类型名称", example = "普通陪诊")
     private String serviceTypeName;
     
     // 患者信息

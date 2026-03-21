@@ -115,10 +115,10 @@ const searchKeyword = ref('')
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
 const assistantEntryIcon = getLocalFirstImageUrl('mynewlogo.png', '/static/mynewlogo.png')
 const categories = ref([
-  { name: '门诊陪诊', icon: getLocalFirstImageUrl('category1.jpg', '/static/category1.jpg') },
-  { name: '住院陪护', icon: getLocalFirstImageUrl('category2.jpg', '/static/category2.jpg') },
-  { name: '专家会诊', icon: getLocalFirstImageUrl('category3.jpg', '/static/category3.jpg') },
-  { name: '检查陪同', icon: getLocalFirstImageUrl('category4.jpg', '/static/category4.jpg') }
+  { name: '普通陪诊', icon: getLocalFirstImageUrl('category1.jpg', '/static/category1.jpg') },
+  { name: '术后护理', icon: getLocalFirstImageUrl('category2.jpg', '/static/category2.jpg') },
+  { name: '急诊陪同', icon: getLocalFirstImageUrl('category3.jpg', '/static/category3.jpg') },
+  { name: '上门陪诊', icon: getLocalFirstImageUrl('category4.jpg', '/static/category4.jpg') }
 ])
 const services = ref([
   { name: '预约服务', icon: yvyue2 },

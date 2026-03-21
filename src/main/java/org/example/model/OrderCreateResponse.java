@@ -15,7 +15,7 @@ public class OrderCreateResponse {
     @ApiModelProperty(value = "订单编号", example = "ORD202603200001")
     private String orderNo;
 
-    @ApiModelProperty(value = "服务类型列表", example = "[\"门诊陪诊\",\"挂号协助\"]")
+    @ApiModelProperty(value = "服务类型列表", example = "[\"普通陪诊\",\"术后护理\"]")
     private List<String> serviceTypes;
 
     @ApiModelProperty(value = "陪诊师姓名", example = "李医生")
