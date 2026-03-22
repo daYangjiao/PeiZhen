@@ -245,6 +245,8 @@ const handleWechatLogin = async () => {
 .container {
   min-height: 100vh;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
     linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
@@ -266,12 +268,12 @@ const handleWechatLogin = async () => {
   display: inline-block;
 }
 .header-section {
-  min-height: 184px;
+  min-height: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 24px 16px 34px;
+  padding: 16px 16px 16px;
   position: relative;
   text-align: center;
 
@@ -296,38 +298,34 @@ const handleWechatLogin = async () => {
   }
 
   .logo {
-    width: 56px;
-    height: 56px;
-    background: #fff;
-    border-radius: 16px;
+    width: 78px;
+    height: 78px;
     margin-bottom: 8px;
-    padding: 5px;
-    box-sizing: border-box;
-    box-shadow: 0 16px 32px rgba(0, 122, 255, 0.12);
-    border: 1px solid rgba(0, 122, 255, 0.08);
   }
 
   .welcome-text {
     color: #16324f;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.2px;
   }
 }
 
 .login-card {
-  margin: -16px 14px 8px;
+  margin: 0 14px 10px;
   background: #fff;
   border-radius: 20px;
-  padding: 12px 14px 12px;
+  padding: 10px 14px 12px;
   box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
   border: 1px solid rgba(0, 122, 255, 0.08);
+  flex: 1;
+  min-height: 0;
 
   .tab-header {
     display: flex;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     background: #eef5ff;
     border-radius: 14px;
     padding: 4px;
@@ -353,10 +351,10 @@ const handleWechatLogin = async () => {
   .input-item {
     display: flex;
     align-items: center;
-    height: 42px;
+    height: 40px;
     background: #f8fbff;
     border-radius: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     padding: 0 14px;
     border: 1px solid #dce8f8;
 
@@ -376,26 +374,26 @@ const handleWechatLogin = async () => {
 
 .wechat-login-btn {
   width: 100%;
-  height: 68rpx;
-  line-height: 68rpx;
+  height: 62rpx;
+  line-height: 62rpx;
   border-radius: 14rpx;
   background: linear-gradient(135deg, #29c261, #17a34a);
   color: #fff;
   font-size: 24rpx;
   font-weight: 600;
-  margin: 2rpx 0 4rpx;
+  margin: 0 0 4rpx;
   box-shadow: 0 8rpx 18rpx rgba(41, 194, 97, 0.22);
 }
 
 .wechat-tip {
   text-align: center;
   color: #6a7f94;
-  font-size: 18rpx;
-  margin-bottom: 6rpx;
+  font-size: 17rpx;
+  margin-bottom: 4rpx;
 }
 
 .agreement-row {
-  margin: 6px 0;
+  margin: 4px 0;
 
   .agreement-text {
     font-size: 12px;
@@ -410,7 +408,7 @@ const handleWechatLogin = async () => {
 .login-btn {
   background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
-  height: 42px;
+  height: 40px;
   border-radius: 23px;
   font-size: 14px;
   font-weight: bold;
@@ -425,7 +423,7 @@ const handleWechatLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 11px;
   color: #6a7f94;
 

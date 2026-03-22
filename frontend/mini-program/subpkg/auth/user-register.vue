@@ -135,6 +135,8 @@ const handleRegister = async () => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
     linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
@@ -143,12 +145,12 @@ const handleRegister = async () => {
 }
 
 .header-section {
-  min-height: 360px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 88px 24px 126px;
+  padding: 34px 20px 28px;
   position: relative;
   text-align: center;
 
@@ -174,56 +176,52 @@ const handleRegister = async () => {
 }
 
 .logo {
-  width: 104px;
-  height: 104px;
-  margin-bottom: 20px;
-  background: #fff;
-  border-radius: 30px;
-  padding: 10px;
-  box-sizing: border-box;
-  box-shadow: 0 16px 32px rgba(0, 122, 255, 0.12);
-  border: 1px solid rgba(0, 122, 255, 0.08);
+  width: 92px;
+  height: 92px;
+  margin-bottom: 12px;
 }
 
 .welcome-text {
-  font-size: 30px;
+  font-size: 24px;
   color: #16324f;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .header-tip {
-  font-size: 14px;
+  font-size: 13px;
   color: #6a7f94;
 }
 
 .register-card {
-  margin: -86px 24px 30px;
+  margin: 0 18px 18px;
   background: #fff;
   border-radius: 28px;
-  padding: 32px 24px 28px;
+  padding: 22px 18px 18px;
   box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
   border: 1px solid rgba(0, 122, 255, 0.08);
+  flex: 1;
+  min-height: 0;
 }
 
 .card-title {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .card-subtitle {
-  font-size: 14px;
+  font-size: 12px;
   color: #6a7f94;
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .input-item {
@@ -231,8 +229,8 @@ const handleRegister = async () => {
   align-items: center;
   background: #f8fbff;
   border-radius: 16px;
-  padding: 0 16px;
-  margin-bottom: 16px;
+  padding: 0 14px;
+  margin-bottom: 10px;
   border: 1px solid #dce8f8;
 }
 
@@ -244,13 +242,13 @@ const handleRegister = async () => {
 
 .input {
   flex: 1;
-  height: 52px;
-  font-size: 16px;
+  height: 44px;
+  font-size: 14px;
   color: #16324f;
 }
 
 .agreement-row {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .checkbox-label {
@@ -269,13 +267,13 @@ const handleRegister = async () => {
 
 .submit-btn {
   width: 100%;
-  height: 52px;
+  height: 44px;
   background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
-  border-radius: 26px;
-  font-size: 18px;
+  border-radius: 22px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
 
