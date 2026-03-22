@@ -266,42 +266,42 @@ const handleWechatLogin = async () => {
   display: inline-block;
 }
 .header-section {
-  min-height: 216px;
+  min-height: 184px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 38px 18px 52px;
+  padding: 24px 16px 34px;
   position: relative;
   text-align: center;
 
   .circle-1 {
     position: absolute;
-    width: 144px;
-    height: 144px;
+    width: 126px;
+    height: 126px;
     background: rgba(0, 122, 255, 0.08);
     border-radius: 50%;
-    top: -24px;
-    right: -52px;
+    top: -20px;
+    right: -42px;
   }
 
   .circle-2 {
     position: absolute;
-    width: 104px;
-    height: 104px;
+    width: 88px;
+    height: 88px;
     background: rgba(37, 99, 235, 0.06);
     border-radius: 50%;
-    bottom: 10px;
-    left: -22px;
+    bottom: 8px;
+    left: -16px;
   }
 
   .logo {
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     background: #fff;
-    border-radius: 18px;
-    margin-bottom: 10px;
-    padding: 6px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+    padding: 5px;
     box-sizing: border-box;
     box-shadow: 0 16px 32px rgba(0, 122, 255, 0.12);
     border: 1px solid rgba(0, 122, 255, 0.08);
@@ -309,17 +309,17 @@ const handleWechatLogin = async () => {
 
   .welcome-text {
     color: #16324f;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.2px;
   }
 }
 
 .login-card {
-  margin: -28px 16px 10px;
+  margin: -16px 14px 8px;
   background: #fff;
-  border-radius: 22px;
-  padding: 14px 16px 14px;
+  border-radius: 20px;
+  padding: 12px 14px 12px;
   box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
@@ -327,7 +327,7 @@ const handleWechatLogin = async () => {
 
   .tab-header {
     display: flex;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     background: #eef5ff;
     border-radius: 14px;
     padding: 4px;
@@ -335,8 +335,8 @@ const handleWechatLogin = async () => {
     .tab-item {
       flex: 1;
       text-align: center;
-      padding: 8px 0;
-      font-size: 14px;
+      padding: 7px 0;
+      font-size: 13px;
       color: #6a7f94;
       border-radius: 12px;
       transition: all 0.2s;
@@ -353,22 +353,22 @@ const handleWechatLogin = async () => {
   .input-item {
     display: flex;
     align-items: center;
-    height: 46px;
+    height: 42px;
     background: #f8fbff;
     border-radius: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     padding: 0 14px;
     border: 1px solid #dce8f8;
 
     .iconfont {
-      font-size: 16px;
+      font-size: 15px;
       color: #7d8ea2;
       margin-right: 8px;
     }
 
     .input {
       flex: 1;
-      font-size: 14px;
+      font-size: 13px;
       color: #16324f;
     }
   }
@@ -376,29 +376,29 @@ const handleWechatLogin = async () => {
 
 .wechat-login-btn {
   width: 100%;
-  height: 74rpx;
-  line-height: 74rpx;
+  height: 68rpx;
+  line-height: 68rpx;
   border-radius: 14rpx;
   background: linear-gradient(135deg, #29c261, #17a34a);
   color: #fff;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  margin: 4rpx 0 6rpx;
+  margin: 2rpx 0 4rpx;
   box-shadow: 0 8rpx 18rpx rgba(41, 194, 97, 0.22);
 }
 
 .wechat-tip {
   text-align: center;
   color: #6a7f94;
-  font-size: 20rpx;
-  margin-bottom: 8rpx;
+  font-size: 18rpx;
+  margin-bottom: 6rpx;
 }
 
 .agreement-row {
-  margin: 8px 0;
+  margin: 6px 0;
 
   .agreement-text {
-    font-size: 13px;
+    font-size: 12px;
     color: #7d8ea2;
 
     .link {
@@ -410,9 +410,9 @@ const handleWechatLogin = async () => {
 .login-btn {
   background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
-  height: 44px;
+  height: 42px;
   border-radius: 23px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
@@ -425,8 +425,8 @@ const handleWechatLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 8px;
+  font-size: 11px;
   color: #6a7f94;
 
   .divider {
