@@ -521,7 +521,7 @@ onShow(() => ensureRole('escort'))
 
 .filter-value {
   font-size: 26rpx;
-  color: #66a6ff;
+  color: #007AFF;
 }
 
 .filter-arrow {
@@ -548,7 +548,7 @@ onShow(() => ensureRole('escort'))
 }
 
 .filter-option.active {
-  color: #66a6ff;
+  color: #007AFF;
   font-weight: 600;
   background: rgba(102, 166, 255, 0.14);
 }

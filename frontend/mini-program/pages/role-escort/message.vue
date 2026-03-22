@@ -263,7 +263,7 @@ onUnmounted(() => {
 
 .system-card {
   background: linear-gradient(to right, #ffffff, #f0f7ff);
-  border-left: 6rpx solid #66A6FF;
+  border-left: 6rpx solid #007AFF;
 }
 
 .avatar-container {
@@ -329,7 +329,7 @@ onUnmounted(() => {
 }
 
 .system-name {
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .time {

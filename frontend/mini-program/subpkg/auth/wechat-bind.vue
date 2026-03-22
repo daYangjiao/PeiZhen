@@ -65,7 +65,7 @@
       <view class="agreement-row">
         <checkbox-group @change="onCheckChange">
           <label class="checkbox-label">
-            <checkbox :checked="agreed" color="#4A90E2" style="transform:scale(0.7)" />
+            <checkbox :checked="agreed" color="#007AFF" style="transform:scale(0.7)" />
             <text class="agreement-text">我已阅读并同意<text class="link">《服务协议》</text></text>
           </label>
         </checkbox-group>
@@ -204,8 +204,8 @@ const handleBind = async () => {
 .container {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(74, 144, 226, 0.14), transparent 36%),
-    linear-gradient(180deg, #eef5ff 0%, #ffffff 100%);
+    radial-gradient(circle at top left, rgba(0, 122, 255, 0.14), transparent 36%),
+    linear-gradient(180deg, #f2f8ff 0%, #ffffff 100%);
   padding: 36rpx 28rpx 56rpx;
 }
 
@@ -213,7 +213,8 @@ const handleBind = async () => {
 .bind-card {
   background: rgba(255, 255, 255, 0.96);
   border-radius: 28rpx;
-  box-shadow: 0 20rpx 48rpx rgba(31, 41, 55, 0.08);
+  box-shadow: 0 18rpx 42rpx rgba(18, 56, 109, 0.1);
+  border: 1rpx solid rgba(0, 122, 255, 0.08);
 }
 
 .hero-card {
@@ -283,7 +284,7 @@ const handleBind = async () => {
   width: 12rpx;
   height: 12rpx;
   border-radius: 50%;
-  background: #4a90e2;
+  background: #007aff;
   margin-top: 12rpx;
   flex-shrink: 0;
 }
@@ -343,7 +344,7 @@ const handleBind = async () => {
 }
 
 .link {
-  color: #357abd;
+  color: #007aff;
 }
 
 .submit-btn {
@@ -351,7 +352,7 @@ const handleBind = async () => {
   height: 92rpx;
   line-height: 92rpx;
   border-radius: 18rpx;
-  background: linear-gradient(135deg, #4a90e2, #357abd);
+  background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
   font-size: 30rpx;
   font-weight: 600;

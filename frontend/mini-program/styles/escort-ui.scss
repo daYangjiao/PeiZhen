@@ -1,17 +1,17 @@
-// 陪诊师端主题色：主色（浅蓝）
-$escort-color-primary: #66a6ff;
+// 陪诊师端主题色：主色（品牌蓝）
+$escort-color-primary: #007aff;
 // 陪诊师端主题色：主色深阶（用于渐变终点）
-$escort-color-primary-deep: #4f95f0;
-// 页面基础背景色（统一灰底）
-$escort-color-bg: #f5f7fa;
+$escort-color-primary-deep: #2563eb;
+// 页面基础背景色（统一浅蓝灰底）
+$escort-color-bg: #f6f9ff;
 // 卡片/面板底色（统一白底）
 $escort-color-surface: #ffffff;
 // 主文本颜色（标题与高优先级信息）
-$escort-color-text-main: #1f2937;
+$escort-color-text-main: #16324f;
 // 次文本颜色（说明、副标题、弱化信息）
-$escort-color-text-sub: #667085;
+$escort-color-text-sub: #5d738b;
 // 分割线/边框颜色
-$escort-color-border: #e7edf5;
+$escort-color-border: #dce8f8;
 // 成功状态色（完成、通过）
 $escort-color-success: #52c41a;
 // 警告状态色（待处理、提醒）
@@ -24,9 +24,9 @@ $escort-radius-card: 16rpx;
 // 胶囊圆角（按钮、标签）
 $escort-radius-pill: 999rpx;
 // 卡片阴影（轻量浮层感）
-$escort-shadow-card: 0 10rpx 24rpx rgba(31, 41, 55, 0.08);
+$escort-shadow-card: 0 12rpx 30rpx rgba(18, 56, 109, 0.08);
 // 主按钮阴影（强调可点击主行为）
-$escort-shadow-primary: 0 10rpx 24rpx rgba(102, 166, 255, 0.28);
+$escort-shadow-primary: 0 12rpx 28rpx rgba(0, 122, 255, 0.22);
 
 // 页面级外边距
 $escort-gap-page: 24rpx;

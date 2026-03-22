@@ -18,8 +18,8 @@
 
 ### 颜色体系
 
-- `$escort-color-primary`：`#66a6ff`（主色）
-- `$escort-color-primary-deep`：`#4f95f0`（主色深阶）
+- `$escort-color-primary`：`#007AFF`（主色）
+- `$escort-color-primary-deep`：`#2563EB`（主色深阶）
 - `$escort-color-bg`：`#f5f7fa`（页面背景）
 - `$escort-color-surface`：`#ffffff`（卡片背景）
 - `$escort-color-text-main`：`#1f2937`（主文本）

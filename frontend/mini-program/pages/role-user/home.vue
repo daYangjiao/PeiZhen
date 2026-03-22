@@ -417,7 +417,7 @@ if (typeof uni.onWindowResize === 'function') {
   padding: 15rpx 30rpx;
 }
 .btn-text {
-  color: #66a6ff;
+  color: #007AFF;
   font-size: 24rpx;
   font-weight: bold;
 }
@@ -530,7 +530,7 @@ if (typeof uni.onWindowResize === 'function') {
 }
 .companion-specialty {
   font-size: 22rpx;
-  color: #66a6ff;
+  color: #007AFF;
   margin-bottom: 5rpx;
 }
 .companion-experience {

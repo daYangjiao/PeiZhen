@@ -194,7 +194,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   box-shadow: 0 12rpx 28rpx rgba(79, 149, 240, 0.28);
 }
 
@@ -298,7 +298,7 @@ onMounted(() => {
 }
 
 .bubble-user {
-  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
 }
 
@@ -358,7 +358,7 @@ onMounted(() => {
   border-radius: 999rpx;
   border: 1rpx solid #b8d2ff;
   background: #fff;
-  color: #4f95f0;
+  color: #2563EB;
   font-size: 24rpx;
   display: flex;
   align-items: center;
@@ -376,8 +376,8 @@ onMounted(() => {
 }
 
 .term-chip.selected {
-  background: #66a6ff;
-  border-color: #66a6ff;
+  background: #007AFF;
+  border-color: #007AFF;
   color: #fff;
 }
 
@@ -408,7 +408,7 @@ onMounted(() => {
   font-size: 28rpx;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   border: none;
   padding: 0 22rpx;
   box-shadow: 0 8rpx 18rpx rgba(79, 149, 240, 0.28);

@@ -418,7 +418,7 @@ onUnmounted(() => {
 
 .status-waiting {
   background: #e8f1ff;
-  color: #66a6ff;
+  color: #007AFF;
 }
 
 .status-accepted {

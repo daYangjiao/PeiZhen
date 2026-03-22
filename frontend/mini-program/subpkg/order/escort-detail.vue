@@ -1030,8 +1030,8 @@ export default {
 .container {
 	background-color: #f5f7fa;
 	min-height: 100vh;
-	--primary: #66a6ff;
-	--primary-deep: #4f95f0;
+	--primary: #007AFF;
+	--primary-deep: #2563EB;
 	--primary-soft: #eaf3ff;
 	--text-main: #1f2937;
 	--text-sub: #667085;
@@ -1083,7 +1083,7 @@ export default {
 .overview-card {
 	position: relative;
 	overflow: hidden;
-	background: linear-gradient(135deg, #7cb7ff, #66a6ff 56%, #5b9df2);
+	background: linear-gradient(135deg, #69B2FF, #007AFF 56%, #5b9df2);
 	margin: 0 24rpx 22rpx;
 	padding: 28rpx 26rpx 24rpx;
 	border-radius: 20rpx;

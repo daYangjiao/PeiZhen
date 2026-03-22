@@ -386,7 +386,7 @@ const getStatusClass = (status) => {
   align-items: center;
   justify-content: center;
   padding: 20rpx 0;
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   margin-bottom: 20rpx;
   border-radius: 12rpx;
 }
@@ -512,7 +512,7 @@ const getStatusClass = (status) => {
 
 .status-accepted {
   background: #BAE7FF;
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .status-service {
@@ -589,7 +589,7 @@ const getStatusClass = (status) => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: white;
   border: none;
 }
@@ -796,7 +796,7 @@ const getStatusClass = (status) => {
   width: 100%;
   min-height: 88rpx;
   line-height: 88rpx;
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
   border: none;
   border-radius: 44rpx;

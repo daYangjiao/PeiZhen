@@ -202,7 +202,7 @@ const handleMainAction = () => {
 						border-radius: 999rpx;
 						&.age {
 							background-color: #eef5ff;
-							color: #66a6ff;
+							color: #007AFF;
 						}
 						&.gender {
 							background-color: #fff1f5;
@@ -224,7 +224,7 @@ const handleMainAction = () => {
 				&.type-normal {
 					background: #eef5ff;
 					border-color: #b6d4ff;
-					.service-type { color: #66a6ff; }
+					.service-type { color: #007AFF; }
 				}
 				&.type-postop {
 					background: #f5f0ff;
@@ -382,7 +382,7 @@ const handleMainAction = () => {
 			}
 		}
 		&.primary {
-			background: linear-gradient(135deg, #7cb7ff, #66a6ff);
+			background: linear-gradient(135deg, #69B2FF, #007AFF);
 			color: #ffffff;
 			box-shadow: 0 6rpx 16rpx rgba(102, 166, 255, 0.25);
 			&:active {

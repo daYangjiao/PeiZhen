@@ -261,7 +261,7 @@ onMounted(() => {
 
 .bar {
   width: 100%;
-  background: linear-gradient(180deg, #7cb7ff, $escort-color-primary-deep);
+  background: linear-gradient(180deg, #69B2FF, $escort-color-primary-deep);
   border-radius: 10rpx;
 }
 
@@ -308,7 +308,7 @@ onMounted(() => {
 
 .line {
   height: 100%;
-  background: linear-gradient(90deg, #66a6ff, #66a6ff);
+  background: linear-gradient(90deg, #007AFF, #007AFF);
 }
 
 .empty {

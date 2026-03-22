@@ -34,7 +34,7 @@
       <view class="agreement-row">
         <checkbox-group @change="onCheckChange">
           <label class="checkbox-label">
-            <checkbox :checked="agreed" color="#4A90E2" style="transform:scale(0.7)" />
+            <checkbox :checked="agreed" color="#007AFF" style="transform:scale(0.7)" />
             <text class="agreement-text">我已阅读并同意<text class="link">《服务协议》</text></text>
           </label>
         </checkbox-group>
@@ -135,67 +135,77 @@ const handleRegister = async () => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background:
+    radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
   position: relative;
   overflow: hidden;
 }
 
 .header-section {
-  height: 320px;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 80px;
+  justify-content: flex-start;
+  padding: 88px 24px 126px;
   position: relative;
+  text-align: center;
 
   .circle-1 {
     position: absolute;
-    width: 200px;
-    height: 200px;
+    width: 240px;
+    height: 240px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    top: -50px;
-    right: -50px;
+    background: rgba(0, 122, 255, 0.08);
+    top: -40px;
+    right: -60px;
   }
 
   .circle-2 {
     position: absolute;
-    width: 150px;
-    height: 150px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(37, 99, 235, 0.06);
     bottom: 20px;
-    left: -30px;
+    left: -40px;
   }
 }
 
 .logo {
-  width: 120px;
-  height: 120px;
+  width: 104px;
+  height: 104px;
   margin-bottom: 20px;
+  background: #fff;
+  border-radius: 30px;
+  padding: 10px;
+  box-sizing: border-box;
+  box-shadow: 0 16px 32px rgba(0, 122, 255, 0.12);
+  border: 1px solid rgba(0, 122, 255, 0.08);
 }
 
 .welcome-text {
-  font-size: 28px;
-  color: #fff;
+  font-size: 30px;
+  color: #16324f;
   font-weight: bold;
   margin-bottom: 10px;
 }
 
 .header-tip {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.88);
+  color: #6a7f94;
 }
 
 .register-card {
-  margin: -60px 30px 30px;
+  margin: -86px 24px 30px;
   background: #fff;
-  border-radius: 24px;
+  border-radius: 28px;
   padding: 32px 24px 28px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
+  border: 1px solid rgba(0, 122, 255, 0.08);
 }
 
 .card-title {
@@ -207,7 +217,7 @@ const handleRegister = async () => {
 
 .card-subtitle {
   font-size: 14px;
-  color: #999;
+  color: #6a7f94;
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -219,23 +229,24 @@ const handleRegister = async () => {
 .input-item {
   display: flex;
   align-items: center;
-  background: #f8f9fa;
-  border-radius: 12px;
+  background: #f8fbff;
+  border-radius: 16px;
   padding: 0 16px;
   margin-bottom: 16px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dce8f8;
 }
 
 .iconfont {
   font-size: 18px;
   margin-right: 12px;
+  color: #7d8ea2;
 }
 
 .input {
   flex: 1;
   height: 52px;
   font-size: 16px;
-  color: #333;
+  color: #16324f;
 }
 
 .agreement-row {
@@ -249,32 +260,33 @@ const handleRegister = async () => {
 
 .agreement-text {
   font-size: 14px;
-  color: #666;
+  color: #6a7f94;
 }
 
 .link {
-  color: #4A90E2;
+  color: #007aff;
 }
 
 .submit-btn {
   width: 100%;
   height: 52px;
-  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
   border-radius: 26px;
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 18px;
+  box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
 
 .login-link {
   text-align: center;
   font-size: 14px;
-  color: #666;
+  color: #6a7f94;
 }
 
 .link-text {
-  color: #4A90E2;
+  color: #007aff;
   font-weight: 600;
 }
 </style>

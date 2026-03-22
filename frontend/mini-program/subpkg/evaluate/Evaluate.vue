@@ -352,7 +352,7 @@ const submit = () => {
 }
 
 .tag.selected {
-  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
   border-color: transparent;
 }
@@ -406,7 +406,7 @@ const submit = () => {
   font-size: 30rpx;
   font-weight: 600;
   border: none;
-  background: linear-gradient(135deg, #66a6ff, #4f95f0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
 }
 </style>

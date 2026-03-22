@@ -228,7 +228,7 @@ onMounted(() => {
   width: 120rpx;
   height: 120rpx;
   border-radius: 999rpx;
-  border: 4rpx solid #66a6ff;
+  border: 4rpx solid #007AFF;
   box-shadow: 0 10rpx 24rpx rgba(102, 166, 255, 0.26);
 }
 
@@ -243,7 +243,7 @@ onMounted(() => {
   justify-content: center;
 
   text {
-    color: #66a6ff;
+    color: #007AFF;
     font-size: 24rpx;
     font-weight: 600;
   }

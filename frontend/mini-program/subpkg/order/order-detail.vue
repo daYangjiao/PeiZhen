@@ -1554,7 +1554,7 @@ onUnmounted(() => {
   color: #333;
 }
 .duration-card .value.highlight {
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: 500;
 }
 .duration-card .value.diff {
@@ -1670,12 +1670,12 @@ onUnmounted(() => {
 .disagree-btn {
   flex: 1;
   background: #ffffff;
-  color: #66A6FF;
+  color: #007AFF;
   border: 2rpx solid rgba(24, 144, 255, 0.35);
 }
 .confirm-btn {
   flex: 1.2;
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
 }
 
@@ -1748,7 +1748,7 @@ onUnmounted(() => {
   color: #666;
 }
 .dispute-submit {
-  background: #66A6FF;
+  background: #007AFF;
   color: #fff;
   border: none;
   border-radius: 40rpx;
@@ -1917,13 +1917,13 @@ onUnmounted(() => {
 }
 
 .service-progress-bar .progress-step.active .step-dot {
-  background: #66A6FF;
-  box-shadow: 0 0 0 2rpx #66A6FF;
+  background: #007AFF;
+  box-shadow: 0 0 0 2rpx #007AFF;
 }
 
 .service-progress-bar .progress-step.current .step-dot {
-  background: #66A6FF;
-  box-shadow: 0 0 0 2rpx #66A6FF, 0 0 0 8rpx rgba(24, 144, 255, 0.2);
+  background: #007AFF;
+  box-shadow: 0 0 0 2rpx #007AFF, 0 0 0 8rpx rgba(24, 144, 255, 0.2);
 }
 
 .service-progress-bar .step-label {
@@ -1933,7 +1933,7 @@ onUnmounted(() => {
 
 .service-progress-bar .progress-step.active .step-label,
 .service-progress-bar .progress-step.current .step-label {
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: 500;
 }
 
@@ -1946,7 +1946,7 @@ onUnmounted(() => {
 }
 
 .service-progress-bar .progress-line.active {
-  background: linear-gradient(90deg, #66A6FF, #66a6ff);
+  background: linear-gradient(90deg, #007AFF, #007AFF);
 }
 
 .info-item {
@@ -2146,7 +2146,7 @@ onUnmounted(() => {
   font-size: 24rpx;
   padding: 6rpx 16rpx;
   background: #e6f7ff;
-  color: #66a6ff;
+  color: #007AFF;
   border-radius: 999rpx;
 }
 
@@ -2194,7 +2194,7 @@ onUnmounted(() => {
   width: 6rpx;
   height: 30rpx;
   border-radius: 999rpx;
-  background: linear-gradient(180deg, #66A6FF, #66a6ff);
+  background: linear-gradient(180deg, #007AFF, #007AFF);
 }
 
 .record-list {
@@ -2221,7 +2221,7 @@ onUnmounted(() => {
   width: 18rpx;
   height: 18rpx;
   border-radius: 50%;
-  background: #66A6FF;
+  background: #007AFF;
   box-shadow: 0 0 0 6rpx rgba(24, 144, 255, 0.12);
   margin-top: 6rpx;
 }
@@ -2297,7 +2297,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8rpx;
   font-size: 24rpx;
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .cancel-nav-item text {
@@ -2335,7 +2335,7 @@ onUnmounted(() => {
   padding: 0 40rpx;
   height: 88rpx;
   line-height: 88rpx;
-  background: linear-gradient(135deg, #66A6FF, #4F95F0);
+  background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
   border-radius: 44rpx;
   font-size: 30rpx;
@@ -2350,7 +2350,7 @@ onUnmounted(() => {
 .return-to-orders-btn {
   width: 100%;
   height: 80rpx;
-  background-color: #66A6FF;
+  background-color: #007AFF;
   color: white;
   border-radius: 40rpx;
   font-size: 28rpx;
@@ -2529,7 +2529,7 @@ onUnmounted(() => {
 
 .contact-icon.phone {
   background: #f0f7ff;
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .contact-icon.chat {

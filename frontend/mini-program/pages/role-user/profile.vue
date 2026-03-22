@@ -227,7 +227,7 @@ onShow(() => {
 	padding: 20rpx;
 }
 .user-section {
-	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
 	border-radius: 20rpx;
 	padding: 40rpx;
 	margin-bottom: 30rpx;
@@ -310,7 +310,7 @@ onShow(() => {
 	border: none;
 }
 .btn-text {
-	color: #66A6FF;
+	color: #007AFF;
 	font-size: 28rpx;
 	font-weight: bold;
 }

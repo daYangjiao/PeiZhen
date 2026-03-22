@@ -447,14 +447,14 @@ onUnmounted(() => {
   transition: all 0.3s;
 }
 .tab-item.active .tab-text {
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: 600;
   font-size: 30rpx;
 }
 .active-line {
   width: 40rpx;
   height: 4rpx;
-  background-color: #66A6FF;
+  background-color: #007AFF;
   border-radius: 2rpx;
   position: absolute;
   bottom: 10rpx;
@@ -487,10 +487,10 @@ onUnmounted(() => {
   font-size: 22rpx;
 }
 .status-pending { background: #fff7e6; color: #fa8c16; }
-.status-waiting { background: #e6f7ff; color: #66a6ff; }
+.status-waiting { background: #e6f7ff; color: #007AFF; }
 .status-accepted { background: #f6ffed; color: #52c41a; }
 .status-service { background: #f9f0ff; color: #722ed1; }
-.status-confirm { background: #e6f4ff; color: #66A6FF; }
+.status-confirm { background: #e6f4ff; color: #007AFF; }
 .status-balance { background: #fff0f6; color: #c41d7f; }
 .status-completed { background: #f5f7fa; color: #8c8c8c; }
 .status-cancelled { background: #fff1f0; color: #f5222d; }
@@ -580,9 +580,9 @@ onUnmounted(() => {
   border: 1rpx solid #ddd;
 }
 .pay-btn {
-  background-color: #66A6FF;
+  background-color: #007AFF;
   color: #fff;
-  border: 1rpx solid #66A6FF;
+  border: 1rpx solid #007AFF;
 }
 .empty-state {
   padding-top: 100rpx;

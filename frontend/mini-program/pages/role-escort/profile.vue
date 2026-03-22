@@ -337,7 +337,7 @@ onShow(() => {
   padding: 0 52rpx;
 
   text {
-    color: #66a6ff;
+    color: #007AFF;
     font-size: 30rpx;
     font-weight: 600;
   }

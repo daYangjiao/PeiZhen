@@ -233,8 +233,8 @@ const goToOrderDetail = () => {
   width: 240rpx;
   height: 60rpx;
   background-color: #ffffff;
-  color: #66A6FF;
-  border: 1rpx solid #66A6FF;
+  color: #007AFF;
+  border: 1rpx solid #007AFF;
   border-radius: 30rpx;
   font-size: 28rpx;
   line-height: 60rpx;

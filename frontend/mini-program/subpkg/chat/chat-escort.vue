@@ -607,10 +607,10 @@ const formatTimeCenter = (time) => {
 
 <style lang="scss" scoped>
 @import '@/styles/escort-ui.scss';
-$primary-color: #66A6FF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other: #FFF; $bubble-self: $primary-color;
+$primary-color: #007AFF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other: #FFF; $bubble-self: $primary-color;
 
 .container { height: 100vh; background-color: $bg-color; display: flex; flex-direction: column; }
-.chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(102,166,255,0.2); }
+.chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(135deg, #69B2FF 0%, #007AFF 55%, #2563EB 100%); padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(102,166,255,0.2); }
 .header-content { height: 88rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; }
 .header-back { width: 60rpx; height: 60rpx; display: flex; align-items: center; .back-text { font-size: 44rpx; color: #fff; font-weight: 300; } }
 .header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4rpx;
@@ -640,7 +640,7 @@ $primary-color: #66A6FF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other:
 .content-bubble {
   position: relative; padding: 20rpx 24rpx; border-radius: 12rpx; font-size: 30rpx; line-height: 1.5; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
   background: $bubble-other; color: $text-main;
-  .self & { background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); color: #fff; }
+  .self & { background: linear-gradient(135deg, #69B2FF 0%, #007AFF 55%, #2563EB 100%); color: #fff; }
   .image { max-width: 300rpx; border-radius: 8rpx; display: block; }
 }
 
@@ -695,10 +695,10 @@ $primary-color: #66A6FF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other:
 }
 
 .voice-record-btn {
-    width: 100%; height: 72rpx; background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); border-radius: 12rpx;
+    width: 100%; height: 72rpx; background: linear-gradient(135deg, #69B2FF 0%, #007AFF 55%, #2563EB 100%); border-radius: 12rpx;
     display: flex; align-items: center; justify-content: center;
     font-size: 30rpx; color: #fff; font-weight: 500;
-    &.recording { background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%); }
+    &.recording { background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%); }
 }
 
 .icon-btn {
@@ -713,7 +713,7 @@ $primary-color: #66A6FF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other:
 }
 
 .send-btn {
-    background: linear-gradient(135deg, #7cb7ff 0%, #66A6FF 55%, #4F95F0 100%); color: #fff; padding: 10rpx 24rpx; border-radius: 12rpx; font-size: 26rpx; font-weight: 500;
+    background: linear-gradient(135deg, #69B2FF 0%, #007AFF 55%, #2563EB 100%); color: #fff; padding: 10rpx 24rpx; border-radius: 12rpx; font-size: 26rpx; font-weight: 500;
     box-shadow: 0 4rpx 12rpx rgba(102,166,255,0.3);
     &.sending { background: linear-gradient(135deg, #b7d8ff 0%, #95c3ff 100%); box-shadow: 0 2rpx 8rpx rgba(102,166,255,0.2); }
 }

@@ -9,24 +9,24 @@
 		<view class="service-types">
 			<view class="service-row">
 				<view class="service-item" :class="{ 'selected': selectedService === 'general' }" @click="selectService('general')">
-					<image class="service-icon" src="/static/service-general.png" mode="aspectFit"></image>
+					<image class="service-icon" :src="serviceIcons.general" mode="aspectFit"></image>
 					<text class="service-title">普通陪诊</text>
 					<text class="service-desc">专业陪诊师 贴心服务</text>
 				</view>
 				<view class="service-item" :class="{ 'selected': selectedService === 'postop' }" @click="selectService('postop')">
-					<image class="service-icon" src="/static/service-postop.png" mode="aspectFit"></image>
+					<image class="service-icon" :src="serviceIcons.postop" mode="aspectFit"></image>
 					<text class="service-title">术后护理</text>
 					<text class="service-desc">专业术后照顾 安心恢复</text>
 				</view>
 			</view>
 			<view class="service-row">
 				<view class="service-item" :class="{ 'selected': selectedService === 'emergency' }" @click="selectService('emergency')">
-					<image class="service-icon" src="/static/service-emergency.png" mode="aspectFit"></image>
+					<image class="service-icon" :src="serviceIcons.emergency" mode="aspectFit"></image>
 					<text class="service-title">急诊陪同</text>
 					<text class="service-desc">紧急情况 快速响应</text>
 				</view>
 				<view class="service-item" :class="{ 'selected': selectedService === 'home' }" @click="selectService('home')">
-					<image class="service-icon" src="/static/service-home.png" mode="aspectFit"></image>
+					<image class="service-icon" :src="serviceIcons.home" mode="aspectFit"></image>
 					<text class="service-title">上门陪诊</text>
 					<text class="service-desc">专门专业陪诊师 贴心陪伴</text>
 				</view>
@@ -60,7 +60,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { appointmentDetailIcons } from '@/utils/assets.js'
+import { appointmentDetailIcons, appointmentServiceLogos } from '@/utils/assets.js'
+
+const serviceIcons = {
+	general: appointmentServiceLogos[1],
+	postop: appointmentServiceLogos[2],
+	emergency: appointmentServiceLogos[3],
+	home: appointmentServiceLogos[4]
+}
 
 // 响应式数据
 const selectedService = ref(null) // 存储选中的服务类型 key
@@ -238,13 +245,13 @@ const goToNext = () => {
 
 .service-item.selected {
 	background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-	border: 2rpx solid #66a6ff;
+	border: 2rpx solid #007AFF;
 	box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.2);
 	transform: translateY(-2rpx);
 }
 
 .service-item.selected .service-title {
-	color: #66a6ff;
+	color: #007AFF;
 	font-weight: 600;
 }
 
@@ -320,7 +327,7 @@ const goToNext = () => {
 .next-btn {
 	width: 100%;
 	height: 88rpx;
-	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
 	color: white;
 	font-size: 32rpx;
 	font-weight: bold;

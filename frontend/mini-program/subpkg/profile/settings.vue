@@ -2,7 +2,7 @@
   <view class="page">
     <view class="card row">
       <text class="label">消息提醒</text>
-      <switch :checked="notifyOn" color="#66a6ff" @change="onNotifyChange" />
+      <switch :checked="notifyOn" color="#007AFF" @change="onNotifyChange" />
     </view>
 
     <view class="card row" @click="clearLocalCache">

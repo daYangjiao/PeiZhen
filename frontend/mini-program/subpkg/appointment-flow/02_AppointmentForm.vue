@@ -693,7 +693,7 @@ onMounted(async () => {
 	min-width: 450rpx; /* 固定宽度，保证卡片长度 */
 	min-height: 50rpx; /* 固定高度，保证卡片高度 */
 	justify-content: center; /* 水平居中内容 */
-	border: 2rpx solid #66A6FF; /* 边框，突出卡片 */
+	border: 2rpx solid #007AFF; /* 边框，突出卡片 */
 }
 
 .service-icon-large {
@@ -724,7 +724,7 @@ onMounted(async () => {
 }
 
 .date-btn {
-	background: linear-gradient(135deg, #66A6FF, #4F95F0);
+	background: linear-gradient(135deg, #007AFF, #2563EB);
 	color: white;
 	padding: 20rpx 60rpx;
 	border-radius: 50rpx;
@@ -886,7 +886,7 @@ onMounted(async () => {
 }
 
 .add-symptom {
-	color: #66A6FF;
+	color: #007AFF;
 	font-size: 28rpx;
 	padding: 8px;
 	text-align: center;
@@ -975,7 +975,7 @@ onMounted(async () => {
 .confirm-btn {
 	width: 100%;
 	height: 88rpx;
-	background: linear-gradient(135deg, #66A6FF 0%, #4F95F0 100%);
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
 	color: white;
 	font-size: 32rpx;
 	font-weight: bold;
@@ -1051,7 +1051,7 @@ onMounted(async () => {
 }
 
 .time-option.selected {
-	background: linear-gradient(135deg, #66A6FF, #4F95F0);
+	background: linear-gradient(135deg, #007AFF, #2563EB);
 	color: white;
 }
 
@@ -1074,7 +1074,7 @@ onMounted(async () => {
 
 .confirm-time-btn {
 	flex: 1;
-	background: linear-gradient(135deg, #66A6FF, #4F95F0);
+	background: linear-gradient(135deg, #007AFF, #2563EB);
 	color: white;
 	border: none;
 	border-radius: 25rpx;

@@ -478,7 +478,7 @@ const formatDate = (dateStr) => {
 }
 
 .step-item.active .step-dot {
-  background-color: #66A6FF;
+  background-color: #007AFF;
   color: white;
 }
 
@@ -487,7 +487,7 @@ const formatDate = (dateStr) => {
 }
 
 .step-item.active .step-text {
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .progress-line {
@@ -520,7 +520,7 @@ const formatDate = (dateStr) => {
 
 .title .iconfont {
   margin-right: 10rpx;
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .info-item {
@@ -563,7 +563,7 @@ const formatDate = (dateStr) => {
 }
 
 .discount {
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: 500;
 }
 
@@ -572,7 +572,7 @@ const formatDate = (dateStr) => {
   justify-content: space-between;
   padding: 20rpx 0;
   font-weight: bold;
-  color: #66A6FF;
+  color: #007AFF;
 }
 
 .total-price {
@@ -592,7 +592,7 @@ const formatDate = (dateStr) => {
 
 .fee-tip-tag {
   font-size: 22rpx;
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: 600;
   padding: 4rpx 10rpx;
   border-radius: 999rpx;
@@ -644,7 +644,7 @@ const formatDate = (dateStr) => {
 }
 
 .price {
-  color: #66A6FF;
+  color: #007AFF;
   font-weight: bold;
   font-size: 32rpx;
 }
@@ -652,7 +652,7 @@ const formatDate = (dateStr) => {
 .confirm-btn {
   width: 200rpx;
   height: 60rpx;
-  background-color: #66A6FF;
+  background-color: #007AFF;
   color: white;
   border-radius: 30rpx;
   font-size: 28rpx;
@@ -667,7 +667,7 @@ const formatDate = (dateStr) => {
   padding: 0;
   border: none;
   background: none;
-  color: #66A6FF;
+  color: #007AFF;
   font-size: 24rpx;
   text-decoration: underline;
   cursor: pointer;
@@ -769,7 +769,7 @@ const formatDate = (dateStr) => {
   display: block;
   font-size: 28rpx;
   font-weight: 700;
-  color: #66A6FF;
+  color: #007AFF;
   margin-bottom: 8rpx;
 }
 
@@ -806,7 +806,7 @@ const formatDate = (dateStr) => {
   width: 14rpx;
   height: 14rpx;
   border-radius: 50%;
-  background: #66A6FF;
+  background: #007AFF;
   margin-top: 10rpx;
   flex-shrink: 0;
 }

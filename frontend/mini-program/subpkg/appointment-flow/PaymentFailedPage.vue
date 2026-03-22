@@ -148,7 +148,7 @@ export default {
   width: 100%;
   height: 80rpx;
   line-height: 80rpx;
-  background-color: #66A6FF;
+  background-color: #007AFF;
   color: white;
   border-radius: 40rpx;
   font-size: 30rpx;
@@ -160,8 +160,8 @@ export default {
   height: 80rpx;
   line-height: 80rpx;
   background-color: white;
-  color: #66A6FF;
-  border: 2rpx solid #66A6FF;
+  color: #007AFF;
+  border: 2rpx solid #007AFF;
   border-radius: 40rpx;
   font-size: 30rpx;
 }

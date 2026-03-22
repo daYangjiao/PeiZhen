@@ -114,8 +114,8 @@ export default {
 	background: #f5f7fa;
 	--text-main: #1f2937;
 	--text-sub: #667085;
-	--primary: #66a6ff;
-	--primary-deep: #4f95f0;
+	--primary: #007AFF;
+	--primary-deep: #2563EB;
 }
 .content {
 	min-height: 100vh;

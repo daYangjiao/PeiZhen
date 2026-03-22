@@ -92,7 +92,9 @@ const handleRegister = async () => {
 @import '@/styles/escort-ui.scss';
 .container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background:
+    radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
   --primary: #{$escort-color-primary};
   --primary-deep: #{$escort-color-primary-deep};
   --text-main: #{$escort-color-text-main};
@@ -100,14 +102,14 @@ const handleRegister = async () => {
 }
 .header-bg {
   padding: calc(var(--status-bar-height) + 24rpx) 30rpx 120rpx;
-  background: linear-gradient(135deg, #7cb7ff 0%, var(--primary) 55%, var(--primary-deep) 100%);
-  color: #fff;
+  background: transparent;
+  color: var(--text-main);
 }
 .back-btn {
   width: 64rpx;
   height: 64rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(0, 122, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,6 +118,7 @@ const handleRegister = async () => {
 .back-icon {
   font-size: 38rpx;
   line-height: 1;
+  color: var(--primary);
 }
 .title {
   font-size: 44rpx;
@@ -125,14 +128,15 @@ const handleRegister = async () => {
 }
 .subtitle {
   font-size: 24rpx;
-  opacity: 0.94;
+  color: var(--text-sub);
 }
 .form-card {
-  margin: -72rpx 24rpx 24rpx;
+  margin: -36rpx 24rpx 24rpx;
   background: #fff;
-  border-radius: 20rpx;
+  border-radius: 28rpx;
   padding: 30rpx 24rpx;
-  box-shadow: 0 12rpx 28rpx rgba(31, 41, 55, 0.1);
+  box-shadow: 0 18rpx 42rpx rgba(18, 56, 109, 0.1);
+  border: 1rpx solid rgba(0, 122, 255, 0.08);
 }
 .input-item {
   margin-bottom: 20rpx;
@@ -146,21 +150,23 @@ const handleRegister = async () => {
 }
 .input {
   height: 84rpx;
-  background: #f8fafc;
-  border-radius: 14rpx;
+  background: #f8fbff;
+  border-radius: 16rpx;
   padding: 0 18rpx;
   font-size: 27rpx;
   color: var(--text-main);
+  border: 1rpx solid #dce8f8;
 }
 .textarea {
   min-height: 160rpx;
-  background: #f8fafc;
-  border-radius: 14rpx;
+  background: #f8fbff;
+  border-radius: 16rpx;
   padding: 16rpx 18rpx;
   font-size: 27rpx;
   color: var(--text-main);
   width: 100%;
   box-sizing: border-box;
+  border: 1rpx solid #dce8f8;
 }
 .submit-btn {
   background: linear-gradient(135deg, var(--primary), var(--primary-deep));
@@ -170,7 +176,7 @@ const handleRegister = async () => {
   font-size: 30rpx;
   font-weight: 700;
   margin-top: 10rpx;
-  box-shadow: 0 10rpx 24rpx rgba(102, 166, 255, 0.28);
+  box-shadow: 0 12rpx 28rpx rgba(0, 122, 255, 0.22);
 }
 .login-link {
   text-align: center;

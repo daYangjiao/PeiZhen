@@ -18,8 +18,8 @@
 
 ### 颜色
 
-- `$user-color-primary`：`#66A6FF`（主色）
-- `$user-color-primary-deep`：`#4F95F0`（主色深阶）
+- `$user-color-primary`：`#007AFF`（主色）
+- `$user-color-primary-deep`：`#2563EB`（主色深阶）
 - `$user-color-bg`：`#F5F7FA`（页面灰底）
 - `$user-color-surface`：`#FFFFFF`（卡片白底）
 - `$user-color-text-main`：`#1F2937`（主文本）
@@ -86,7 +86,7 @@
 1. 页面是否引入 `user-ui.scss`。
 2. 根容器是否使用统一灰底。
 3. 白卡圆角、阴影、边距是否一致。
-4. 主蓝是否统一为 `#66A6FF / #4F95F0`。
+4. 主蓝是否统一为 `#007AFF / #2563EB`。
 5. 是否存在重复信息展示块（金额/状态重复）。
 6. 搜索、筛选、工具区是否模块化衔接。
 7. 共用页是否按角色分支，确保用户/陪诊师都正常。
