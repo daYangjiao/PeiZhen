@@ -244,6 +244,7 @@ const handleWechatLogin = async () => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
+  height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
     linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
@@ -265,42 +266,42 @@ const handleWechatLogin = async () => {
   display: inline-block;
 }
 .header-section {
-  min-height: 360px;
+  min-height: 216px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 88px 24px 120px;
+  padding: 38px 18px 52px;
   position: relative;
   text-align: center;
 
   .circle-1 {
     position: absolute;
-    width: 240px;
-    height: 240px;
+    width: 144px;
+    height: 144px;
     background: rgba(0, 122, 255, 0.08);
     border-radius: 50%;
-    top: -40px;
-    right: -60px;
+    top: -24px;
+    right: -52px;
   }
 
   .circle-2 {
     position: absolute;
-    width: 180px;
-    height: 180px;
+    width: 104px;
+    height: 104px;
     background: rgba(37, 99, 235, 0.06);
     border-radius: 50%;
-    bottom: 18px;
-    left: -40px;
+    bottom: 10px;
+    left: -22px;
   }
 
   .logo {
-    width: 92px;
-    height: 92px;
+    width: 64px;
+    height: 64px;
     background: #fff;
-    border-radius: 28px;
-    margin-bottom: 20px;
-    padding: 10px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    padding: 6px;
     box-sizing: border-box;
     box-shadow: 0 16px 32px rgba(0, 122, 255, 0.12);
     border: 1px solid rgba(0, 122, 255, 0.08);
@@ -308,17 +309,17 @@ const handleWechatLogin = async () => {
 
   .welcome-text {
     color: #16324f;
-    font-size: 22px;
+    font-size: 17px;
     font-weight: 700;
     letter-spacing: 0.2px;
   }
 }
 
 .login-card {
-  margin: -86px 24px 0;
+  margin: -28px 16px 10px;
   background: #fff;
-  border-radius: 28px;
-  padding: 30px 24px 26px;
+  border-radius: 22px;
+  padding: 14px 16px 14px;
   box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
@@ -326,16 +327,16 @@ const handleWechatLogin = async () => {
 
   .tab-header {
     display: flex;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     background: #eef5ff;
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 4px;
 
     .tab-item {
       flex: 1;
       text-align: center;
-      padding: 12px 0;
-      font-size: 16px;
+      padding: 8px 0;
+      font-size: 14px;
       color: #6a7f94;
       border-radius: 12px;
       transition: all 0.2s;
@@ -352,22 +353,22 @@ const handleWechatLogin = async () => {
   .input-item {
     display: flex;
     align-items: center;
-    height: 54px;
+    height: 46px;
     background: #f8fbff;
-    border-radius: 16px;
-    margin-bottom: 16px;
-    padding: 0 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    padding: 0 14px;
     border: 1px solid #dce8f8;
 
     .iconfont {
-      font-size: 20px;
+      font-size: 16px;
       color: #7d8ea2;
-      margin-right: 12px;
+      margin-right: 8px;
     }
 
     .input {
       flex: 1;
-      font-size: 16px;
+      font-size: 14px;
       color: #16324f;
     }
   }
@@ -375,26 +376,26 @@ const handleWechatLogin = async () => {
 
 .wechat-login-btn {
   width: 100%;
-  height: 92rpx;
-  line-height: 92rpx;
-  border-radius: 16rpx;
+  height: 74rpx;
+  line-height: 74rpx;
+  border-radius: 14rpx;
   background: linear-gradient(135deg, #29c261, #17a34a);
   color: #fff;
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 600;
-  margin: 20rpx 0 12rpx;
-  box-shadow: 0 10rpx 24rpx rgba(41, 194, 97, 0.24);
+  margin: 4rpx 0 6rpx;
+  box-shadow: 0 8rpx 18rpx rgba(41, 194, 97, 0.22);
 }
 
 .wechat-tip {
   text-align: center;
   color: #6a7f94;
-  font-size: 24rpx;
-  margin-bottom: 18rpx;
+  font-size: 20rpx;
+  margin-bottom: 8rpx;
 }
 
 .agreement-row {
-  margin: 20px 0;
+  margin: 8px 0;
 
   .agreement-text {
     font-size: 13px;
@@ -409,9 +410,9 @@ const handleWechatLogin = async () => {
 .login-btn {
   background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
-  height: 50px;
-  border-radius: 25px;
-  font-size: 17px;
+  height: 44px;
+  border-radius: 23px;
+  font-size: 15px;
   font-weight: bold;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
@@ -424,8 +425,8 @@ const handleWechatLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 24px;
-  font-size: 14px;
+  margin-top: 10px;
+  font-size: 12px;
   color: #6a7f94;
 
   .divider {
