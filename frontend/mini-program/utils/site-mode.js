@@ -1,4 +1,4 @@
-export const PUBLIC_SAFE_NOTICE = '当前网站为备案展示版，完整业务功能仅向小程序内测成员开放'
+export const PUBLIC_SAFE_NOTICE = '当前网站暂不开放在线预约等功能'
 
 export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
 

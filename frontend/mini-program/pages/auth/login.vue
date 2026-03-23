@@ -27,11 +27,11 @@
         </view>
       </view>
 
-      <button class="wechat-login-btn" :disabled="wechatLoading" @click="handleWechatLogin">
+      <button v-if="!publicSafeMode" class="wechat-login-btn" :disabled="wechatLoading" @click="handleWechatLogin">
         {{ wechatLoading ? '处理中...' : '微信登录' }}
       </button>
 
-      <view class="wechat-tip">{{ wechatTip }}</view>
+      <view v-if="!publicSafeMode" class="wechat-tip">{{ wechatTip }}</view>
 
       <view v-if="!publicSafeMode" class="input-group">
         <view class="input-item">
@@ -58,9 +58,9 @@
       </button>
 
       <view v-if="publicSafeMode" class="public-safe-card">
-        <text class="public-safe-title">网站展示版</text>
-        <text class="public-safe-desc">当前公网站点仅展示服务介绍、就医流程参考与健康管理信息，预约、接单、聊天等功能仅向小程序内测成员开放。</text>
-        <text class="public-safe-tip">如需参与内部测试，请通过小程序体验版加入测试成员。</text>
+        <text class="public-safe-title">服务与流程介绍</text>
+        <text class="public-safe-desc">当前网站主要提供服务介绍、就医流程参考与健康管理信息展示。</text>
+        <text class="public-safe-tip">如需了解更多内容，请持续关注后续更新。</text>
       </view>
 
       <view v-if="!publicSafeMode" class="footer-links">
@@ -104,6 +104,10 @@ onLoad((options) => {
   if (publicSafeMode.value) currentRole.value = 'user'
   if (options?.from === 'guard') {
     fromGuard.value = true
+  }
+  if (publicSafeMode.value) {
+    uni.switchTab({ url: '/pages/role-user/home' })
+    return
   }
   loadWechatConfigStatus()
 })

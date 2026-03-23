@@ -2,8 +2,8 @@
 	<view class="container">
 		<view v-if="publicSafeMode" class="public-safe-profile">
 			<view class="safe-hero">
-				<text class="safe-title">网站展示版</text>
-				<text class="safe-desc">当前公网站点仅提供陪诊服务介绍、就医流程参考、健康管理建议与联系方式说明，预约、聊天、订单等完整业务功能仅向小程序内测成员开放。</text>
+				<text class="safe-title">服务说明</text>
+				<text class="safe-desc">当前网站提供陪诊服务介绍、就医流程参考、健康管理建议与联系方式说明。</text>
 			</view>
 
 			<view class="safe-group">
@@ -16,7 +16,7 @@
 
 			<view class="safe-group">
 				<text class="group-title">说明与联系</text>
-				<view class="safe-item"><text class="safe-item-title">使用说明</text><text class="safe-item-desc">网站当前为备案展示版，完整功能仅向小程序体验成员开放。</text></view>
+				<view class="safe-item"><text class="safe-item-title">使用说明</text><text class="safe-item-desc">当前网站以服务介绍、流程说明和信息展示为主。</text></view>
 				<view class="safe-item"><text class="safe-item-title">隐私与协议</text><text class="safe-item-desc">请在正式使用前阅读服务协议与隐私说明，AI内容仅作健康科普参考。</text></view>
 			</view>
 		</view>
@@ -231,7 +231,10 @@ onMounted(() => {
 })
 
 onShow(() => {
-	if (publicSafeMode) return
+	if (publicSafeMode) {
+		uni.switchTab({ url: '/pages/role-user/home' })
+		return
+	}
 	const fromRoute = uni.getStorageSync('guard_from_route')
 	if (!userStore.isLoggedIn && (fromRoute === 'pages/role-user/profile' || fromRoute === '/pages/role-user/profile')) {
 		uni.removeStorageSync('guard_from_route')

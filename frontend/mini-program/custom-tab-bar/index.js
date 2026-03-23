@@ -16,8 +16,7 @@ const escortTabs = [
 ]
 
 const publicSafeTabs = [
-  { pagePath: 'pages/role-user/home', text: '首页', iconPath: '/static/shouye.png', selectedIconPath: '/static/shouye_active.png' },
-  { pagePath: 'pages/role-user/profile', text: '关于', iconPath: '/static/wode_2.png', selectedIconPath: '/static/wode_2_active.png' }
+  { pagePath: 'pages/role-user/home', text: '首页', iconPath: '/static/shouye.png', selectedIconPath: '/static/shouye_active.png' }
 ]
 
 const MESSAGE_BADGE_STORAGE_KEY = 'tabbar_message_badge'
