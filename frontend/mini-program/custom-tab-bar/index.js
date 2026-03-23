@@ -35,7 +35,8 @@ Component({
   data: {
     tabs: withMessageBadge(userTabs, 0),
     selectedIndex: 0,
-    badgeCount: 0
+    badgeCount: 0,
+    hidden: false
   },
   attached() {
     this.updateTabs()
@@ -61,11 +62,12 @@ Component({
   },
   methods: {
     updateTabs() {
+      const publicSafeMode = isPublicSafeMode()
       const role = platformApi.getStorageSync('role') || 'user'
       const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
       const currentRoute = pages.length ? pages[pages.length - 1].route : ''
       const badgeCount = Number(platformApi.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
-      const sourceTabs = isPublicSafeMode()
+      const sourceTabs = publicSafeMode
         ? publicSafeTabs
         : (role === 'escort' ? escortTabs : userTabs)
       const tabs = withMessageBadge(sourceTabs, badgeCount)
@@ -73,7 +75,8 @@ Component({
       this.setData({
         tabs,
         selectedIndex: index >= 0 ? index : 0,
-        badgeCount
+        badgeCount,
+        hidden: publicSafeMode
       })
     },
     syncBadge() {
