@@ -106,6 +106,7 @@ import { get, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const searchKeyword = ref('')
 
@@ -131,6 +132,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   if (ensureRole('escort')) {
     loadOrders()
   }

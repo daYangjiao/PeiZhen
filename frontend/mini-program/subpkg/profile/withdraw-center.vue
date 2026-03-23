@@ -9,6 +9,7 @@
 
 <script setup>
 import { onLoad } from '@dcloudio/uni-app'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const redirectToWallet = () => {
   uni.redirectTo({
@@ -20,6 +21,7 @@ const redirectToWallet = () => {
 }
 
 onLoad(() => {
+  if (redirectPublicSafeToHome()) return
   redirectToWallet()
 })
 </script>

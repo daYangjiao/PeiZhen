@@ -192,6 +192,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/api.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 // 页面数据
 const loading = ref(true)
@@ -244,6 +245,7 @@ const displayedOrders = computed(() => {
 
 // 页面加载
 onLoad(() => {
+  if (redirectPublicSafeToHome()) return
   loadOrders()
 })
 

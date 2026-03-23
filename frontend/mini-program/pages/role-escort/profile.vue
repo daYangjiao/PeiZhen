@@ -83,6 +83,7 @@ import { useSessionStore } from '@/stores/session'
 import { useUserStore } from '@/stores/user'
 import { clearToken, config } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import {
   escortRules,
   escortServiceCenter,
@@ -279,6 +280,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   if (!ensureRole('escort')) return
   loadProfile()
 })

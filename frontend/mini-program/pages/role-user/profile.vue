@@ -1,5 +1,27 @@
 <template>
 	<view class="container">
+		<view v-if="publicSafeMode" class="public-safe-profile">
+			<view class="safe-hero">
+				<text class="safe-title">网站展示版</text>
+				<text class="safe-desc">当前公网站点仅提供陪诊服务介绍、就医流程参考、健康管理建议与联系方式说明，预约、聊天、订单等完整业务功能仅向小程序内测成员开放。</text>
+			</view>
+
+			<view class="safe-group">
+				<text class="group-title">服务介绍</text>
+				<view class="safe-item"><text class="safe-item-title">普通陪诊</text><text class="safe-item-desc">就医流程陪同、挂号缴费、取药取号等参考说明。</text></view>
+				<view class="safe-item"><text class="safe-item-title">术后护理</text><text class="safe-item-desc">术后恢复阶段的陪护建议与康复注意事项展示。</text></view>
+				<view class="safe-item"><text class="safe-item-title">急诊陪同</text><text class="safe-item-desc">紧急就医流程、急诊陪同注意事项与准备建议。</text></view>
+				<view class="safe-item"><text class="safe-item-title">上门陪诊</text><text class="safe-item-desc">上门陪同场景说明、服务边界与准备材料参考。</text></view>
+			</view>
+
+			<view class="safe-group">
+				<text class="group-title">说明与联系</text>
+				<view class="safe-item"><text class="safe-item-title">使用说明</text><text class="safe-item-desc">网站当前为备案展示版，完整功能仅向小程序体验成员开放。</text></view>
+				<view class="safe-item"><text class="safe-item-title">隐私与协议</text><text class="safe-item-desc">请在正式使用前阅读服务协议与隐私说明，AI内容仅作健康科普参考。</text></view>
+			</view>
+		</view>
+
+		<template v-else>
 		<view class="user-section">
 			<view v-if="userStore.isLoggedIn" class="user-info">
 				<view class="user-avatar">
@@ -88,6 +110,7 @@
 				</view>
 			</view>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -99,10 +122,12 @@ import { config } from '@/utils/api.js'
 import { getUserById } from '@/api/user.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { isPublicSafeMode } from '@/utils/site-mode.js'
 
 const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
 const avatarLoadFailed = ref(false)
+const publicSafeMode = isPublicSafeMode()
 
 const getFullAvatarUrl = (relativePath) => {
 	if (!relativePath || typeof relativePath !== 'string') return PLACEHOLDER_AVATAR
@@ -206,6 +231,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+	if (publicSafeMode) return
 	const fromRoute = uni.getStorageSync('guard_from_route')
 	if (!userStore.isLoggedIn && (fromRoute === 'pages/role-user/profile' || fromRoute === '/pages/role-user/profile')) {
 		uni.removeStorageSync('guard_from_route')
@@ -225,6 +251,55 @@ onShow(() => {
 	min-height: 100vh;
 	background-color: #f5f7fa;
 	padding: 20rpx;
+}
+.public-safe-profile {
+	display: flex;
+	flex-direction: column;
+	gap: 24rpx;
+}
+.safe-hero {
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
+	border-radius: 20rpx;
+	padding: 32rpx 28rpx;
+	color: #fff;
+}
+.safe-title {
+	display: block;
+	font-size: 36rpx;
+	font-weight: 700;
+	margin-bottom: 12rpx;
+}
+.safe-desc {
+	display: block;
+	font-size: 24rpx;
+	line-height: 1.7;
+	color: rgba(255, 255, 255, 0.92);
+}
+.safe-group {
+	background: #fff;
+	border-radius: 20rpx;
+	padding: 24rpx;
+}
+.safe-item {
+	padding: 20rpx 0;
+	border-bottom: 1rpx solid #edf2f7;
+}
+.safe-item:last-child {
+	border-bottom: 0;
+	padding-bottom: 0;
+}
+.safe-item-title {
+	display: block;
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #16324f;
+	margin-bottom: 8rpx;
+}
+.safe-item-desc {
+	display: block;
+	font-size: 24rpx;
+	line-height: 1.7;
+	color: #6a7f94;
 }
 .user-section {
 	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);

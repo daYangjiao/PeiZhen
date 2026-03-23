@@ -70,6 +70,7 @@ import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import { brandLogo, defaultAvatar } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const contacts = ref([])
 const lastSystemMsg = ref({})
@@ -223,6 +224,7 @@ onMounted(async () => {
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   if (!ensureRole('escort')) return
   loadContacts()
 })

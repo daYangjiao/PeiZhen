@@ -61,6 +61,7 @@
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { appointmentDetailIcons, appointmentServiceLogos } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const selectedService = ref(null)
 const serviceIcons = {
@@ -156,7 +157,10 @@ const goToNext = () => {
 }
 
 onMounted(() => restoreUserSelections())
-onShow(() => restoreUserSelections())
+onShow(() => {
+  if (redirectPublicSafeToHome()) return
+  restoreUserSelections()
+})
 </script>
 
 <style lang="scss" scoped>

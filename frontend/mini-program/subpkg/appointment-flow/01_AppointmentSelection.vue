@@ -61,6 +61,7 @@
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { appointmentDetailIcons, appointmentServiceLogos } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const serviceIcons = {
 	general: appointmentServiceLogos[1],
@@ -115,6 +116,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+	if (redirectPublicSafeToHome()) return
 	// 页面显示时恢复用户选择状态
 	restoreUserSelections()
 })

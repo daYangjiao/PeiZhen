@@ -476,6 +476,7 @@ import { get, post, put, config } from '@/utils/api.js';
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js';
 import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -1349,6 +1350,7 @@ const cleanupRealtimeResources = () => {
 
 // 页面加载
 onLoad(async (options) => {
+  if (redirectPublicSafeToHome()) return
   const orderNo = options.orderNo || options.orderId;
 
   console.log('页面加载参数:', options);
@@ -1370,6 +1372,7 @@ onLoad(async (options) => {
 });
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   pageActive = true;
   const key = currentOrderKey || order.value?.orderNo || order.value?.orderId;
   if (!key) return;

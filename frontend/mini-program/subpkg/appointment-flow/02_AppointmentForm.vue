@@ -220,6 +220,7 @@ import { onLoad } from '@dcloudio/uni-app' // 使用 onLoad 获取参数
 // --- 导入你的 API 文件 ---
 import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 get
 import { appointmentServiceLogos } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 // --- 接收页面参数 ---
 // 使用 onLoad 钩子接收从上一个页面传递的参数
@@ -227,6 +228,7 @@ const serviceTypeNumber = ref(0); // 从上一个页面传入的数字 (1-4)
 const serviceTypeName = ref(''); // 从上一个页面传入的名称 (例如 "普通陪诊")
 
 onLoad((options) => {
+	if (redirectPublicSafeToHome()) return
 	// 从URL参数获取服务类型信息
 	if (options.serviceTypeNumber) {
 		serviceTypeNumber.value = parseInt(options.serviceTypeNumber); // 转换为数字

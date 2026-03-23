@@ -133,6 +133,7 @@ import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import { get, post } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -366,7 +367,10 @@ const confirmFilter = () => {
 onMounted(() => {
 	loadOrders(true)
 })
-onShow(() => ensureRole('escort'))
+onShow(() => {
+	if (redirectPublicSafeToHome()) return
+	ensureRole('escort')
+})
 </script>
 
 <style lang="scss" scoped>

@@ -48,6 +48,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const systemMessages = ref([])
 const scrollTop = ref(0)
@@ -59,11 +60,13 @@ const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'rol
 const messageStore = useMessageStore()
 
 onLoad(() => {
+  if (redirectPublicSafeToHome()) return
   syncSystemMessages()
   addChatListener(handleNewMessage)
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   syncSystemMessages()
 })
 

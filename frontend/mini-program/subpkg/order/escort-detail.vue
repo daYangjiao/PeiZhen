@@ -463,6 +463,7 @@ import { get, post, config } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runtime.js'
 import placeholderImg from '../../static/user-placeholder.png'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 function fullAvatarUrl(path) {
 	if (!path || path.startsWith('http') || path.startsWith('/static')) return path
@@ -624,12 +625,14 @@ export default {
 	},
 	
 	onLoad(options) {
+		if (redirectPublicSafeToHome()) return
 		if (options.orderId) {
 			this.loadOrderDetail(options.orderId)
 		}
 		this.setupWebSocketListener()
 	},
 	onShow() {
+		if (redirectPublicSafeToHome()) return
 		this.refreshPreparedState()
 		if (this.orderInfo && this.orderInfo.id) {
 			this.loadOrderDetail(this.orderInfo.id)

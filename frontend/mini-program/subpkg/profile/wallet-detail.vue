@@ -105,6 +105,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { get, post } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const userStore = useUserStore()
 const { balance } = storeToRefs(userStore)
@@ -328,6 +329,7 @@ const initPageData = async () => {
 }
 
 onLoad((options) => {
+  if (redirectPublicSafeToHome()) return
   const tab = options && options.tab ? String(options.tab) : ''
   if (['all', 'income', 'withdraw', 'compensation'].includes(tab)) {
     activeTag.value = tab

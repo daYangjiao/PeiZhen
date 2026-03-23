@@ -10,7 +10,7 @@
 
     <!-- 登录卡片 -->
     <view class="login-card">
-      <view class="tab-header">
+      <view v-if="!publicSafeMode" class="tab-header">
         <view
           class="tab-item"
           :class="{ active: currentRole === 'user' }"
@@ -33,7 +33,7 @@
 
       <view class="wechat-tip">{{ wechatTip }}</view>
 
-      <view class="input-group">
+      <view v-if="!publicSafeMode" class="input-group">
         <view class="input-item">
           <text class="iconfont">👤</text>
           <input class="input" v-model="phone" type="number" maxlength="11" placeholder="请输入手机号" />
@@ -44,7 +44,7 @@
         </view>
       </view>
 
-      <view class="agreement-row">
+      <view v-if="!publicSafeMode" class="agreement-row">
         <checkbox-group @change="onCheckChange">
           <label class="checkbox-label">
             <checkbox :checked="agreed" color="#007AFF" style="transform:scale(0.7)" />
@@ -53,11 +53,17 @@
         </checkbox-group>
       </view>
 
-      <button class="login-btn" :disabled="loading" @click="handleLogin">
+      <button v-if="!publicSafeMode" class="login-btn" :disabled="loading" @click="handleLogin">
         {{ loading ? '登录中...' : '立即登录' }}
       </button>
 
-      <view class="footer-links">
+      <view v-if="publicSafeMode" class="public-safe-card">
+        <text class="public-safe-title">网站展示版</text>
+        <text class="public-safe-desc">当前公网站点仅展示服务介绍、就医流程参考与健康管理信息，预约、接单、聊天等功能仅向小程序内测成员开放。</text>
+        <text class="public-safe-tip">如需参与内部测试，请通过小程序体验版加入测试成员。</text>
+      </view>
+
+      <view v-if="!publicSafeMode" class="footer-links">
         <text v-if="currentRole === 'user'" @click="goUserRegister">立即注册</text>
         <text v-if="currentRole === 'user'" class="divider">|</text>
         <text v-if="currentRole === 'escort'" @click="goEscortRegister">陪诊师入驻</text>
@@ -69,13 +75,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { post } from '@/utils/api.js'
 import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
 import { completeLoginSession } from '@/utils/auth-session.js'
 import { useSessionStore } from '@/stores/session'
 import { brandLogo } from '@/utils/assets.js'
+import { PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const currentRole = ref('user')
 const session = useSessionStore()
@@ -88,11 +95,13 @@ const wechatEnabled = ref(false)
 const wechatStatusReason = ref('微信登录暂未开通')
 const fromGuard = ref(false)
 const wechatTip = ref('当前支持手机号密码登录，微信登录开通后这里会直接一键进入')
+const publicSafeMode = computed(() => isPublicSafeMode())
 
 onLoad((options) => {
-  if (options?.role === 'user' || options?.role === 'escort') {
+  if (!publicSafeMode.value && (options?.role === 'user' || options?.role === 'escort')) {
     currentRole.value = options.role
   }
+  if (publicSafeMode.value) currentRole.value = 'user'
   if (options?.from === 'guard') {
     fromGuard.value = true
   }
@@ -115,14 +124,20 @@ const onCheckChange = (e) => {
 }
 
 const goEscortRegister = () => {
+  if (publicSafeMode.value) return showPublicSafeNotice()
   uni.navigateTo({ url: '/subpkg/auth/escort-register' })
 }
 
 const goUserRegister = () => {
+  if (publicSafeMode.value) return showPublicSafeNotice()
   uni.navigateTo({ url: '/subpkg/auth/user-register' })
 }
 
 const handleLogin = async () => {
+  if (publicSafeMode.value) {
+    showPublicSafeNotice()
+    return
+  }
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
@@ -191,6 +206,10 @@ const loginWithUniWechat = () => new Promise((resolve, reject) => {
 })
 
 const handleWechatLogin = async () => {
+  if (publicSafeMode.value) {
+    showWechatUnavailable(PUBLIC_SAFE_NOTICE)
+    return
+  }
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
@@ -417,6 +436,34 @@ const handleWechatLogin = async () => {
 
 .login-btn[disabled] {
   opacity: 0.7;
+}
+
+.public-safe-card {
+  margin-top: 6px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: #f7fbff;
+  border: 1px solid #dce8f8;
+}
+
+.public-safe-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #16324f;
+  margin-bottom: 6px;
+}
+
+.public-safe-desc,
+.public-safe-tip {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #6a7f94;
+}
+
+.public-safe-tip {
+  margin-top: 6px;
 }
 
 .footer-links {

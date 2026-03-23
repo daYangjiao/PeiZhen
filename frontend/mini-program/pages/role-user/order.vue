@@ -108,6 +108,7 @@ import { useUserStore } from '@/stores/user'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
 import { defaultAvatar } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
@@ -157,6 +158,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   pageActive = true
   // 如果是被守卫/401 拦截后从订单页自动跳转到登录，再从登录返回且仍未登录，则直接回到首页，避免死循环
   if (!userStore.isLoggedIn) {

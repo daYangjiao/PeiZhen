@@ -150,6 +150,7 @@ import {
   showUnsupportedFeature
 } from '@/subpkg/common/runtime.js'
 import { album, camera, emoji, emergency, keyboard, location, plus, userPlaceholder, voice } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
@@ -180,6 +181,7 @@ const headerSubtitle = computed(() => (role.value === 'escort' ? '患者 · 在�
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 
 onLoad((options) => {
+  if (redirectPublicSafeToHome()) return
   uni.stopPullDownRefresh()
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return }
   targetUserId.value = parseInt(options.userId || options.attendantId)

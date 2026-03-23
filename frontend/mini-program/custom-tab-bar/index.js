@@ -1,3 +1,5 @@
+import { isPublicSafeMode } from '../utils/site-mode'
+
 const userTabs = [
   { pagePath: 'pages/role-user/home', text: '首页', iconPath: '/static/shouye.png', selectedIconPath: '/static/shouye_active.png' },
   { pagePath: 'pages/role-user/order', text: '订单', iconPath: '/static/order.png', selectedIconPath: '/static/order_active.png' },
@@ -11,6 +13,11 @@ const escortTabs = [
   { pagePath: 'pages/role-escort/order', text: '订单', iconPath: '/static/order.png', selectedIconPath: '/static/order_active.png' },
   { pagePath: 'pages/role-escort/message', text: '消息', iconPath: '/static/xiaoxi_2.png', selectedIconPath: '/static/xiaoxi_2_active.png' },
   { pagePath: 'pages/role-escort/profile', text: '我的', iconPath: '/static/wode_2.png', selectedIconPath: '/static/wode_2_active.png' }
+]
+
+const publicSafeTabs = [
+  { pagePath: 'pages/role-user/home', text: '首页', iconPath: '/static/shouye.png', selectedIconPath: '/static/shouye_active.png' },
+  { pagePath: 'pages/role-user/profile', text: '关于', iconPath: '/static/wode_2.png', selectedIconPath: '/static/wode_2_active.png' }
 ]
 
 const MESSAGE_BADGE_STORAGE_KEY = 'tabbar_message_badge'
@@ -59,7 +66,9 @@ Component({
       const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
       const currentRoute = pages.length ? pages[pages.length - 1].route : ''
       const badgeCount = Number(platformApi.getStorageSync(MESSAGE_BADGE_STORAGE_KEY) || 0)
-      const sourceTabs = role === 'escort' ? escortTabs : userTabs
+      const sourceTabs = isPublicSafeMode()
+        ? publicSafeTabs
+        : (role === 'escort' ? escortTabs : userTabs)
       const tabs = withMessageBadge(sourceTabs, badgeCount)
       const index = tabs.findIndex(t => t.pagePath === currentRoute)
       this.setData({

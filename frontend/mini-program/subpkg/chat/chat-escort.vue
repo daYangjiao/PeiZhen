@@ -179,6 +179,7 @@ import {
   showUnsupportedFeature
 } from '@/subpkg/common/runtime.js'
 import { album, call, camera, doctorAvatar, emoji, emergency, keyboard, location, plus, userPlaceholder, video, voice } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
@@ -210,6 +211,7 @@ const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉
 const headerSubtitle = computed(() => '患者 · 在线沟通中')
 
 onLoad((options) => {
+  if (redirectPublicSafeToHome()) return
   uni.stopPullDownRefresh()
 
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return; }

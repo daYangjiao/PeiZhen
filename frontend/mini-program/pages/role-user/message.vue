@@ -67,6 +67,7 @@ import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { brandLogo, defaultAvatar } from '@/utils/assets.js'
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const contacts = ref([])
 const lastSystemMsg = ref({})
@@ -221,6 +222,7 @@ onMounted(async () => {
 })
 
 onShow(() => {
+  if (redirectPublicSafeToHome()) return
   // 如果是被守卫/401 从消息页自动跳转到登录，再从登录返回且仍未登录，则送回首页，避免死循环
   const fromRoute = uni.getStorageSync('guard_from_route')
   const notLoggedIn = !(uni.getStorageSync('userInfo') || {}).id

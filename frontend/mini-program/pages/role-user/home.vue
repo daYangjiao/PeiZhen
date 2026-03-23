@@ -19,10 +19,10 @@
           <view class="banner-item">
             <image class="banner-bg" :src="bannerImage"></image>
             <view class="banner-content">
-              <text class="banner-title">专业医疗陪诊服务</text>
-              <text class="banner-subtitle">让您的医疗就诊更加便捷</text>
+              <text class="banner-title">{{ publicSafeMode ? '个人就医流程与陪诊经验分享' : '专业医疗陪诊服务' }}</text>
+              <text class="banner-subtitle">{{ publicSafeMode ? '提供就医流程参考、服务介绍与健康管理信息' : '让您的医疗就诊更加便捷' }}</text>
               <view class="banner-btn" @click="navigateToAppointmentForm">
-                <text class="btn-text">立即预约陪诊</text>
+                <text class="btn-text">{{ publicSafeMode ? '查看服务说明' : '立即预约陪诊' }}</text>
               </view>
             </view>
           </view>
@@ -58,7 +58,7 @@
 
     <view class="companion-section">
       <view class="section-header">
-        <text class="section-title">推荐陪诊员</text>
+        <text class="section-title">{{ publicSafeMode ? '陪诊经验人物卡' : '推荐陪诊员' }}</text>
       </view>
       <scroll-view class="companion-scroll" scroll-x="true" show-scrollbar="true">
         <view class="companion-list">
@@ -75,7 +75,7 @@
               <text class="companion-experience">{{ companion.experienceYears }}年经验</text>
               <view class="rating-section">
                 <text class="rating">★ {{ companion.score }}</text>
-                <text class="service-count">已服务 {{ companion.serviceCount || 0 }} 人次</text>
+                <text class="service-count">{{ publicSafeMode ? '人物示例展示' : `已服务 ${companion.serviceCount || 0} 人次` }}</text>
               </view>
             </view>
           </view>
@@ -110,8 +110,10 @@ import { onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { canUseRemoteImageUrl, config, getBackendImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
+import { PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const searchKeyword = ref('')
+const publicSafeMode = isPublicSafeMode()
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
 const assistantEntryIcon = brandLogo
 const categories = ref([
@@ -246,20 +248,40 @@ const updatePositionAfterViewportChange = () => {
 }
 
 const navigateToAIaks = () => {
+  if (publicSafeMode) {
+    uni.navigateTo({ url: '/subpkg/ai/AIaks' })
+    return
+  }
   if (suppressClick.value) return
   uni.navigateTo({ url: '/subpkg/ai/AIaks' })
 }
 
 const navigateToAppointmentForm = () => {
+  if (publicSafeMode) {
+    showPublicSafeNotice(PUBLIC_SAFE_NOTICE)
+    return
+  }
   // 与底部“预约”Tab 保持一致，先进入 AItriage 页面，再由该页重定向到子包表单
   uni.switchTab({ url: '/pages/AItriage/01_AppointmentSelection' })
 }
 
-const navigateToCategory = () => {
+const navigateToCategory = (item) => {
+  if (publicSafeMode) {
+    uni.showModal({
+      title: item.name,
+      content: '当前网站仅展示服务介绍与流程参考，完整预约服务仅向小程序内测成员开放。',
+      showCancel: false
+    })
+    return
+  }
   uni.showToast({ title: '分类功能待接入', icon: 'none' })
 }
 
 const navigateToCompanion = () => {
+  if (publicSafeMode) {
+    showPublicSafeNotice('当前网站仅展示陪诊经验人物示例')
+    return
+  }
   uni.showToast({ title: '陪诊师详情功能暂未开放', icon: 'none' })
 }
 

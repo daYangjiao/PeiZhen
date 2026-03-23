@@ -229,6 +229,7 @@
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, config } from '@/utils/api.js';
+import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const orderData = ref({});
 const showInvoice = ref(false);
@@ -241,6 +242,7 @@ const showPaymentModal = ref(false); // 控制支付弹窗显示
 const orderNo = ref('');
 
 onLoad((options) => {
+  if (redirectPublicSafeToHome()) return
   console.log('【OrderConfirmPage】页面加载参数:', options);
   if (options && options.orderNo) {
     orderNo.value = options.orderNo;
