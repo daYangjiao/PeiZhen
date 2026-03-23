@@ -1,4 +1,5 @@
 export const PUBLIC_SAFE_NOTICE = '当前网站暂不开放在线预约等功能'
+export const PUBLIC_SAFE_LANDING_URL = '/pages/public/index'
 
 export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
 
@@ -16,9 +17,11 @@ export const showPublicSafeNotice = (message = PUBLIC_SAFE_NOTICE) => {
 
 export const redirectPublicSafeToHome = (message = PUBLIC_SAFE_NOTICE) => {
   if (!isPublicSafeMode()) return false
-  showPublicSafeNotice(message)
+  if (message) {
+    showPublicSafeNotice(message)
+  }
   setTimeout(() => {
-    uni.switchTab({ url: '/pages/role-user/home' })
+    uni.reLaunch({ url: PUBLIC_SAFE_LANDING_URL })
   }, 220)
   return true
 }

@@ -82,7 +82,7 @@ import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
 import { completeLoginSession } from '@/utils/auth-session.js'
 import { useSessionStore } from '@/stores/session'
 import { brandLogo } from '@/utils/assets.js'
-import { PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
+import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const currentRole = ref('user')
 const session = useSessionStore()
@@ -106,7 +106,7 @@ onLoad((options) => {
     fromGuard.value = true
   }
   if (publicSafeMode.value) {
-    uni.switchTab({ url: '/pages/role-user/home' })
+    uni.reLaunch({ url: PUBLIC_SAFE_LANDING_URL })
     return
   }
   loadWechatConfigStatus()

@@ -60,6 +60,12 @@
       "style": {
         "navigationBarTitleText": "登录"
       }
+    },
+    {
+      "path": "pages/public/index",
+      "style": {
+        "navigationBarTitleText": "愈安陪诊"
+      }
     }
   ],
   "subPackages": [

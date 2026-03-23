@@ -122,7 +122,7 @@ import { config } from '@/utils/api.js'
 import { getUserById } from '@/api/user.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
-import { isPublicSafeMode } from '@/utils/site-mode.js'
+import { PUBLIC_SAFE_LANDING_URL, isPublicSafeMode } from '@/utils/site-mode.js'
 
 const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
@@ -232,7 +232,7 @@ onMounted(() => {
 
 onShow(() => {
 	if (publicSafeMode) {
-		uni.switchTab({ url: '/pages/role-user/home' })
+		uni.reLaunch({ url: PUBLIC_SAFE_LANDING_URL })
 		return
 	}
 	const fromRoute = uni.getStorageSync('guard_from_route')
