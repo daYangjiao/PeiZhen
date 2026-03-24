@@ -267,14 +267,15 @@ const handleWechatLogin = async () => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-bottom: 24px;
   background:
     radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
     linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .back-btn-wrap {
@@ -291,73 +292,71 @@ const handleWechatLogin = async () => {
   display: inline-block;
 }
 .header-section {
-  min-height: 132px;
+  min-height: 176px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 16px 16px 16px;
+  padding: 30px 20px 22px;
   position: relative;
   text-align: center;
 
   .circle-1 {
     position: absolute;
-    width: 126px;
-    height: 126px;
+    width: 170px;
+    height: 170px;
     background: rgba(0, 122, 255, 0.08);
     border-radius: 50%;
-    top: -20px;
+    top: -32px;
     right: -42px;
   }
 
   .circle-2 {
     position: absolute;
-    width: 88px;
-    height: 88px;
+    width: 116px;
+    height: 116px;
     background: rgba(37, 99, 235, 0.06);
     border-radius: 50%;
-    bottom: 8px;
+    bottom: 16px;
     left: -16px;
   }
 
   .logo {
     width: 78px;
     height: 78px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   .welcome-text {
     color: #16324f;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.2px;
   }
 }
 
 .login-card {
-  margin: 0 14px 10px;
+  margin: 0 18px 18px;
   background: #fff;
   border-radius: 20px;
-  padding: 10px 14px 12px;
+  padding: 18px 18px 20px;
   box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
   position: relative;
   z-index: 10;
   border: 1px solid rgba(0, 122, 255, 0.08);
-  flex: 1;
-  min-height: 0;
 
   .tab-header {
     display: flex;
-    margin-bottom: 6px;
+    margin-bottom: 14px;
     background: #eef5ff;
     border-radius: 14px;
-    padding: 4px;
+    padding: 5px;
 
     .tab-item {
       flex: 1;
       text-align: center;
-      padding: 7px 0;
-      font-size: 13px;
+      padding: 10px 0;
+      font-size: 14px;
       color: #6a7f94;
       border-radius: 12px;
       transition: all 0.2s;
@@ -374,10 +373,10 @@ const handleWechatLogin = async () => {
   .input-item {
     display: flex;
     align-items: center;
-    height: 40px;
+    height: 46px;
     background: #f8fbff;
     border-radius: 14px;
-    margin-bottom: 7px;
+    margin-bottom: 12px;
     padding: 0 14px;
     border: 1px solid #dce8f8;
 
@@ -397,26 +396,26 @@ const handleWechatLogin = async () => {
 
 .wechat-login-btn {
   width: 100%;
-  height: 62rpx;
-  line-height: 62rpx;
-  border-radius: 14rpx;
+  height: 46px;
+  line-height: 46px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #29c261, #17a34a);
   color: #fff;
-  font-size: 24rpx;
+  font-size: 15px;
   font-weight: 600;
-  margin: 0 0 4rpx;
+  margin: 0 0 10px;
   box-shadow: 0 8rpx 18rpx rgba(41, 194, 97, 0.22);
 }
 
 .wechat-tip {
   text-align: center;
   color: #6a7f94;
-  font-size: 17rpx;
-  margin-bottom: 4rpx;
+  font-size: 12px;
+  margin-bottom: 12px;
 }
 
 .agreement-row {
-  margin: 4px 0;
+  margin: 10px 0 12px;
 
   .agreement-text {
     font-size: 12px;
@@ -431,9 +430,9 @@ const handleWechatLogin = async () => {
 .login-btn {
   background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
-  height: 40px;
+  height: 46px;
   border-radius: 23px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: bold;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
@@ -443,7 +442,7 @@ const handleWechatLogin = async () => {
 }
 
 .public-safe-card {
-  margin-top: 6px;
+  margin-top: 14px;
   padding: 14px 12px;
   border-radius: 16px;
   background: #f7fbff;
@@ -475,7 +474,7 @@ const handleWechatLogin = async () => {
   justify-content: center;
   align-items: center;
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #6a7f94;
 
   .divider {
