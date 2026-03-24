@@ -1,139 +1,78 @@
 <template>
   <view class="container">
-    <view class="hero">
-      <view class="hero-deco hero-deco-left"></view>
-      <view class="hero-deco hero-deco-right"></view>
-
-      <view class="nav-bar">
-        <view class="back-btn" @click="goBack">
-          <text class="back-icon">←</text>
-        </view>
-      </view>
-
-      <view class="hero-content">
-        <view class="hero-badge">
-          <text class="hero-badge-text">Escort Partner</text>
-        </view>
-        <text class="title">陪诊师入驻</text>
-        <text class="subtitle">提交基础信息后即可进入审核流程，审核通过后开始接单服务</text>
-
-        <view class="hero-tags">
-          <view class="hero-tag">
-            <text class="hero-tag-text">实名认证</text>
-          </view>
-          <view class="hero-tag">
-            <text class="hero-tag-text">资质审核</text>
-          </view>
-          <view class="hero-tag">
-            <text class="hero-tag-text">平台派单</text>
-          </view>
-        </view>
-      </view>
+    <view class="header-section">
+      <view class="circle-1"></view>
+      <view class="circle-2"></view>
+      <image class="logo" :src="brandLogo" mode="aspectFit"></image>
+      <text class="welcome-text">提交陪诊师入驻</text>
+      <text class="header-tip">填写基础资料后进入审核流程，审核通过后即可开始接单服务</text>
     </view>
 
-    <view class="content">
-      <view class="section-card form-card">
-        <view class="section-head">
-          <text class="section-title">基础信息</text>
-          <text class="section-desc">请填写真实资料，后续资质审核将以此为准</text>
+    <view class="register-card">
+      <view class="card-title">陪诊师注册</view>
+      <view class="card-subtitle">请使用真实资料注册，提交成功后可使用手机号和密码登录陪诊师端并补充资质信息。</view>
+
+      <AvatarPickerField
+        v-model="form.avatar"
+        :options="escortDefaultAvatarOptions"
+        title="头像设置"
+        tip="支持上传本人头像，系统会自动裁成方形并压缩；不上传时会随机给一张陪诊师头像。"
+        preview-title="陪诊形象"
+        preview-desc="注册、资料编辑和小程序端都使用同一套头像处理逻辑。"
+        upload-label="上传本人头像（可选）"
+      />
+
+      <view class="input-group">
+        <view class="input-item">
+          <text class="iconfont">📱</text>
+          <input class="input" v-model="form.phone" type="number" maxlength="11" placeholder="请输入手机号" />
         </view>
-
-        <AvatarPickerField
-          v-model="form.avatar"
-          :options="escortDefaultAvatarOptions"
-          title="陪诊师头像"
-          tip="支持上传本人头像，系统会自动裁成方形并压缩；不上传时会随机给一张陪诊师头像。"
-          preview-title="服务形象"
-          preview-desc="注册、资料编辑和小程序端都走同一套头像处理链路。"
-          upload-label="上传本人头像（可选）"
-        />
-
-        <view class="field-grid">
-          <view class="field-item">
-            <text class="field-label">登录密码</text>
-            <view class="field-box">
-              <text class="field-prefix">密码</text>
-              <input class="field-input" v-model="form.password" type="password" placeholder="请输入登录密码" password />
-            </view>
-          </view>
-
-          <view class="field-item">
-            <text class="field-label">真实姓名</text>
-            <view class="field-box">
-              <text class="field-prefix">姓名</text>
-              <input class="field-input" v-model="form.name" placeholder="请输入您的真实姓名" />
-            </view>
-          </view>
-
-          <view class="field-item">
-            <text class="field-label">手机号码</text>
-            <view class="field-box">
-              <text class="field-prefix">手机</text>
-              <input class="field-input" v-model="form.phone" type="number" maxlength="11" placeholder="请输入手机号" />
-            </view>
-          </view>
-
-          <view class="field-item">
-            <text class="field-label">专业领域</text>
-            <view class="field-box">
-              <text class="field-prefix">方向</text>
-              <input class="field-input" v-model="form.professionalField" placeholder="如：术后护理、挂号引导" />
-            </view>
-          </view>
+        <view class="input-item">
+          <text class="iconfont">👤</text>
+          <input class="input" v-model="form.name" maxlength="20" placeholder="请输入真实姓名" />
         </view>
-
-        <view class="field-item field-item-full">
-          <view class="field-head">
-            <text class="field-label">个人简介</text>
-            <text class="field-tip">建议填写擅长服务、经验年限、沟通特点</text>
-          </view>
-          <view class="textarea-box">
-            <textarea
-              class="textarea"
-              v-model="form.introduction"
-              maxlength="200"
-              placeholder="例如：熟悉三甲医院就诊流程，擅长术后陪护、急诊陪同、检查引导等服务"
-            />
-          </view>
+        <view class="input-item">
+          <text class="iconfont">🔒</text>
+          <input class="input" v-model="form.password" type="password" maxlength="20" placeholder="请设置登录密码" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">✅</text>
+          <input class="input" v-model="confirmPassword" type="password" maxlength="20" placeholder="请再次输入密码" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">🩺</text>
+          <input class="input" v-model="form.professionalField" maxlength="30" placeholder="请输入擅长领域，如术后护理、急诊陪同" />
         </view>
       </view>
 
-      <view class="section-card guide-card">
-        <view class="section-head">
-          <text class="section-title">入驻说明</text>
-          <text class="section-desc">注册完成后，可在个人中心继续补充资质并提交审核</text>
-        </view>
-
-        <view class="guide-list">
-          <view class="guide-item">
-            <view class="guide-index"><text class="guide-index-text">1</text></view>
-            <view class="guide-body">
-              <text class="guide-title">使用手机号登录</text>
-              <text class="guide-text">提交成功后请使用当前手机号和设置的密码登录陪诊师端。</text>
-            </view>
-          </view>
-          <view class="guide-item">
-            <view class="guide-index"><text class="guide-index-text">2</text></view>
-            <view class="guide-body">
-              <text class="guide-title">补充资质材料</text>
-              <text class="guide-text">登录后在个人中心上传身份证、执业证书、健康证等资料。</text>
-            </view>
-          </view>
-          <view class="guide-item">
-            <view class="guide-index"><text class="guide-index-text">3</text></view>
-            <view class="guide-body">
-              <text class="guide-title">审核通过后接单</text>
-              <text class="guide-text">资质审核通过后即可在接单大厅查看订单并开始服务。</text>
-            </view>
-          </view>
+      <view class="textarea-section">
+        <view class="textarea-label">个人简介</view>
+        <view class="textarea-tip">建议填写擅长服务、服务经验和沟通风格，帮助平台后续审核。</view>
+        <view class="textarea-box">
+          <textarea
+            class="textarea"
+            v-model="form.introduction"
+            maxlength="200"
+            placeholder="例如：熟悉三甲医院就诊流程，擅长术后护理、检查引导和急诊陪同等服务。"
+          />
         </view>
       </view>
 
-      <view class="action-area">
-        <button class="submit-btn" @click="handleRegister">提交入驻申请</button>
-        <view class="login-link" @click="goLogin">
-          已有账号？<text class="link-text">立即登录</text>
-        </view>
+      <view class="agreement-row">
+        <checkbox-group @change="onCheckChange">
+          <label class="checkbox-label">
+            <checkbox :checked="agreed" color="#007AFF" style="transform:scale(0.7)" />
+            <text class="agreement-text">我已阅读并同意<text class="link">《服务协议》</text></text>
+          </label>
+        </checkbox-group>
+      </view>
+
+      <button class="submit-btn" :disabled="loading" @click="handleRegister">
+        {{ loading ? '提交中...' : '提交入驻申请' }}
+      </button>
+
+      <view class="login-link" @click="goLogin">
+        已有账号？<text class="link-text">立即登录</text>
       </view>
     </view>
   </view>
@@ -142,367 +81,286 @@
 <script setup>
 import { ref } from 'vue'
 import { post } from '@/utils/api.js'
-import { escortDefaultAvatarOptions } from '@/utils/assets.js'
+import { brandLogo, escortDefaultAvatarOptions } from '@/utils/assets.js'
 import AvatarPickerField from '@/components/AvatarPickerField.vue'
 
+const phonePattern = /^1\d{10}$/
 const defaultEscortAvatar = escortDefaultAvatarOptions[Math.floor(Math.random() * escortDefaultAvatarOptions.length)].value
 
 const form = ref({
-  password: '',
-  name: '',
   phone: '',
+  name: '',
+  password: '',
   avatar: defaultEscortAvatar,
   professionalField: '',
   introduction: '',
   userType: 1
 })
+const confirmPassword = ref('')
+const agreed = ref(false)
+const loading = ref(false)
 
-const goBack = () => {
-  uni.navigateBack()
+const onCheckChange = (e) => {
+  agreed.value = e.detail.value.length > 0
 }
 
 const goLogin = () => {
   uni.redirectTo({ url: '/pages/auth/login?role=escort' })
 }
 
+const validateForm = () => {
+  if (!agreed.value) {
+    uni.showToast({ title: '请先同意协议', icon: 'none' })
+    return false
+  }
+  if (!phonePattern.test(form.value.phone.trim())) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return false
+  }
+  if (form.value.name.trim().length < 2) {
+    uni.showToast({ title: '姓名至少输入 2 个字', icon: 'none' })
+    return false
+  }
+  if (form.value.password.length < 6) {
+    uni.showToast({ title: '密码至少输入 6 位', icon: 'none' })
+    return false
+  }
+  if (form.value.password !== confirmPassword.value) {
+    uni.showToast({ title: '两次输入的密码不一致', icon: 'none' })
+    return false
+  }
+  if (form.value.professionalField.trim().length < 2) {
+    uni.showToast({ title: '请填写擅长领域', icon: 'none' })
+    return false
+  }
+  if (form.value.introduction.trim().length < 10) {
+    uni.showToast({ title: '个人简介至少输入 10 个字', icon: 'none' })
+    return false
+  }
+  return true
+}
+
 const handleRegister = async () => {
-  if (!form.value.password || !form.value.name || !form.value.phone) {
-    uni.showToast({ title: '请填写必填项', icon: 'none' })
-    return
-  }
-  if (!/^1\\d{10}$/.test(form.value.phone)) {
-    uni.showToast({ title: '请输入正确手机号', icon: 'none' })
-    return
-  }
+  if (!validateForm()) return
+
+  loading.value = true
   uni.showLoading({ title: '提交中...' })
   try {
     const res = await post('/api/users/register', {
-      ...form.value,
-      avatar: form.value.avatar
+      phone: form.value.phone.trim(),
+      name: form.value.name.trim(),
+      password: form.value.password,
+      avatar: form.value.avatar,
+      professionalField: form.value.professionalField.trim(),
+      introduction: form.value.introduction.trim(),
+      userType: 1
     })
     uni.hideLoading()
     if (res.code === 200) {
       uni.showModal({
-        title: '注册成功',
-        content: '您的入驻申请已提交，请使用手机号和密码登录',
+        title: '提交成功',
+        content: '入驻申请已提交，请使用手机号和密码登录陪诊师端。',
         showCancel: false,
-        success: () => {
-          goLogin()
-        }
+        success: goLogin
       })
-    } else {
-      uni.showToast({ title: res.message || '提交失败', icon: 'none' })
+      return
     }
-  } catch (e) {
+    uni.showToast({ title: res.message || '提交失败', icon: 'none' })
+  } catch (error) {
     uni.hideLoading()
-    uni.showToast({ title: e.message || '提交失败', icon: 'none' })
+    uni.showToast({ title: error?.message || '提交失败', icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/escort-ui.scss';
-
 .container {
-  @include escort-page;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at top left, rgba(0, 122, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, #f2f8ff 0%, #f7fbff 240rpx, #ffffff 100%);
   position: relative;
-  padding-bottom: 40rpx;
   overflow: hidden;
 }
 
-.hero {
-  position: relative;
-  padding: calc(var(--status-bar-height) + 16rpx) 24rpx 88rpx;
-  background:
-    radial-gradient(circle at top left, rgba(0, 122, 255, 0.18), transparent 34%),
-    linear-gradient(180deg, #eef5ff 0%, #f6f9ff 100%);
-}
-
-.hero-deco {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  filter: blur(2rpx);
-}
-
-.hero-deco-left {
-  width: 220rpx;
-  height: 220rpx;
-  top: 36rpx;
-  right: -40rpx;
-}
-
-.hero-deco-right {
-  width: 140rpx;
-  height: 140rpx;
-  top: 188rpx;
-  left: -30rpx;
-}
-
-.nav-bar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 28rpx;
-}
-
-.back-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid rgba(0, 122, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 20rpx rgba(37, 99, 235, 0.08);
-}
-
-.back-icon {
-  font-size: 38rpx;
-  line-height: 1;
-  color: $escort-color-primary;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 10rpx 18rpx;
-  border-radius: $escort-radius-pill;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1rpx solid rgba(0, 122, 255, 0.08);
-  margin-bottom: 20rpx;
-}
-
-.hero-badge-text {
-  font-size: 22rpx;
-  font-weight: 600;
-  letter-spacing: 1rpx;
-  color: $escort-color-primary-deep;
-}
-
-.title {
-  display: block;
-  font-size: 46rpx;
-  font-weight: 700;
-  line-height: 1.2;
-  color: $escort-color-text-main;
-}
-
-.subtitle {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: $escort-color-text-sub;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
-  margin-top: 26rpx;
-}
-
-.hero-tag {
-  padding: 10rpx 18rpx;
-  border-radius: $escort-radius-pill;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1rpx solid rgba(0, 122, 255, 0.08);
-}
-
-.hero-tag-text {
-  font-size: 22rpx;
-  color: $escort-color-text-sub;
-}
-
-.content {
-  position: relative;
-  margin-top: -34rpx;
-  padding: 0 24rpx;
-  z-index: 2;
-}
-
-.section-card {
-  @include escort-card(28rpx);
-  margin-bottom: 24rpx;
-  border: 1rpx solid rgba(220, 232, 248, 0.9);
-}
-
-.section-head {
-  margin-bottom: 24rpx;
-}
-
-.section-title {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: $escort-color-text-main;
-}
-
-.section-desc {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: $escort-color-text-sub;
-}
-
-.field-grid {
+.header-section {
+  min-height: 190px;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-}
-
-.field-item {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.field-label {
-  font-size: 25rpx;
-  font-weight: 600;
-  color: $escort-color-text-main;
-}
-
-.field-head {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
+  justify-content: flex-start;
+  padding: 24px 20px 18px;
+  position: relative;
+  text-align: center;
+
+  .circle-1 {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(0, 122, 255, 0.08);
+    top: -40px;
+    right: -60px;
+  }
+
+  .circle-2 {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.06);
+    bottom: 20px;
+    left: -40px;
+  }
 }
 
-.field-tip {
-  font-size: 22rpx;
-  color: $escort-color-text-sub;
+.logo {
+  width: 78px;
+  height: 78px;
+  margin-bottom: 10px;
 }
 
-.field-box,
-.textarea-box {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 18rpx;
-  border: 1rpx solid $escort-color-border;
-  background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+.welcome-text {
+  font-size: 24px;
+  color: #16324f;
+  font-weight: bold;
+  margin-bottom: 6px;
 }
 
-.field-box {
-  height: 92rpx;
-  padding: 0 20rpx;
+.header-tip {
+  font-size: 13px;
+  color: #6a7f94;
 }
 
-.field-prefix {
-  flex-shrink: 0;
-  width: 72rpx;
-  font-size: 24rpx;
-  font-weight: 600;
-  color: $escort-color-primary-deep;
-}
-
-.field-input {
+.register-card {
+  margin: 0 18px 16px;
+  background: #fff;
+  border-radius: 28px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 18px 42px rgba(18, 56, 109, 0.1);
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(0, 122, 255, 0.08);
   flex: 1;
-  height: 92rpx;
-  font-size: 28rpx;
-  color: $escort-color-text-main;
+  min-height: 0;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: #6a7f94;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.input-group {
+  margin-bottom: 14px;
+}
+
+.input-item {
+  display: flex;
+  align-items: center;
+  background: #f8fbff;
+  border-radius: 16px;
+  padding: 0 14px;
+  margin-bottom: 10px;
+  border: 1px solid #dce8f8;
+}
+
+.iconfont {
+  font-size: 18px;
+  margin-right: 12px;
+  color: #7d8ea2;
+}
+
+.input {
+  flex: 1;
+  height: 44px;
+  font-size: 14px;
+  color: #16324f;
+}
+
+.textarea-section {
+  margin-bottom: 14px;
+}
+
+.textarea-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #16324f;
+  margin-bottom: 6px;
+}
+
+.textarea-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #6a7f94;
+  margin-bottom: 8px;
 }
 
 .textarea-box {
-  padding: 18rpx 20rpx;
+  background: #f8fbff;
+  border-radius: 16px;
+  border: 1px solid #dce8f8;
+  padding: 12px 14px;
 }
 
 .textarea {
   width: 100%;
-  min-height: 184rpx;
-  font-size: 27rpx;
-  line-height: 1.7;
-  color: $escort-color-text-main;
+  min-height: 92px;
+  font-size: 14px;
+  color: #16324f;
+  line-height: 1.6;
 }
 
-.guide-card {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 249, 255, 0.98) 100%);
+.agreement-row {
+  margin-bottom: 12px;
 }
 
-.guide-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.guide-item {
-  display: flex;
-  gap: 18rpx;
-  align-items: flex-start;
-}
-
-.guide-index {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.12), rgba(37, 99, 235, 0.2));
+.checkbox-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 4rpx;
 }
 
-.guide-index-text {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: $escort-color-primary-deep;
+.agreement-text {
+  font-size: 14px;
+  color: #6a7f94;
 }
 
-.guide-body {
-  flex: 1;
-}
-
-.guide-title {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: $escort-color-text-main;
-}
-
-.guide-text {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: $escort-color-text-sub;
-}
-
-.action-area {
-  padding: 8rpx 0 16rpx;
+.link {
+  color: #007aff;
 }
 
 .submit-btn {
-  @include escort-primary-btn;
-  font-size: 30rpx;
-  font-weight: 700;
-  border: 0;
-}
-
-.submit-btn::after {
-  border: 0;
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, #007aff, #2563eb);
+  color: #fff;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
 
 .login-link {
   text-align: center;
-  margin-top: 24rpx;
-  font-size: 24rpx;
-  color: $escort-color-text-sub;
+  font-size: 14px;
+  color: #6a7f94;
 }
 
 .link-text {
-  color: $escort-color-primary;
+  color: #007aff;
   font-weight: 600;
 }
 </style>
