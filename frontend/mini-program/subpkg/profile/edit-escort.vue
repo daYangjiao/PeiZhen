@@ -55,6 +55,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { get, put, upload, config } from '@/utils/api.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
 
 const userStore = useUserStore()
 const saving = ref(false)
@@ -118,30 +119,28 @@ const loadProfile = async () => {
 
 const chooseAvatar = () => {
   if (uploading.value) return
-
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const filePath = res.tempFilePaths?.[0]
-      if (!filePath) return
-
-      uploading.value = true
-      try {
-        const uploadRes = await upload('/api/common/upload-image', filePath, {}, 'file')
-        if (uploadRes.code === 200 && uploadRes.data) {
-          form.avatarUrl = uploadRes.data
-          uni.showToast({ title: '头像上传成功', icon: 'success' })
-        }
-      } catch (error) {
+  uploading.value = true
+  uni.showLoading({ title: '处理中...' })
+  chooseAvatarFile()
+    .then(compressAvatarFile)
+    .then((filePath) => upload('/api/common/upload-image', filePath, {}, 'file'))
+    .then((uploadRes) => {
+      uni.hideLoading()
+      if (uploadRes.code === 200 && uploadRes.data) {
+        form.avatarUrl = uploadRes.data
+        uni.showToast({ title: '头像上传成功', icon: 'success' })
+      }
+    })
+    .catch((error) => {
+      uni.hideLoading()
+      if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
         console.error('上传头像失败:', error)
         uni.showToast({ title: '头像上传失败', icon: 'none' })
-      } finally {
-        uploading.value = false
       }
-    }
-  })
+    })
+    .finally(() => {
+      uploading.value = false
+    })
 }
 
 const saveProfile = async () => {

@@ -38,29 +38,15 @@
           <text class="section-desc">请填写真实资料，后续资质审核将以此为准</text>
         </view>
 
-        <view class="avatar-section">
-          <view class="avatar-preview-wrap">
-            <image class="avatar-preview" :src="getAvatarPreview(activeAvatar)" mode="aspectFill"></image>
-            <view class="avatar-copy">
-              <text class="avatar-title">头像设置</text>
-              <text class="avatar-desc">可上传本人头像；如果不上传，将使用默认陪诊师头像。</text>
-            </view>
-          </view>
-          <button class="avatar-upload-btn" :disabled="uploadingAvatar" @click="chooseAvatar">
-            {{ uploadingAvatar ? '上传中...' : '上传头像（可选）' }}
-          </button>
-          <view class="avatar-grid">
-            <view
-              v-for="item in escortDefaultAvatarOptions"
-              :key="item.value"
-              class="avatar-option"
-              :class="{ active: activeAvatar === item.value }"
-              @click="selectDefaultAvatar(item.value)"
-            >
-              <image class="avatar-option-image" :src="getAvatarPreview(item.value)" mode="aspectFill"></image>
-            </view>
-          </view>
-        </view>
+        <AvatarPickerField
+          v-model="form.avatar"
+          :options="escortDefaultAvatarOptions"
+          title="陪诊师头像"
+          tip="支持上传本人头像，系统会自动裁成方形并压缩；不上传时会随机给一张陪诊师头像。"
+          preview-title="服务形象"
+          preview-desc="注册、资料编辑和小程序端都走同一套头像处理链路。"
+          upload-label="上传本人头像（可选）"
+        />
 
         <view class="field-grid">
           <view class="field-item">
@@ -155,9 +141,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import { post, config } from '@/utils/api.js'
-import { uploadPublicAvatarImage } from '@/api/user.js'
+import { post } from '@/utils/api.js'
 import { escortDefaultAvatarOptions } from '@/utils/assets.js'
+import AvatarPickerField from '@/components/AvatarPickerField.vue'
 
 const defaultEscortAvatar = escortDefaultAvatarOptions[Math.floor(Math.random() * escortDefaultAvatarOptions.length)].value
 
@@ -170,8 +156,6 @@ const form = ref({
   introduction: '',
   userType: 1
 })
-const activeAvatar = ref(defaultEscortAvatar)
-const uploadingAvatar = ref(false)
 
 const goBack = () => {
   uni.navigateBack()
@@ -179,45 +163,6 @@ const goBack = () => {
 
 const goLogin = () => {
   uni.redirectTo({ url: '/pages/auth/login?role=escort' })
-}
-
-const getAvatarPreview = (value) => {
-  if (!value) return ''
-  if (value.startsWith('http')) return value
-  return `${config.baseURL}${value}`
-}
-
-const selectDefaultAvatar = (value) => {
-  activeAvatar.value = value
-  form.value.avatar = value
-}
-
-const chooseAvatar = () => {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const filePath = res.tempFilePaths?.[0]
-      if (!filePath) return
-      uploadingAvatar.value = true
-      uni.showLoading({ title: '上传中...' })
-      try {
-        const response = await uploadPublicAvatarImage(filePath)
-        const avatarUrl = response?.data?.avatarUrl || response?.data
-        if (avatarUrl) {
-          activeAvatar.value = avatarUrl
-          form.value.avatar = avatarUrl
-          uni.showToast({ title: '头像已上传', icon: 'success' })
-        }
-      } catch (error) {
-        uni.showToast({ title: error?.message || '头像上传失败', icon: 'none' })
-      } finally {
-        uni.hideLoading()
-        uploadingAvatar.value = false
-      }
-    }
-  })
 }
 
 const handleRegister = async () => {
@@ -233,7 +178,7 @@ const handleRegister = async () => {
   try {
     const res = await post('/api/users/register', {
       ...form.value,
-      avatar: form.value.avatar || activeAvatar.value
+      avatar: form.value.avatar
     })
     uni.hideLoading()
     if (res.code === 200) {
@@ -390,81 +335,6 @@ const handleRegister = async () => {
 
 .section-head {
   margin-bottom: 24rpx;
-}
-
-.avatar-section {
-  margin-bottom: 30rpx;
-}
-
-.avatar-preview-wrap {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
-}
-
-.avatar-preview {
-  width: 108rpx;
-  height: 108rpx;
-  border-radius: 50%;
-  border: 4rpx solid rgba(0, 122, 255, 0.12);
-  background: #eef5ff;
-  flex-shrink: 0;
-}
-
-.avatar-copy {
-  flex: 1;
-}
-
-.avatar-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: $escort-color-text-main;
-  margin-bottom: 8rpx;
-}
-
-.avatar-desc {
-  display: block;
-  font-size: 24rpx;
-  line-height: 1.6;
-  color: $escort-color-text-sub;
-}
-
-.avatar-upload-btn {
-  height: 76rpx;
-  line-height: 76rpx;
-  border-radius: 999rpx;
-  background: #eef5ff;
-  color: $escort-color-primary;
-  font-size: 26rpx;
-  font-weight: 600;
-  border: 1rpx solid rgba(0, 122, 255, 0.12);
-  margin-bottom: 18rpx;
-}
-
-.avatar-grid {
-  display: flex;
-  gap: 16rpx;
-}
-
-.avatar-option {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 50%;
-  padding: 4rpx;
-  border: 3rpx solid transparent;
-  box-sizing: border-box;
-}
-
-.avatar-option.active {
-  border-color: $escort-color-primary;
-}
-
-.avatar-option-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
 }
 
 .section-title {

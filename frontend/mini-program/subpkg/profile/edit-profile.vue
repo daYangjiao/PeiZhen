@@ -76,6 +76,7 @@ import { useUserStore } from '@/stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '@/api/user.js'
 import { config } from '@/utils/api.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
 
 // 与陪诊师端一致：将数据库头像路径转为完整 URL
 const getFullAvatarUrl = (relativePath) => {
@@ -164,25 +165,18 @@ const loadUserInfo = async () => {
 
 // 选择头像
 const chooseAvatar = () => {
-	uni.chooseImage({
-		count: 1,
-		sizeType: ['compressed'],
-		sourceType: ['album', 'camera'],
-		success: (res) => {
-			const tempFilePath = res.tempFilePaths[0]
-			// 更新预览和表单数据
-			userForm.value.avatar = tempFilePath
-			// 上传头像
-			uploadUserAvatar(tempFilePath)
-		}
-	})
+	uploadUserAvatar()
 }
 
 // 上传头像（上传后后端已更新用户 avatar，并已同步到 store）
-const uploadUserAvatar = async (filePath) => {
+const uploadUserAvatar = async () => {
 	try {
-		uni.showLoading({ title: '上传中...' })
-		const response = await uploadAvatar(filePath)
+		const pickedFilePath = await chooseAvatarFile()
+		if (!pickedFilePath) return
+		uni.showLoading({ title: '处理中...' })
+		const compressedFilePath = await compressAvatarFile(pickedFilePath)
+		userForm.value.avatar = compressedFilePath
+		const response = await uploadAvatar(compressedFilePath)
 		uni.hideLoading()
 		const avatarUrl = response?.data?.avatarUrl || response?.data
 		if (avatarUrl) {
@@ -192,7 +186,9 @@ const uploadUserAvatar = async (filePath) => {
 		}
 	} catch (error) {
 		uni.hideLoading()
-		uni.showToast({ title: '头像上传失败', icon: 'none' })
+		if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
+			uni.showToast({ title: '头像上传失败', icon: 'none' })
+		}
 	}
 }
 
