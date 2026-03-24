@@ -83,9 +83,9 @@ export const appointmentServiceLogos = {
 
 export const userDefaultAvatarOptions = [
   { label: '默认头像 A', value: '/uploads/user1.jpg' },
-  { label: '默认头像 B', value: '/uploads/user-avatar.jpg' },
-  { label: '默认头像 C', value: '/uploads/user2.jpg' },
-  { label: '默认头像 D', value: '/uploads/user3.jpg' },
+  { label: '默认头像 B', value: '/uploads/user_default_b.png' },
+  { label: '默认头像 C', value: '/uploads/user_default_c.png' },
+  { label: '默认头像 D', value: '/uploads/user_default_d.png' },
 ]
 
 export const escortDefaultAvatarOptions = [
