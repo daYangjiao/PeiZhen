@@ -24,6 +24,13 @@ public class QrCodeUtil {
      * 生成Base64格式的二维码
      */
     public String generateQrCodeBase64(String content) {
+        return Base64.getEncoder().encodeToString(generateQrCodeBytes(content));
+    }
+
+    /**
+     * 生成 PNG 二维码字节流
+     */
+    public byte[] generateQrCodeBytes(String content) {
         if (content == null || content.isEmpty()) {
             throw new RuntimeException("二维码内容不能为空");
         }
@@ -39,11 +46,9 @@ public class QrCodeUtil {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
 
-            // 转换为Base64
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, format, outputStream);
-            byte[] qrBytes = outputStream.toByteArray();
-            return Base64.getEncoder().encodeToString(qrBytes);
+            return outputStream.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("二维码生成失败：" + e.getMessage(), e);
         }

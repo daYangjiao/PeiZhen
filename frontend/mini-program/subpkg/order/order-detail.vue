@@ -185,7 +185,7 @@
     <view class="qr-section" v-if="showQRCode">
       <view class="qr-title">服务确认二维码</view>
       <view class="qr-container">
-        <image :src="order.qrCodeUrl" class="qr-image" mode="aspectFit"></image>
+        <image :src="getQrCodeUrl(order.qrCodeUrl, order.orderId)" class="qr-image" mode="aspectFit"></image>
         <br>
         <text class="qr-desc">请陪诊师扫描此二维码确认开始服务</text>
       </view>
@@ -880,6 +880,17 @@ const getAvatarUrl = (avatarPath) => {
   return base + path;
 };
 
+const getQrCodeUrl = (qrCodeUrl, orderId) => {
+  const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL;
+  if (orderId) {
+    return `${base}/order-qr/${orderId}.png`;
+  }
+  if (!qrCodeUrl) return '';
+  if (qrCodeUrl.startsWith('http')) return qrCodeUrl;
+  const path = qrCodeUrl.startsWith('/') ? qrCodeUrl : '/' + qrCodeUrl;
+  return base + path;
+};
+
 // 图片加载错误处理
 const handleImageError = (e) => {
   console.error('头像加载失败:', e);
@@ -1250,7 +1261,10 @@ const fetchOrderDetail = async (orderKey) => {
       return;
     }
 
-    order.value = data;
+    order.value = {
+      ...data,
+      qrCodeUrl: getQrCodeUrl(data.qrCodeUrl, data.orderId)
+    };
     currentOrderKey = data.orderNo || orderKey;
 
     // 更新待支付倒计时（仅对有支付倒计时的用户端订单生效）

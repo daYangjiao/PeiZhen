@@ -192,7 +192,7 @@ try {
     }
 
     private String generateQrCodeUrl(Integer orderId) {
-        return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SERVICE_CONFIRM_" + orderId;
+        return "/order-qr/" + orderId + ".png";
     }
 
     @Override
