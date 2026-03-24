@@ -8,9 +8,11 @@ import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
+import org.example.model.Attendant;
 import org.example.model.User;
 import org.example.model.request.WechatBindPhoneRequest;
 import org.example.model.request.WechatLoginRequest;
+import org.example.service.AttendantService;
 import org.example.service.UserService;
 import org.example.service.WechatAuthService;
 import org.example.unity.JwtUtil;
@@ -33,6 +35,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final AttendantService attendantService;
     private final WechatAuthService wechatAuthService;
     private final JwtUtil jwtUtil;
 
@@ -51,7 +54,18 @@ public class UserController {
             return ResponseResult.error(bindingResult.getFieldError().getDefaultMessage());
         }
         try {
-            int userId = userService.register(user);
+            int userId;
+            if (user.getUserType() != null && user.getUserType() == 1) {
+                Attendant attendant = new Attendant();
+                attendant.setIntroduction(user.getIntroduction());
+                attendant.setProfessionalField(user.getProfessionalField());
+                attendant.setExperienceYears(user.getExperienceYears() == null ? 0 : user.getExperienceYears());
+                attendant.setHospitalName(user.getHospitalName());
+                attendant.setStatus(0);
+                userId = attendantService.registerAttendant(user, attendant);
+            } else {
+                userId = userService.register(user);
+            }
             return ResponseResult.success(Integer.valueOf(userId));
         } catch (IllegalArgumentException e) {
             return ResponseResult.error(e.getMessage());

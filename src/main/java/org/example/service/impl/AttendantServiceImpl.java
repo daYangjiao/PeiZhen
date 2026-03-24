@@ -13,6 +13,7 @@ import org.example.service.AttendantService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,9 @@ public class AttendantServiceImpl implements AttendantService {
     @Autowired
     private OrderEvaluationMapper orderEvaluationMapper;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     @Transactional
     public int registerAttendant(User user, Attendant attendant) {
@@ -51,7 +55,10 @@ public class AttendantServiceImpl implements AttendantService {
         }
         
         // 2. 创建 User 账号，并设置为陪诊师角色
-        user.setUserType(1); 
+        user.setUserType(1);
+        if (user.getPassword() != null && !user.getPassword().startsWith("$2")) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         userMapper.save(user);
         Integer userId = user.getId();
         logger.info("创建陪诊师基础账号成功, User ID: {}", userId);

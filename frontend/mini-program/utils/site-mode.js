@@ -3,9 +3,7 @@ export const PUBLIC_SAFE_LANDING_URL = '/pages/public/index'
 
 export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
 
-export const isPublicSafeMode = () => {
-  return !isWeixinMiniProgramRuntime()
-}
+export const isPublicSafeMode = () => false
 
 export const showPublicSafeNotice = (message = PUBLIC_SAFE_NOTICE) => {
   uni.showToast({
