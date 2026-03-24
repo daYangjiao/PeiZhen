@@ -907,8 +907,35 @@ export default {
 				uni.showToast({ title: '未识别到二维码内容', icon: 'none' })
 				return
 			}
+			const validationError = this.getQrValidationError(scannedText)
+			if (validationError) {
+				uni.showModal({
+					title: '扫码内容不匹配',
+					content: validationError,
+					showCancel: false,
+					confirmText: '我知道了'
+				})
+				return
+			}
 			this.pendingQrContent = scannedText
 			this.showVerifyConfirmModal = true
+		},
+		parseOrderIdFromQrContent(content) {
+			const match = /^SERVICE_CONFIRM_(\d+)$/.exec((content || '').trim())
+			if (!match) return null
+			return Number(match[1])
+		},
+		getQrValidationError(content) {
+			const scannedText = (content || '').trim()
+			if (!scannedText) return '未识别到二维码内容，请重新扫码。'
+			const parsedOrderId = this.parseOrderIdFromQrContent(scannedText)
+			if (parsedOrderId == null) {
+				return '当前二维码不是有效的服务确认码，请确认扫描的是用户订单详情页中的服务二维码。'
+			}
+			if (Number(this.orderInfo.id) !== parsedOrderId) {
+				return `当前扫码对应订单ID为 ${parsedOrderId}，与本订单不匹配。请核对患者现场订单后重新扫码。`
+			}
+			return ''
 		},
 		closeVerifyConfirmModal() {
 			if (this.verifySubmitting) return

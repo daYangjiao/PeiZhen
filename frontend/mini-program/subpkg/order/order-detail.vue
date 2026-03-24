@@ -185,7 +185,13 @@
     <view class="qr-section" v-if="showQRCode">
       <view class="qr-title">服务确认二维码</view>
       <view class="qr-container">
-        <image :src="getQrCodeUrl(order.qrCodeUrl, order.orderId)" class="qr-image" mode="aspectFit"></image>
+        <image
+          :src="getQrCodeUrl(order.qrCodeUrl, order.orderId)"
+          class="qr-image"
+          mode="aspectFit"
+          @click="previewQrCode"
+        ></image>
+        <text class="qr-preview-hint" @click="previewQrCode">点按放大预览</text>
         <br>
         <text class="qr-desc">请陪诊师扫描此二维码确认开始服务</text>
       </view>
@@ -891,6 +897,18 @@ const getQrCodeUrl = (qrCodeUrl, orderId) => {
   return base + path;
 };
 
+const previewQrCode = () => {
+  const qrUrl = getQrCodeUrl(order.value?.qrCodeUrl, order.value?.orderId);
+  if (!qrUrl) {
+    uni.showToast({ title: '二维码暂未生成', icon: 'none' });
+    return;
+  }
+  uni.previewImage({
+    urls: [qrUrl],
+    current: qrUrl
+  });
+};
+
 // 图片加载错误处理
 const handleImageError = (e) => {
   console.error('头像加载失败:', e);
@@ -1505,6 +1523,13 @@ onUnmounted(() => {
   width: 300rpx;
   height: 300rpx;
   margin: 0 auto 20rpx;
+}
+.qr-preview-hint {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: #007AFF;
+  text-align: center;
 }
 .qr-desc {
   font-size: 26rpx;
