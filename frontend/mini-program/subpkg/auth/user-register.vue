@@ -231,7 +231,7 @@ const handleRegister = async () => {
   font-size: 12px;
   color: #6a7f94;
   line-height: 1.6;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .input-group {
@@ -262,7 +262,7 @@ const handleRegister = async () => {
 }
 
 .agreement-row {
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .checkbox-label {
@@ -287,7 +287,7 @@ const handleRegister = async () => {
   border-radius: 22px;
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
 
@@ -295,6 +295,7 @@ const handleRegister = async () => {
   text-align: center;
   font-size: 14px;
   color: #6a7f94;
+  margin-top: 6px;
 }
 
 .link-text {

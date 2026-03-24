@@ -434,6 +434,7 @@ const handleWechatLogin = async () => {
   border-radius: 23px;
   font-size: 15px;
   font-weight: bold;
+  margin-top: 6px;
   box-shadow: 0 10px 24px rgba(0, 122, 255, 0.24);
 }
 
@@ -466,14 +467,14 @@ const handleWechatLogin = async () => {
 }
 
 .public-safe-tip {
-  margin-top: 6px;
+  margin-top: 18px;
 }
 
 .footer-links {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 18px;
   font-size: 13px;
   color: #6a7f94;
 
