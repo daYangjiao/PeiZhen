@@ -377,6 +377,50 @@
 			</view>
 		</view>
 
+		<!-- 扫码核销确认弹窗 -->
+		<view class="modal-overlay" v-if="showVerifyConfirmModal" @click="closeVerifyConfirmModal">
+			<view class="modal-content verify-modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">确认核销订单</text>
+				</view>
+				<view class="modal-body">
+					<view class="verify-modal-tip">
+						<text>请确认当前扫码订单与患者现场订单一致，再执行核销并开始服务。</text>
+					</view>
+					<view class="verify-summary">
+						<view class="verify-row">
+							<text class="verify-label">订单号</text>
+							<text class="verify-value">{{ orderInfo.orderNo || '—' }}</text>
+						</view>
+						<view class="verify-row">
+							<text class="verify-label">患者</text>
+							<text class="verify-value">{{ orderInfo.patientName || '—' }}</text>
+						</view>
+						<view class="verify-row">
+							<text class="verify-label">服务类型</text>
+							<text class="verify-value">{{ orderInfo.serviceType || '—' }}</text>
+						</view>
+						<view class="verify-row">
+							<text class="verify-label">医院</text>
+							<text class="verify-value">{{ orderInfo.hospital || '—' }}</text>
+						</view>
+						<view class="verify-row">
+							<text class="verify-label">预约时间</text>
+							<text class="verify-value">{{ formatAppointmentTime() }}</text>
+						</view>
+					</view>
+					<view class="verify-code-preview">
+						<text class="verify-code-label">扫码内容</text>
+						<text class="verify-code-text">{{ pendingQrContent || '—' }}</text>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="modal-btn cancel" @click="closeVerifyConfirmModal">取消</button>
+					<button class="modal-btn confirm" :disabled="verifySubmitting" @click="confirmVerifyQrCode">确认核销</button>
+				</view>
+			</view>
+		</view>
+
 		<!-- 取消订单弹窗 -->
 		<view class="modal-overlay" v-if="showCancelModal" @click="showCancelModal = false">
 			<view class="modal-content cancel-modal-content" @click.stop>
@@ -476,11 +520,14 @@ export default {
 		return {
 			isLoading: true,
 			showSimulateModal: false,
+			showVerifyConfirmModal: false,
 			showCancelModal: false,
 			showEndServiceModal: false,
 			showPrepareModal: false,
 			showContactPatientModal: false,
 			simulateQrContent: '',
+			pendingQrContent: '',
+			verifySubmitting: false,
 			cancelReason: '',
 			cancelPenaltyRate: 0,
 			cancelPenaltyAmount: '0.00',
@@ -837,7 +884,7 @@ export default {
 		scanCode() {
 			scanCodeWithGuard({
 				success: (res) => {
-					this.verifyQrCode(res.result)
+					this.openVerifyConfirmModal(res.result)
 				},
 				fail: (err) => {
 					if (err?.message === 'unsupported') return
@@ -852,14 +899,38 @@ export default {
 				return
 			}
 			this.showSimulateModal = false
-			this.verifyQrCode(this.simulateQrContent)
+			this.openVerifyConfirmModal(this.simulateQrContent)
+		},
+		openVerifyConfirmModal(content) {
+			const scannedText = (content || '').trim()
+			if (!scannedText) {
+				uni.showToast({ title: '未识别到二维码内容', icon: 'none' })
+				return
+			}
+			this.pendingQrContent = scannedText
+			this.showVerifyConfirmModal = true
+		},
+		closeVerifyConfirmModal() {
+			if (this.verifySubmitting) return
+			this.showVerifyConfirmModal = false
+			this.pendingQrContent = ''
+		},
+		confirmVerifyQrCode() {
+			if (!this.pendingQrContent) {
+				uni.showToast({ title: '未识别到二维码内容', icon: 'none' })
+				return
+			}
+			this.verifyQrCode(this.pendingQrContent)
 		},
 		async verifyQrCode(content) {
+			this.verifySubmitting = true
 			uni.showLoading({ title: '核销中...' })
 			try {
 				const res = await post(`/attendant/orders/${this.orderInfo.id}/scan-qr?qrCodeContent=${encodeURIComponent(content)}`)
 				uni.hideLoading()
 				if (res.code === 200) {
+					this.showVerifyConfirmModal = false
+					this.pendingQrContent = ''
 					uni.showToast({ title: '核销成功', icon: 'success' })
 					this.orderInfo.status = 'in_progress'
 					this.loadOrderDetail(this.orderInfo.id)
@@ -870,6 +941,8 @@ export default {
 				uni.hideLoading()
 				console.error('核销异常:', e)
 				uni.showToast({ title: '核销异常', icon: 'none' })
+			} finally {
+				this.verifySubmitting = false
 			}
 		},
 		handleMainAction() {
@@ -2257,6 +2330,78 @@ export default {
 	color: #999;
 	margin-top: 8px;
 	text-align: center;
+}
+
+.verify-modal-content {
+	width: 84%;
+	max-width: 680rpx;
+}
+
+.verify-modal-tip {
+	padding: 18rpx 20rpx;
+	border-radius: 16rpx;
+	background: #f3f8ff;
+	color: #4b5563;
+	font-size: 24rpx;
+	line-height: 1.6;
+	margin-bottom: 18rpx;
+}
+
+.verify-summary {
+	border: 1rpx solid #e6edf8;
+	border-radius: 16rpx;
+	background: #f8fbff;
+	padding: 6rpx 20rpx;
+}
+
+.verify-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 24rpx;
+	padding: 18rpx 0;
+	border-bottom: 1rpx solid #e6edf8;
+}
+
+.verify-row:last-child {
+	border-bottom: none;
+}
+
+.verify-label {
+	flex-shrink: 0;
+	font-size: 24rpx;
+	color: #6b7280;
+}
+
+.verify-value {
+	flex: 1;
+	text-align: right;
+	font-size: 25rpx;
+	font-weight: 500;
+	color: var(--text-main);
+	line-height: 1.5;
+}
+
+.verify-code-preview {
+	margin-top: 18rpx;
+	padding: 18rpx 20rpx;
+	border-radius: 16rpx;
+	background: #f5f7fa;
+}
+
+.verify-code-label {
+	display: block;
+	font-size: 23rpx;
+	color: #6b7280;
+	margin-bottom: 8rpx;
+}
+
+.verify-code-text {
+	display: block;
+	word-break: break-all;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: var(--text-main);
 }
 
 .modal-footer {
