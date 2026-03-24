@@ -110,3 +110,16 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/swagger-ui/index.
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1/
 ss -lntp | grep -E ':80|:8080|:3306'
 ```
+
+Android APK internal test:
+
+1. Open `frontend/mini-program` in HBuilderX.
+2. Choose `发行 -> 原生App-云打包`.
+3. Build target: `Android`.
+4. Package name: `cn.yuanban.peizhen`.
+5. App icon source: `frontend/mini-program/static/brand-logo.png`.
+6. The APK is configured to connect directly to:
+   - API: `http://101.245.94.141`
+   - WebSocket: `ws://101.245.94.141`
+
+After installation, the APK runs independently and does not require the developer machine to stay online.

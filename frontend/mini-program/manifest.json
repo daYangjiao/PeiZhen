@@ -6,6 +6,35 @@
   "versionCode": "100",
   "transformPx": false,
   "vueVersion": "3",
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "statusbar": {
+      "immersed": false,
+      "style": "dark",
+      "background": "#f5f8fc"
+    },
+    "distribute": {
+      "android": {
+        "package": "cn.yuanban.peizhen",
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>"
+        ]
+      }
+    }
+  },
   "mp-weixin": {
     "appid": "wx93c4e986bbcbd674",
     "setting": {

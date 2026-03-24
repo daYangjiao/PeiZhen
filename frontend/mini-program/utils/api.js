@@ -2,6 +2,7 @@ import { useSessionStore } from '@/stores/session'
 
 const trimTrailingSlash = (value = '') => value.replace(/\/+$/, '')
 const MINI_PROGRAM_HTTP_FALLBACK_BASE_URL = 'http://101.245.94.141'
+const APP_HTTP_BASE_URL = 'http://101.245.94.141'
 
 const readStorageValue = (keys = []) => {
   if (typeof uni === 'undefined' || typeof uni.getStorageSync !== 'function') return ''
@@ -15,6 +16,7 @@ const readStorageValue = (keys = []) => {
 }
 
 export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
+export const isAppRuntime = () => typeof plus !== 'undefined'
 
 export const canUseRemoteImageUrl = (url = '') => {
   if (!url) return false
@@ -28,9 +30,21 @@ const resolveMiniProgramApiBaseURL = () => {
   )
 }
 
+const resolveAppApiBaseURL = () => {
+  return trimTrailingSlash(
+    readStorageValue(['appApiBaseURL', 'apiBaseURL']) || APP_HTTP_BASE_URL
+  )
+}
+
 const resolveMiniProgramAssetBaseURL = () => {
   return trimTrailingSlash(
     readStorageValue(['mpAssetBaseURL', 'assetBaseURL']) || resolveMiniProgramApiBaseURL()
+  )
+}
+
+const resolveAppAssetBaseURL = () => {
+  return trimTrailingSlash(
+    readStorageValue(['appAssetBaseURL', 'assetBaseURL']) || resolveAppApiBaseURL()
   )
 }
 
@@ -40,8 +54,15 @@ const resolveMiniProgramWsBaseURL = () => {
   return resolveMiniProgramApiBaseURL().replace(/^http/i, 'ws')
 }
 
+const resolveAppWsBaseURL = () => {
+  const storedWsBaseURL = readStorageValue(['appWsBaseURL', 'wsBaseURL'])
+  if (storedWsBaseURL) return trimTrailingSlash(storedWsBaseURL)
+  return resolveAppApiBaseURL().replace(/^http/i, 'ws')
+}
+
 const resolveBaseURL = () => {
   if (isWeixinMiniProgramRuntime()) return resolveMiniProgramApiBaseURL()
+  if (isAppRuntime()) return resolveAppApiBaseURL()
 
   const storedBaseUrl = readStorageValue(['apiBaseURL'])
 
@@ -56,6 +77,7 @@ const resolveBaseURL = () => {
 
 const resolveAssetBaseURL = () => {
   if (isWeixinMiniProgramRuntime()) return resolveMiniProgramAssetBaseURL()
+  if (isAppRuntime()) return resolveAppAssetBaseURL()
 
   const storedAssetBaseUrl = readStorageValue(['assetBaseURL'])
   if (storedAssetBaseUrl) return trimTrailingSlash(storedAssetBaseUrl)
@@ -72,6 +94,7 @@ export const config = {
   },
   get wsBaseURL() {
     if (isWeixinMiniProgramRuntime()) return resolveMiniProgramWsBaseURL()
+    if (isAppRuntime()) return resolveAppWsBaseURL()
     return this.baseURL.replace(/^http/i, 'ws')
   },
   timeout: 10000
