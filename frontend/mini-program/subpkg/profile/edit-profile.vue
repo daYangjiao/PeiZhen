@@ -341,16 +341,17 @@ const saveProfile = async () => {
 @import '@/styles/user-ui.scss';
 .container {
     min-height: 100vh;
-    background-color: #f5f7fa;
+    background: linear-gradient(180deg, #f4f8ff 0%, #f8fbff 240rpx, #f5f7fa 100%);
     padding-bottom: 120rpx;
 }
 
 .form-section {
     background-color: #ffffff;
-    padding: 30rpx;
+    padding: 32rpx 28rpx;
     margin: 20rpx;
-    border-radius: 12rpx;
-    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+    border-radius: 28rpx;
+    border: 1rpx solid rgba(0, 122, 255, 0.08);
+    box-shadow: 0 18rpx 42rpx rgba(18, 56, 109, 0.08);
 }
 
 /* 头像上传 */
@@ -358,21 +359,26 @@ const saveProfile = async () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 40rpx 0;
+    margin: 24rpx 0 40rpx;
 }
 
 .avatar-img {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 80rpx;
-    border: 4rpx solid rgba(74, 144, 226, 0.3);
-    background-color: #f0f0f0;
-    margin-bottom: 20rpx;
+    width: 168rpx;
+    height: 168rpx;
+    border-radius: 42rpx;
+    border: 4rpx solid rgba(0, 122, 255, 0.1);
+    background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+    box-shadow: 0 18rpx 38rpx rgba(0, 122, 255, 0.12);
+    margin-bottom: 18rpx;
 }
 
 .upload-text {
+    padding: 10rpx 20rpx;
+    border-radius: 999rpx;
+    background: rgba(0, 122, 255, 0.08);
     font-size: 24rpx;
     color: #007AFF;
+    font-weight: 600;
 }
 
 /* 表单样式 */
@@ -487,7 +493,8 @@ const saveProfile = async () => {
     left: 0;
     right: 0;
     padding: 30rpx;
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
     box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 

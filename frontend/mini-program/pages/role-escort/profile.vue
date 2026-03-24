@@ -379,11 +379,12 @@ onShow(() => {
 }
 
 .avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 999rpx;
-  border: 4rpx solid var(--escort-primary);
-  box-shadow: 0 12rpx 26rpx rgba(74, 144, 226, 0.28);
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 34rpx;
+  border: 4rpx solid rgba(0, 122, 255, 0.1);
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  box-shadow: 0 16rpx 34rpx rgba(0, 122, 255, 0.12);
 }
 
 .identity-content {

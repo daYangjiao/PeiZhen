@@ -220,23 +220,24 @@ onMounted(() => {
 .avatar-row {
   display: flex;
   align-items: center;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 
 .avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 999rpx;
-  border: 4rpx solid #007AFF;
-  box-shadow: 0 10rpx 24rpx rgba(102, 166, 255, 0.26);
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 34rpx;
+  border: 4rpx solid rgba(0, 122, 255, 0.1);
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  box-shadow: 0 16rpx 34rpx rgba(0, 122, 255, 0.12);
 }
 
 .avatar-btn {
   margin-left: 20rpx;
-  height: 64rpx;
-  padding: 0 24rpx;
+  height: 68rpx;
+  padding: 0 26rpx;
   border-radius: 999rpx;
-  background: #edf5ff;
+  background: rgba(0, 122, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;

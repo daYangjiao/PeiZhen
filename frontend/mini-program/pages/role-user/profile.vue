@@ -317,12 +317,15 @@ onShow(() => {
 }
 .user-avatar {
 	margin-right: 30rpx;
+	flex-shrink: 0;
 }
 .avatar-img {
-	width: 120rpx;
-	height: 120rpx;
-	border-radius: 60rpx;
-	border: 4rpx solid rgba(255, 255, 255, 0.3);
+	width: 128rpx;
+	height: 128rpx;
+	border-radius: 34rpx;
+	border: 4rpx solid rgba(255, 255, 255, 0.22);
+	background: rgba(255, 255, 255, 0.16);
+	box-shadow: 0 16rpx 34rpx rgba(8, 40, 85, 0.16);
 }
 .user-details {
 	flex: 1;
