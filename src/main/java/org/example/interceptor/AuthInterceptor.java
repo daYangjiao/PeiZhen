@@ -87,6 +87,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/users/wechat/config-status",
             "/api/users/wechat/login",
             "/api/users/wechat/bind-phone",
+            "/api/common/upload",
+            "/api/common/upload-image",
             "/attendant/recommended",  // 获取推荐陪诊师（允许未登录用户访问）
             "/swagger-ui",
             "/v2/api-docs",

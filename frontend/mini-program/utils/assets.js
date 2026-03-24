@@ -81,6 +81,20 @@ export const appointmentServiceLogos = {
   4: serviceHomeImage,
 }
 
+export const userDefaultAvatarOptions = [
+  { label: '默认头像 A', value: '/uploads/user1.jpg' },
+  { label: '默认头像 B', value: '/uploads/user-avatar.jpg' },
+  { label: '默认头像 C', value: '/uploads/user2.jpg' },
+  { label: '默认头像 D', value: '/uploads/user3.jpg' },
+]
+
+export const escortDefaultAvatarOptions = [
+  { label: '陪诊头像 A', value: '/uploads/01_Medicalcompanion.jpg' },
+  { label: '陪诊头像 B', value: '/uploads/03_Medicalcompanion.jpg' },
+  { label: '陪诊头像 C', value: '/uploads/05_Medicalcompanion.jpg' },
+  { label: '陪诊头像 D', value: '/uploads/06_Medicalcompanion.jpg' },
+]
+
 export const appointmentDetailIcons = {
   help: helpIcon,
   ren1: ren1Icon,

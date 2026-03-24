@@ -67,3 +67,12 @@ export const uploadAvatar = async (filePath) => {
   store.setUserInfo({ ...userInfo, avatar: avatarPath })
   return { code: 200, data: { avatarUrl: avatarPath } }
 }
+
+export const uploadPublicAvatarImage = async (filePath) => {
+  const uploadRes = await upload('/api/common/upload-image', filePath, {}, 'file')
+  const avatarPath = uploadRes.data
+  if (!avatarPath) {
+    return Promise.reject(new Error('上传失败'))
+  }
+  return { code: 200, data: { avatarUrl: avatarPath } }
+}

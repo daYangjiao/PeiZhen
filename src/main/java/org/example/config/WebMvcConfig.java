@@ -29,6 +29,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                     "/api/users/wechat/config-status",
                     "/api/users/wechat/login",
                     "/api/users/wechat/bind-phone",
+                    "/api/common/upload",
+                    "/api/common/upload-image",
                     "/swagger-ui/**",
                     "/v2/api-docs",
                     "/webjars/**",
