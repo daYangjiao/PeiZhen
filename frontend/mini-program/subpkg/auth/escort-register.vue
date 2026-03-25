@@ -32,6 +32,18 @@
           <input class="input" v-model="form.name" maxlength="20" placeholder="请输入真实姓名" />
         </view>
         <view class="input-item">
+          <text class="iconfont">⚥</text>
+          <picker class="picker" mode="selector" :range="sexOptions" :value="sexIndex" @change="onSexChange">
+            <view class="picker-value" :class="{ placeholder: !form.sex }">
+              {{ form.sex || '请选择性别' }}
+            </view>
+          </picker>
+        </view>
+        <view class="input-item">
+          <text class="iconfont">🎂</text>
+          <input class="input" v-model="form.age" type="number" maxlength="3" placeholder="请输入年龄" />
+        </view>
+        <view class="input-item">
           <text class="iconfont">🔒</text>
           <input class="input" v-model="form.password" type="password" maxlength="20" placeholder="请设置登录密码" />
         </view>
@@ -42,6 +54,18 @@
         <view class="input-item">
           <text class="iconfont">🩺</text>
           <input class="input" v-model="form.professionalField" maxlength="30" placeholder="请输入擅长领域，如术后护理、急诊陪同" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">🏥</text>
+          <input class="input" v-model="form.hospitalName" maxlength="40" placeholder="请输入常驻医院" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">📆</text>
+          <input class="input" v-model="form.experienceYears" type="number" maxlength="2" placeholder="请输入从业年限" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">📄</text>
+          <input class="input" v-model="form.certificate" maxlength="30" placeholder="请输入资格证编号" />
         </view>
       </view>
 
@@ -86,22 +110,34 @@ import AvatarPickerField from '@/components/AvatarPickerField.vue'
 
 const phonePattern = /^1\d{10}$/
 const defaultEscortAvatar = escortDefaultAvatarOptions[Math.floor(Math.random() * escortDefaultAvatarOptions.length)].value
+const sexOptions = ['男', '女']
 
 const form = ref({
   phone: '',
   name: '',
+  sex: '',
+  age: '',
   password: '',
   avatar: defaultEscortAvatar,
   professionalField: '',
+  hospitalName: '',
+  experienceYears: '',
+  certificate: '',
   introduction: '',
   userType: 1
 })
 const confirmPassword = ref('')
 const agreed = ref(false)
 const loading = ref(false)
+const sexIndex = ref(-1)
 
 const onCheckChange = (e) => {
   agreed.value = e.detail.value.length > 0
+}
+
+const onSexChange = (e) => {
+  sexIndex.value = Number(e.detail.value)
+  form.value.sex = sexOptions[sexIndex.value] || ''
 }
 
 const goLogin = () => {
@@ -121,6 +157,15 @@ const validateForm = () => {
     uni.showToast({ title: '姓名至少输入 2 个字', icon: 'none' })
     return false
   }
+  if (!form.value.sex) {
+    uni.showToast({ title: '请选择性别', icon: 'none' })
+    return false
+  }
+  const age = Number(form.value.age)
+  if (!Number.isInteger(age) || age <= 0 || age > 120) {
+    uni.showToast({ title: '请输入正确的年龄', icon: 'none' })
+    return false
+  }
   if (form.value.password.length < 6) {
     uni.showToast({ title: '密码至少输入 6 位', icon: 'none' })
     return false
@@ -131,6 +176,19 @@ const validateForm = () => {
   }
   if (form.value.professionalField.trim().length < 2) {
     uni.showToast({ title: '请填写擅长领域', icon: 'none' })
+    return false
+  }
+  if (form.value.hospitalName.trim().length < 2) {
+    uni.showToast({ title: '请填写常驻医院', icon: 'none' })
+    return false
+  }
+  const experienceYears = Number(form.value.experienceYears)
+  if (!Number.isInteger(experienceYears) || experienceYears < 0 || experienceYears > 60) {
+    uni.showToast({ title: '请输入正确的从业年限', icon: 'none' })
+    return false
+  }
+  if (form.value.certificate.trim().length < 6) {
+    uni.showToast({ title: '请填写资格证编号', icon: 'none' })
     return false
   }
   if (form.value.introduction.trim().length < 10) {
@@ -149,9 +207,14 @@ const handleRegister = async () => {
     const res = await post('/api/users/register', {
       phone: form.value.phone.trim(),
       name: form.value.name.trim(),
+      sex: form.value.sex,
+      age: Number(form.value.age),
       password: form.value.password,
       avatar: form.value.avatar,
       professionalField: form.value.professionalField.trim(),
+      hospitalName: form.value.hospitalName.trim(),
+      experienceYears: Number(form.value.experienceYears),
+      certificate: form.value.certificate.trim(),
       introduction: form.value.introduction.trim(),
       userType: 1
     })
@@ -288,6 +351,22 @@ const handleRegister = async () => {
   height: 44px;
   font-size: 14px;
   color: #16324f;
+}
+
+.picker {
+  flex: 1;
+}
+
+.picker-value {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #16324f;
+}
+
+.picker-value.placeholder {
+  color: #9aa8b6;
 }
 
 .textarea-section {

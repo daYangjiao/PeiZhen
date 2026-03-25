@@ -26,6 +26,7 @@ import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/users")
@@ -33,6 +34,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^1\\d{10}$");
 
     private final UserService userService;
     private final AttendantService attendantService;
@@ -53,10 +55,15 @@ public class UserController {
         if (bindingResult.hasErrors()) {
             return ResponseResult.error(bindingResult.getFieldError().getDefaultMessage());
         }
+        String validationMessage = validateRegisterRequest(user);
+        if (validationMessage != null) {
+            return ResponseResult.error(validationMessage);
+        }
         try {
             int userId;
             if (user.getUserType() != null && user.getUserType() == 1) {
                 Attendant attendant = new Attendant();
+                attendant.setCertificate(user.getCertificate());
                 attendant.setIntroduction(user.getIntroduction());
                 attendant.setProfessionalField(user.getProfessionalField());
                 attendant.setExperienceYears(user.getExperienceYears() == null ? 0 : user.getExperienceYears());
@@ -73,6 +80,45 @@ public class UserController {
             log.error("用户注册失败", e);
             return ResponseResult.error("注册失败");
         }
+    }
+
+    private String validateRegisterRequest(User user) {
+        if (user == null) {
+            return "注册信息不能为空";
+        }
+        if (user.getPhone() == null || !PHONE_PATTERN.matcher(user.getPhone().trim()).matches()) {
+            return "请输入正确的手机号";
+        }
+        if (user.getName() == null || user.getName().trim().length() < 2) {
+            return "姓名至少输入2个字";
+        }
+        if (user.getPassword() == null || user.getPassword().length() < 6) {
+            return "密码至少输入6位";
+        }
+        if (user.getSex() == null || user.getSex().trim().isEmpty() || "未知".equals(user.getSex().trim())) {
+            return "请选择性别";
+        }
+        if (user.getAge() == null || user.getAge() <= 0 || user.getAge() > 120) {
+            return "请输入正确的年龄";
+        }
+        if (user.getUserType() != null && user.getUserType() == 1) {
+            if (user.getProfessionalField() == null || user.getProfessionalField().trim().length() < 2) {
+                return "请填写擅长领域";
+            }
+            if (user.getIntroduction() == null || user.getIntroduction().trim().length() < 10) {
+                return "个人简介至少输入10个字";
+            }
+            if (user.getHospitalName() == null || user.getHospitalName().trim().length() < 2) {
+                return "请填写常驻医院";
+            }
+            if (user.getExperienceYears() == null || user.getExperienceYears() < 0 || user.getExperienceYears() > 60) {
+                return "请输入正确的从业年限";
+            }
+            if (user.getCertificate() == null || user.getCertificate().trim().length() < 6) {
+                return "请填写资格证编号";
+            }
+        }
+        return null;
     }
 
     @PostMapping("/login")
