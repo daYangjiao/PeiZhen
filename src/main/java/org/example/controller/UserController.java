@@ -114,9 +114,6 @@ public class UserController {
             if (user.getExperienceYears() == null || user.getExperienceYears() < 0 || user.getExperienceYears() > 60) {
                 return "请输入正确的从业年限";
             }
-            if (user.getCertificate() == null || user.getCertificate().trim().length() < 6) {
-                return "请填写资格证编号";
-            }
         }
         return null;
     }

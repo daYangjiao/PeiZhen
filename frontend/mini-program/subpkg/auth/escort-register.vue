@@ -10,7 +10,7 @@
 
     <view class="register-card">
       <view class="card-title">陪诊师注册</view>
-      <view class="card-subtitle">请使用真实资料注册，提交成功后可使用手机号和密码登录陪诊师端并补充资质信息。</view>
+      <view class="card-subtitle">请使用真实资料注册，提交成功后可使用手机号和密码登录陪诊师端，并在个人中心继续补充资质材料。</view>
 
       <AvatarPickerField
         v-model="form.avatar"
@@ -62,10 +62,6 @@
         <view class="input-item">
           <text class="iconfont">📆</text>
           <input class="input" v-model="form.experienceYears" type="number" maxlength="2" placeholder="请输入从业年限" />
-        </view>
-        <view class="input-item">
-          <text class="iconfont">📄</text>
-          <input class="input" v-model="form.certificate" maxlength="30" placeholder="请输入资格证编号" />
         </view>
       </view>
 
@@ -122,7 +118,6 @@ const form = ref({
   professionalField: '',
   hospitalName: '',
   experienceYears: '',
-  certificate: '',
   introduction: '',
   userType: 1
 })
@@ -187,10 +182,6 @@ const validateForm = () => {
     uni.showToast({ title: '请输入正确的从业年限', icon: 'none' })
     return false
   }
-  if (form.value.certificate.trim().length < 6) {
-    uni.showToast({ title: '请填写资格证编号', icon: 'none' })
-    return false
-  }
   if (form.value.introduction.trim().length < 10) {
     uni.showToast({ title: '个人简介至少输入 10 个字', icon: 'none' })
     return false
@@ -214,7 +205,6 @@ const handleRegister = async () => {
       professionalField: form.value.professionalField.trim(),
       hospitalName: form.value.hospitalName.trim(),
       experienceYears: Number(form.value.experienceYears),
-      certificate: form.value.certificate.trim(),
       introduction: form.value.introduction.trim(),
       userType: 1
     })
