@@ -9,7 +9,7 @@
 					mode="aspectFill"
 					@click="isEditing ? chooseAvatar : null"
 				></image>
-				<text class="upload-text" v-if="isEditing">点击更换头像</text>
+				<view v-if="isEditing" class="upload-text" @click="chooseAvatar">点击更换头像</view>
 			</view>
 			
 			<!-- 信息展示/编辑表单 -->
@@ -100,9 +100,10 @@ const userForm = ref({
 	phone: '',
 	password: ''
 })
+const localAvatarPreview = ref('')
 
 const displayAvatarUrl = computed(() =>
-	resolveAvatarUrl(userForm.value.avatar || originalUserData.value.avatar, userPlaceholder)
+	resolveAvatarUrl(localAvatarPreview.value || userForm.value.avatar || originalUserData.value.avatar, userPlaceholder)
 )
 
 // 生命周期
@@ -170,7 +171,7 @@ const uploadUserAvatar = async () => {
 		if (!pickedFilePath) return
 		uni.showLoading({ title: '处理中...' })
 		const compressedFilePath = await compressAvatarFile(pickedFilePath)
-		userForm.value.avatar = compressedFilePath
+		localAvatarPreview.value = compressedFilePath || pickedFilePath
 		const response = await uploadAvatar(compressedFilePath)
 		uni.hideLoading()
 		const avatarUrl = response?.data?.avatarUrl || response?.data
@@ -201,6 +202,7 @@ const startEditing = () => {
 		phone: originalUserData.value.phone || '',
 		password: ''
 	}
+	localAvatarPreview.value = ''
 }
 
 // 取消编辑
@@ -215,6 +217,7 @@ const cancelEditing = () => {
 		phone: '',
 		password: ''
 	}
+	localAvatarPreview.value = ''
 }
 
 // 保存个人资料

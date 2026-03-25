@@ -41,8 +41,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { chooseAndUploadAvatar } from '@/utils/avatar-upload.js'
+import { computed, ref, watch } from 'vue'
+import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { uploadPublicAvatarImage } from '@/api/user.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 
 const props = defineProps({
@@ -78,8 +79,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'uploaded'])
 const uploading = ref(false)
+const localPreviewPath = ref('')
 
-const previewUrl = computed(() => resolveAvatarUrl(props.modelValue, ''))
+const previewUrl = computed(() => resolveAvatarUrl(localPreviewPath.value || props.modelValue, ''))
 const normalizedOptions = computed(() =>
   (props.options || []).map((item) => ({
     ...item,
@@ -87,7 +89,18 @@ const normalizedOptions = computed(() =>
   }))
 )
 
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value && value === localPreviewPath.value) return
+    if (value && !/^(data:|blob:|wxfile:|file:|content:\/\/|\/var\/|\/private\/|\/storage\/|\/data\/|\/sdcard\/|\/Users\/|\/Volumes\/|_doc\/|_downloads\/)/i.test(value)) {
+      localPreviewPath.value = ''
+    }
+  }
+)
+
 const selectDefaultAvatar = (value) => {
+  localPreviewPath.value = ''
   emit('update:modelValue', value)
 }
 
@@ -96,7 +109,12 @@ const handleChooseAvatar = async () => {
   uploading.value = true
   uni.showLoading({ title: '处理中...' })
   try {
-    const avatarUrl = await chooseAndUploadAvatar()
+    const pickedFilePath = await chooseAvatarFile()
+    const compressedFilePath = await compressAvatarFile(pickedFilePath)
+    localPreviewPath.value = compressedFilePath || pickedFilePath
+    const response = await uploadPublicAvatarImage(compressedFilePath || pickedFilePath)
+    const avatarUrl = response?.data?.avatarUrl || response?.data
+    if (!avatarUrl) throw new Error('头像上传失败')
     emit('update:modelValue', avatarUrl)
     emit('uploaded', avatarUrl)
     uni.showToast({ title: '头像已更新', icon: 'success' })
