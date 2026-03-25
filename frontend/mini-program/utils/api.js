@@ -15,8 +15,17 @@ const readStorageValue = (keys = []) => {
   return ''
 }
 
-export const isWeixinMiniProgramRuntime = () => typeof wx !== 'undefined' && typeof document === 'undefined'
-export const isAppRuntime = () => typeof plus !== 'undefined'
+let weixinMiniProgramRuntime = false
+// #ifdef MP-WEIXIN
+weixinMiniProgramRuntime = true
+// #endif
+export const isWeixinMiniProgramRuntime = () => weixinMiniProgramRuntime
+
+let appPlatformRuntime = false
+// #ifdef APP-PLUS
+appPlatformRuntime = true
+// #endif
+export const isAppRuntime = () => appPlatformRuntime || typeof plus !== 'undefined'
 
 export const canUseRemoteImageUrl = (url = '') => {
   if (!url) return false
