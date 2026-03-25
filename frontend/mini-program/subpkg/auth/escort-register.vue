@@ -16,9 +16,9 @@
         v-model="form.avatar"
         :options="escortDefaultAvatarOptions"
         title="头像设置"
-        tip="支持上传本人头像，系统会自动裁成方形并压缩；不上传时会随机给一张陪诊师头像。"
+        tip="可上传本人头像，也可直接选择系统头像。"
         preview-title="陪诊形象"
-        preview-desc="注册、资料编辑和小程序端都使用同一套头像处理逻辑。"
+        preview-desc="不上传时会随机使用一张陪诊师头像。"
         upload-label="上传本人头像（可选）"
       />
 

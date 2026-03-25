@@ -16,9 +16,9 @@
         v-model="form.avatar"
         :options="userDefaultAvatarOptions"
         title="头像设置"
-        tip="支持上传头像，系统会自动裁成方形并压缩；不上传时会随机给一张用户头像。"
+        tip="可上传头像，也可直接选择系统头像。"
         preview-title="用户形象"
-        preview-desc="上传后浏览器和微信小程序都使用同一套头像逻辑。"
+        preview-desc="不上传时会随机使用一张用户头像。"
         upload-label="上传头像（可选）"
       />
 

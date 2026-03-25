@@ -5,10 +5,6 @@
         <text class="avatar-panel-title">{{ title }}</text>
         <text class="avatar-panel-tip">{{ tip }}</text>
       </view>
-      <view class="avatar-panel-flags">
-        <text class="avatar-flag">1:1 裁切</text>
-        <text class="avatar-flag">自动压缩</text>
-      </view>
     </view>
 
     <view class="avatar-shell">
@@ -140,10 +136,6 @@ const handleChooseAvatar = async () => {
 }
 
 .avatar-panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 14px;
 }
 
@@ -161,23 +153,6 @@ const handleChooseAvatar = async () => {
   font-size: 12px;
   line-height: 1.6;
   color: #6a7f94;
-}
-
-.avatar-panel-flags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.avatar-flag {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(0, 122, 255, 0.08);
-  font-size: 11px;
-  color: #2563eb;
-  white-space: nowrap;
 }
 
 .avatar-shell {
