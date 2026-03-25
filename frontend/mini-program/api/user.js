@@ -54,7 +54,7 @@ export const uploadAvatar = async (filePath) => {
   }
 
   // 1. 上传图片，后端返回 /uploads/xxx
-  const uploadRes = await upload('/api/common/upload-image', filePath, {}, 'file')
+  const uploadRes = await upload('/api/common/upload-avatar', filePath, {}, 'file')
   const avatarPath = uploadRes.data
   if (!avatarPath) {
     return Promise.reject(new Error('上传失败'))
@@ -69,7 +69,7 @@ export const uploadAvatar = async (filePath) => {
 }
 
 export const uploadPublicAvatarImage = async (filePath) => {
-  const uploadRes = await upload('/api/common/upload-image', filePath, {}, 'file')
+  const uploadRes = await upload('/api/common/upload-avatar', filePath, {}, 'file')
   const avatarPath = uploadRes.data
   if (!avatarPath) {
     return Promise.reject(new Error('上传失败'))

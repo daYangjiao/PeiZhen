@@ -2,7 +2,7 @@
   <view class="page">
     <view class="form-card">
       <view class="avatar-row">
-        <image class="avatar" :src="displayAvatarUrl" mode="aspectFill"></image>
+        <image class="avatar" :src="displayAvatarUrl" mode="aspectFit"></image>
         <view class="avatar-btn" @click.stop="chooseAvatar">
           <text>{{ uploading ? '上传中...' : '更换头像' }}</text>
         </view>
@@ -124,7 +124,7 @@ const chooseAvatar = async () => {
     if (!pickedFilePath) return
     const compressedFilePath = await compressAvatarFile(pickedFilePath)
     localAvatarPreview.value = compressedFilePath || pickedFilePath
-    const uploadRes = await upload('/api/common/upload-image', compressedFilePath || pickedFilePath, {}, 'file')
+    const uploadRes = await upload('/api/common/upload-avatar', compressedFilePath || pickedFilePath, {}, 'file')
     uni.hideLoading()
     if (uploadRes.code === 200 && uploadRes.data) {
       form.avatarUrl = uploadRes.data

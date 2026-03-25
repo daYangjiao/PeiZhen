@@ -13,7 +13,7 @@
 
     <view class="avatar-shell">
       <view class="avatar-preview-card">
-        <image class="avatar-preview" :src="previewUrl" mode="aspectFill"></image>
+        <image class="avatar-preview" :src="previewUrl" mode="aspectFit"></image>
         <view class="avatar-copy">
           <text class="avatar-copy-title">{{ previewTitle }}</text>
           <text class="avatar-copy-desc">{{ previewDesc }}</text>
@@ -33,7 +33,7 @@
         :class="{ active: modelValue === item.value }"
         @click="selectDefaultAvatar(item.value)"
       >
-        <image class="avatar-option-image" :src="item.previewUrl" mode="aspectFill"></image>
+        <image class="avatar-option-image" :src="item.previewUrl" mode="aspectFit"></image>
         <text class="avatar-option-label">{{ item.label }}</text>
       </view>
     </view>

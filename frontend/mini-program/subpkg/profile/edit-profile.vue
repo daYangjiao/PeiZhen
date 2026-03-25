@@ -6,7 +6,7 @@
 				<image 
 					class="avatar-img" 
 					:src="displayAvatarUrl" 
-					mode="aspectFill"
+					mode="aspectFit"
 					@click="isEditing ? chooseAvatar : null"
 				></image>
 				<view v-if="isEditing" class="upload-text" @click="chooseAvatar">点击更换头像</view>
@@ -101,6 +101,7 @@ const userForm = ref({
 	password: ''
 })
 const localAvatarPreview = ref('')
+const avatarUploadedThisEdit = ref(false)
 
 const displayAvatarUrl = computed(() =>
 	resolveAvatarUrl(localAvatarPreview.value || userForm.value.avatar || originalUserData.value.avatar, userPlaceholder)
@@ -178,6 +179,7 @@ const uploadUserAvatar = async () => {
 		if (avatarUrl) {
 			userForm.value.avatar = avatarUrl
 			originalUserData.value.avatar = avatarUrl
+			avatarUploadedThisEdit.value = true
 			uni.showToast({ title: '头像上传成功', icon: 'success' })
 		}
 	} catch (error) {
@@ -203,6 +205,7 @@ const startEditing = () => {
 		password: ''
 	}
 	localAvatarPreview.value = ''
+	avatarUploadedThisEdit.value = false
 }
 
 // 取消编辑
@@ -218,6 +221,7 @@ const cancelEditing = () => {
 		password: ''
 	}
 	localAvatarPreview.value = ''
+	avatarUploadedThisEdit.value = false
 }
 
 // 保存个人资料
@@ -295,6 +299,27 @@ const saveProfile = async () => {
 				}
 			}
 		})
+
+		if (Object.keys(updatedFields).length === 1) {
+			uni.hideLoading()
+			if (avatarUploadedThisEdit.value) {
+				await loadUserInfo()
+				localAvatarPreview.value = ''
+				avatarUploadedThisEdit.value = false
+				isEditing.value = false
+				uni.showToast({
+					title: '保存成功',
+					icon: 'success'
+				})
+				return
+			}
+			isEditing.value = false
+			uni.showToast({
+				title: '没有需要保存的修改',
+				icon: 'none'
+			})
+			return
+		}
 		
 		// 调用更新用户信息API，只传递已修改的字段
 		const response = await updateUserInfo(updatedFields)
@@ -311,6 +336,8 @@ const saveProfile = async () => {
             
             // 更新成功后，更新原始数据
             await loadUserInfo()
+            localAvatarPreview.value = ''
+            avatarUploadedThisEdit.value = false
             // 退出编辑模式
             isEditing.value = false
             
