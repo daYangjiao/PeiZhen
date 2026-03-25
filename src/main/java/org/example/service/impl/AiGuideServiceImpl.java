@@ -156,8 +156,27 @@ public class AiGuideServiceImpl implements AiGuideService {
         if (order.getPaymentTime() != null) {
             response.setPaymentTime(dtf.format(order.getPaymentTime()));
         }
-        if (order.getAppointmentTime() != null) {
-            response.setUpdateTime(dtf.format(order.getAppointmentTime()));
+        if (order.getAcceptTime() != null) {
+            response.setAcceptTime(dtf.format(order.getAcceptTime()));
+        }
+        Date updateTime = order.getServiceEndTime();
+        if (updateTime == null) {
+            updateTime = order.getCancelTime();
+        }
+        if (updateTime == null) {
+            updateTime = order.getServiceStartTime();
+        }
+        if (updateTime == null) {
+            updateTime = order.getAcceptTime();
+        }
+        if (updateTime == null) {
+            updateTime = order.getPaymentTime();
+        }
+        if (updateTime == null) {
+            updateTime = order.getCreateTime();
+        }
+        if (updateTime != null) {
+            response.setUpdateTime(dtf.format(updateTime));
         }
 
         // 补充核销二维码和状态信息

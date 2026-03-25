@@ -201,7 +201,7 @@ export default {
       try {
         const res = await post(`/attendant/orders/${this.orderId}/end?actualDuration=${this.actualDuration}`)
         if (res.code === 200) {
-          uni.showToast({ title: '已提交，等待用户确认', icon: 'success' })
+          uni.showToast({ title: '已提交待确认', icon: 'success' })
           setTimeout(() => {
             uni.navigateBack()
           }, 1200)

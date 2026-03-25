@@ -108,8 +108,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
-import { canUseRemoteImageUrl, config, getBackendImageUrl, getLocalFirstImageUrl } from '@/utils/api.js'
+import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const searchKeyword = ref('')
@@ -117,10 +118,10 @@ const publicSafeMode = isPublicSafeMode()
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
 const assistantEntryIcon = brandLogo
 const categories = ref([
-  { name: '普通陪诊', icon: appointmentServiceLogos[1] },
-  { name: '术后护理', icon: appointmentServiceLogos[2] },
-  { name: '急诊陪同', icon: appointmentServiceLogos[3] },
-  { name: '上门陪诊', icon: appointmentServiceLogos[4] }
+  { name: '普通陪诊', icon: appointmentServiceLogos[1], serviceTypeNumber: 1 },
+  { name: '术后护理', icon: appointmentServiceLogos[2], serviceTypeNumber: 2 },
+  { name: '急诊陪同', icon: appointmentServiceLogos[3], serviceTypeNumber: 3 },
+  { name: '上门陪诊', icon: appointmentServiceLogos[4], serviceTypeNumber: 4 }
 ])
 const services = ref([
   { name: '预约服务', icon: yvyue2 },
@@ -273,7 +274,9 @@ const navigateToCategory = (item) => {
     })
     return
   }
-  uni.showToast({ title: '分类功能待接入', icon: 'none' })
+  uni.navigateTo({
+    url: `/subpkg/appointment-flow/02_AppointmentForm?serviceTypeNumber=${encodeURIComponent(item.serviceTypeNumber)}&serviceTypeName=${encodeURIComponent(item.name)}`
+  })
 }
 
 const navigateToCompanion = () => {
@@ -293,15 +296,7 @@ const handleSearch = () => {
 }
 
 const getFullAvatarUrl = (relativePath) => {
-  const defaultAvatar = '/static/default-avatar.jpg'
-  if (!relativePath) return getLocalFirstImageUrl('default-avatar.jpg', defaultAvatar)
-  if (relativePath.startsWith('http')) {
-    return canUseRemoteImageUrl(relativePath) ? relativePath : defaultAvatar
-  }
-  const baseUrl = config.assetBaseURL.endsWith('/') ? config.assetBaseURL : config.assetBaseURL + '/'
-  const avatarPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath
-  const fullUrl = baseUrl + avatarPath
-  return canUseRemoteImageUrl(fullUrl) ? fullUrl : defaultAvatar
+  return resolveAvatarUrl(relativePath, getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg'))
 }
 
 const fetchAttendants = async () => {

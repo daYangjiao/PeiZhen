@@ -118,10 +118,10 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
-import { config } from '@/utils/api.js'
 import { getUserById } from '@/api/user.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, isPublicSafeMode } from '@/utils/site-mode.js'
 
 const PLACEHOLDER_AVATAR = userPlaceholder
@@ -130,13 +130,7 @@ const avatarLoadFailed = ref(false)
 const publicSafeMode = isPublicSafeMode()
 
 const getFullAvatarUrl = (relativePath) => {
-	if (!relativePath || typeof relativePath !== 'string') return PLACEHOLDER_AVATAR
-	const path = String(relativePath).trim()
-	if (!path) return PLACEHOLDER_AVATAR
-	if (path.startsWith('http')) return path
-	const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
-	const normalized = path.startsWith('/') ? path.substring(1) : path
-	return baseUrl + normalized
+	return resolveAvatarUrl(relativePath, PLACEHOLDER_AVATAR)
 }
 
 const avatarDisplayUrl = computed(() => {

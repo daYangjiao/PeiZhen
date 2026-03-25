@@ -73,6 +73,10 @@
         <text class="label">服务时间：</text>
         <text class="value">{{ order.serviceDate }} {{ order.serviceTime }}</text>
       </view>
+      <view v-if="order.actualDuration != null" class="info-item">
+        <text class="label">实际服务时长：</text>
+        <text class="value">{{ getActualDurationDisplay(order) }}</text>
+      </view>
       <view class="info-item">
         <text class="label">服务医院：</text>
         <text class="value">{{ order.hospital }}</text>
@@ -169,7 +173,7 @@
       </view>
       <view class="payment-row">
         <text class="label">取消时间</text>
-        <text class="value">{{ order.cancelTime || '未知' }}</text>
+        <text class="value">{{ formatOrderDateTime(order.cancelTime) || '未知' }}</text>
       </view>
       <view class="payment-row">
         <text class="label">违约金</text>
@@ -206,13 +210,13 @@
             <view class="row">
               <text class="label">预计时长</text>
               <text class="value">
-                {{ formatDuration(order.estimatedDuration) }}小时（{{ order.serviceTypeName || getServiceTypeName(order.clinicType) }})
+                {{ getEstimatedDurationDisplay(order) }}（{{ order.serviceTypeName || getServiceTypeName(order.clinicType) }})
               </text>
             </view>
             <view class="row">
               <text class="label">实际时长</text>
               <text class="value highlight">
-                {{ formatDuration(order.actualDuration) }}小时（陪诊师提交）
+                {{ getActualDurationDisplay(order) }}（陪诊师提交）
               </text>
             </view>
             <view class="row">
@@ -483,6 +487,8 @@ import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/
 import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatOrderDateTime, getOrderDurationLabel } from '@/utils/order-display.js'
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -723,7 +729,11 @@ const serviceSteps = computed(() => {
   const status = order.value.orderStatus;
   const paymentStatus = order.value.paymentStatus;
 
-  steps.push({ title: '订单创建', desc: '您已成功提交订单', time: order.value.createTime || formatDate(order.value.orderDate) });
+  steps.push({
+    title: '订单创建',
+    desc: '您已成功提交订单',
+    time: formatOrderDateTime(order.value.createTime || order.value.orderDate)
+  });
 
   // 如果订单已取消，单独处理，避免展示未发生的流程
   if (status === 7) {
@@ -733,39 +743,49 @@ const serviceSteps = computed(() => {
     steps.push({
       title: '订单取消',
       desc: order.value.cancelReason || '订单已被取消',
-      time: order.value.cancelTime || ''
+      time: formatOrderDateTime(order.value.cancelTime)
     });
     return steps;
   }
 
   if (paymentStatus === 1) {
-    steps.push({ title: '已支付', desc: '订单费用已支付', time: order.value.paymentTime || '' });
+    steps.push({
+      title: '已支付',
+      desc: '订单费用已支付',
+      time: formatOrderDateTime(order.value.paymentTime)
+    });
   }
 
   if (status >= 2) {
-    // 接单时间目前后端未单独返回，这里优先使用服务开始时间或支付时间作为近似参考
-    const acceptTime = formatDate(order.value.serviceStartTime) || (order.value.paymentTime || order.value.createTime || '');
-    steps.push({ title: '陪诊师已接单', desc: '陪诊师已接单，准备为您服务', time: acceptTime });
+    steps.push({
+      title: '陪诊师已接单',
+      desc: '陪诊师已接单，准备为您服务',
+      time: formatOrderDateTime(order.value.acceptTime || order.value.paymentTime || order.value.createTime)
+    });
   }
 
   if (status >= 3) {
-    steps.push({ title: '服务开始', desc: '陪诊师已开始服务', time: formatDate(order.value.serviceStartTime) });
+    steps.push({
+      title: '服务开始',
+      desc: '陪诊师已开始服务',
+      time: formatOrderDateTime(order.value.serviceStartTime)
+    });
   }
 
   if (status >= 4) {
-    const endTime = formatDate(order.value.serviceEndTime);
+    const endTime = formatOrderDateTime(order.value.serviceEndTime);
     steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
     // 待确认时长通常紧接服务结束，这里沿用服务结束时间作为记录时间
     steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
   }
 
   if (status >= 6) {
-    const finishTime = formatDate(order.value.updateTime || order.value.serviceEndTime);
+    const finishTime = formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime);
     steps.push({ title: '订单完成', desc: '订单已完成', time: finishTime });
   }
 
   if (status === 7) {
-    steps.push({ title: '订单取消', desc: '订单已被取消', time: '' });
+    steps.push({ title: '订单取消', desc: '订单已被取消', time: formatOrderDateTime(order.value.cancelTime) });
   }
 
   return steps;
@@ -823,12 +843,6 @@ const getServiceTypeName = (type) => {
   return typeMap[type] || '未知类型';
 };
 
-// 格式化日期
-const formatDate = (date) => {
-  if (!date) return '';
-  return new Date(date).toLocaleString('zh-CN');
-};
-
 // 格式化金额
 const formatAmount = (amount) => {
   if (!amount) return '0.00';
@@ -879,11 +893,7 @@ const submitCancelOrder = async () => {
 
 // 获取头像URL
 const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) return userPlaceholder;
-  if (avatarPath.startsWith('http')) return avatarPath;
-  const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL;
-  const path = avatarPath.startsWith('/') ? avatarPath : '/' + avatarPath;
-  return base + path;
+  return resolveAvatarUrl(avatarPath, userPlaceholder);
 };
 
 const getQrCodeUrl = (qrCodeUrl, orderId) => {
@@ -996,6 +1006,16 @@ const formatDuration = (val) => {
   const num = Number(val);
   if (Number.isNaN(num)) return '--';
   return num.toFixed(1).replace(/\.0$/, '');
+};
+
+const getActualDurationDisplay = (detailOrder) => {
+  if (!detailOrder || detailOrder.actualDuration == null) return '—';
+  return `${formatDuration(detailOrder.actualDuration)}小时`;
+};
+
+const getEstimatedDurationDisplay = (detailOrder) => {
+  const label = getOrderDurationLabel(detailOrder, '—');
+  return label === '—' ? label : label;
 };
 
 // 打开申诉弹窗

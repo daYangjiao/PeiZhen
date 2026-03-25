@@ -81,8 +81,9 @@ import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import EscortMenuCell from '@/components/EscortMenuCell.vue'
 import { useSessionStore } from '@/stores/session'
 import { useUserStore } from '@/stores/user'
-import { clearToken, config } from '@/utils/api.js'
+import { clearToken } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import {
   escortRules,
@@ -192,15 +193,7 @@ const menuGroups = computed(() => [
 ])
 
 const getFullAvatarUrl = (relativePath) => {
-  if (!relativePath) {
-    return userPlaceholder
-  }
-  if (relativePath.startsWith('http')) {
-    return relativePath
-  }
-  const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : `${config.baseURL}/`
-  const avatarPath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath
-  return `${baseUrl}${avatarPath}`
+  return resolveAvatarUrl(relativePath, userPlaceholder)
 }
 
 const loadProfile = async () => {

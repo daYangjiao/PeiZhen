@@ -32,6 +32,7 @@
         <result column="refund_amount" property="refundAmount"/>
         <result column="create_time" property="createTime"/>
         <result column="qr_code_url" property="qrCodeUrl"/>
+        <result column="accept_time" property="acceptTime"/>
         <result column="service_start_time" property="serviceStartTime"/>
         <result column="service_end_time" property="serviceEndTime"/>
         <result column="service_progress_step" property="serviceProgressStep"/>
@@ -106,6 +107,7 @@
             <if test="penaltyAmount != null">penalty_amount = #{penaltyAmount},</if>
             <if test="refundAmount != null">refund_amount = #{refundAmount},</if>
             <if test="qrCodeUrl != null">qr_code_url = #{qrCodeUrl},</if>
+            <if test="acceptTime != null">accept_time = #{acceptTime},</if>
             <if test="serviceStartTime != null">service_start_time = #{serviceStartTime},</if>
             <if test="serviceEndTime != null">service_end_time = #{serviceEndTime},</if>
             <if test="serviceProgressStep != null">service_progress_step = #{serviceProgressStep},</if>
@@ -184,6 +186,7 @@
             attendant_id = NULL,
             attendant_name = NULL,
             qr_code_url = NULL,
+            accept_time = NULL,
             cancel_reason = #{reason},
             cancel_time = #{cancelTime},
             cancel_by = 1,

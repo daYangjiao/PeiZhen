@@ -72,6 +72,12 @@ public class OrderListResponse {
     @ApiModelProperty(value = "预约时间", example = "2025-12-01 09:00:00")
     private Date appointmentTime;
 
+    @ApiModelProperty(value = "接单时间", example = "2025-12-01 09:15:00")
+    private Date acceptTime;
+
+    @ApiModelProperty(value = "实际服务时长", example = "2.5")
+    private BigDecimal actualDuration;
+
     @ApiModelProperty(value = "症状描述（与用户端一致，逗号分隔）", example = "发热,咳嗽")
     private String specialRequirements;
 

@@ -31,6 +31,9 @@ public class CompleteOrderInfoResponse {
     
     @ApiModelProperty(value = "支付时间", example = "2024-01-15 10:32:00")
     private String paymentTime;
+
+    @ApiModelProperty(value = "接单时间", example = "2024-01-15 10:50:00")
+    private String acceptTime;
     
     @ApiModelProperty(value = "总价格", example = "80.00")
     private BigDecimal totalPrice;

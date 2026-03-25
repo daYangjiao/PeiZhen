@@ -75,6 +75,7 @@
 import { computed, ref } from 'vue'
 // 通过 import 让构建时解析路径，避免 H5/小程序里 /static/ 路径不生效
 import placeholderImg from '../static/user-placeholder.png'
+import { resolveAvatarUrl } from '@/utils/media.js'
 
 const props = defineProps({
 	orderData: { type: Object, required: true },
@@ -88,11 +89,7 @@ const emit = defineEmits(['card-click', 'view-detail', 'main-action'])
 const avatarError = ref(false)
 const displayAvatar = computed(() => {
 	if (avatarError.value) return placeholderImg
-	const url = props.orderData.userAvatar
-	if (url && (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:'))) return url
-	// 无头像或为占位图路径时，使用 import 的占位图（构建时解析，避免 /static/ 不生效）
-	if (!url || !String(url).trim() || String(url).includes('user-placeholder')) return placeholderImg
-	return url
+	return resolveAvatarUrl(props.orderData.userAvatar, placeholderImg)
 })
 const onAvatarError = () => {
 	avatarError.value = true

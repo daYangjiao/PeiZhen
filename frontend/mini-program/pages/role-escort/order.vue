@@ -102,11 +102,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
-import { get, config } from '@/utils/api.js'
+import { get } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 
 const searchKeyword = ref('')
 
@@ -213,13 +214,7 @@ const getStatusClass = (status) => {
 }
 
 const getPatientAvatar = (order) => {
-  const placeholder = userPlaceholder
-  if (!order || !order.userAvatar) return placeholder
-  const path = order.userAvatar
-  if (path.startsWith('http')) return path
-  const base = (config.baseURL || '').replace(/\/$/, '')
-  if (path.startsWith('/')) return base + path
-  return base + '/' + path
+  return resolveAvatarUrl(order?.userAvatar, userPlaceholder)
 }
 
 const goToDetail = (order) => {

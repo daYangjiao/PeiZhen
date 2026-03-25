@@ -62,11 +62,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { get, post, config, canUseRemoteImageUrl } from '@/utils/api.js'
+import { get, post } from '@/utils/api.js'
 import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { brandLogo, defaultAvatar } from '@/utils/assets.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const contacts = ref([])
@@ -168,7 +169,7 @@ const openChat = (contact) => {
   if (!targetId) return
   const targetName = contact.senderName === '我' ? '用户' : (contact.senderName || '用户')
   uni.navigateTo({
-    url: `/subpkg/chat/chat?userId=${targetId}&name=${targetName}`
+    url: `/subpkg/chat/chat?userId=${targetId}&name=${encodeURIComponent(targetName)}&avatar=${encodeURIComponent(contact.senderAvatar || '')}`
   })
   ;(async () => {
     try {
@@ -180,16 +181,7 @@ const openChat = (contact) => {
 }
 
 const getAvatarUrl = (url) => {
-  if (!url) return defaultAvatar
-  if (url.startsWith('http') || url.startsWith('https')) {
-    return canUseRemoteImageUrl(url) ? url : defaultAvatar
-  }
-  let baseUrl = config.assetBaseURL || config.baseURL
-  if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1)
-  let path = url
-  if (!path.startsWith('/')) path = '/' + path
-  const fullUrl = baseUrl + path
-  return canUseRemoteImageUrl(fullUrl) ? fullUrl : defaultAvatar
+  return resolveAvatarUrl(url, defaultAvatar)
 }
 
 const handleImageError = () => {}

@@ -54,10 +54,23 @@
             <text class="placeholder-text">上传执业证书</text>
           </view>
           <view class="cert-foot">
-            <text class="cert-name">执业证书</text>
-            <text class="cert-state" :class="practiceCertUrl ? 'pass' : 'warn'">
-              {{ practiceCertUrl ? '已上传' : '未上传' }}
-            </text>
+            <view class="cert-meta">
+              <text class="cert-name">执业证书</text>
+              <text class="cert-state" :class="practiceCertUrl ? 'pass' : 'warn'">
+                {{ practiceCertUrl ? '已上传' : '未上传' }}
+              </text>
+            </view>
+            <view class="cert-actions">
+              <text
+                v-if="practiceCertUrl"
+                class="cert-action"
+                @click.stop="previewCert(practiceCertUrl)"
+              >预览</text>
+              <text
+                class="cert-action primary"
+                @click.stop="uploadByKey('practiceCert')"
+              >{{ practiceCertUrl ? '修改' : '上传' }}</text>
+            </view>
           </view>
         </view>
 
@@ -68,10 +81,23 @@
             <text class="placeholder-text">上传健康证</text>
           </view>
           <view class="cert-foot">
-            <text class="cert-name">健康证</text>
-            <text class="cert-state" :class="healthCertUrl ? 'pass' : 'warn'">
-              {{ healthCertUrl ? '已上传' : '未上传' }}
-            </text>
+            <view class="cert-meta">
+              <text class="cert-name">健康证</text>
+              <text class="cert-state" :class="healthCertUrl ? 'pass' : 'warn'">
+                {{ healthCertUrl ? '已上传' : '未上传' }}
+              </text>
+            </view>
+            <view class="cert-actions">
+              <text
+                v-if="healthCertUrl"
+                class="cert-action"
+                @click.stop="previewCert(healthCertUrl)"
+              >预览</text>
+              <text
+                class="cert-action primary"
+                @click.stop="uploadByKey('healthCert')"
+              >{{ healthCertUrl ? '修改' : '上传' }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -87,8 +113,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
-import { config, put, upload } from '@/utils/api.js'
+import { put, upload } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
+import { resolveImageUrl } from '@/utils/media.js'
 
 const userStore = useUserStore()
 const { attendantInfo } = storeToRefs(userStore)
@@ -108,10 +135,7 @@ const healthCertUrl = computed(() => attendantInfo.value.healthCertFileUrl || ''
 const idCardReady = computed(() => !!idCardFront.value && !!idCardBack.value)
 
 const toFullUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL
-  return `${base}${url}`
+  return resolveImageUrl(url, '')
 }
 
 const loadProfile = async () => {
@@ -185,6 +209,10 @@ const onCertCardTap = (key, url) => {
     return
   }
   uploadByKey(key)
+}
+
+const previewCert = (url) => {
+  previewImage(url)
 }
 
 const goBack = () => {
@@ -350,12 +378,19 @@ onMounted(loadProfile)
 }
 
 .cert-foot {
-  height: 72rpx;
+  min-height: 96rpx;
   background: #fff;
-  padding: 0 12rpx;
+  padding: 12rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12rpx;
+}
+
+.cert-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
 .cert-name {
@@ -374,6 +409,33 @@ onMounted(loadProfile)
 
 .cert-state.warn {
   color: #ff4d4f;
+}
+
+.cert-actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.cert-action {
+  height: 48rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #dbe4f0;
+  background: #f8fbff;
+  color: #4b5563;
+  font-size: 22rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cert-action.primary {
+  border-color: rgba(37, 99, 235, 0.18);
+  background: rgba(37, 99, 235, 0.1);
+  color: $escort-color-primary;
+  font-weight: 600;
 }
 
 .bottom-btn {

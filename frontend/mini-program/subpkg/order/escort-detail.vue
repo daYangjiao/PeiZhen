@@ -145,7 +145,7 @@
 					</view>
 					<view class="row">
 						<text class="label">实际时长</text>
-						<text class="value">{{ orderInfo.actualDuration ? orderInfo.actualDuration + '小时' : '—' }}</text>
+						<text class="value">{{ formatDurationValue(orderInfo.actualDuration) }}</text>
 					</view>
 					<view class="row">
 						<text class="label">费用差异</text>
@@ -503,16 +503,65 @@
 </template>
 
 <script>
-import { get, post, config } from '@/utils/api.js'
+import { get, post } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runtime.js'
 import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatOrderDateTime, getOrderDurationLabel } from '@/utils/order-display.js'
 
 function fullAvatarUrl(path) {
-	if (!path || path.startsWith('http') || path.startsWith('/static')) return path
-	const base = (config.baseURL || '').replace(/\/$/, '')
-	return base + (path.startsWith('/') ? path : '/' + path)
+	return resolveAvatarUrl(path, placeholderImg)
+}
+
+function getSlotEndText(slot) {
+	if (!slot) return ''
+	const text = String(slot).trim()
+	const rangeMatch = text.match(/(\d{1,2}:\d{2})\s*[-~至]\s*(\d{1,2}:\d{2})/)
+	if (rangeMatch) return rangeMatch[2]
+	return ''
+}
+
+function buildAppointmentTime(order) {
+	return [order.serviceDate, order.serviceTimeSlot].filter(Boolean).join(' ').trim()
+}
+
+function buildAppointmentEndTime(order) {
+	if (order.appointmentEndTime) return formatOrderDateTime(order.appointmentEndTime)
+	const endText = getSlotEndText(order.serviceTimeSlot)
+	if (!order.serviceDate || !endText) return ''
+	return `${order.serviceDate} ${endText}`
+}
+
+function buildEscortServiceRecords(order, status) {
+	const records = []
+	const pushRecord = (time, content) => {
+		const formatted = formatOrderDateTime(time)
+		if (!formatted) return
+		records.push({ time: formatted, content })
+	}
+
+	pushRecord(order.createTime, '订单创建')
+	if (Number(order.paymentStatus) === 1) {
+		pushRecord(order.paymentTime, '用户已支付订单')
+	}
+	if (Number(order.orderStatus) >= 2) {
+		pushRecord(order.acceptTime || order.paymentTime || order.createTime, '陪诊师已接单')
+	}
+	if (Number(order.orderStatus) >= 3) {
+		pushRecord(order.serviceStartTime, '扫码核销，开始服务')
+	}
+	if (Number(order.orderStatus) >= 4) {
+		pushRecord(order.serviceEndTime || order.updateTime, '已提交服务时长与费用')
+	}
+	if (status === 'completed') {
+		pushRecord(order.updateTime || order.serviceEndTime, '订单已完成')
+	}
+	if (status === 'cancelled') {
+		pushRecord(order.cancelTime, '订单已取消')
+	}
+	return records
 }
 
 export default {
@@ -606,7 +655,7 @@ export default {
 				pending: '等待陪诊师接单',
 				accepted: '请按时到达指定地点',
 				in_progress: '正在为患者提供陪诊服务',
-				waiting_confirm: '已提交服务时长与费用，等待患者确认',
+				waiting_confirm: '已提交时长费用，待用户确认',
 				disputed: '患者对本次时长与费用有异议，等待平台处理',
 				completed: '服务已完成，感谢您的专业服务',
 				cancelled: '订单已取消'
@@ -786,15 +835,16 @@ export default {
 						orderNo: order.orderNo,
 						userId: order.userId,
 						status: status,
-						patientName: order.patientName || order.contactPerson,
+						patientName: order.contactPerson || order.patientName || order.userName || '患者',
 						patientAge: order.patientAge || '--',
 						patientGender: order.patientSex || '未知',
 						patientPhone: order.contactPhone || order.userPhone,
 						patientAvatar: showUserAvatar ? fullAvatarUrl(order.userAvatar) : '',
 						serviceType: order.serviceContent || order.serviceTypeName,
 						hospital: order.hospital,
-						appointmentTime: (order.serviceDate || '') + ' ' + (order.serviceTimeSlot || ''),
-						duration: order.consultationDuration ? order.consultationDuration + '小时' : '2小时',
+						appointmentTime: buildAppointmentTime(order),
+						appointmentEndTime: buildAppointmentEndTime(order),
+						duration: getOrderDurationLabel(order, '—'),
 						symptomDescription: order.specialRequirements || '',
 						otherRequirement: (order.customRequirement && order.customRequirement !== '无') ? order.customRequirement : '',
 						specialRequests: (!order.specialRequirements && (!order.customRequirement || order.customRequirement === '无')) ? '无特殊要求' : '',
@@ -808,7 +858,7 @@ export default {
 						estimatedDuration: order.estimatedDuration,
 						actualDuration: order.actualDuration,
 						balanceAmount: order.balanceAmount,
-						serviceRecords: []
+						serviceRecords: buildEscortServiceRecords(order, status)
 					}
 					const stored = uni.getStorageSync(`order_flow_step_${order.orderId}`)
 					if (stored) {
@@ -858,7 +908,7 @@ export default {
 				}
 			} else if (type === 'chat') {
 				uni.navigateTo({
-					url: `/subpkg/chat/chat?userId=${this.orderInfo.userId}&name=${encodeURIComponent(this.orderInfo.patientName || '患者')}`
+					url: `/subpkg/chat/chat?userId=${encodeURIComponent(this.orderInfo.userId)}&name=${encodeURIComponent(String(this.orderInfo.patientName || '患者'))}&avatar=${encodeURIComponent(this.orderInfo.patientAvatar || '')}`
 				})
 			}
 		},
@@ -1107,6 +1157,12 @@ export default {
 		},
 		formatAppointmentTime() {
 			return this.orderInfo.appointmentTime || '时间待定'
+		},
+		formatDurationValue(val) {
+			if (val == null || val === '') return '—'
+			const num = Number(val)
+			if (Number.isNaN(num)) return '—'
+			return `${num.toFixed(1).replace(/\.0$/, '')}小时`
 		},
 		handleSocketMessage(message) {
 			const isCurrentOrder = message.orderId === this.orderInfo.id || 

@@ -42,8 +42,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { config } from '@/utils/api.js'
 import { chooseAndUploadAvatar } from '@/utils/avatar-upload.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 
 const props = defineProps({
   modelValue: {
@@ -80,9 +80,7 @@ const emit = defineEmits(['update:modelValue', 'uploaded'])
 const uploading = ref(false)
 
 const resolvePreview = (value) => {
-  if (!value) return ''
-  if (value.startsWith('http')) return value
-  return `${config.baseURL}${value}`
+  return resolveAvatarUrl(value, '')
 }
 
 const previewUrl = computed(() => resolvePreview(props.modelValue))

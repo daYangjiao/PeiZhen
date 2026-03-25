@@ -74,17 +74,13 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '@/api/user.js'
-import { config } from '@/utils/api.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 
 // 与陪诊师端一致：将数据库头像路径转为完整 URL
 const getFullAvatarUrl = (relativePath) => {
-	if (!relativePath) return userPlaceholder
-	if (relativePath.startsWith('http')) return relativePath
-	const baseUrl = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/'
-	const path = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath
-	return baseUrl + path
+	return resolveAvatarUrl(relativePath, userPlaceholder)
 }
 
 // 响应式数据

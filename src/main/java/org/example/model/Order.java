@@ -96,6 +96,10 @@ public class Order {
     // 业务逻辑支持字段
     @ApiModelProperty(value = "二维码URL")
     private String qrCodeUrl;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "接单时间")
+    private Date acceptTime;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty(value = "服务开始时间")

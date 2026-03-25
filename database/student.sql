@@ -105,6 +105,7 @@ CREATE TABLE `order` (
   `penalty_amount` decimal(10,2) DEFAULT NULL COMMENT '违约金金额',
   `refund_amount` decimal(10,2) DEFAULT NULL COMMENT '退款金额',
   `qr_code_url` varchar(255) DEFAULT NULL COMMENT '核销二维码URL',
+  `accept_time` datetime DEFAULT NULL COMMENT '接单时间',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `service_start_time` datetime DEFAULT NULL COMMENT '服务开始时间',
   `service_end_time` datetime DEFAULT NULL COMMENT '服务结束时间',
@@ -252,6 +253,11 @@ INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attenda
 INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1022, 'ORD20260318001', 18, 24, '唐思雨', '13900139024', '陈雨桐', 29, '女', '陈雨桐', '13800138018', '成都市第一人民医院', '上门陪诊', 4, '2026-03-18', '08:00-12:00', '用户对本次上门陪诊时长有异议。', '用户认为返程途中等待时间不应计费', '280.00', 1, '2026-03-18 07:30:00', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-18 07:00:00', '2026-03-18 08:10:00', '2026-03-18 12:30:00', 4, '4.00', '4.50', '25.00', '3.50', '用户在返程途中自行停留一小时');
 INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1023, 'ORD20260322001', 19, NULL, NULL, NULL, '宋嘉宁', 42, '女', '宋嘉宁', '13800138019', '成都市第三人民医院', '普通陪诊', 1, '2026-03-22', '08:30-11:30', '已创建订单，等待支付。', '需要短信提醒支付', '185.00', 0, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-22 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
 INSERT INTO `order` (`order_id`, `order_no`, `user_id`, `attendant_id`, `attendant_name`, `attendant_phone`, `patient_name`, `patient_age`, `patient_sex`, `contact_person`, `contact_phone`, `hospital`, `service_content`, `clinic_type`, `service_date`, `service_time_slot`, `special_requirements`, `custom_requirement`, `order_amount`, `payment_status`, `payment_time`, `order_status`, `cancel_reason`, `cancel_time`, `cancel_by`, `penalty_rate`, `penalty_amount`, `refund_amount`, `qr_code_url`, `create_time`, `service_start_time`, `service_end_time`, `service_progress_step`, `estimated_duration`, `actual_duration`, `balance_amount`, `time_dispute_user_duration`, `time_dispute_reason`) VALUES (1024, 'ORD20260318002', 20, 23, '周可宁', '13900139023', '何子安', 33, '男', '何子安', '13800138020', '成都市妇女儿童中心医院', '急诊陪同', 3, '2026-03-18', '13:00-16:00', '因家属临时有事取消。', '系统已释放陪诊师', '210.00', 1, '2026-03-18 07:30:00', 7, '家属临时无法到院', '2026-03-18 11:20:00', 0, NULL, NULL, NULL, NULL, '2026-03-18 07:00:00', NULL, NULL, NULL, '3.00', NULL, NULL, NULL, NULL);
+UPDATE `order`
+SET `accept_time` = CASE
+  WHEN `order_status` >= 2 THEN COALESCE(DATE_SUB(`service_start_time`, INTERVAL 30 MINUTE), `payment_time`, `create_time`)
+  ELSE NULL
+END;
 COMMIT;
 
 -- Data for order_evaluation

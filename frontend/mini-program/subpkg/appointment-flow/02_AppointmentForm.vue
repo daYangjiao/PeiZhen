@@ -86,8 +86,8 @@
 				<text class="section-title">症状选择</text>
 			</view>
 			<view class="symptom-list">
-				<view class="symptom-item" v-for="(item, index) in symptoms" :key="index" @click="toggleSymptom(index)">
-					<checkbox :checked="selectedSymptoms.includes(index)" class="checkbox" />
+				<view class="symptom-item" v-for="(item, index) in symptoms" :key="index" @click="toggleSymptom(item)">
+					<checkbox :checked="selectedSymptoms.includes(item)" class="checkbox" />
 					<text class="symptom-text">{{ item }}</text>
 				</view>
 			</view>
@@ -261,7 +261,7 @@ const selectedTime = ref('')
 
 // --- 新增：症状和需求相关数据 ---
 const symptoms = ref(['胸痛', '头痛', '发热', '呼吸困难', '恶心呕吐', '腹痛', '头晕']);
-const selectedSymptoms = ref([]); // 存储选中的症状索引
+const selectedSymptoms = ref([]);
 const otherRequirements = ref(''); // 存储其他需求文本
 
 // --- 新增：添加症状弹窗 ---
@@ -399,11 +399,11 @@ const getServiceIcon = (typeNumber) => {
 }
 
 // --- 新增：症状选择方法 ---
-const toggleSymptom = (index) => {
-	if (selectedSymptoms.value.includes(index)) {
-		selectedSymptoms.value = selectedSymptoms.value.filter(i => i !== index)
+const toggleSymptom = (symptom) => {
+	if (selectedSymptoms.value.includes(symptom)) {
+		selectedSymptoms.value = selectedSymptoms.value.filter(item => item !== symptom)
 	} else {
-		selectedSymptoms.value.push(index)
+		selectedSymptoms.value.push(symptom)
 	}
 }
 
@@ -508,7 +508,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 		patientPhone: String(phoneNumber.value || '').trim(),
 		// --- 新增：症状和需求 ---
 		// 症状 (确保是一个数组)
-		symptoms: selectedSymptoms.value.map(i => symptoms.value[i]), // 将索引转换为实际症状文本
+		symptoms: selectedSymptoms.value,
 		// 其他需求 (确保是一个字符串)
 		otherRequirement: otherRequirements.value,
 		// --- 结束新增 ---

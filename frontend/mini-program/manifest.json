@@ -1,46 +1,53 @@
 {
-  "name": "MiniProgram",
-  "appid": "__UNI__MERGED__",
-  "description": "合并后的陪诊小程序（用户端+陪诊师端）",
-  "versionName": "1.0.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "vueVersion": "3",
-  "app-plus": {
-    "usingComponents": true,
-    "nvueStyleCompiler": "uni-app",
-    "compilerVersion": 3,
-    "splashscreen": {
-      "alwaysShowBeforeRender": true,
-      "waiting": true,
-      "autoclose": true,
-      "delay": 0
+    "name" : "愈安伴陪诊",
+    "appid" : "__UNI__73289DB",
+    "description" : "合并后的陪诊小程序（用户端+陪诊师端）",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "vueVersion" : "3",
+    "app-plus" : {
+        "usingComponents" : true,
+        "nvueStyleCompiler" : "uni-app",
+        "compilerVersion" : 3,
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : true,
+            "waiting" : true,
+            "autoclose" : true,
+            "delay" : 0
+        },
+        "statusbar" : {
+            "immersed" : false,
+            "style" : "dark",
+            "background" : "#f5f8fc"
+        },
+        "distribute" : {
+            "android" : {
+                "package" : "cn.yuanban.peizhen",
+                "permissions" : [
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+                    "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>"
+                ]
+            },
+            "ios" : {
+                "dSYMs" : false
+            }
+        },
+        "modules" : {
+            "Camera" : {},
+            "Barcode" : {}
+        }
     },
-    "statusbar": {
-      "immersed": false,
-      "style": "dark",
-      "background": "#f5f8fc"
-    },
-    "distribute": {
-      "android": {
-        "package": "cn.yuanban.peizhen",
-        "permissions": [
-          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
-          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
-          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
-          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
-          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
-          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>"
-        ]
-      }
+    "mp-weixin" : {
+        "appid" : "wx93c4e986bbcbd674",
+        "setting" : {
+            "urlCheck" : false,
+            "lazyCodeLoading" : "requiredComponents"
+        },
+        "usingComponents" : true
     }
-  },
-  "mp-weixin": {
-    "appid": "wx93c4e986bbcbd674",
-    "setting": {
-      "urlCheck": false,
-      "lazyCodeLoading": "requiredComponents"
-    },
-    "usingComponents": true
-  }
 }

@@ -123,6 +123,7 @@ public class OrderServiceImpl implements OrderService {
         order.setAttendantId(attendantId);
         order.setAttendantName(attendantUser.getName());
         order.setOrderStatus(2); // 设置为已接单状态
+        order.setAcceptTime(new Date());
 
         String qrCodeUrl = generateQrCodeUrl(orderId);
         order.setQrCodeUrl(qrCodeUrl);
@@ -546,6 +547,8 @@ try {
             res.setPaymentStatus(order.getPaymentStatus());
             res.setServiceTypeName(order.getServiceContent());
             res.setCreateTime(order.getCreateTime());
+            res.setAcceptTime(order.getAcceptTime());
+            res.setActualDuration(order.getActualDuration());
             res.setSpecialRequirements(order.getSpecialRequirements());
             res.setCustomRequirement(order.getCustomRequirement());
 

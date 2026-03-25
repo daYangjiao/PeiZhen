@@ -169,7 +169,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { get, post, upload, config } from '@/utils/api.js'
+import { get, post, upload } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
 import {
   chooseLocationWithGuard,
@@ -179,6 +179,7 @@ import {
   showUnsupportedFeature
 } from '@/subpkg/common/runtime.js'
 import { album, call, camera, doctorAvatar, emoji, emergency, keyboard, location, plus, userPlaceholder, video, voice } from '@/utils/assets.js'
+import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
@@ -216,8 +217,8 @@ onLoad((options) => {
 
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return; }
   targetUserId.value = parseInt(options.userId || options.attendantId)
-  targetName.value = options.name || '陪诊师'
-  if (options.avatar) targetAvatar.value = getImageUrl(options.avatar)
+  targetName.value = options.name ? decodeURIComponent(options.name) : '陪诊师'
+  if (options.avatar) targetAvatar.value = resolveAvatarUrl(decodeURIComponent(options.avatar), doctorAvatar)
 
   connectChatSocket()
   loadHistory()
@@ -566,33 +567,18 @@ const navigateBack = () => {
 const scrollToBottom = () => { nextTick(() => { scrollIntoView.value = 'msg-' + (messages.value.length - 1) }) }
 const getAvatar = (msg) => {
     if (msg.senderId === currentUserId.value) {
-        // 当前用户头像
         const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar
-        const avatarUrl = currentUserAvatar || userPlaceholder
-        console.log('当前陪诊师头像:', avatarUrl)
-        return getImageUrl(avatarUrl)
+        return resolveAvatarUrl(currentUserAvatar || '', userPlaceholder)
     }
-    
-    // 对方用户头像
     if (msg.senderAvatar && msg.senderAvatar !== userPlaceholder && msg.senderAvatar !== doctorAvatar) {
-        console.log('使用消息中的用户头像:', msg.senderAvatar)
-        return getImageUrl(msg.senderAvatar)
+        return resolveAvatarUrl(msg.senderAvatar, userPlaceholder)
     }
-    
-    // 使用预加载的目标用户头像
     if (targetAvatar.value && targetAvatar.value !== userPlaceholder && targetAvatar.value !== doctorAvatar) {
-        console.log('使用预加载用户头像:', targetAvatar.value)
-        return targetAvatar.value
+        return resolveAvatarUrl(targetAvatar.value, userPlaceholder)
     }
-    
-    // 默认使用用户占位头像
-    console.log('使用默认用户头像')
     return userPlaceholder
 }
-const getImageUrl = (url) => {
-  if (!url) return userPlaceholder; if (url.startsWith('http') || url.startsWith('wxfile')) return url;
-  const baseUrl = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL; return baseUrl + (url.startsWith('/') ? url : '/' + url)
-}
+const getImageUrl = (url) => resolveImageUrl(url, userPlaceholder)
 const previewImage = (url) => uni.previewImage({ urls: [url], current: url })
 
 const handleAvatarError = (e) => {

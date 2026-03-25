@@ -140,7 +140,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { get, post, upload, config } from '@/utils/api.js'
+import { get, post, upload } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
 import {
   chooseLocationWithGuard,
@@ -150,6 +150,7 @@ import {
   showUnsupportedFeature
 } from '@/subpkg/common/runtime.js'
 import { album, camera, emoji, emergency, keyboard, location, plus, userPlaceholder, voice } from '@/utils/assets.js'
+import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
@@ -185,8 +186,8 @@ onLoad((options) => {
   uni.stopPullDownRefresh()
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return }
   targetUserId.value = parseInt(options.userId || options.attendantId)
-  targetName.value = options.name || (role.value === 'escort' ? '用户' : '陪诊师')
-  if (options.avatar) targetAvatar.value = getImageUrl(options.avatar)
+  targetName.value = options.name ? decodeURIComponent(options.name) : (role.value === 'escort' ? '用户' : '陪诊师')
+  if (options.avatar) targetAvatar.value = resolveAvatarUrl(decodeURIComponent(options.avatar), userPlaceholder)
   connectChatSocket()
   loadHistory()
   uni.onKeyboardHeightChange(res => {
@@ -493,20 +494,14 @@ const scrollToBottom = () => {
 const getAvatar = (msg) => {
   if (msg.senderId === currentUserId.value) {
     const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar
-    const avatarUrl = currentUserAvatar || userPlaceholder
-    return getImageUrl(avatarUrl)
+    return resolveAvatarUrl(currentUserAvatar || '', userPlaceholder)
   }
-  if (msg.senderAvatar) return getImageUrl(msg.senderAvatar)
-  if (targetAvatar.value) return targetAvatar.value
+  if (msg.senderAvatar) return resolveAvatarUrl(msg.senderAvatar, userPlaceholder)
+  if (targetAvatar.value) return resolveAvatarUrl(targetAvatar.value, userPlaceholder)
   return userPlaceholder
 }
 
-const getImageUrl = (url) => {
-  if (!url) return userPlaceholder
-  if (url.startsWith('http') || url.startsWith('wxfile')) return url
-  const baseUrl = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL
-  return baseUrl + (url.startsWith('/') ? url : '/' + url)
-}
+const getImageUrl = (url) => resolveImageUrl(url, userPlaceholder)
 
 const previewImage = (url) => uni.previewImage({ urls: [url], current: url })
 
