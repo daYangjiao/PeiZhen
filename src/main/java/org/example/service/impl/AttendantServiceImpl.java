@@ -221,6 +221,11 @@ public class AttendantServiceImpl implements AttendantService {
         return "提交审核成功";
     }
 
+    @Override
+    public List<Attendant> getAdminList(String keyword, Integer auditStatus) {
+        return attendantMapper.findAdminAttendants(keyword, auditStatus, 0, 200);
+    }
+
     private String mapQualificationStatusText(Integer status) {
         if (status == null) {
             return "待审核";

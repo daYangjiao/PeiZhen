@@ -40,6 +40,9 @@ public class User {
     @ApiModelProperty(value = "角色：0=普通用户, 1=陪诊师, 2=管理员", required = true, example = "1")
     private Integer userType;
 
+    @ApiModelProperty(value = "账号状态：1=正常, 0=禁用", example = "1")
+    private Integer status;
+
     @ApiModelProperty(value = "陪诊师个人简介", example = "熟悉三甲医院就诊流程，擅长术后护理与普通陪诊。")
     private String introduction;
 

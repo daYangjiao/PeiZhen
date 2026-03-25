@@ -16,6 +16,8 @@ prepare_release_workspace
 FRONTEND_DIR="${SYNC_ROOT}/frontend/mini-program"
 DIST_DIR="${FRONTEND_DIR}/dist/build/h5"
 STATIC_DIR="${FRONTEND_DIR}/static"
+ADMIN_DIR="${SYNC_ROOT}/frontend/admin"
+ADMIN_DIST_DIR="${ADMIN_DIR}/dist"
 
 if [[ ! -f "${SSH_KEY}" ]]; then
   echo "SSH key not found: ${SSH_KEY}" >&2
@@ -30,6 +32,11 @@ fi
 cd "${FRONTEND_DIR}"
 npm run build:h5
 
+if [[ -d "${ADMIN_DIR}" ]]; then
+  cd "${ADMIN_DIR}"
+  npm run build
+fi
+
 rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
   "${DIST_DIR}/" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_ROOT}/frontend/mini-program/dist/build/h5/"
@@ -37,6 +44,12 @@ rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
 rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
   "${STATIC_DIR}/" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_ROOT}/frontend/mini-program/static/"
+
+if [[ -d "${ADMIN_DIR}" ]]; then
+  rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
+    "${ADMIN_DIST_DIR}/" \
+    "${SERVER_USER}@${SERVER_HOST}:${REMOTE_ROOT}/frontend/admin/dist/"
+fi
 
 rsync -av -e "ssh ${SSH_OPTS[*]}" \
   "${PROJECT_ROOT}/deploy/" \
@@ -51,7 +64,7 @@ ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
   RELEASE_GIT_DIRTY='${RELEASE_GIT_DIRTY}' \
   RELEASE_TIMESTAMP='${RELEASE_TIMESTAMP}' \
   RELEASE_ACTOR='${RELEASE_ACTOR}' \
-  bash deploy/scripts/deploy-frontend.sh '${REMOTE_ROOT}/frontend/mini-program/dist/build/h5'"
+  bash deploy/scripts/deploy-frontend.sh '${REMOTE_ROOT}/frontend/mini-program/dist/build/h5' '/var/www/pz-mini' '${REMOTE_ROOT}/frontend/mini-program/static' '${REMOTE_ROOT}/frontend/admin/dist'"
 
 ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
   "sudo test -f /var/lib/pz-deploy/releases/frontend-release.env && \

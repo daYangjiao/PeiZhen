@@ -9,6 +9,7 @@ fi
 SOURCE_DIR="$1"
 WEB_ROOT="${2:-/var/www/pz-mini}"
 STATIC_SOURCE_DIR="${3:-}"
+ADMIN_SOURCE_DIR="${4:-}"
 RELEASE_META_DIR="${RELEASE_META_DIR:-/var/lib/pz-deploy/releases}"
 RELEASE_META_FILE="${RELEASE_META_DIR}/frontend-release.env"
 
@@ -34,6 +35,15 @@ if [[ -n "${STATIC_SOURCE_DIR}" ]]; then
   fi
   install -d "${WEB_ROOT}/static"
   rsync -av --delete "${STATIC_SOURCE_DIR}/" "${WEB_ROOT}/static/"
+fi
+
+if [[ -n "${ADMIN_SOURCE_DIR}" ]]; then
+  if [[ ! -d "${ADMIN_SOURCE_DIR}" ]]; then
+    echo "Admin directory not found: ${ADMIN_SOURCE_DIR}" >&2
+    exit 1
+  fi
+  install -d "${WEB_ROOT}/admin"
+  rsync -av --delete "${ADMIN_SOURCE_DIR}/" "${WEB_ROOT}/admin/"
 fi
 
 install -d "${RELEASE_META_DIR}"

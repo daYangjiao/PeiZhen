@@ -10,7 +10,7 @@ public interface AttendantService {
 
     /**
      * 注册成为陪诊师 (包含创建User账号和Attendant扩展信息)
-     * @param user 包含手机号、密码等基本信息
+     * @param user 包含用户名、密码等基本信息
      * @param attendant 包含专业领域、简介等扩展信息
      * @return 创建的用户ID
      */
@@ -29,7 +29,7 @@ public interface AttendantService {
      * @return 更新行数
      */
     int update(Attendant attendant);
-    
+
     /**
      * 查找推荐的陪诊师列表 (例如，用于首页展示)
      * @return 推荐的陪诊师列表
@@ -57,4 +57,6 @@ public interface AttendantService {
      * @return 提交结果
      */
     String submitQualification(Integer userId);
+
+    List<Attendant> getAdminList(String keyword, Integer auditStatus);
 }
