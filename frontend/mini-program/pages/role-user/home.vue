@@ -58,7 +58,7 @@
 
     <view class="companion-section">
       <view class="section-header">
-        <text class="section-title">{{ publicSafeMode ? '陪诊经验人物卡' : '推荐陪诊员' }}</text>
+        <text class="section-title" @click="toggleAvatarDiagnostics">{{ publicSafeMode ? '陪诊经验人物卡' : '推荐陪诊员' }}</text>
       </view>
       <scroll-view class="companion-scroll" scroll-x="true" show-scrollbar="true">
         <view class="companion-list">
@@ -68,10 +68,20 @@
             :key="index"
             @click="navigateToCompanion(companion)"
           >
-            <view
+            <view class="companion-avatar-wrap">
+            <image
               class="companion-avatar"
+              :src="companion.displayAvatar"
+              mode="aspectFill"
+              @load="handleCompanionAvatarLoad(companion, $event)"
+              @error="handleCompanionAvatarError(companion, $event)"
+            ></image>
+            <view
+              v-if="showAvatarDiagnostics"
+              class="companion-avatar-bg-check"
               :style="getCompanionAvatarStyle(companion)"
             ></view>
+          </view>
             <view class="companion-info">
               <text class="companion-name">{{ companion.name }}</text>
               <text class="companion-specialty">{{ companion.professionalField }}</text>
@@ -79,6 +89,18 @@
               <view class="rating-section">
                 <text class="rating">★ {{ companion.score }}</text>
                 <text class="service-count">{{ publicSafeMode ? '人物示例展示' : `已服务 ${companion.serviceCount || 0} 人次` }}</text>
+              </view>
+              <view v-if="showAvatarDiagnostics" class="avatar-diagnostic-card">
+                <text class="avatar-diagnostic-line">raw: {{ companion.avatarDiagnostic?.rawAvatar || '-' }}</text>
+                <text class="avatar-diagnostic-line">resolved: {{ companion.avatarDiagnostic?.resolvedAvatar || '-' }}</text>
+                <text class="avatar-diagnostic-line">image: {{ companion.avatarDiagnostic?.imageStatus || '-' }}</text>
+                <text class="avatar-diagnostic-line">detail: {{ companion.avatarDiagnostic?.imageDetail || '-' }}</text>
+                <text class="avatar-diagnostic-line">download: {{ companion.avatarDiagnostic?.downloadStatus || '-' }}</text>
+                <text class="avatar-diagnostic-line">temp: {{ companion.avatarDiagnostic?.downloadTempPath || '-' }}</text>
+                <text class="avatar-diagnostic-line">imageInfo: {{ companion.avatarDiagnostic?.imageInfoStatus || '-' }}</text>
+                <view class="avatar-diagnostic-btn" @click.stop="runCompanionAvatarDiagnostics(companion)">
+                  <text class="avatar-diagnostic-btn-text">重新检测</text>
+                </view>
               </view>
             </view>
           </view>
@@ -134,6 +156,9 @@ const services = ref([
 ])
 const companions = ref([])
 const defaultCompanionAvatar = getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg')
+const showAvatarDiagnostics = ref(false)
+const avatarDiagnosticTapCount = ref(0)
+let avatarDiagnosticTimer = null
 const btnLeft = ref(0)
 const btnTop = ref(0)
 const areaWidth = ref(0)
@@ -291,6 +316,99 @@ const navigateToCompanion = () => {
   uni.showToast({ title: '陪诊师详情功能暂未开放', icon: 'none' })
 }
 
+const toggleAvatarDiagnostics = () => {
+  avatarDiagnosticTapCount.value += 1
+  if (avatarDiagnosticTimer) clearTimeout(avatarDiagnosticTimer)
+  avatarDiagnosticTimer = setTimeout(() => {
+    avatarDiagnosticTapCount.value = 0
+    avatarDiagnosticTimer = null
+  }, 1200)
+  if (avatarDiagnosticTapCount.value >= 5) {
+    showAvatarDiagnostics.value = !showAvatarDiagnostics.value
+    avatarDiagnosticTapCount.value = 0
+    if (avatarDiagnosticTimer) {
+      clearTimeout(avatarDiagnosticTimer)
+      avatarDiagnosticTimer = null
+    }
+    uni.showToast({ title: showAvatarDiagnostics.value ? '头像诊断已开启' : '头像诊断已关闭', icon: 'none' })
+  }
+}
+
+const updateCompanionDiagnostic = (companion, patch = {}) => {
+  const target = companions.value.find((item) => item.id === companion.id || item.attendantId === companion.attendantId || item.name === companion.name)
+  if (!target) return
+  target.avatarDiagnostic = {
+    ...(target.avatarDiagnostic || {}),
+    ...patch
+  }
+}
+
+const handleCompanionAvatarLoad = (companion, event) => {
+  updateCompanionDiagnostic(companion, {
+    imageStatus: 'loaded',
+    imageDetail: JSON.stringify(event?.detail || {})
+  })
+}
+
+const handleCompanionAvatarError = (companion, event) => {
+  updateCompanionDiagnostic(companion, {
+    imageStatus: 'error',
+    imageDetail: JSON.stringify(event?.detail || {})
+  })
+}
+
+const runCompanionAvatarDiagnostics = async (companion) => {
+  const url = companion.displayAvatar || ''
+  if (!url) {
+    updateCompanionDiagnostic(companion, { downloadStatus: 'no-url' })
+    return
+  }
+  if (typeof plus === 'undefined' && typeof uni.downloadFile !== 'function') {
+    updateCompanionDiagnostic(companion, { downloadStatus: 'unsupported-runtime' })
+    return
+  }
+  updateCompanionDiagnostic(companion, { downloadStatus: 'checking' })
+  try {
+    const [downloadRes, imageInfoRes] = await Promise.allSettled([
+      new Promise((resolve, reject) => {
+        uni.downloadFile({
+          url,
+          success: resolve,
+          fail: reject
+        })
+      }),
+      new Promise((resolve, reject) => {
+        uni.getImageInfo({
+          src: url,
+          success: resolve,
+          fail: reject
+        })
+      })
+    ])
+
+    const patch = {}
+    if (downloadRes.status === 'fulfilled') {
+      patch.downloadStatus = `download:${downloadRes.value.statusCode}`
+      patch.downloadTempPath = downloadRes.value.tempFilePath || ''
+    } else {
+      patch.downloadStatus = 'download:fail'
+      patch.downloadTempPath = JSON.stringify(downloadRes.reason || {})
+    }
+
+    if (imageInfoRes.status === 'fulfilled') {
+      patch.imageInfoStatus = `imageInfo:${imageInfoRes.value.width}x${imageInfoRes.value.height}`
+    } else {
+      patch.imageInfoStatus = `imageInfo:fail ${JSON.stringify(imageInfoRes.reason || {})}`
+    }
+
+    updateCompanionDiagnostic(companion, patch)
+  } catch (error) {
+    updateCompanionDiagnostic(companion, {
+      downloadStatus: `exception:${JSON.stringify(error || {})}`
+    })
+  }
+}
+
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
     uni.showToast({ title: `搜索"${searchKeyword.value}"`, icon: 'none' })
@@ -299,10 +417,25 @@ const handleSearch = () => {
   }
 }
 
-const decorateCompanion = async (companion = {}) => ({
-  ...companion,
-  displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
-})
+const decorateCompanion = async (companion = {}) => {
+  const normalized = {
+    ...companion,
+    displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar),
+    avatarDiagnostic: {
+      rawAvatar: companion.avatar || '',
+      resolvedAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar),
+      imageStatus: 'pending',
+      imageDetail: '',
+      downloadStatus: 'pending',
+      downloadTempPath: '',
+      imageInfoStatus: 'pending'
+    }
+  }
+  if (typeof uni !== 'undefined' && showAvatarDiagnostics.value) {
+    runCompanionAvatarDiagnostics(normalized)
+  }
+  return normalized
+}
 
 const getCompanionAvatarStyle = (companion = {}) => {
   const avatarUrl = companion.displayAvatar || defaultCompanionAvatar
@@ -544,11 +677,59 @@ if (typeof uni.onWindowResize === 'function') {
   border: 2rpx solid #f0f0f0;
   border-radius: 15rpx;
 }
+
+.companion-avatar-wrap {
+  position: relative;
+  width: 100rpx;
+  height: 100rpx;
+  margin-bottom: 15rpx;
+}
 .companion-avatar {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  margin-bottom: 15rpx;
+  background-color: #f4f6fb;
+}
+.companion-avatar-bg-check {
+  position: absolute;
+  right: -12rpx;
+  bottom: -12rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #eef3ff;
+}
+.avatar-diagnostic-card {
+  width: 100%;
+  margin-top: 12rpx;
+  padding: 12rpx;
+  border-radius: 12rpx;
+  background: #f7faff;
+  border: 1px solid #dbe7ff;
+}
+.avatar-diagnostic-line {
+  display: block;
+  width: 100%;
+  font-size: 18rpx;
+  line-height: 1.5;
+  color: #54637a;
+  word-break: break-all;
+  text-align: left;
+}
+.avatar-diagnostic-btn {
+  margin-top: 10rpx;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #e9f2ff;
+  align-self: flex-start;
+}
+.avatar-diagnostic-btn-text {
+  font-size: 20rpx;
+  color: #007aff;
 }
 .companion-info {
   display: flex;
