@@ -17,7 +17,7 @@
           <view class="identity-block">
             <image
               class="avatar"
-              :src="getFullAvatarUrl(attendantInfo.avatarUrl || attendantInfo.avatar)"
+              :src="displayAvatarUrl"
               mode="aspectFill"
             ></image>
             <view class="identity-content">
@@ -192,9 +192,9 @@ const menuGroups = computed(() => [
   ]
 ])
 
-const getFullAvatarUrl = (relativePath) => {
-  return resolveAvatarUrl(relativePath, userPlaceholder)
-}
+const displayAvatarUrl = computed(() =>
+  resolveAvatarUrl(attendantInfo.value.avatarUrl || attendantInfo.value.avatar, userPlaceholder)
+)
 
 const loadProfile = async () => {
   session.restoreFromStorage()

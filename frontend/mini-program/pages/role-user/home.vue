@@ -68,7 +68,7 @@
             :key="index"
             @click="navigateToCompanion(companion)"
           >
-            <image class="companion-avatar" :src="getFullAvatarUrl(companion.avatar)"></image>
+            <image class="companion-avatar" :src="companion.displayAvatar"></image>
             <view class="companion-info">
               <text class="companion-name">{{ companion.name }}</text>
               <text class="companion-specialty">{{ companion.professionalField }}</text>
@@ -130,6 +130,7 @@ const services = ref([
   { name: '评价反馈', icon: wujiaoxin }
 ])
 const companions = ref([])
+const defaultCompanionAvatar = getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg')
 const btnLeft = ref(0)
 const btnTop = ref(0)
 const areaWidth = ref(0)
@@ -295,15 +296,16 @@ const handleSearch = () => {
   }
 }
 
-const getFullAvatarUrl = (relativePath) => {
-  return resolveAvatarUrl(relativePath, getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg'))
-}
+const decorateCompanion = (companion = {}) => ({
+  ...companion,
+  displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
+})
 
 const fetchAttendants = async () => {
   try {
     const res = await getRecommendedAttendants()
     if (res.code === 200 && res.data) {
-      companions.value = res.data
+      companions.value = (res.data || []).map(decorateCompanion)
     } else {
       uni.showToast({ title: '获取陪诊师列表失败', icon: 'none' })
     }

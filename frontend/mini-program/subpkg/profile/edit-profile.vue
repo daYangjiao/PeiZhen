@@ -5,7 +5,7 @@
 			<view class="avatar-upload">
 				<image 
 					class="avatar-img" 
-					:src="getFullAvatarUrl(userForm.avatar || originalUserData.avatar)" 
+					:src="displayAvatarUrl" 
 					mode="aspectFill"
 					@click="isEditing ? chooseAvatar : null"
 				></image>
@@ -71,17 +71,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '@/api/user.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
-
-// 与陪诊师端一致：将数据库头像路径转为完整 URL
-const getFullAvatarUrl = (relativePath) => {
-	return resolveAvatarUrl(relativePath, userPlaceholder)
-}
 
 // 响应式数据
 const userStore = ref(null)
@@ -105,6 +100,10 @@ const userForm = ref({
 	phone: '',
 	password: ''
 })
+
+const displayAvatarUrl = computed(() =>
+	resolveAvatarUrl(userForm.value.avatar || originalUserData.value.avatar, userPlaceholder)
+)
 
 // 生命周期
 onMounted(() => {

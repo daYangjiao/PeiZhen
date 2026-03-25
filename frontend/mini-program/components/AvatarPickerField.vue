@@ -27,13 +27,13 @@
 
     <view class="avatar-grid">
       <view
-        v-for="item in options"
+        v-for="item in normalizedOptions"
         :key="item.value"
         class="avatar-option"
         :class="{ active: modelValue === item.value }"
         @click="selectDefaultAvatar(item.value)"
       >
-        <image class="avatar-option-image" :src="resolvePreview(item.value)" mode="aspectFill"></image>
+        <image class="avatar-option-image" :src="item.previewUrl" mode="aspectFill"></image>
         <text class="avatar-option-label">{{ item.label }}</text>
       </view>
     </view>
@@ -79,11 +79,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'uploaded'])
 const uploading = ref(false)
 
-const resolvePreview = (value) => {
-  return resolveAvatarUrl(value, '')
-}
-
-const previewUrl = computed(() => resolvePreview(props.modelValue))
+const previewUrl = computed(() => resolveAvatarUrl(props.modelValue, ''))
+const normalizedOptions = computed(() =>
+  (props.options || []).map((item) => ({
+    ...item,
+    previewUrl: resolveAvatarUrl(item.value, '')
+  }))
+)
 
 const selectDefaultAvatar = (value) => {
   emit('update:modelValue', value)

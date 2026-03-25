@@ -2,7 +2,7 @@
   <view class="page">
     <view class="form-card">
       <view class="avatar-row">
-        <image class="avatar" :src="getFullAvatarUrl(form.avatarUrl || form.avatar)" mode="aspectFill"></image>
+        <image class="avatar" :src="displayAvatarUrl" mode="aspectFill"></image>
         <view class="avatar-btn" @click="chooseAvatar">
           <text>{{ uploading ? '上传中...' : '更换头像' }}</text>
         </view>
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { get, put, upload } from '@/utils/api.js'
 import { userPlaceholder } from '@/utils/assets.js'
@@ -75,9 +75,9 @@ const form = reactive({
   certificate: ''
 })
 
-const getFullAvatarUrl = (relativePath) => {
-  return resolveAvatarUrl(relativePath, userPlaceholder)
-}
+const displayAvatarUrl = computed(() =>
+  resolveAvatarUrl(form.avatarUrl || form.avatar, userPlaceholder)
+)
 
 const fillForm = (source = {}) => {
   form.id = source.id || null

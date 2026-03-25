@@ -44,7 +44,7 @@
       </view>
       <view class="companion-list">
         <view class="companion-card" v-for="(companion, index) in companions" :key="index">
-          <image class="companion-avatar" :src="getFullAvatarUrl(companion.avatar)"></image>
+          <image class="companion-avatar" :src="companion.displayAvatar"></image>
           <view class="companion-body">
             <text class="companion-name">{{ companion.name }}</text>
             <text class="companion-meta">{{ companion.professionalField }}</text>
@@ -65,7 +65,8 @@
 import { ref, onMounted } from 'vue'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { appointmentServiceLogos, brandLogo } from '@/utils/assets.js'
-import { canUseRemoteImageUrl, config, getLocalFirstImageUrl } from '@/utils/api.js'
+import { getLocalFirstImageUrl } from '@/utils/api.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 
 const categories = ref([
   { name: '普通陪诊', icon: appointmentServiceLogos[1] },
@@ -82,6 +83,7 @@ const processList = [
 ]
 
 const companions = ref([])
+const defaultCompanionAvatar = getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg')
 
 const getCategoryDescription = (name) => {
   const descriptionMap = {
@@ -93,23 +95,16 @@ const getCategoryDescription = (name) => {
   return descriptionMap[name] || '提供常见就医陪同场景的参考说明。'
 }
 
-const getFullAvatarUrl = (relativePath) => {
-  const defaultAvatar = getLocalFirstImageUrl('default-avatar.jpg', '/static/default-avatar.jpg')
-  if (!relativePath) return defaultAvatar
-  if (relativePath.startsWith('http')) {
-    return canUseRemoteImageUrl(relativePath) ? relativePath : defaultAvatar
-  }
-  const baseUrl = config.assetBaseURL.endsWith('/') ? config.assetBaseURL : config.assetBaseURL + '/'
-  const avatarPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath
-  const fullUrl = baseUrl + avatarPath
-  return canUseRemoteImageUrl(fullUrl) ? fullUrl : defaultAvatar
-}
+const decorateCompanion = (companion = {}) => ({
+  ...companion,
+  displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
+})
 
 const fetchAttendants = async () => {
   try {
     const res = await getRecommendedAttendants()
     if (res.code === 200 && res.data) {
-      companions.value = res.data.slice(0, 4)
+      companions.value = (res.data || []).slice(0, 4).map(decorateCompanion)
     }
   } catch (error) {
     console.error('获取展示人物卡失败:', error)

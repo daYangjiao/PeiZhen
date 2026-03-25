@@ -73,7 +73,7 @@
 
               <view class="doctor-info">
                 <view class="attendant-wrapper">
-                  <image class="doctor-avatar" :src="getPatientAvatar(order)" mode="aspectFill"></image>
+                  <image class="doctor-avatar" :src="order.displayUserAvatar" mode="aspectFill"></image>
                   <text class="doctor-name">{{ order.patientName || order.contactPerson }}</text>
                 </view>
 
@@ -159,7 +159,12 @@ const loadOrders = async () => {
     if (activeStatus.value !== null) params.orderStatus = activeStatus.value
 
     const res = await get('/attendant/orders', params)
-    if (res.code === 200 && res.data && res.data.content) orders.value = res.data.content
+    if (res.code === 200 && res.data && res.data.content) {
+      orders.value = (res.data.content || []).map((order) => ({
+        ...order,
+        displayUserAvatar: resolveAvatarUrl(order?.userAvatar, userPlaceholder)
+      }))
+    }
     else orders.value = []
   } catch (e) {
     console.error('获取陪诊师订单失败:', e)
@@ -213,9 +218,6 @@ const getStatusClass = (status) => {
   return map[status] || 'status-default'
 }
 
-const getPatientAvatar = (order) => {
-  return resolveAvatarUrl(order?.userAvatar, userPlaceholder)
-}
 
 const goToDetail = (order) => {
   uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${order.orderId}` })

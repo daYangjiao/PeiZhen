@@ -29,7 +29,7 @@
           <view class="avatar-container">
             <image
               class="avatar"
-              :src="getAvatarUrl(contact.senderAvatar)"
+              :src="contact.displayAvatar"
               mode="aspectFill"
               @error="handleImageError"
             ></image>
@@ -98,7 +98,7 @@ const loadContacts = async () => {
         lastSystemMsg.value = {}
         messageStore.systemUnreadCount = 0
       }
-      contacts.value = normalContacts
+      contacts.value = normalContacts.map(decorateContact)
       updateContactUnreadMap(normalContacts)
       messageStore.updateTabBarBadge()
     }
@@ -180,9 +180,10 @@ const openChat = (contact) => {
   })()
 }
 
-const getAvatarUrl = (url) => {
-  return resolveAvatarUrl(url, defaultAvatar)
-}
+const decorateContact = (contact = {}) => ({
+  ...contact,
+  displayAvatar: resolveAvatarUrl(contact.senderAvatar, defaultAvatar)
+})
 
 const handleImageError = () => {}
 

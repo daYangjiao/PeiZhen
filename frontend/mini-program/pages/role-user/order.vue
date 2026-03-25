@@ -68,7 +68,7 @@
 
               <view class="doctor-info">
                 <view class="attendant-wrapper" v-if="order.attendantName">
-                  <image class="doctor-avatar" :src="getAvatarUrl(order.attendantAvatar)" mode="aspectFill"></image>
+                  <image class="doctor-avatar" :src="order.displayAttendantAvatar" mode="aspectFill"></image>
                   <text class="doctor-name">{{ order.attendantName }}</text>
                 </view>
                 <view class="attendant-wrapper" v-else>
@@ -217,7 +217,10 @@ const loadOrders = async () => {
       keyword: searchKeyword.value || undefined
     })
     if (response.code === 200 && response.data && response.data.content) {
-      orders.value = response.data.content
+      orders.value = (response.data.content || []).map((order) => ({
+        ...order,
+        displayAttendantAvatar: resolveAvatarUrl(order.attendantAvatar, defaultAvatar)
+      }))
     } else {
       orders.value = []
     }
@@ -273,9 +276,6 @@ const getStatusClass = (status) => {
   return map[status] || 'status-default'
 }
 
-const getAvatarUrl = (avatarPath) => {
-  return resolveAvatarUrl(avatarPath, defaultAvatar)
-}
 
 const handleOrderClick = (order) => {
   uni.navigateTo({
