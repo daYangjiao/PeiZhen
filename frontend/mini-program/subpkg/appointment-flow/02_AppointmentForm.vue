@@ -403,7 +403,7 @@ const toggleSymptom = (symptom) => {
 	if (selectedSymptoms.value.includes(symptom)) {
 		selectedSymptoms.value = selectedSymptoms.value.filter(item => item !== symptom)
 	} else {
-		selectedSymptoms.value.push(symptom)
+		selectedSymptoms.value = [...selectedSymptoms.value, symptom]
 	}
 }
 

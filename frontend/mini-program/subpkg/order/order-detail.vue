@@ -104,7 +104,7 @@
     <!-- 陪诊师信息 -->
     <view class="companion-info" v-if="order.attendantName && order.attendantName !== '待分配陪诊师'">
       <image
-        :src="getAvatarUrl(order.attendantAvatar)"
+        :src="orderAttendantAvatar"
         class="avatar"
         mode="aspectFill"
         @error="handleImageError"
@@ -891,10 +891,9 @@ const submitCancelOrder = async () => {
   }
 };
 
-// 获取头像URL
-const getAvatarUrl = (avatarPath) => {
-  return resolveAvatarUrl(avatarPath, userPlaceholder);
-};
+const orderAttendantAvatar = computed(() =>
+  resolveAvatarUrl(order.value?.attendantAvatar || '', userPlaceholder)
+);
 
 const getQrCodeUrl = (qrCodeUrl, orderId) => {
   const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL;

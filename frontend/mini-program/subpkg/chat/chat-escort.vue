@@ -35,7 +35,12 @@
         </view>
 
         <view class="message-item" :class="{ 'self': msg.senderId === currentUserId }">
-          <image class="avatar" :src="getAvatar(msg)" @error="handleAvatarError" mode="aspectFill"></image>
+          <image
+            class="avatar"
+            :src="msg.displayAvatar || userPlaceholder"
+            @error="onMessageAvatarError(msg)"
+            mode="aspectFill"
+          ></image>
 
           <view class="message-content">
             <text v-if="msg.senderId !== currentUserId" class="sender-name">{{ msg.senderName || targetName }}</text>
@@ -264,7 +269,7 @@ const loadHistory = async () => {
   try {
     const res = await get(`/api/chat/history?targetUserId=${targetUserId.value}&page=1&pageSize=${pageSize}`)
     if (res.code === 200) {
-      messages.value = res.data
+      messages.value = res.data.map(normalizeChatMessage)
       hasMoreHistory.value = res.data.length === pageSize
       setTimeout(() => scrollToBottom(), 100)
     }
@@ -278,7 +283,7 @@ const loadMoreHistory = async () => {
     currentPage.value++
     const res = await get(`/api/chat/history?targetUserId=${targetUserId.value}&page=${currentPage.value}&pageSize=${pageSize}`)
     if (res.code === 200 && res.data.length > 0) {
-      messages.value = [...res.data.reverse(), ...messages.value]
+      messages.value = [...res.data.reverse().map(normalizeChatMessage), ...messages.value]
       hasMoreHistory.value = res.data.length === pageSize
     } else {
       hasMoreHistory.value = false
@@ -317,14 +322,14 @@ const handleNewMessage = (msg) => {
         
         // 避免重复添加相同ID的消息
         if (!messages.value.some(m => m.id == newMsg.id)) {
-            messages.value.push(newMsg);
+            messages.value.push(normalizeChatMessage(newMsg));
             scrollToBottom();
             markAsRead();
         }
     } else if (msg.receiverId == targetUserId.value) {
         // 自己发送的消息回显
         if (!messages.value.some(m => m.id == msg.id)) {
-            messages.value.push(msg);
+            messages.value.push(normalizeChatMessage(msg));
             scrollToBottom();
         }
     }
@@ -378,13 +383,13 @@ const sendMessage = async (content, type) => {
       id: 'temp-' + Date.now(), senderId: currentUserId.value, receiverId: targetUserId.value, content: content, msgType: type,
       senderName: userInfo?.name || '我', senderAvatar: userInfo?.avatar, createTime: new Date(), status: 'sending', isRead: 0
     }
-    messages.value.push(tempMsg)
+    messages.value.push(normalizeChatMessage(tempMsg))
     scrollToBottom()
     const tempIndex = messages.value.length - 1
 
     try {
       const res = await post('/api/chat/send', { receiverId: targetUserId.value, content: content, msgType: type })
-      if (res.code === 200) messages.value[tempIndex] = { ...res.data, status: 'sent' }
+      if (res.code === 200) messages.value[tempIndex] = normalizeChatMessage({ ...res.data, status: 'sent' })
       else throw new Error('Failed')
     } catch (e) { messages.value[tempIndex].status = 'failed' }
     finally {
@@ -565,25 +570,24 @@ const navigateBack = () => {
   uni.navigateBack()
 }
 const scrollToBottom = () => { nextTick(() => { scrollIntoView.value = 'msg-' + (messages.value.length - 1) }) }
-const getAvatar = (msg) => {
-    if (msg.senderId === currentUserId.value) {
-        const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar
-        return resolveAvatarUrl(currentUserAvatar || '', userPlaceholder)
-    }
-    if (msg.senderAvatar && msg.senderAvatar !== userPlaceholder && msg.senderAvatar !== doctorAvatar) {
-        return resolveAvatarUrl(msg.senderAvatar, userPlaceholder)
-    }
-    if (targetAvatar.value && targetAvatar.value !== userPlaceholder && targetAvatar.value !== doctorAvatar) {
-        return resolveAvatarUrl(targetAvatar.value, userPlaceholder)
-    }
-    return userPlaceholder
-}
 const getImageUrl = (url) => resolveImageUrl(url, userPlaceholder)
 const previewImage = (url) => uni.previewImage({ urls: [url], current: url })
 
-const handleAvatarError = (e) => {
-    console.error('头像加载失败:', e.detail.errMsg);
-    // 可以在这里设置默认头像或者重新加载
+const normalizeChatMessage = (msg) => {
+    if (!msg) return msg
+    const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar || ''
+    const displayAvatar = msg.senderId === currentUserId.value
+        ? resolveAvatarUrl(currentUserAvatar, userPlaceholder)
+        : resolveAvatarUrl(msg.senderAvatar || targetAvatar.value || '', userPlaceholder)
+    return {
+        ...msg,
+        displayAvatar
+    }
+}
+
+const onMessageAvatarError = (msg) => {
+    if (!msg) return
+    msg.displayAvatar = userPlaceholder
 }
 
 const formatTimeCenter = (time) => {
