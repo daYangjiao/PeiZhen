@@ -68,7 +68,11 @@
             :key="index"
             @click="navigateToCompanion(companion)"
           >
-            <image class="companion-avatar" :src="companion.displayAvatar"></image>
+            <image
+              class="companion-avatar"
+              :src="companion.displayAvatar"
+              @error="handleCompanionAvatarError(companion)"
+            ></image>
             <view class="companion-info">
               <text class="companion-name">{{ companion.name }}</text>
               <text class="companion-specialty">{{ companion.professionalField }}</text>
@@ -110,7 +114,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
-import { resolveAvatarUrl } from '@/utils/media.js'
+import { resolveDisplayImageUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const searchKeyword = ref('')
@@ -296,16 +300,21 @@ const handleSearch = () => {
   }
 }
 
-const decorateCompanion = (companion = {}) => ({
+const decorateCompanion = async (companion = {}) => ({
   ...companion,
-  displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
+  displayAvatar: await resolveDisplayImageUrl(companion.avatar, defaultCompanionAvatar)
 })
+
+const handleCompanionAvatarError = (companion) => {
+  if (!companion) return
+  companion.displayAvatar = defaultCompanionAvatar
+}
 
 const fetchAttendants = async () => {
   try {
     const res = await getRecommendedAttendants()
     if (res.code === 200 && res.data) {
-      companions.value = (res.data || []).map(decorateCompanion)
+      companions.value = await Promise.all((res.data || []).map(decorateCompanion))
     } else {
       uni.showToast({ title: '获取陪诊师列表失败', icon: 'none' })
     }

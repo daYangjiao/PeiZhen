@@ -31,7 +31,7 @@
               class="avatar"
               :src="contact.displayAvatar"
               mode="aspectFill"
-              @error="handleImageError"
+              @error="handleImageError(contact)"
             ></image>
             <view class="unread-badge" v-if="getContactUnreadCount(contact) > 0">
               <text>{{ getContactUnreadCount(contact) > 99 ? '99+' : getContactUnreadCount(contact) }}</text>
@@ -70,7 +70,7 @@ import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
 import { brandLogo, defaultAvatar } from '@/utils/assets.js'
-import { resolveAvatarUrl } from '@/utils/media.js'
+import { resolveDisplayImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const contacts = ref([])
@@ -101,7 +101,7 @@ const loadContacts = async () => {
         lastSystemMsg.value = {}
         messageStore.systemUnreadCount = 0
       }
-      contacts.value = normalContacts.map(decorateContact)
+      contacts.value = await Promise.all(normalContacts.map(decorateContact))
       updateContactUnreadMap(normalContacts)
       messageStore.updateTabBarBadge()
     }
@@ -182,12 +182,15 @@ const openChat = (contact) => {
   })()
 }
 
-const decorateContact = (contact = {}) => ({
+const decorateContact = async (contact = {}) => ({
   ...contact,
-  displayAvatar: resolveAvatarUrl(contact.senderAvatar, defaultAvatar)
+  displayAvatar: await resolveDisplayImageUrl(contact.senderAvatar, defaultAvatar)
 })
 
-const handleImageError = () => {}
+const handleImageError = (contact) => {
+  if (!contact) return
+  contact.displayAvatar = defaultAvatar
+}
 
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
