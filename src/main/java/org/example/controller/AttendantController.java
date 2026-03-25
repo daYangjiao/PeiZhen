@@ -422,6 +422,8 @@ public class AttendantController {
         res.setPaymentStatusDesc(order.getPaymentStatus() == 1 ? "已支付" : "待支付");
         res.setServiceTypeName(order.getServiceContent());
         res.setCreateTime(order.getCreateTime());
+        res.setAcceptTime(order.getAcceptTime());
+        res.setActualDuration(order.getActualDuration());
         res.setAttendantName(order.getAttendantName());
         res.setSpecialRequirements(order.getSpecialRequirements());
         res.setCustomRequirement(order.getCustomRequirement());
