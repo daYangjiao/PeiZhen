@@ -70,6 +70,9 @@ public class Attendant {
 
     @ApiModelProperty(value = "已完成服务人次")
     private Integer serviceCount;
+
+    @ApiModelProperty(value = "账号状态：1=正常, 0=禁用")
+    private Integer userStatus;
     
     // 手动添加缺失的getter方法
     public String getName() {
@@ -114,5 +117,9 @@ public class Attendant {
     
     public Integer getServiceCount() {
         return this.serviceCount;
+    }
+
+    public Integer getUserStatus() {
+        return this.userStatus;
     }
 }

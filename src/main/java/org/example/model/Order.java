@@ -164,6 +164,15 @@ public class Order {
     @ApiModelProperty(value = "下单用户头像（仅接单后返回，待接单不返回）")
     private String userAvatar;
 
+    @ApiModelProperty(value = "后台处理备注")
+    private String adminRemark;
+
+    @ApiModelProperty(value = "争议处理管理员ID")
+    private Integer disputeResolvedBy;
+
+    @ApiModelProperty(value = "争议处理时间")
+    private Date disputeResolvedTime;
+
     // 业务方法
     public BigDecimal calculateBalance() {
         if (this.actualDuration == null || this.unitPrice == null || this.depositAmount == null) {

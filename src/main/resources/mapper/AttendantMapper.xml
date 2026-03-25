@@ -15,6 +15,13 @@
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="service_count" property="serviceCount"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="age" property="age"/>
+        <result column="sex" property="sex"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="user_status" property="userStatus"/>
     </resultMap>
 
     <!-- 插入陪诊师扩展信息 -->
@@ -55,6 +62,62 @@
         GROUP BY a.user_id
         ORDER BY service_count DESC, a.score DESC, a.experience_years DESC, a.update_time DESC
         LIMIT 10
+    </select>
+
+    <select id="countAdminAttendants" resultType="int">
+        SELECT COUNT(*)
+        FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
+        <where>
+            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(u.id AS CHAR) = #{keyword}
+                    OR u.name LIKE CONCAT('%', #{keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.hospital_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.professional_field LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="findAdminAttendants" resultMap="AttendantResultMap">
+        SELECT
+            a.*,
+            u.id,
+            u.name,
+            u.phone,
+            u.age,
+            u.sex,
+            u.avatar AS avatar_url,
+            u.status AS user_status,
+            COUNT(CASE WHEN o.order_status = 6 THEN 1 END) AS service_count
+        FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
+        LEFT JOIN `order` o ON o.attendant_id = a.user_id
+        <where>
+            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(u.id AS CHAR) = #{keyword}
+                    OR u.name LIKE CONCAT('%', #{keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.hospital_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.professional_field LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        GROUP BY
+            a.user_id, a.certificate, a.status, a.qualification_fail_reason, a.introduction,
+            a.professional_field, a.score, a.experience_years, a.hospital_name,
+            a.create_time, a.update_time,
+            u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
+        ORDER BY
+            CASE WHEN a.status = 0 THEN 0 ELSE 1 END,
+            a.update_time DESC,
+            a.user_id DESC
+        LIMIT #{offset}, #{limit}
     </select>
 
 </mapper>
