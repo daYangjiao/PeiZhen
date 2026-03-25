@@ -68,11 +68,10 @@
             :key="index"
             @click="navigateToCompanion(companion)"
           >
-            <image
+            <view
               class="companion-avatar"
-              :src="companion.displayAvatar"
-              @error="handleCompanionAvatarError(companion)"
-            ></image>
+              :style="getCompanionAvatarStyle(companion)"
+            ></view>
             <view class="companion-info">
               <text class="companion-name">{{ companion.name }}</text>
               <text class="companion-specialty">{{ companion.professionalField }}</text>
@@ -114,7 +113,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
-import { resolveDisplayImageUrl } from '@/utils/media.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const searchKeyword = ref('')
@@ -302,12 +301,14 @@ const handleSearch = () => {
 
 const decorateCompanion = async (companion = {}) => ({
   ...companion,
-  displayAvatar: await resolveDisplayImageUrl(companion.avatar, defaultCompanionAvatar)
+  displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
 })
 
-const handleCompanionAvatarError = (companion) => {
-  if (!companion) return
-  companion.displayAvatar = defaultCompanionAvatar
+const getCompanionAvatarStyle = (companion = {}) => {
+  const avatarUrl = companion.displayAvatar || defaultCompanionAvatar
+  return {
+    backgroundImage: `url("${avatarUrl}")`
+  }
 }
 
 const fetchAttendants = async () => {
