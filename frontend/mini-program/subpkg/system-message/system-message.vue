@@ -17,7 +17,41 @@
       </scroll-view>
     </view>
 
-    <scroll-view class="message-list" scroll-y :scroll-top="scrollTop" :scroll-into-view="scrollIntoView">
+    <view
+      v-if="isH5Runtime"
+      class="message-list-web"
+      @click="handleSecretTap"
+    >
+      <view class="system-message-card" v-for="(msg, index) in filteredMessages" :key="index" :id="'msg-' + index">
+        <view class="message-header">
+          <view class="header-info">
+            <text class="message-title">【{{ getMessageTitle(msg) }}】</text>
+            <text class="message-time">{{ formatTime(msg.createTime) }}</text>
+          </view>
+        </view>
+        <view class="message-content">
+          <text class="content-text">{{ msg.content }}</text>
+        </view>
+        <view class="message-footer" v-if="getActionText(msg)" @click="handleAction(msg)">
+          <text class="action-text">{{ getActionText(msg) }}</text>
+          <text class="action-arrow">></text>
+        </view>
+      </view>
+
+      <view class="empty-state" v-if="filteredMessages.length === 0">
+        <image class="empty-icon" src="/static/xiaoxi_1.png" mode="aspectFit"></image>
+        <text class="empty-text">暂无{{ tabs[currentTab] }}消息</text>
+      </view>
+    </view>
+
+    <scroll-view
+      v-else
+      class="message-list"
+      scroll-y
+      :scroll-top="scrollTop"
+      :scroll-into-view="scrollIntoView"
+      @click="handleSecretTap"
+    >
       <view class="system-message-card" v-for="(msg, index) in filteredMessages" :key="index" :id="'msg-' + index">
         <view class="message-header">
           <view class="header-info">
@@ -40,7 +74,7 @@
       </view>
     </scroll-view>
 
-    <view class="debug-trigger" @click="toggleDebugPanel">
+    <view v-if="debugTriggerVisible" class="debug-trigger" @click="toggleDebugPanel">
       <text class="debug-trigger-text">{{ debugVisible ? '关闭检测' : '检测' }}</text>
     </view>
 
@@ -85,6 +119,13 @@ const tabs = ['全部', '订单状态', '服务提醒', '平台公告', '账户�
 const role = ref(uni.getStorageSync('role') || 'user')
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 const messageStore = useMessageStore()
+let h5Runtime = false
+// #ifdef H5
+h5Runtime = true
+// #endif
+const isH5Runtime = h5Runtime
+const secretTapCount = ref(0)
+const debugTriggerVisible = ref(false)
 const debugVisible = ref(false)
 const debugState = ref({
   status: 'idle',
@@ -249,6 +290,19 @@ const runDiagnostics = async () => {
   await syncSystemMessages()
 }
 
+const handleSecretTap = () => {
+  secretTapCount.value += 1
+  if (secretTapCount.value >= 5) {
+    debugTriggerVisible.value = true
+    secretTapCount.value = 0
+    uni.showToast({ title: '检测入口已开启', icon: 'none' })
+    return
+  }
+  setTimeout(() => {
+    secretTapCount.value = 0
+  }, 1200)
+}
+
 const getMessageTitle = (msg) => msg.title || '系统通知'
 const getActionText = (msg) => msg.action
 
@@ -366,6 +420,10 @@ const debugPreviewText = computed(() => {
   padding: 24rpx;
   box-sizing: border-box;
   height: 0;
+}
+.message-list-web {
+  padding: 24rpx;
+  box-sizing: border-box;
 }
 .system-message-card {
   background: #fff;
