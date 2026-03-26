@@ -39,6 +39,33 @@
         <text class="empty-text">暂无{{ tabs[currentTab] }}消息</text>
       </view>
     </scroll-view>
+
+    <view class="debug-trigger" @click="toggleDebugPanel">
+      <text class="debug-trigger-text">{{ debugVisible ? '关闭检测' : '检测' }}</text>
+    </view>
+
+    <view class="debug-panel" v-if="debugVisible">
+      <view class="debug-header">
+        <text class="debug-title">系统通知调试信息</text>
+        <view class="debug-actions">
+          <text class="debug-action" @click="runDiagnostics">重新检测</text>
+          <text class="debug-action danger" @click="debugVisible = false">关闭</text>
+        </view>
+      </view>
+      <view class="debug-grid">
+        <text class="debug-line">status: {{ debugState.status }}</text>
+        <text class="debug-line">tab: {{ tabs[currentTab] }}</text>
+        <text class="debug-line">total: {{ systemMessages.length }}</text>
+        <text class="debug-line">filtered: {{ filteredMessages.length }}</text>
+        <text class="debug-line">code: {{ debugState.code }}</text>
+        <text class="debug-line">loadedAt: {{ debugState.loadedAt || '-' }}</text>
+        <text class="debug-line full" selectable>error: {{ debugState.error || '-' }}</text>
+      </view>
+      <view class="debug-preview">
+        <text class="debug-preview-title">preview</text>
+        <text class="debug-preview-text" selectable>{{ debugPreviewText }}</text>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -58,6 +85,14 @@ const tabs = ['全部', '订单状态', '服务提醒', '平台公告', '账户�
 const role = ref(uni.getStorageSync('role') || 'user')
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 const messageStore = useMessageStore()
+const debugVisible = ref(false)
+const debugState = ref({
+  status: 'idle',
+  code: '-',
+  error: '',
+  loadedAt: '',
+  preview: []
+})
 
 onLoad(() => {
   if (redirectPublicSafeToHome()) return
@@ -79,8 +114,18 @@ const handleNewMessage = () => {
 }
 
 const loadSystemMessages = async () => {
+  debugState.value = {
+    ...debugState.value,
+    status: 'loading',
+    error: '',
+    code: '-'
+  }
   try {
     const res = await get('/api/chat/system')
+    debugState.value = {
+      ...debugState.value,
+      code: String(res?.code ?? '-')
+    }
     if (res.code === 200 && res.data) {
       const apiData = res.data.map(msg => ({
         ...msg,
@@ -89,12 +134,37 @@ const loadSystemMessages = async () => {
         action: inferAction(msg.content)
       }))
       systemMessages.value = apiData
+      debugState.value = {
+        ...debugState.value,
+        status: 'success',
+        loadedAt: formatDebugTime(new Date()),
+        preview: apiData.slice(0, 3).map(item => ({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          createTime: item.createTime,
+          content: (item.content || '').slice(0, 40)
+        }))
+      }
     } else {
       systemMessages.value = []
+      debugState.value = {
+        ...debugState.value,
+        status: 'empty',
+        loadedAt: formatDebugTime(new Date()),
+        preview: []
+      }
     }
   } catch (error) {
     console.error('加载系统通知失败', error)
     systemMessages.value = []
+    debugState.value = {
+      ...debugState.value,
+      status: 'error',
+      error: error?.message || String(error),
+      loadedAt: formatDebugTime(new Date()),
+      preview: []
+    }
   }
 }
 
@@ -171,6 +241,14 @@ const switchTab = (index) => {
   scrollTop.value = 0
 }
 
+const toggleDebugPanel = () => {
+  debugVisible.value = !debugVisible.value
+}
+
+const runDiagnostics = async () => {
+  await syncSystemMessages()
+}
+
 const getMessageTitle = (msg) => msg.title || '系统通知'
 const getActionText = (msg) => msg.action
 
@@ -220,6 +298,16 @@ const formatTime = (timeStr) => {
   }
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
+
+const formatDebugTime = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return ''
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`
+}
+
+const debugPreviewText = computed(() => {
+  if (!debugState.value.preview.length) return '[]'
+  return JSON.stringify(debugState.value.preview, null, 2)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -344,5 +432,90 @@ const formatTime = (timeStr) => {
 .empty-text {
   color: #999;
   font-size: 28rpx;
+}
+.debug-trigger {
+  position: fixed;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 28rpx);
+  z-index: 20;
+  background: rgba(42, 130, 228, 0.92);
+  border-radius: 999rpx;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 10rpx 24rpx rgba(42, 130, 228, 0.22);
+}
+.debug-trigger-text {
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.debug-panel {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 96rpx);
+  z-index: 25;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 14rpx 40rpx rgba(0, 0, 0, 0.12);
+  padding: 24rpx;
+  border: 1rpx solid #e8eef6;
+}
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+.debug-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+.debug-actions {
+  display: flex;
+  gap: 20rpx;
+}
+.debug-action {
+  font-size: 24rpx;
+  color: var(--msg-primary);
+  font-weight: 600;
+}
+.debug-action.danger {
+  color: #ef4444;
+}
+.debug-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx 18rpx;
+  margin-bottom: 16rpx;
+}
+.debug-line {
+  width: calc(50% - 9rpx);
+  font-size: 23rpx;
+  line-height: 1.5;
+  color: #475569;
+}
+.debug-line.full {
+  width: 100%;
+}
+.debug-preview {
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 18rpx;
+}
+.debug-preview-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 10rpx;
+}
+.debug-preview-text {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #475569;
+  word-break: break-all;
+  max-height: 320rpx;
 }
 </style>
