@@ -14,6 +14,9 @@ import java.util.List;
 @Data
 @ApiModel(description = "AI导诊预约创建请求")
 public class GuideAppointmentRequest {
+    @ApiModelProperty(value = "当前登录用户ID，由后端根据 token 注入，前端无需传递", hidden = true)
+    private Integer userId;
+
     @ApiModelProperty(value = "医院名称", required = true, example = "北京协和医院")
     @NotBlank(message = "医院名称不能为空")
     private String hospital;

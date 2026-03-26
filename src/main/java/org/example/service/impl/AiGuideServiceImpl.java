@@ -52,9 +52,14 @@ public class AiGuideServiceImpl implements AiGuideService {
             throw new RuntimeException("预约信息不存在，预约编号：" + request.getAppointmentNo());
         }
 
-        User user = userMapper.findById(request.getUserId() != null ? request.getUserId() : 1);
+        Integer targetUserId = appointment.getUserId() != null ? appointment.getUserId() : request.getUserId();
+        if (targetUserId == null) {
+            throw new IllegalStateException("预约缺少用户信息，请重新提交预约");
+        }
+
+        User user = userMapper.findById(targetUserId);
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new IllegalStateException("当前登录状态已失效，请重新登录后再预约");
         }
 
         double durationHours = calculateServiceDurationFromAppointment(appointment);
@@ -237,6 +242,7 @@ public class AiGuideServiceImpl implements AiGuideService {
         String appointmentNo = "APP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6);
         GuideAppointment appointment = new GuideAppointment();
         appointment.setAppointmentNo(appointmentNo);
+        appointment.setUserId(request.getUserId());
         appointment.setHospitalName(request.getHospital());
         appointment.setServiceDate(request.getServiceDate());
         appointment.setServiceStartTime(request.getServiceStartTime());

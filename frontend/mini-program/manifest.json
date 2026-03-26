@@ -40,9 +40,9 @@
                 "androidStyle" : "default",
                 "useOriginalMsgbox" : false,
                 "android" : {
-                    "hdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/android_hdpi_480x762_v3.png",
-                    "xhdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/android_xhdpi_720x1242_v3.png",
-                    "xxhdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/universal_1242x2688_v3.png"
+                    "hdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/android_hdpi_480x762_v4.png",
+                    "xhdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/android_xhdpi_720x1242_v4.png",
+                    "xxhdpi" : "/Users/fhl/Documents/PZ_yuanbao/tmp/launch-premium/android_xxhdpi_1080x1882_v4.png"
                 }
             },
             "icons" : {

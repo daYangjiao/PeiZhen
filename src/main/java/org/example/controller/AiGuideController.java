@@ -48,11 +48,15 @@ public class AiGuideController {
     public ResponseEntity<AppointmentResponse> createAppointment(
             @ApiParam(value = "预约请求体", required = true)
             @Valid @RequestBody GuideAppointmentRequest request,
-            @ApiIgnore BindingResult bindingResult) {
+            @ApiIgnore BindingResult bindingResult,
+            @ApiIgnore HttpServletRequest httpRequest) {
         if (bindingResult.hasErrors()) {
             String errorMsg = bindingResult.getFieldError().getDefaultMessage();
             throw new RuntimeException("参数错误：" + errorMsg);
         }
+
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        request.setUserId(currentUserId);
         
         AppointmentResponse response = aiGuideService.submitDemand(request);
         return ResponseEntity.ok(response);

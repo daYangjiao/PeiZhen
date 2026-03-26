@@ -60,11 +60,18 @@ public class UserServiceMybatisImpl implements UserService {
 
     @Override
     public int update(User user) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalArgumentException("用户信息不完整");
+        }
         if (user != null && user.getPhone() != null && !user.getPhone().isBlank()) {
             User existing = userMapper.findByPhone(user.getPhone());
             if (existing != null && !existing.getId().equals(user.getId())) {
                 throw new IllegalArgumentException("手机号已存在");
             }
+        }
+        if (!hasUpdatableFields(user)) {
+            logger.info("用户 {} 未提供可更新字段，跳过数据库更新", user.getId());
+            return 0;
         }
         encodePasswordIfNeeded(user);
         return userMapper.update(user);
@@ -130,5 +137,16 @@ public class UserServiceMybatisImpl implements UserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         userMapper.update(user);
         logger.info("手机号 {} 的旧版明文密码已升级为加密存储", user.getPhone());
+    }
+
+    private boolean hasUpdatableFields(User user) {
+        return user.getPassword() != null
+            || user.getName() != null
+            || user.getPhone() != null
+            || user.getSex() != null
+            || user.getAge() != null
+            || user.getAvatar() != null
+            || user.getUserType() != null
+            || user.getOpenid() != null;
     }
 }

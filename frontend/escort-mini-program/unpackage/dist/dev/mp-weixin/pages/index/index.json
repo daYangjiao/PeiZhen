@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "陪诊接单大厅",
-  "usingComponents": {
-    "order-card": "../../components/OrderCard"
-  }
-}
