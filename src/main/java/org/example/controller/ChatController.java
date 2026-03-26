@@ -55,6 +55,18 @@ public class ChatController {
         return ResponseResult.success(chatService.getHistory(currentUserId, targetUserId));
     }
 
+    @GetMapping("/system")
+    @ApiOperation(value = "获取系统通知", notes = "返回当前登录用户收到的系统通知列表，按最新时间倒序排列。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功，返回系统通知列表"),
+            @ApiResponse(code = 401, message = "用户未登录或 token 无效"),
+            @ApiResponse(code = 500, message = "查询系统通知失败")
+    })
+    public ResponseResult<List<ChatMessage>> getSystemMessages(@ApiIgnore HttpServletRequest request) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(request);
+        return ResponseResult.success(chatService.getSystemMessages(currentUserId));
+    }
+
     @GetMapping("/contacts")
     @ApiOperation(value = "获取最近联系人", notes = "返回当前用户最近联系过的用户列表及未读消息数。未登录时可能返回空列表。")
     @ApiResponses({

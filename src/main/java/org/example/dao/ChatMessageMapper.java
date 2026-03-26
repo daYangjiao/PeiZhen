@@ -14,6 +14,9 @@ public interface ChatMessageMapper {
     
     // 查询两个用户之间的聊天记录
     List<ChatMessage> findHistory(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
+
+    // 查询当前用户收到的系统通知
+    List<ChatMessage> findSystemMessages(@Param("userId") Integer userId);
     
     // 查询用户的最近联系人列表（包含最后一条消息）
     List<ChatMessage> findRecentContacts(@Param("userId") Integer userId);

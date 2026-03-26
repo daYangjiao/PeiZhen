@@ -30,6 +30,17 @@
         ORDER BY m.create_time ASC
     </select>
 
+    <select id="findSystemMessages" resultMap="BaseResultMap">
+        SELECT
+            m.*,
+            '系统通知' as sender_name,
+            '/static/logo.png' as sender_avatar
+        FROM chat_message m
+        WHERE m.sender_id = 0
+          AND m.receiver_id = #{userId}
+        ORDER BY m.create_time DESC
+    </select>
+
     <!-- 查询最近联系人列表 (复杂查询，获取每个联系人的最后一条消息) -->
     <select id="findRecentContacts" resultMap="BaseResultMap">
         SELECT

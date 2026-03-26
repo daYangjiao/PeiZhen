@@ -66,6 +66,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public List<ChatMessage> getSystemMessages(Integer userId) {
+        return chatMessageMapper.findSystemMessages(userId);
+    }
+
+    @Override
     public List<ChatMessage> getRecentContacts(Integer userId) {
         List<ChatMessage> contacts = chatMessageMapper.findRecentContacts(userId);
         

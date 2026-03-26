@@ -10,6 +10,9 @@ public interface ChatService {
     
     // 获取聊天记录
     List<ChatMessage> getHistory(Integer userId1, Integer userId2);
+
+    // 获取系统通知列表
+    List<ChatMessage> getSystemMessages(Integer userId);
     
     // 获取最近联系人列表
     List<ChatMessage> getRecentContacts(Integer userId);

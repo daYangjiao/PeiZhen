@@ -80,7 +80,7 @@ const handleNewMessage = () => {
 
 const loadSystemMessages = async () => {
   try {
-    const res = await get('/api/chat/history?targetUserId=0')
+    const res = await get('/api/chat/system')
     if (res.code === 200 && res.data) {
       const apiData = res.data.map(msg => ({
         ...msg,
@@ -88,11 +88,12 @@ const loadSystemMessages = async () => {
         title: inferTitle(msg.content),
         action: inferAction(msg.content)
       }))
-      systemMessages.value = apiData.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+      systemMessages.value = apiData
     } else {
       systemMessages.value = []
     }
-  } catch {
+  } catch (error) {
+    console.error('加载系统通知失败', error)
     systemMessages.value = []
   }
 }
