@@ -56,6 +56,9 @@ public class AttendantServiceImpl implements AttendantService {
         
         // 2. 创建 User 账号，并设置为陪诊师角色
         user.setUserType(1);
+        if (user.getStatus() == null) {
+            user.setStatus(1);
+        }
         if (user.getPassword() != null && !user.getPassword().startsWith("$2")) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
