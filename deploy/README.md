@@ -123,3 +123,47 @@ Android APK internal test:
    - WebSocket: `ws://101.245.94.141`
 
 After installation, the APK runs independently and does not require the developer machine to stay online.
+
+App update delivery:
+
+- H5 stays server-hosted and updates immediately after frontend publish.
+- Native App keeps bundled pages; installed clients do not read the server H5 automatically.
+- App updates are now split into:
+  - `101`: WGT resource update for JS/CSS/pages/static assets
+  - `102`: full Android APK update for native manifest/permissions/plugins/icon/splash changes
+
+Backend update check endpoint:
+
+```bash
+POST /api/app-upgrade/check
+```
+
+The backend reads update metadata from:
+
+```bash
+${APP_UPLOAD_DIR}/app-updates/android.json
+```
+
+Publish update artifacts to the server:
+
+```bash
+APP_VERSION=1.0.1 \
+APP_VERSION_CODE=101 \
+APK_FILE=/absolute/path/to/app.apk \
+WGT_FILE=/absolute/path/to/app.wgt \
+WGT_VERSION=1.0.1-hotfix.1 \
+UPDATE_NOTES='修复头像显示与订单时间线问题' \
+bash deploy/scripts/publish-app-update.sh
+```
+
+The metadata format example is:
+
+```bash
+deploy/app-updates/android.example.json
+```
+
+Check local/remote consistency in one command:
+
+```bash
+bash deploy/scripts/check-consistency.sh
+```

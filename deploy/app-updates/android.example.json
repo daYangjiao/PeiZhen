@@ -1,0 +1,10 @@
+{
+  "title": "发现新版本",
+  "notes": "修复头像显示问题并优化消息同步。",
+  "forceUpdate": false,
+  "latestVersion": "1.0.1",
+  "latestVersionCode": 101,
+  "apkPath": "/uploads/app-updates/android/yuanban-1.0.1.apk",
+  "wgtVersion": "1.0.1-hotfix.1",
+  "wgtPath": "/uploads/app-updates/android/yuanban-1.0.1-hotfix.1.wgt"
+}

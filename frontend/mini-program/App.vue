@@ -2,6 +2,7 @@
 import { useSessionStore } from '@/stores/session'
 import { initWebSockets, ensureChatConnected } from '@/utils/ws-manager.js'
 import { useMessageStore } from '@/stores/message'
+import { checkAppUpgrade } from '@/utils/app-upgrade'
 
 const bindGlobalMessageSync = () => {
   if (uni.__globalMessageSyncBound) return
@@ -46,6 +47,7 @@ export default {
       await messageStore.initMessageStatus()
       initWebSockets()
       bindGlobalMessageSync()
+      checkAppUpgrade()
     } catch (e) {
       console.warn('app init failed', e)
     }
