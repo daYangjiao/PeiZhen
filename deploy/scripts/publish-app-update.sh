@@ -5,6 +5,7 @@ SERVER_HOST="${SERVER_HOST:-101.245.94.141}"
 SERVER_USER="${SERVER_USER:-ops}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/pz_ops_ed25519}"
 UPLOAD_DIR="${UPLOAD_DIR:-/opt/pz-app/uploads/app-updates/android}"
+METADATA_DIR="${METADATA_DIR:-/opt/pz-app/uploads/app-updates}"
 TMP_JSON="$(mktemp)"
 
 APP_VERSION="${APP_VERSION:?APP_VERSION is required}"
@@ -77,7 +78,7 @@ Path(os.environ["TMP_JSON_PATH"]).write_text(
 PY
 
 SSH_OPTS=(-i "${SSH_KEY}")
-ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" "sudo mkdir -p '${UPLOAD_DIR}'"
+ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" "sudo mkdir -p '${UPLOAD_DIR}' '${METADATA_DIR}'"
 
 if [[ -n "${APK_FILE}" ]]; then
   scp "${SSH_OPTS[@]}" "${APK_FILE}" "${SERVER_USER}@${SERVER_HOST}:/tmp/${APK_NAME}"
@@ -90,7 +91,7 @@ if [[ -n "${WGT_FILE}" ]]; then
 fi
 
 scp "${SSH_OPTS[@]}" "${TMP_JSON}" "${SERVER_USER}@${SERVER_HOST}:/tmp/android.json"
-ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" "sudo mv /tmp/android.json '${UPLOAD_DIR}/android.json' && sudo chmod 644 '${UPLOAD_DIR}/android.json'"
+ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" "sudo mv /tmp/android.json '${METADATA_DIR}/android.json' && sudo chmod 644 '${METADATA_DIR}/android.json'"
 
 rm -f "${TMP_JSON}"
-echo "App update metadata published to ${SERVER_HOST}:${UPLOAD_DIR}/android.json"
+echo "App update metadata published to ${SERVER_HOST}:${METADATA_DIR}/android.json"
