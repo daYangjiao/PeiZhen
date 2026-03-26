@@ -68,6 +68,10 @@ public class AttendantServiceImpl implements AttendantService {
         attendantMapper.insert(attendant);
         logger.info("创建陪诊师扩展信息成功, User ID: {}", userId);
 
+        // 4. 初始化陪诊师资质信息，后续资质页直接进入编辑而不是空状态
+        attendantQualificationMapper.insert(createDefaultQualification(userId));
+        logger.info("初始化陪诊师资质信息成功, User ID: {}", userId);
+
         return userId;
     }
 

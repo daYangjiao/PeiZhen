@@ -5,15 +5,11 @@
         <text class="avatar-panel-title">{{ title }}</text>
         <text class="avatar-panel-tip">{{ tip }}</text>
       </view>
-      <view class="avatar-panel-flags">
-        <text class="avatar-flag">1:1 裁切</text>
-        <text class="avatar-flag">自动压缩</text>
-      </view>
     </view>
 
     <view class="avatar-shell">
       <view class="avatar-preview-card">
-        <image class="avatar-preview" :src="previewUrl" mode="aspectFill"></image>
+        <image class="avatar-preview" :src="previewUrl" mode="aspectFit"></image>
         <view class="avatar-copy">
           <text class="avatar-copy-title">{{ previewTitle }}</text>
           <text class="avatar-copy-desc">{{ previewDesc }}</text>
@@ -33,7 +29,7 @@
         :class="{ active: modelValue === item.value }"
         @click="selectDefaultAvatar(item.value)"
       >
-        <image class="avatar-option-image" :src="item.previewUrl" mode="aspectFill"></image>
+        <image class="avatar-option-image" :src="item.previewUrl" mode="aspectFit"></image>
         <text class="avatar-option-label">{{ item.label }}</text>
       </view>
     </view>
@@ -41,8 +37,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { chooseAndUploadAvatar } from '@/utils/avatar-upload.js'
+import { computed, ref, watch } from 'vue'
+import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { uploadPublicAvatarImage } from '@/api/user.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 
 const props = defineProps({
@@ -78,8 +75,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'uploaded'])
 const uploading = ref(false)
+const localPreviewPath = ref('')
 
-const previewUrl = computed(() => resolveAvatarUrl(props.modelValue, ''))
+const previewUrl = computed(() => resolveAvatarUrl(localPreviewPath.value || props.modelValue, ''))
 const normalizedOptions = computed(() =>
   (props.options || []).map((item) => ({
     ...item,
@@ -87,7 +85,18 @@ const normalizedOptions = computed(() =>
   }))
 )
 
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value && value === localPreviewPath.value) return
+    if (value && !/^(data:|blob:|wxfile:|file:|content:\/\/|\/var\/|\/private\/|\/storage\/|\/data\/|\/sdcard\/|\/Users\/|\/Volumes\/|_doc\/|_downloads\/)/i.test(value)) {
+      localPreviewPath.value = ''
+    }
+  }
+)
+
 const selectDefaultAvatar = (value) => {
+  localPreviewPath.value = ''
   emit('update:modelValue', value)
 }
 
@@ -96,7 +105,12 @@ const handleChooseAvatar = async () => {
   uploading.value = true
   uni.showLoading({ title: '处理中...' })
   try {
-    const avatarUrl = await chooseAndUploadAvatar()
+    const pickedFilePath = await chooseAvatarFile()
+    const compressedFilePath = await compressAvatarFile(pickedFilePath)
+    localPreviewPath.value = compressedFilePath || pickedFilePath
+    const response = await uploadPublicAvatarImage(compressedFilePath || pickedFilePath)
+    const avatarUrl = response?.data?.avatarUrl || response?.data
+    if (!avatarUrl) throw new Error('头像上传失败')
     emit('update:modelValue', avatarUrl)
     emit('uploaded', avatarUrl)
     uni.showToast({ title: '头像已更新', icon: 'success' })
@@ -122,10 +136,6 @@ const handleChooseAvatar = async () => {
 }
 
 .avatar-panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 14px;
 }
 
@@ -143,23 +153,6 @@ const handleChooseAvatar = async () => {
   font-size: 12px;
   line-height: 1.6;
   color: #6a7f94;
-}
-
-.avatar-panel-flags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.avatar-flag {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(0, 122, 255, 0.08);
-  font-size: 11px;
-  color: #2563eb;
-  white-space: nowrap;
 }
 
 .avatar-shell {

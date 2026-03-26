@@ -30,33 +30,15 @@ const readSelectedFilePath = (result = {}) =>
   ''
 
 export const chooseAvatarFile = async () => {
-  try {
-    const cropped = await chooseImageAsync({
-      count: 1,
-      extension: ['jpg', 'jpeg', 'png', 'webp'],
-      sourceType: ['album', 'camera'],
-      crop: {
-        width: 1,
-        height: 1,
-        quality: 88,
-        resize: true,
-      },
-    })
-    const filePath = readSelectedFilePath(cropped)
-    if (!filePath) throw new Error('未选择图片')
-    return filePath
-  } catch (error) {
-    if (isCancelError(error)) throw error
-    const fallback = await chooseImageAsync({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      extension: ['jpg', 'jpeg', 'png', 'webp'],
-    })
-    const filePath = readSelectedFilePath(fallback)
-    if (!filePath) throw new Error('未选择图片')
-    return filePath
-  }
+  const result = await chooseImageAsync({
+    count: 1,
+    sizeType: ['original', 'compressed'],
+    sourceType: ['album', 'camera'],
+    extension: ['jpg', 'jpeg', 'png', 'webp'],
+  })
+  const filePath = readSelectedFilePath(result)
+  if (!filePath) throw new Error('未选择图片')
+  return filePath
 }
 
 export const compressAvatarFile = async (filePath) => {

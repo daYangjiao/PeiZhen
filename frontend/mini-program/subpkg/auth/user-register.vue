@@ -16,9 +16,9 @@
         v-model="form.avatar"
         :options="userDefaultAvatarOptions"
         title="头像设置"
-        tip="支持上传头像，系统会自动裁成方形并压缩；不上传时会随机给一张用户头像。"
+        tip="可上传头像，也可直接选择系统头像。"
         preview-title="用户形象"
-        preview-desc="上传后浏览器和微信小程序都使用同一套头像逻辑。"
+        preview-desc="不上传时会随机使用一张用户头像。"
         upload-label="上传头像（可选）"
       />
 
@@ -30,6 +30,18 @@
         <view class="input-item">
           <text class="iconfont">👤</text>
           <input class="input" v-model="form.name" maxlength="20" placeholder="请输入姓名" />
+        </view>
+        <view class="input-item">
+          <text class="iconfont">⚥</text>
+          <picker class="picker" mode="selector" :range="sexOptions" :value="sexIndex" @change="onSexChange">
+            <view class="picker-value" :class="{ placeholder: !form.sex }">
+              {{ form.sex || '请选择性别' }}
+            </view>
+          </picker>
+        </view>
+        <view class="input-item">
+          <text class="iconfont">🎂</text>
+          <input class="input" v-model="form.age" type="number" maxlength="3" placeholder="请输入年龄" />
         </view>
         <view class="input-item">
           <text class="iconfont">🔒</text>
@@ -69,10 +81,13 @@ import AvatarPickerField from '@/components/AvatarPickerField.vue'
 
 const phonePattern = /^1\d{10}$/
 const defaultUserAvatar = userDefaultAvatarOptions[Math.floor(Math.random() * userDefaultAvatarOptions.length)].value
+const sexOptions = ['男', '女']
 
 const form = ref({
   phone: '',
   name: '',
+  sex: '',
+  age: '',
   password: '',
   avatar: defaultUserAvatar,
   userType: 0
@@ -80,9 +95,15 @@ const form = ref({
 const confirmPassword = ref('')
 const agreed = ref(false)
 const loading = ref(false)
+const sexIndex = ref(-1)
 
 const onCheckChange = (e) => {
   agreed.value = e.detail.value.length > 0
+}
+
+const onSexChange = (e) => {
+  sexIndex.value = Number(e.detail.value)
+  form.value.sex = sexOptions[sexIndex.value] || ''
 }
 
 const goLogin = () => {
@@ -100,6 +121,15 @@ const validateForm = () => {
   }
   if (form.value.name.trim().length < 2) {
     uni.showToast({ title: '姓名至少输入 2 个字', icon: 'none' })
+    return false
+  }
+  if (!form.value.sex) {
+    uni.showToast({ title: '请选择性别', icon: 'none' })
+    return false
+  }
+  const age = Number(form.value.age)
+  if (!Number.isInteger(age) || age <= 0 || age > 120) {
+    uni.showToast({ title: '请输入正确的年龄', icon: 'none' })
     return false
   }
   if (form.value.password.length < 6) {
@@ -122,6 +152,8 @@ const handleRegister = async () => {
     const res = await post('/api/users/register', {
       phone: form.value.phone.trim(),
       name: form.value.name.trim(),
+      sex: form.value.sex,
+      age: Number(form.value.age),
       password: form.value.password,
       avatar: form.value.avatar,
       userType: 0
@@ -259,6 +291,22 @@ const handleRegister = async () => {
   height: 44px;
   font-size: 14px;
   color: #16324f;
+}
+
+.picker {
+  flex: 1;
+}
+
+.picker-value {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #16324f;
+}
+
+.picker-value.placeholder {
+  color: #9aa8b6;
 }
 
 .agreement-row {

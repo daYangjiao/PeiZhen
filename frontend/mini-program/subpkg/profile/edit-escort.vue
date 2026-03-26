@@ -2,8 +2,8 @@
   <view class="page">
     <view class="form-card">
       <view class="avatar-row">
-        <image class="avatar" :src="displayAvatarUrl" mode="aspectFill"></image>
-        <view class="avatar-btn" @click="chooseAvatar">
+        <image class="avatar" :src="displayAvatarUrl" mode="aspectFit"></image>
+        <view class="avatar-btn" @click.stop="chooseAvatar">
           <text>{{ uploading ? '上传中...' : '更换头像' }}</text>
         </view>
       </view>
@@ -61,6 +61,7 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 const userStore = useUserStore()
 const saving = ref(false)
 const uploading = ref(false)
+const localAvatarPreview = ref('')
 
 const form = reactive({
   id: null,
@@ -76,7 +77,7 @@ const form = reactive({
 })
 
 const displayAvatarUrl = computed(() =>
-  resolveAvatarUrl(form.avatarUrl || form.avatar, userPlaceholder)
+  resolveAvatarUrl(localAvatarPreview.value || form.avatarUrl || form.avatar, userPlaceholder)
 )
 
 const fillForm = (source = {}) => {
@@ -114,30 +115,33 @@ const loadProfile = async () => {
   }
 }
 
-const chooseAvatar = () => {
+const chooseAvatar = async () => {
   if (uploading.value) return
   uploading.value = true
   uni.showLoading({ title: '处理中...' })
-  chooseAvatarFile()
-    .then(compressAvatarFile)
-    .then((filePath) => upload('/api/common/upload-image', filePath, {}, 'file'))
-    .then((uploadRes) => {
-      uni.hideLoading()
-      if (uploadRes.code === 200 && uploadRes.data) {
-        form.avatarUrl = uploadRes.data
-        uni.showToast({ title: '头像上传成功', icon: 'success' })
-      }
-    })
-    .catch((error) => {
-      uni.hideLoading()
-      if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
-        console.error('上传头像失败:', error)
-        uni.showToast({ title: '头像上传失败', icon: 'none' })
-      }
-    })
-    .finally(() => {
-      uploading.value = false
-    })
+  try {
+    const pickedFilePath = await chooseAvatarFile()
+    if (!pickedFilePath) return
+    const compressedFilePath = await compressAvatarFile(pickedFilePath)
+    localAvatarPreview.value = compressedFilePath || pickedFilePath
+    const uploadRes = await upload('/api/common/upload-avatar', compressedFilePath || pickedFilePath, {}, 'file')
+    uni.hideLoading()
+    if (uploadRes.code === 200 && uploadRes.data) {
+      form.avatarUrl = uploadRes.data
+      form.avatar = uploadRes.data
+      uni.showToast({ title: '头像上传成功', icon: 'success' })
+    } else {
+      uni.showToast({ title: uploadRes.message || '头像上传失败', icon: 'none' })
+    }
+  } catch (error) {
+    uni.hideLoading()
+    if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
+      console.error('上传头像失败:', error)
+      uni.showToast({ title: '头像上传失败', icon: 'none' })
+    }
+  } finally {
+    uploading.value = false
+  }
 }
 
 const saveProfile = async () => {
@@ -176,6 +180,7 @@ const saveProfile = async () => {
     if (res.code === 200) {
       await userStore.fetchAttendantProfile(userInfo.id)
       const latest = userStore.attendantInfo
+      localAvatarPreview.value = ''
       uni.setStorageSync('userInfo', {
         ...userInfo,
         name: latest.name || userInfo.name,

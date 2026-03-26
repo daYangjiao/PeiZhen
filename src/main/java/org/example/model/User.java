@@ -55,6 +55,9 @@ public class User {
     @ApiModelProperty(value = "陪诊师常驻医院", example = "福建医科大学附属协和医院")
     private String hospitalName;
 
+    @ApiModelProperty(value = "陪诊师资格证编号", example = "CD-PZ-2026-021")
+    private String certificate;
+
     @ApiModelProperty(value = "微信OpenID")
     private String openid;
 
