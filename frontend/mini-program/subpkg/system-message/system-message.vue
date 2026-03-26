@@ -17,11 +17,7 @@
       </scroll-view>
     </view>
 
-    <view
-      v-if="isH5Runtime"
-      class="message-list-web"
-      @click="handleSecretTap"
-    >
+    <view class="message-list-unified" @click="handleSecretTap">
       <view class="system-message-card" v-for="(msg, index) in filteredMessages" :key="index" :id="'msg-' + index">
         <view class="message-header">
           <view class="header-info">
@@ -43,36 +39,6 @@
         <text class="empty-text">暂无{{ tabs[currentTab] }}消息</text>
       </view>
     </view>
-
-    <scroll-view
-      v-else
-      class="message-list"
-      scroll-y
-      :scroll-top="scrollTop"
-      :scroll-into-view="scrollIntoView"
-      @click="handleSecretTap"
-    >
-      <view class="system-message-card" v-for="(msg, index) in filteredMessages" :key="index" :id="'msg-' + index">
-        <view class="message-header">
-          <view class="header-info">
-            <text class="message-title">【{{ getMessageTitle(msg) }}】</text>
-            <text class="message-time">{{ formatTime(msg.createTime) }}</text>
-          </view>
-        </view>
-        <view class="message-content">
-          <text class="content-text">{{ msg.content }}</text>
-        </view>
-        <view class="message-footer" v-if="getActionText(msg)" @click="handleAction(msg)">
-          <text class="action-text">{{ getActionText(msg) }}</text>
-          <text class="action-arrow">></text>
-        </view>
-      </view>
-
-      <view class="empty-state" v-if="filteredMessages.length === 0">
-        <image class="empty-icon" src="/static/xiaoxi_1.png" mode="aspectFit"></image>
-        <text class="empty-text">暂无{{ tabs[currentTab] }}消息</text>
-      </view>
-    </scroll-view>
 
     <view v-if="debugTriggerVisible" class="debug-trigger" @click="toggleDebugPanel">
       <text class="debug-trigger-text">{{ debugVisible ? '关闭检测' : '检测' }}</text>
@@ -112,18 +78,11 @@ import { useMessageStore } from '@/stores/message.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 const systemMessages = ref([])
-const scrollTop = ref(0)
-const scrollIntoView = ref('')
 const currentTab = ref(0)
 const tabs = ['全部', '订单状态', '服务提醒', '平台公告', '账户相关']
 const role = ref(uni.getStorageSync('role') || 'user')
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 const messageStore = useMessageStore()
-let h5Runtime = false
-// #ifdef H5
-h5Runtime = true
-// #endif
-const isH5Runtime = h5Runtime
 const secretTapCount = ref(0)
 const debugTriggerVisible = ref(false)
 const debugVisible = ref(false)
@@ -279,7 +238,6 @@ const filteredMessages = computed(() => {
 
 const switchTab = (index) => {
   currentTab.value = index
-  scrollTop.value = 0
 }
 
 const toggleDebugPanel = () => {
@@ -415,15 +373,10 @@ const debugPreviewText = computed(() => {
   position: absolute;
   bottom: 6rpx;
 }
-.message-list {
-  flex: 1;
+.message-list-unified {
   padding: 24rpx;
   box-sizing: border-box;
-  height: 0;
-}
-.message-list-web {
-  padding: 24rpx;
-  box-sizing: border-box;
+  min-height: calc(100vh - 180rpx);
 }
 .system-message-card {
   background: #fff;
