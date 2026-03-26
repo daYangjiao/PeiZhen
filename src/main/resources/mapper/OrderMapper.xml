@@ -41,6 +41,9 @@
         <result column="balance_amount" property="balanceAmount"/>
         <result column="time_dispute_user_duration" property="timeDisputeUserDuration"/>
         <result column="time_dispute_reason" property="timeDisputeReason"/>
+        <result column="admin_remark" property="adminRemark"/>
+        <result column="dispute_resolved_by" property="disputeResolvedBy"/>
+        <result column="dispute_resolved_time" property="disputeResolvedTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="org.example.model.Order" useGeneratedKeys="true" keyProperty="orderId">
@@ -116,6 +119,9 @@
             <if test="balanceAmount != null">balance_amount = #{balanceAmount},</if>
             <if test="timeDisputeUserDuration != null">time_dispute_user_duration = #{timeDisputeUserDuration},</if>
             <if test="timeDisputeReason != null">time_dispute_reason = #{timeDisputeReason},</if>
+            <if test="adminRemark != null">admin_remark = #{adminRemark},</if>
+            <if test="disputeResolvedBy != null">dispute_resolved_by = #{disputeResolvedBy},</if>
+            <if test="disputeResolvedTime != null">dispute_resolved_time = #{disputeResolvedTime},</if>
         </set>
         WHERE order_id = #{orderId}
     </update>
@@ -155,24 +161,62 @@
     </select>
 
     <select id="countAllOrders" resultType="int">
-        SELECT COUNT(*) FROM `order`
+        SELECT COUNT(*)
+        FROM `order` o
+        LEFT JOIN user u ON u.id = o.user_id
+        LEFT JOIN user au ON au.id = o.attendant_id
         <where>
-            <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
-            <if test="query != null and query.serviceType != null">AND clinic_type = #{query.serviceType}</if>
-            <if test="query != null and query.orderAmountMax != null">AND order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.orderStatus != null">AND o.order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.paymentStatus != null">AND o.payment_status = #{query.paymentStatus}</if>
+            <if test="query != null and query.serviceType != null">AND o.clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND o.order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.startDate != null and query.startDate != ''">AND o.create_time &gt;= CONCAT(#{query.startDate}, ' 00:00:00')</if>
+            <if test="query != null and query.endDate != null and query.endDate != ''">AND o.create_time &lt;= CONCAT(#{query.endDate}, ' 23:59:59')</if>
+            <if test="query != null and query.keyword != null and query.keyword != ''">
+                AND (
+                    o.order_no LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.patient_name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_person LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.hospital LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                )
+            </if>
             <include refid="durationCondition"/>
         </where>
     </select>
 
     <select id="findAllOrdersWithPagination" resultMap="OrderResultMap">
-        SELECT * FROM `order`
+        SELECT o.*
+        FROM `order` o
+        LEFT JOIN user u ON u.id = o.user_id
+        LEFT JOIN user au ON au.id = o.attendant_id
         <where>
-            <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
-            <if test="query != null and query.serviceType != null">AND clinic_type = #{query.serviceType}</if>
-            <if test="query != null and query.orderAmountMax != null">AND order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.orderStatus != null">AND o.order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.paymentStatus != null">AND o.payment_status = #{query.paymentStatus}</if>
+            <if test="query != null and query.serviceType != null">AND o.clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND o.order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.startDate != null and query.startDate != ''">AND o.create_time &gt;= CONCAT(#{query.startDate}, ' 00:00:00')</if>
+            <if test="query != null and query.endDate != null and query.endDate != ''">AND o.create_time &lt;= CONCAT(#{query.endDate}, ' 23:59:59')</if>
+            <if test="query != null and query.keyword != null and query.keyword != ''">
+                AND (
+                    o.order_no LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.patient_name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_person LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.hospital LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                )
+            </if>
             <include refid="durationCondition"/>
         </where>
-        ORDER BY create_time DESC
+        ORDER BY o.create_time DESC
         LIMIT #{offset}, #{limit}
     </select>
 

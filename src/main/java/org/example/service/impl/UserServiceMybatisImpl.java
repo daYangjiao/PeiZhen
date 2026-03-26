@@ -52,6 +52,9 @@ public class UserServiceMybatisImpl implements UserService {
         if (user.getUserType() == null) {
             user.setUserType(0); // 默认为普通用户
         }
+        if (user.getStatus() == null) {
+            user.setStatus(1);
+        }
         encodePasswordIfNeeded(user);
         userMapper.save(user);
         logger.info("用户手机号 {} 注册成功，ID: {}", user.getPhone(), user.getId());
@@ -87,6 +90,10 @@ public class UserServiceMybatisImpl implements UserService {
         User user = userMapper.findByPhone(phone);
         if (user == null) {
             logger.warn("登录失败：手机号 {} 不存在", phone);
+            return null;
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            logger.warn("登录失败：手机号 {} 已被禁用", phone);
             return null;
         }
 

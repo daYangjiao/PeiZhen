@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend (Local)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="denglu" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="org.example.DbTestApplication" />
+    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+    <envs>
+      <env name="SPRING_PROFILES_ACTIVE" value="dev" />
+      <env name="SERVER_PORT" value="8081" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
