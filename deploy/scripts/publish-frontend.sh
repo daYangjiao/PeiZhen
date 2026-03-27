@@ -16,6 +16,7 @@ prepare_release_workspace
 FRONTEND_DIR="${SYNC_ROOT}/frontend/mini-program"
 DIST_DIR="${FRONTEND_DIR}/dist/build/h5"
 STATIC_DIR="${FRONTEND_DIR}/static"
+PUBLIC_DIR="${FRONTEND_DIR}/public"
 ADMIN_DIR="${SYNC_ROOT}/frontend/admin"
 ADMIN_DIST_DIR="${ADMIN_DIR}/dist"
 
@@ -26,6 +27,11 @@ fi
 
 if [[ ! -d "${FRONTEND_DIR}" ]]; then
   echo "Frontend directory not found: ${FRONTEND_DIR}" >&2
+  exit 1
+fi
+
+if [[ ! -d "${PUBLIC_DIR}" ]]; then
+  echo "Public directory not found: ${PUBLIC_DIR}" >&2
   exit 1
 fi
 
@@ -44,6 +50,10 @@ rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
 rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
   "${STATIC_DIR}/" \
   "${SERVER_USER}@${SERVER_HOST}:${REMOTE_ROOT}/frontend/mini-program/static/"
+
+rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
+  "${PUBLIC_DIR}/" \
+  "${SERVER_USER}@${SERVER_HOST}:${REMOTE_ROOT}/frontend/mini-program/public/"
 
 if [[ -d "${ADMIN_DIR}" ]]; then
   rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
@@ -64,7 +74,7 @@ ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
   RELEASE_GIT_DIRTY='${RELEASE_GIT_DIRTY}' \
   RELEASE_TIMESTAMP='${RELEASE_TIMESTAMP}' \
   RELEASE_ACTOR='${RELEASE_ACTOR}' \
-  bash deploy/scripts/deploy-frontend.sh '${REMOTE_ROOT}/frontend/mini-program/dist/build/h5' '/var/www/pz-mini' '${REMOTE_ROOT}/frontend/mini-program/static' '${REMOTE_ROOT}/frontend/admin/dist'"
+  bash deploy/scripts/deploy-frontend.sh '${REMOTE_ROOT}/frontend/mini-program/dist/build/h5' '/var/www/pz-mini' '${REMOTE_ROOT}/frontend/mini-program/static' '${REMOTE_ROOT}/frontend/admin/dist' '${REMOTE_ROOT}/frontend/mini-program/public'"
 
 ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
   "sudo test -f /var/lib/pz-deploy/releases/frontend-release.env && \

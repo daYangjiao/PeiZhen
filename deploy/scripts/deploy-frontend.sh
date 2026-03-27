@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <local-h5-dist-directory> [web-root]" >&2
+  echo "Usage: $0 <local-h5-dist-directory> [web-root] [static-source] [admin-source] [public-source]" >&2
   exit 1
 fi
 
@@ -10,6 +10,7 @@ SOURCE_DIR="$1"
 WEB_ROOT="${2:-/var/www/pz-mini}"
 STATIC_SOURCE_DIR="${3:-}"
 ADMIN_SOURCE_DIR="${4:-}"
+PUBLIC_SOURCE_DIR="${5:-}"
 RELEASE_META_DIR="${RELEASE_META_DIR:-/var/lib/pz-deploy/releases}"
 RELEASE_META_FILE="${RELEASE_META_DIR}/frontend-release.env"
 
@@ -21,8 +22,9 @@ fi
 install -d "${WEB_ROOT}"
 rsync -av --delete "${SOURCE_DIR}/" "${WEB_ROOT}/"
 
+PROJECT_ROOT="$(cd "${SOURCE_DIR}/../../.." && pwd)"
+
 if [[ -z "${STATIC_SOURCE_DIR}" ]]; then
-  PROJECT_ROOT="$(cd "${SOURCE_DIR}/../../.." && pwd)"
   if [[ -d "${PROJECT_ROOT}/static" ]]; then
     STATIC_SOURCE_DIR="${PROJECT_ROOT}/static"
   fi
@@ -44,6 +46,22 @@ if [[ -n "${ADMIN_SOURCE_DIR}" ]]; then
   fi
   install -d "${WEB_ROOT}/admin"
   rsync -av --delete "${ADMIN_SOURCE_DIR}/" "${WEB_ROOT}/admin/"
+fi
+
+if [[ -z "${PUBLIC_SOURCE_DIR}" ]]; then
+  if [[ -d "${PROJECT_ROOT}/public" ]]; then
+    PUBLIC_SOURCE_DIR="${PROJECT_ROOT}/public"
+  fi
+fi
+
+if [[ -n "${PUBLIC_SOURCE_DIR}" ]]; then
+  if [[ ! -d "${PUBLIC_SOURCE_DIR}" ]]; then
+    echo "Public directory not found: ${PUBLIC_SOURCE_DIR}" >&2
+    exit 1
+  fi
+  # Dist output remains the source of truth for root index.html.
+  # Public files supplement the web root (download page, manifest, icons, sw, etc.).
+  rsync -av --exclude "/index.html" "${PUBLIC_SOURCE_DIR}/" "${WEB_ROOT}/"
 fi
 
 install -d "${RELEASE_META_DIR}"
