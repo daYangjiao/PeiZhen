@@ -86,8 +86,16 @@
 				<text class="section-title">症状选择</text>
 			</view>
 			<view class="symptom-list">
-				<view class="symptom-item" v-for="(item, index) in symptoms" :key="index" @click="toggleSymptom(item)">
-					<checkbox :checked="selectedSymptoms.includes(item)" class="checkbox" />
+				<view
+					class="symptom-item"
+					:class="{ selected: isSymptomSelected(item) }"
+					v-for="(item, index) in symptoms"
+					:key="index"
+					@click="toggleSymptom(item)"
+				>
+					<view class="checkbox-indicator" :class="{ selected: isSymptomSelected(item) }">
+						<text class="checkbox-mark" v-if="isSymptomSelected(item)">✓</text>
+					</view>
 					<text class="symptom-text">{{ item }}</text>
 				</view>
 			</view>
@@ -379,6 +387,17 @@ const isValidPhone = computed(() => {
 	return !!phoneNumber.value && phoneRegex.test(String(phoneNumber.value).trim())
 })
 
+const normalizeSymptom = (symptom) => String(symptom || '').trim()
+
+const getSelectedSymptoms = () => selectedSymptoms.value
+	.map(normalizeSymptom)
+	.filter(Boolean)
+
+const isSymptomSelected = (symptom) => {
+	const normalizedSymptom = normalizeSymptom(symptom)
+	return !!normalizedSymptom && getSelectedSymptoms().includes(normalizedSymptom)
+}
+
 // 除“其他需求”外，其余都必须填写/选择（含症状至少选择1项）
 const isFormComplete = computed(() => {
 	return (
@@ -388,8 +407,7 @@ const isFormComplete = computed(() => {
 		!!String(hospitalAddress.value || '').trim() &&
 		!!String(patientName.value || '').trim() &&
 		isValidPhone.value &&
-		Array.isArray(selectedSymptoms.value) &&
-		selectedSymptoms.value.length > 0
+		getSelectedSymptoms().length > 0
 	)
 })
 
@@ -400,10 +418,15 @@ const getServiceIcon = (typeNumber) => {
 
 // --- 新增：症状选择方法 ---
 const toggleSymptom = (symptom) => {
-	if (selectedSymptoms.value.includes(symptom)) {
-		selectedSymptoms.value = selectedSymptoms.value.filter(item => item !== symptom)
+	const normalizedSymptom = normalizeSymptom(symptom)
+	if (!normalizedSymptom) {
+		return
+	}
+	const nextSelectedSymptoms = getSelectedSymptoms()
+	if (nextSelectedSymptoms.includes(normalizedSymptom)) {
+		selectedSymptoms.value = nextSelectedSymptoms.filter(item => item !== normalizedSymptom)
 	} else {
-		selectedSymptoms.value = [...selectedSymptoms.value, symptom]
+		selectedSymptoms.value = [...nextSelectedSymptoms, normalizedSymptom]
 	}
 }
 
@@ -419,16 +442,18 @@ const hideAddSymptomModal = () => {
 }
 
 const validateNewSymptom = () => {
-	if (!newSymptomInput.value.trim()) {
+	const normalizedNewSymptom = normalizeSymptom(newSymptomInput.value)
+	if (!normalizedNewSymptom) {
 		newSymptomError.value = '请输入症状描述'
 		return false
 	}
-	if (newSymptomInput.value.trim().length > 50) {
+	if (normalizedNewSymptom.length > 50) {
 		newSymptomError.value = '症状描述不能超过50个字符'
 		return false
 	}
 	// 检查是否已经存在
-	if (symptoms.value.includes(newSymptomInput.value.trim())) {
+	const normalizedSymptomOptions = symptoms.value.map(normalizeSymptom)
+	if (normalizedSymptomOptions.includes(normalizedNewSymptom)) {
 		newSymptomError.value = '该症状已存在'
 		return false
 	}
@@ -440,10 +465,10 @@ const confirmAddSymptom = () => {
 	if (!validateNewSymptom()) {
 		return
 	}
+	const normalizedNewSymptom = normalizeSymptom(newSymptomInput.value)
 	// 添加到症状列表
-	symptoms.value.push(newSymptomInput.value.trim())
-	// 可以选择是否自动选中新增的症状
-	// selectedSymptoms.value.push(symptoms.value.length - 1);
+	symptoms.value.push(normalizedNewSymptom)
+	selectedSymptoms.value = [...getSelectedSymptoms(), normalizedNewSymptom]
 	hideAddSymptomModal()
 	uni.showToast({
 		title: '症状添加成功',
@@ -459,7 +484,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 	if (!selectedDate.value) missing.push('服务日期')
 	if (!startTime.value || !endTime.value) missing.push('服务时段')
 	if (!String(hospitalAddress.value || '').trim()) missing.push('医院地址')
-	if (!selectedSymptoms.value || selectedSymptoms.value.length === 0) missing.push('症状（至少选择1项）')
+	if (getSelectedSymptoms().length === 0) missing.push('症状（至少选择1项）')
 	if (!String(patientName.value || '').trim()) missing.push('姓名')
 	if (!String(phoneNumber.value || '').trim()) missing.push('手机号')
 
@@ -508,7 +533,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 		patientPhone: String(phoneNumber.value || '').trim(),
 		// --- 新增：症状和需求 ---
 		// 症状 (确保是一个数组)
-		symptoms: selectedSymptoms.value,
+		symptoms: getSelectedSymptoms(),
 		// 其他需求 (确保是一个字符串)
 		otherRequirement: otherRequirements.value,
 		// --- 结束新增 ---
@@ -877,14 +902,43 @@ onMounted(async () => {
 	border-radius: 8px;
 	font-size: 28rpx;
 	cursor: pointer;
+	background-color: #fff;
+	transition: all 0.2s ease;
 }
 
-.checkbox {
-	transform: scale(0.8);
+.symptom-item.selected {
+	border-color: #007AFF;
+	background-color: #F0F7FF;
+	box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.08);
+}
+
+.checkbox-indicator {
+	width: 36rpx;
+	height: 36rpx;
+	border-radius: 50%;
+	border: 2rpx solid #cdd6e1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #fff;
+	flex-shrink: 0;
+}
+
+.checkbox-indicator.selected {
+	border-color: #007AFF;
+	background: linear-gradient(135deg, #007AFF, #2563EB);
+}
+
+.checkbox-mark {
+	font-size: 20rpx;
+	line-height: 1;
+	color: #fff;
+	font-weight: 700;
 }
 
 .symptom-text {
 	color: #333;
+	flex: 1;
 }
 
 .add-symptom {
