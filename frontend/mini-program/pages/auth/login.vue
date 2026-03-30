@@ -79,7 +79,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { post } from '@/utils/api.js'
 import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
-import { completeLoginSession } from '@/utils/auth-session.js'
+import { completeLoginSession, getSessionLandingUrl } from '@/utils/auth-session.js'
 import { useSessionStore } from '@/stores/session'
 import { brandLogo } from '@/utils/assets.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
@@ -107,6 +107,17 @@ onLoad((options) => {
   }
   if (publicSafeMode.value) {
     uni.reLaunch({ url: PUBLIC_SAFE_LANDING_URL })
+    return
+  }
+  session.restoreFromStorage()
+  if (session.isLoggedIn && session.token) {
+    const targetUrl = getSessionLandingUrl({ role: session.role, userInfo: session.userInfo })
+    currentRole.value = session.role || currentRole.value
+    if (session.role === 'escort') {
+      uni.reLaunch({ url: targetUrl })
+    } else {
+      uni.switchTab({ url: targetUrl })
+    }
     return
   }
   loadWechatConfigStatus()

@@ -71,7 +71,8 @@
 			<view class="location-input">
 				<picker class="hospital-picker" mode="selector" :range="HOSPITAL_OPTIONS" :value="hospitalIndex" @change="onHospitalChange">
 					<view class="address-input" :class="{ 'address-placeholder': !hospitalAddress }">
-						{{ hospitalAddress || '请选择就诊医院' }}
+						<text class="address-text">{{ hospitalAddress || '请选择就诊医院' }}</text>
+						<text class="picker-arrow">▼</text>
 					</view>
 				</picker>
 			</view>
@@ -887,10 +888,25 @@ onMounted(async () => {
 	border: none;
 	outline: none;
 	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	min-height: 88rpx;
 }
 
 .address-placeholder {
 	color: #999;
+}
+
+.address-text {
+	flex: 1;
+}
+
+.picker-arrow {
+	flex-shrink: 0;
+	font-size: 22rpx;
+	color: #94a3b8;
 }
 
 /* --- 新增：症状选择区域样式 --- */

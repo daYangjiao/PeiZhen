@@ -37,3 +37,8 @@ export const completeLoginSession = async ({ role, token, userInfo }) => {
   await syncMessageStatus(messageStore)
   return '/pages/role-user/home'
 }
+
+export const getSessionLandingUrl = ({ role, userInfo } = {}) => {
+  const normalizedRole = role || (userInfo?.userType === 1 ? 'escort' : 'user')
+  return normalizedRole === 'escort' ? '/pages/role-escort/hall' : '/pages/role-user/home'
+}
