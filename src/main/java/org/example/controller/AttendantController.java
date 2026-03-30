@@ -12,6 +12,7 @@ import org.example.model.Attendant;
 import org.example.model.AttendantQualification;
 import org.example.model.Order;
 import org.example.model.User;
+import org.example.model.request.AttendantCancelOrderRequest;
 import org.example.model.request.AttendantQualificationUpdateRequest;
 import org.example.model.request.AttendantProfileUpdateRequest;
 import org.example.model.request.OrderListQueryRequest;
@@ -498,12 +499,36 @@ public class AttendantController {
             @ApiParam(value = "取消原因", example = "临时无法到院服务") @RequestParam(required = false) String reason,
             @ApiParam(value = "违约金金额，单位元", example = "20.00") @RequestParam(required = false) BigDecimal penaltyAmount,
             @ApiParam(value = "退款金额，单位元", example = "60.00") @RequestParam(required = false) BigDecimal refundAmount,
-            @ApiParam(value = "违约金比例，0-1 之间", example = "0.25") @RequestParam(required = false) BigDecimal penaltyRate) {
+            @ApiParam(value = "违约金比例，0-1 之间", example = "0.25") @RequestParam(required = false) BigDecimal penaltyRate,
+            @RequestBody(required = false) AttendantCancelOrderRequest request) {
         try {
+            String finalReason = reason;
+            BigDecimal finalPenaltyAmount = penaltyAmount;
+            BigDecimal finalRefundAmount = refundAmount;
+            BigDecimal finalPenaltyRate = penaltyRate;
+
+            if (request != null) {
+                if ((finalReason == null || finalReason.trim().isEmpty()) && request.getReason() != null) {
+                    finalReason = request.getReason();
+                }
+                if (finalPenaltyAmount == null) {
+                    finalPenaltyAmount = request.getPenaltyAmount();
+                }
+                if (finalRefundAmount == null) {
+                    finalRefundAmount = request.getRefundAmount();
+                }
+                if (finalPenaltyRate == null) {
+                    finalPenaltyRate = request.getPenaltyRate();
+                }
+            }
+
             log.info("陪诊师取消订单请求，orderId={}, reason={}, penaltyAmount={}, refundAmount={}, penaltyRate={}",
-                    orderId, reason, penaltyAmount, refundAmount, penaltyRate);
-            String result = orderService.attendantCancelOrder(orderId, reason, penaltyAmount, refundAmount, penaltyRate);
-            return ResponseResult.success(result);
+                    orderId, finalReason, finalPenaltyAmount, finalRefundAmount, finalPenaltyRate);
+            String result = orderService.attendantCancelOrder(orderId, finalReason, finalPenaltyAmount, finalRefundAmount, finalPenaltyRate);
+            if (result != null && (result.startsWith("订单已释放") || result.startsWith("订单已取消"))) {
+                return ResponseResult.success(result);
+            }
+            return ResponseResult.error(result != null ? result : "取消订单失败");
         } catch (Exception e) {
             log.error("取消订单失败，订单ID: {}", orderId, e);
             String msg = e.getMessage() != null ? e.getMessage() : "取消订单失败";
