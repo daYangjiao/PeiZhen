@@ -125,10 +125,12 @@ const orders = ref([])
 const loading = ref(false)
 let socketListener = null
 let pollTimer = null
+let localOrderUpdatedListener = null
 
 onMounted(() => {
   loadOrders()
   setupWebSocketListener()
+  setupLocalOrderUpdatedListener()
   startPolling()
 })
 
@@ -229,7 +231,8 @@ const handleSocketMessage = (message) => {
     message.type === 'ORDER_ACCEPTED' ||
     message.type === 'SERVICE_STARTED' ||
     message.type === 'SERVICE_COMPLETED' ||
-    message.type === 'ORDER_STATUS_CHANGED'
+    message.type === 'ORDER_STATUS_CHANGED' ||
+    message.type === 'ORDER_RELEASED_BY_ATTENDANT'
   ) {
     setTimeout(() => loadOrders(), 1000)
   }
@@ -241,6 +244,14 @@ const setupWebSocketListener = () => {
   addChatListener(socketListener)
 }
 
+const setupLocalOrderUpdatedListener = () => {
+  if (localOrderUpdatedListener) uni.$off('escort-order-updated', localOrderUpdatedListener)
+  localOrderUpdatedListener = () => {
+    loadOrders()
+  }
+  uni.$on('escort-order-updated', localOrderUpdatedListener)
+}
+
 const startPolling = () => {
   if (pollTimer) clearInterval(pollTimer)
   pollTimer = setInterval(() => loadOrders(), 15000)
@@ -249,6 +260,7 @@ const startPolling = () => {
 onUnmounted(() => {
   if (socketListener) removeChatListener(socketListener)
   if (pollTimer) clearInterval(pollTimer)
+  if (localOrderUpdatedListener) uni.$off('escort-order-updated', localOrderUpdatedListener)
 })
 </script>
 

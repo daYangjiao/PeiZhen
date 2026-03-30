@@ -1110,8 +1110,19 @@ export default {
 				penaltyRate: this.cancelPenaltyRate
 			}).then((apiRes) => {
 				if (apiRes.code === 200) {
+					const resultText = String(apiRes.data || apiRes.message || '')
+					const releasedToHall = resultText.includes('接单大厅')
 					this.showCancelModal = false
-					uni.showToast({ title: '订单已取消', icon: 'success' })
+					uni.$emit('escort-order-updated', {
+						orderId: this.orderInfo.id,
+						orderNo: this.orderInfo.orderNo,
+						action: releasedToHall ? 'released' : 'cancelled',
+						message: resultText
+					})
+					uni.showToast({
+						title: releasedToHall ? '订单已释放' : '订单已取消',
+						icon: 'success'
+					})
 					setTimeout(() => uni.navigateBack(), 1500)
 				} else {
 					uni.showToast({ title: apiRes.message || '取消失败', icon: 'none' })

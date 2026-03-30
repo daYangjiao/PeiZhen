@@ -126,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import OrderCard from '@/components/OrderCard.vue'
 import EscortBottomBar from '@/components/EscortBottomBar.vue'
@@ -172,6 +172,7 @@ const filterServiceTypeIndex = ref(0)
 const filterDurationIndex = ref(0)
 const filterFeeIndex = ref(0)
 const expandWhich = ref(null)
+let localOrderUpdatedListener = null
 
 const filterParams = ref({
 	serviceType: null,
@@ -366,10 +367,21 @@ const confirmFilter = () => {
 
 onMounted(() => {
 	loadOrders(true)
+	localOrderUpdatedListener = (payload) => {
+		if (payload && payload.action === 'released') {
+			loadOrders(true)
+		}
+	}
+	uni.$on('escort-order-updated', localOrderUpdatedListener)
 })
 onShow(() => {
 	if (redirectPublicSafeToHome()) return
 	ensureRole('escort')
+})
+onUnmounted(() => {
+	if (localOrderUpdatedListener) {
+		uni.$off('escort-order-updated', localOrderUpdatedListener)
+	}
 })
 </script>
 
