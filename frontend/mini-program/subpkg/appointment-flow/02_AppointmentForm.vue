@@ -65,15 +65,15 @@
 				<view class="icon-wrapper">
 					<text class="location-icon">📍</text>
 				</view>
-				<text class="section-title">输入地址或选择医院</text>
+				<text class="section-title">选择就诊医院</text>
 			</view>
 			
 			<view class="location-input">
-				<input 
-					v-model="hospitalAddress" 
-					placeholder="输入地址或选择医院" 
-					class="address-input"
-				/>
+				<picker class="hospital-picker" mode="selector" :range="HOSPITAL_OPTIONS" :value="hospitalIndex" @change="onHospitalChange">
+					<view class="address-input" :class="{ 'address-placeholder': !hospitalAddress }">
+						{{ hospitalAddress || '请选择就诊医院' }}
+					</view>
+				</picker>
 			</view>
 		</view>
 
@@ -228,6 +228,7 @@ import { onLoad } from '@dcloudio/uni-app' // 使用 onLoad 获取参数
 // --- 导入你的 API 文件 ---
 import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 get
 import { appointmentServiceLogos } from '@/utils/assets.js'
+import { HOSPITAL_OPTIONS } from '@/utils/hospital-options.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 // --- 接收页面参数 ---
@@ -257,6 +258,7 @@ const selectedDate = ref('')
 const startTime = ref('')
 const endTime = ref('')
 const hospitalAddress = ref('')
+const hospitalIndex = ref(-1)
 const patientName = ref('')
 const phoneNumber = ref('')
 const phoneError = ref('')
@@ -308,6 +310,11 @@ const goBack = () => {
 
 const onDateChange = (e) => {
 	selectedDate.value = e.detail.value
+}
+
+const onHospitalChange = (e) => {
+	hospitalIndex.value = Number(e.detail.value)
+	hospitalAddress.value = HOSPITAL_OPTIONS[hospitalIndex.value] || ''
 }
 
 const showStartTimePicker = () => {
@@ -483,7 +490,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 	const missing = []
 	if (!selectedDate.value) missing.push('服务日期')
 	if (!startTime.value || !endTime.value) missing.push('服务时段')
-	if (!String(hospitalAddress.value || '').trim()) missing.push('医院地址')
+	if (!String(hospitalAddress.value || '').trim()) missing.push('就诊医院')
 	if (getSelectedSymptoms().length === 0) missing.push('症状（至少选择1项）')
 	if (!String(patientName.value || '').trim()) missing.push('姓名')
 	if (!String(phoneNumber.value || '').trim()) missing.push('手机号')
@@ -863,18 +870,27 @@ onMounted(async () => {
 .location-input {
 	background-color: #f8f9fa;
 	border-radius: 15rpx;
-	padding: 5rpx 20rpx;
 	border: 2rpx solid #e9ecef;
+}
+
+.hospital-picker {
+	display: block;
+	width: 100%;
 }
 
 .address-input {
 	width: 100%;
-	padding: 25rpx 0;
+	padding: 25rpx 20rpx;
 	font-size: 28rpx;
 	color: #333;
 	background: transparent;
 	border: none;
 	outline: none;
+	box-sizing: border-box;
+}
+
+.address-placeholder {
+	color: #999;
 }
 
 /* --- 新增：症状选择区域样式 --- */

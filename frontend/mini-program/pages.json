@@ -1,9 +1,9 @@
 {
   "pages": [
     {
-      "path": "pages/role-user/home",
+      "path": "pages/auth/login",
       "style": {
-        "navigationBarTitleText": "陪诊服务"
+        "navigationBarTitleText": "登录"
       }
     },
     {
@@ -56,9 +56,9 @@
       }
     },
     {
-      "path": "pages/auth/login",
+      "path": "pages/role-user/home",
       "style": {
-        "navigationBarTitleText": "登录"
+        "navigationBarTitleText": "陪诊服务"
       }
     },
     {
