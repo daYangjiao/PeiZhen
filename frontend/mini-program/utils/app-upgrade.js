@@ -93,29 +93,18 @@ const showConfirm = ({ title, content, forceUpdate = false }) => {
 }
 
 const installWgt = async (payload) => {
-  const confirmed = await showConfirm({
-    title: payload.title || '检测到资源更新',
-    content: payload.notes || '发现新的前端资源，安装后将立即重启应用。',
-    forceUpdate: !!payload.forceUpdate
-  })
-  if (!confirmed) return
-
   uni.showLoading({ title: '更新资源中...', mask: true })
   try {
     const filePath = await downloadFile(payload.downloadUrl)
     await installPackage(filePath, { force: true })
     setStoredWgtVersion(payload.wgtVersion || payload.latestVersion || APP_BUILD.versionName)
     uni.hideLoading()
-    uni.showModal({
-      title: '更新完成',
-      content: '资源已更新，应用将立即重启。',
-      showCancel: false,
-      success: () => {
-        // #ifdef APP-PLUS
-        plus.runtime.restart()
-        // #endif
-      }
-    })
+    uni.showToast({ title: '资源已更新，正在重启', icon: 'none', duration: 1200 })
+    setTimeout(() => {
+      // #ifdef APP-PLUS
+      plus.runtime.restart()
+      // #endif
+    }, 600)
   } catch (error) {
     uni.hideLoading()
     uni.showToast({ title: error?.message || '资源更新失败', icon: 'none' })
