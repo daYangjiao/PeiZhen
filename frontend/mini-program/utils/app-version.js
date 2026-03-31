@@ -18,6 +18,15 @@ const getStoredWgtVersion = () => {
   return typeof value === 'string' && value.trim() ? value.trim() : APP_BUILD.versionName
 }
 
+const isAppRuntime = () => {
+  // #ifdef APP-PLUS
+  return true
+  // #endif
+  // #ifndef APP-PLUS
+  return false
+  // #endif
+}
+
 const getRuntimeInfo = () => {
   return new Promise((resolve) => {
     // #ifdef APP-PLUS
@@ -36,14 +45,17 @@ export const showCurrentVersionInfo = async () => {
   const runtimeVersion = runtimeInfo.version || APP_BUILD.versionName
   const runtimeAppid = runtimeInfo.appid || APP_BUILD.appid
   const wgtVersion = getStoredWgtVersion()
+  const appRuntime = isAppRuntime()
+  const currentCodeVersion = appRuntime ? wgtVersion : APP_BUILD.versionName
 
   uni.showModal({
     title: '当前版本',
     showCancel: false,
     content: [
       `平台：${getPlatformLabel()}`,
-      `安装包版本：${runtimeVersion} (${APP_BUILD.versionCode})`,
-      `资源包版本：${wgtVersion}`,
+      `代码版本：${APP_BUILD.buildLabel} / ${currentCodeVersion}`,
+      `安装包版本：${appRuntime ? `${runtimeVersion} (${APP_BUILD.versionCode})` : 'H5 无安装包'}`,
+      `资源包版本：${appRuntime ? wgtVersion : APP_BUILD.versionName}`,
       `包名：${APP_BUILD.packageName}`,
       `AppID：${runtimeAppid}`
     ].join('\n')

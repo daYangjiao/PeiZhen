@@ -1,4 +1,5 @@
 export const APP_BUILD = Object.freeze({
+  buildLabel: 'beta5',
   appid: '__UNI__73289DB',
   versionName: '1.0.1-beta5',
   versionCode: 105,
