@@ -6,5 +6,6 @@ audit/
 frontend/mini-program/node_modules/
 frontend/mini-program/dist/
 frontend/mini-program/unpackage/
+frontend/mini-program/android-local/
 frontend/admin/node_modules/
 frontend/admin/dist/
