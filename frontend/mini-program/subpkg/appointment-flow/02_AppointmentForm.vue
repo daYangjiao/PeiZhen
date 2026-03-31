@@ -13,28 +13,21 @@
 			</view>
 		</view>
 
-		<!-- 选择日期 -->
-		<view class="date-section">
-			<picker 
-				mode="date" 
-				:value="selectedDate" 
-				:start="minDate"
-				@change="onDateChange"
-				class="date-picker-wrapper"
-			>
-				<view class="date-btn">
-					<text class="date-text">选择日期</text>
-				</view>
-			</picker>
-			<view class="selected-date" v-if="!selectedDate">
-				<text class="placeholder-text">未选择日期</text>
-			</view>
-			<view class="selected-date" v-else>
-				<text class="date-value">{{ formatDate(selectedDate) }}</text>
-			</view>
-		</view>
+    <!-- 选择日期 -->
+    <view class="date-section">
+      <view
+          class="date-btn"
+          @click="showCalendarPicker"
+      >
+        <text class="date-text">{{ selectedDate ? formatDate(selectedDate) : '选择日期' }}</text>
+      </view>
+      <view class="selected-date" v-if="!selectedDate">
+        <text class="placeholder-text">未选择日期</text>
+      </view>
+    </view>
 
-		<!-- 选择服务时段 -->
+
+    <!-- 选择服务时段 -->
 		<view class="time-section">
 			<view class="section-header">
 				<view class="icon-wrapper">
@@ -65,15 +58,15 @@
 				<view class="icon-wrapper">
 					<text class="location-icon">📍</text>
 				</view>
-				<text class="section-title">选择就诊医院</text>
+				<text class="section-title">输入地址或选择医院</text>
 			</view>
 			
 			<view class="location-input">
-				<picker class="hospital-picker" mode="selector" :range="HOSPITAL_OPTIONS" :value="hospitalIndex" @change="onHospitalChange">
-					<view class="address-input" :class="{ 'address-placeholder': !hospitalAddress }">
-						{{ hospitalAddress || '请选择就诊医院' }}
-					</view>
-				</picker>
+				<input 
+					v-model="hospitalAddress" 
+					placeholder="输入地址或选择医院" 
+					class="address-input"
+				/>
 			</view>
 		</view>
 
@@ -191,6 +184,71 @@
 			</view>
 		</view>
 
+    <!-- 时间选择器弹窗 -->
+    <view class="modal-overlay" v-if="showTimeModal" @click="hideTimePicker">
+      <view class="time-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">{{ timePickerTitle }}</text>
+          <text class="close-btn" @click="hideTimePicker">✕</text>
+        </view>
+
+        <view class="time-list">
+          <view
+              v-for="time in timeOptions"
+              :key="time"
+              :class="['time-option', { 'selected': selectedTime === time }]"
+              @click="selectTime(time)"
+          >
+            <text>{{ time }}</text>
+          </view>
+        </view>
+
+        <view class="modal-footer">
+          <button class="cancel-btn" @click="hideTimePicker">取消</button>
+          <button class="confirm-time-btn" @click="confirmTime">确定</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 日历弹窗 - 简化版 -->
+    <view class="modal-overlay" v-if="showCalendarModal" @click="hideCalendarPicker">
+      <view class="calendar-modal-simple" @click.stop>
+        <view class="cal-header">
+          <text class="cal-month">{{ currentMonthYear }}</text>
+          <view class="cal-nav">
+            <text class="cal-btn" @click="prevMonth">‹</text>
+            <text class="cal-btn" @click="nextMonth">›</text>
+          </view>
+        </view>
+
+        <view class="cal-weekdays">
+          <text class="cal-wd" v-for="d in weekdays" :key="d">{{ d }}</text>
+        </view>
+
+        <view class="cal-days">
+          <view
+              class="cal-day"
+              v-for="(day, i) in calendarDays"
+              :key="i"
+              :class="{
+							'empty': day.isEmpty,
+							'today': day.isToday,
+							'selected': day.isSelected,
+							'disabled': day.isDisabled
+						}"
+              @click="selectDay(day)"
+          >
+            <text class="cal-d">{{ day.day }}</text>
+          </view>
+        </view>
+
+        <view class="cal-footer">
+          <button class="cal-cancel" @click="hideCalendarPicker">取消</button>
+          <button class="cal-ok" @click="confirmCalendar">确定</button>
+        </view>
+      </view>
+    </view>
+
 		<!-- --- 新增：添加症状弹窗 --- -->
 		<view class="modal-overlay" v-if="showAddSymptomModalFlag" @click="hideAddSymptomModal">
 			<view class="add-symptom-modal" @click.stop>
@@ -198,7 +256,7 @@
 					<text class="modal-title">添加自定义症状</text>
 					<text class="close-btn" @click="hideAddSymptomModal">✕</text>
 				</view>
-				
+
 				<view class="modal-body">
 					<view class="input-group">
 						<input 
@@ -228,7 +286,6 @@ import { onLoad } from '@dcloudio/uni-app' // 使用 onLoad 获取参数
 // --- 导入你的 API 文件 ---
 import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 get
 import { appointmentServiceLogos } from '@/utils/assets.js'
-import { HOSPITAL_OPTIONS } from '@/utils/hospital-options.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 
 // --- 接收页面参数 ---
@@ -258,7 +315,6 @@ const selectedDate = ref('')
 const startTime = ref('')
 const endTime = ref('')
 const hospitalAddress = ref('')
-const hospitalIndex = ref(-1)
 const patientName = ref('')
 const phoneNumber = ref('')
 const phoneError = ref('')
@@ -268,6 +324,12 @@ const isPhoneValid = ref(false)
 const showTimeModal = ref(false)
 const timePickerType = ref('') // 'start' 或 'end'
 const selectedTime = ref('')
+const showCalendarModal = ref(false)
+const tempSelectedDate = ref('')
+
+// --- 日历数据 ---
+const currentDate = ref(new Date())
+const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
 // --- 新增：症状和需求相关数据 ---
 const symptoms = ref(['胸痛', '头痛', '发热', '呼吸困难', '恶心呕吐', '腹痛', '头晕']);
@@ -281,9 +343,50 @@ const newSymptomError = ref('')
 
 // --- 计算属性 ---
 const minDate = computed(() => {
-	const today = new Date()
-	return today.toISOString().split('T')[0]
+  const today = new Date()
+  return today.toISOString().split('T')[0]
 })
+
+const currentMonthYear = computed(() => {
+  const year = currentDate.value.getFullYear()
+  const month = currentDate.value.getMonth() + 1
+  return `${year}年${month}月`
+})
+
+const calendarDays = computed(() => {
+  const year = currentDate.value.getFullYear()
+  const month = currentDate.value.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const days = []
+
+  for (let i = 0; i < firstDay.getDay(); i++) {
+    days.push({ isEmpty: true })
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const date = new Date(year, month, i)
+    const isToday = date.getTime() === today.getTime()
+    const isSelected = tempSelectedDate.value === formatDateToISO(date)
+    const isDisabled = date < today
+
+    days.push({
+      day: i,
+      isEmpty: false,
+      isToday,
+      isSelected,
+      isDisabled,
+      date: formatDateToISO(date)
+    })
+  }
+
+  return days
+})
+// ... existing code ...
+
 
 const timePickerTitle = computed(() => {
 	return timePickerType.value === 'start' ? '选择开始时间' : '选择结束时间'
@@ -309,13 +412,61 @@ const goBack = () => {
 }
 
 const onDateChange = (e) => {
-	selectedDate.value = e.detail.value
+  selectedDate.value = e.detail.value
 }
 
-const onHospitalChange = (e) => {
-	hospitalIndex.value = Number(e.detail.value)
-	hospitalAddress.value = HOSPITAL_OPTIONS[hospitalIndex.value] || ''
+// 日历相关方法
+const showCalendarPicker = () => {
+  tempSelectedDate.value = selectedDate.value || minDate.value
+  currentDate.value = selectedDate.value ? new Date(selectedDate.value) : new Date()
+  showCalendarModal.value = true
 }
+
+const hideCalendarPicker = () => {
+  showCalendarModal.value = false
+  tempSelectedDate.value = ''
+}
+
+const prevMonth = () => {
+  const year = currentDate.value.getFullYear()
+  const month = currentDate.value.getMonth()
+  if (month === 0) {
+    currentDate.value = new Date(year - 1, 11, 1)
+  } else {
+    currentDate.value = new Date(year, month - 1, 1)
+  }
+}
+
+const nextMonth = () => {
+  const year = currentDate.value.getFullYear()
+  const month = currentDate.value.getMonth()
+  if (month === 11) {
+    currentDate.value = new Date(year + 1, 0, 1)
+  } else {
+    currentDate.value = new Date(year, month + 1, 1)
+  }
+}
+
+const selectDay = (day) => {
+  if (day.isEmpty || day.isDisabled) return
+  tempSelectedDate.value = day.date
+}
+
+const confirmCalendar = () => {
+  if (tempSelectedDate.value) {
+    selectedDate.value = tempSelectedDate.value
+  }
+  hideCalendarPicker()
+}
+
+const formatDateToISO = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+// ... existing code ...
+
 
 const showStartTimePicker = () => {
 	timePickerType.value = 'start'
@@ -490,7 +641,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 	const missing = []
 	if (!selectedDate.value) missing.push('服务日期')
 	if (!startTime.value || !endTime.value) missing.push('服务时段')
-	if (!String(hospitalAddress.value || '').trim()) missing.push('就诊医院')
+	if (!String(hospitalAddress.value || '').trim()) missing.push('医院地址')
 	if (getSelectedSymptoms().length === 0) missing.push('症状（至少选择1项）')
 	if (!String(patientName.value || '').trim()) missing.push('姓名')
 	if (!String(phoneNumber.value || '').trim()) missing.push('手机号')
@@ -684,6 +835,126 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 @import '@/styles/user-ui.scss';
+
+.calendar-modal-simple {
+  background: #fff;
+  border-radius: 16rpx;
+  width: 640rpx;
+  padding: 24rpx;
+}
+
+.cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.cal-month {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.cal-nav {
+  display: flex;
+  gap: 16rpx;
+}
+
+.cal-btn {
+  width: 56rpx;
+  height: 56rpx;
+  background: #f0f0f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 12rpx;
+}
+
+.cal-wd {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 12rpx 0;
+}
+
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+}
+
+.cal-day.empty {
+  background: transparent;
+}
+
+.cal-day.today {
+  background: #a8bed5;
+  color: #333;
+  font-weight: bold;
+}
+
+.cal-day.selected {
+  background: #007aff;
+  color: #fff;
+  font-weight: bold;
+}
+
+.cal-day.disabled {
+  opacity: 0.4;
+}
+
+.cal-d {
+  color: #333;
+}
+
+.cal-day.today .cal-d,
+.cal-day.selected .cal-d {
+  color: #fff;
+}
+
+.cal-footer {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eee;
+}
+
+.cal-cancel,
+.cal-ok {
+  flex: 1;
+  height: 72rpx;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+}
+
+.cal-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.cal-ok {
+  background: #007aff;
+  color: #fff;
+}
+
 /* 原始样式保持不变 */
 .appointment-time-container {
 	min-height: 100vh;
@@ -870,27 +1141,18 @@ onMounted(async () => {
 .location-input {
 	background-color: #f8f9fa;
 	border-radius: 15rpx;
+	padding: 5rpx 20rpx;
 	border: 2rpx solid #e9ecef;
-}
-
-.hospital-picker {
-	display: block;
-	width: 100%;
 }
 
 .address-input {
 	width: 100%;
-	padding: 25rpx 20rpx;
+	padding: 25rpx 0;
 	font-size: 28rpx;
 	color: #333;
 	background: transparent;
 	border: none;
 	outline: none;
-	box-sizing: border-box;
-}
-
-.address-placeholder {
-	color: #999;
 }
 
 /* --- 新增：症状选择区域样式 --- */
