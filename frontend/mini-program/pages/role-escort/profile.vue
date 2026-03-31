@@ -2,7 +2,7 @@
   <view class="profile-page">
     <view v-if="!session.isLoggedIn" class="login-prompt-section">
       <view class="prompt-card">
-        <image class="prompt-avatar" src="/static/doctor-avatar.png" mode="aspectFit"></image>
+        <image class="prompt-avatar" src="/static/doctor-avatar.png" mode="aspectFit" @click="handleVersionTap"></image>
         <text class="prompt-title">您还未登录</text>
         <text class="prompt-desc">登录后可接单、查看订单与收入</text>
         <view class="login-btn" @click="goToLogin">
@@ -19,6 +19,7 @@
               class="avatar"
               :src="displayAvatarUrl"
               mode="aspectFill"
+              @click="handleVersionTap"
             ></image>
             <view class="identity-content">
               <text class="name">{{ displayName }}</text>
@@ -84,6 +85,7 @@ import { useUserStore } from '@/stores/user'
 import { clearToken } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { showCurrentVersionInfo } from '@/utils/app-version.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import {
   escortRules,
@@ -101,6 +103,8 @@ import {
 const session = useSessionStore()
 const userStore = useUserStore()
 const { attendantInfo, todayService, monthService, totalIncome, praiseRate, balance } = storeToRefs(userStore)
+let versionTapCount = 0
+let versionTapTimer = null
 
 const formatAmount = (value) => {
   const num = Number(value || 0)
@@ -195,6 +199,20 @@ const menuGroups = computed(() => [
 const displayAvatarUrl = computed(() =>
   resolveAvatarUrl(attendantInfo.value.avatarUrl || attendantInfo.value.avatar, userPlaceholder)
 )
+
+const handleVersionTap = async () => {
+  versionTapCount += 1
+  if (versionTapTimer) clearTimeout(versionTapTimer)
+  versionTapTimer = setTimeout(() => {
+    versionTapCount = 0
+    versionTapTimer = null
+  }, 1200)
+  if (versionTapCount < 5) return
+  versionTapCount = 0
+  clearTimeout(versionTapTimer)
+  versionTapTimer = null
+  await showCurrentVersionInfo()
+}
 
 const loadProfile = async () => {
   session.restoreFromStorage()

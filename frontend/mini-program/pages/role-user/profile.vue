@@ -23,8 +23,8 @@
 
 		<template v-else>
 		<view class="user-section">
-			<view v-if="userStore.isLoggedIn" class="user-info">
-				<view class="user-avatar">
+				<view v-if="userStore.isLoggedIn" class="user-info">
+				<view class="user-avatar" @click="handleVersionTap">
 					<image 
 						class="avatar-img" 
 						:src="avatarDisplayUrl" 
@@ -44,7 +44,7 @@
 			</view>
 			
 			<view v-else class="login-prompt">
-				<view class="prompt-icon">
+				<view class="prompt-icon" @click="handleVersionTap">
 					<image class="icon-img" src="/static/user-placeholder.png" mode="aspectFit"></image>
 				</view>
 				<text class="prompt-title">您还未登录</text>
@@ -123,11 +123,14 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, isPublicSafeMode } from '@/utils/site-mode.js'
+import { showCurrentVersionInfo } from '@/utils/app-version.js'
 
 const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
 const avatarLoadFailed = ref(false)
 const publicSafeMode = isPublicSafeMode()
+let versionTapCount = 0
+let versionTapTimer = null
 
 const getFullAvatarUrl = (relativePath) => {
 	return resolveAvatarUrl(relativePath, PLACEHOLDER_AVATAR)
@@ -141,6 +144,20 @@ const avatarDisplayUrl = computed(() => {
 
 const onAvatarError = () => {
 	avatarLoadFailed.value = true
+}
+
+const handleVersionTap = async () => {
+	versionTapCount += 1
+	if (versionTapTimer) clearTimeout(versionTapTimer)
+	versionTapTimer = setTimeout(() => {
+		versionTapCount = 0
+		versionTapTimer = null
+	}, 1200)
+	if (versionTapCount < 5) return
+	versionTapCount = 0
+	clearTimeout(versionTapTimer)
+	versionTapTimer = null
+	await showCurrentVersionInfo()
 }
 
 watch(() => userStore.avatar, () => {
