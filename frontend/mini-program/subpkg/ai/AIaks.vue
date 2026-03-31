@@ -43,10 +43,10 @@
           </view>
 
           <image
-            v-if="msg.type === 'user'"
-            class="avatar"
-            src="/static/user-avatar.jpg"
-            mode="aspectFill"
+              v-if="msg.type === 'user'"
+              class="avatar"
+              :src="getUserAvatar()"
+              mode="aspectFill"
           />
         </view>
       </view>
@@ -90,7 +90,17 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { askMedicalQuestion } from './api.js'
-import { brandAiAvatar } from '@/utils/assets.js'
+import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
+import { resolveAvatarUrl } from '@/utils/media.js'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+
+// 获取当前用户头像（优先使用 userStore，与 profile 页面保持一致）
+const getUserAvatar = () => {
+  const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
+  return resolveAvatarUrl(avatar, userPlaceholder)
+}
 
 const AIAvatar = brandAiAvatar
 
