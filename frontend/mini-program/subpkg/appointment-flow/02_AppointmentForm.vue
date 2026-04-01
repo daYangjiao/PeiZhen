@@ -1518,6 +1518,8 @@ onMounted(async () => {
 }
 
 .hospital-search-shell {
+	width: 100%;
+	box-sizing: border-box;
 	padding: 24rpx 30rpx 18rpx;
 }
 
@@ -1534,6 +1536,8 @@ onMounted(async () => {
 }
 
 .hospital-list {
+	width: 100%;
+	box-sizing: border-box;
 	max-height: 620rpx;
 	padding: 0 30rpx 18rpx;
 }
