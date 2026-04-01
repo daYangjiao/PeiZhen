@@ -27,9 +27,6 @@
 						<text class="date-badge-text">{{ selectedDate ? '已选择' : '选择' }}</text>
 					</view>
 				</view>
-				<view class="date-card-meta">
-					<text class="date-meta-text">支持未来日期预约，建议提前安排时间段</text>
-				</view>
 			</view>
 		</view>
 
@@ -80,7 +77,7 @@
 					</view>
 				</view>
 				<view class="hospital-card-meta">
-					<text class="hospital-meta-text">可搜索常用医院，未命中时可直接保存输入地址</text>
+					<text class="hospital-meta-text">可以搜索常用医院，也可以直接填写具体医院或地址</text>
 				</view>
 			</view>
 		</view>
@@ -176,8 +173,11 @@
 		<!-- 时间选择器弹窗 -->
 		<view class="modal-overlay" v-if="showTimeModal" @click="hideTimePicker">
 			<view class="time-modal" @click.stop>
-				<view class="modal-header">
-					<text class="modal-title">{{ timePickerTitle }}</text>
+				<view class="time-modal-header">
+					<view>
+						<text class="time-modal-title">{{ timePickerTitle }}</text>
+						<text class="time-modal-subtitle">请选择更精确的服务时段，结束时间需晚于开始时间</text>
+					</view>
 					<text class="close-btn" @click="hideTimePicker">✕</text>
 				</view>
 				
@@ -188,11 +188,11 @@
 						:class="['time-option', { 'selected': selectedTime === time }]"
 						@click="selectTime(time)"
 					>
-						<text>{{ time }}</text>
+						<text class="time-option-text">{{ time }}</text>
 					</view>
 				</view>
 				
-				<view class="modal-footer">
+				<view class="time-footer">
 					<button class="cancel-btn" @click="hideTimePicker">取消</button>
 					<button class="confirm-time-btn" @click="confirmTime">确定</button>
 				</view>
@@ -1072,14 +1072,12 @@ onMounted(async () => {
 	color: #fff;
 }
 
-.date-card-meta,
 .hospital-card-meta {
 	margin-top: 18rpx;
 	padding-top: 18rpx;
 	border-top: 1rpx solid #ebf2fb;
 }
 
-.date-meta-text,
 .hospital-meta-text {
 	font-size: 24rpx;
 	color: #8b9bb1;
@@ -1360,6 +1358,12 @@ onMounted(async () => {
 	overflow: hidden;
 }
 
+.time-modal {
+	width: 86%;
+	max-height: 82%;
+	border-radius: 28rpx;
+}
+
 .calendar-modal-simple {
 	background-color: #ffffff;
 	border-radius: 28rpx;
@@ -1369,7 +1373,8 @@ onMounted(async () => {
 }
 
 .calendar-modal-header,
-.hospital-modal-header {
+.hospital-modal-header,
+.time-modal-header {
 	padding: 28rpx 30rpx 24rpx;
 	border-bottom: 1rpx solid #eef3f8;
 	display: flex;
@@ -1379,7 +1384,8 @@ onMounted(async () => {
 }
 
 .calendar-modal-title,
-.hospital-modal-title {
+.hospital-modal-title,
+.time-modal-title {
 	display: block;
 	font-size: 32rpx;
 	font-weight: 700;
@@ -1387,7 +1393,8 @@ onMounted(async () => {
 }
 
 .calendar-modal-subtitle,
-.hospital-modal-subtitle {
+.hospital-modal-subtitle,
+.time-modal-subtitle {
 	display: block;
 	margin-top: 10rpx;
 	font-size: 24rpx;
@@ -1541,6 +1548,8 @@ onMounted(async () => {
 	background: #f8fafc;
 	border: 2rpx solid transparent;
 	margin-bottom: 18rpx;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .hospital-option.selected {
@@ -1563,6 +1572,7 @@ onMounted(async () => {
 	font-weight: 600;
 	color: #1f2937;
 	line-height: 1.4;
+	word-break: break-word;
 }
 
 .hospital-option-desc {
@@ -1573,6 +1583,7 @@ onMounted(async () => {
 }
 
 .hospital-option-check {
+	flex-shrink: 0;
 	font-size: 30rpx;
 	font-weight: 700;
 	color: #2563eb;
@@ -1609,32 +1620,44 @@ onMounted(async () => {
 }
 
 .time-list {
-	max-height: 400rpx;
+	max-height: 620rpx;
 	overflow-y: auto;
-	padding: 20rpx;
+	padding: 22rpx 24rpx 16rpx;
 }
 
 .time-option {
-	padding: 25rpx 30rpx;
-	margin: 10rpx 0;
-	border-radius: 15rpx;
-	background-color: #f8f9fa;
+	padding: 28rpx 30rpx;
+	margin: 0 0 18rpx;
+	border-radius: 22rpx;
+	background: #f8fafc;
+	border: 2rpx solid transparent;
 	text-align: center;
-	font-size: 28rpx;
-	color: #333;
+	color: #334155;
 	transition: all 0.3s ease;
+	box-sizing: border-box;
 }
 
 .time-option.selected {
-	background: linear-gradient(135deg, #007AFF, #2563EB);
-	color: white;
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
+	border-color: rgba(59, 130, 246, 0.24);
+	box-shadow: 0 12rpx 24rpx rgba(37, 99, 235, 0.18);
 }
 
-.modal-footer {
+.time-option-text {
+	font-size: 30rpx;
+	font-weight: 600;
+	color: inherit;
+}
+
+.time-option.selected .time-option-text {
+	color: #fff;
+}
+
+.time-footer {
 	display: flex;
-	padding: 30rpx;
+	padding: 24rpx 30rpx 30rpx;
 	gap: 20rpx;
-	border-top: 1rpx solid #eee;
+	border-top: 1rpx solid #eef3f8;
 }
 
 .cancel-btn {
