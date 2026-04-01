@@ -278,7 +278,7 @@
 							<text class="hospital-option-name">{{ option }}</text>
 							<text class="hospital-option-desc">常用医院</text>
 						</view>
-						<text v-if="pendingHospitalAddress === option" class="hospital-option-check">✓</text>
+						<text class="hospital-option-check" :class="{ visible: pendingHospitalAddress === option }">✓</text>
 					</view>
 
 					<view
@@ -291,7 +291,7 @@
 							<text class="hospital-option-name">{{ normalizedHospitalKeyword }}</text>
 							<text class="hospital-option-desc">使用当前输入作为医院/地址</text>
 						</view>
-						<text v-if="pendingHospitalAddress === normalizedHospitalKeyword" class="hospital-option-check">✓</text>
+						<text class="hospital-option-check" :class="{ visible: pendingHospitalAddress === normalizedHospitalKeyword }">✓</text>
 					</view>
 
 					<view v-if="!filteredHospitalOptions.length && !showCustomHospitalOption" class="hospital-empty">
@@ -1571,11 +1571,14 @@ onMounted(async () => {
 	margin-bottom: 18rpx;
 	box-sizing: border-box;
 	width: 100%;
+	transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .hospital-option.selected {
 	background: #eef6ff;
 	border-color: #93c5fd;
+	box-shadow: 0 10rpx 24rpx rgba(37, 99, 235, 0.08);
+	transform: translateY(-2rpx);
 }
 
 .hospital-option.custom {
@@ -1605,9 +1608,19 @@ onMounted(async () => {
 
 .hospital-option-check {
 	flex-shrink: 0;
+	width: 32rpx;
+	text-align: center;
 	font-size: 30rpx;
 	font-weight: 700;
 	color: #2563eb;
+	opacity: 0;
+	transform: scale(0.8);
+	transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.hospital-option-check.visible {
+	opacity: 1;
+	transform: scale(1);
 }
 
 .hospital-empty {
