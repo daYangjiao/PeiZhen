@@ -15,22 +15,21 @@
 
 		<!-- 选择日期 -->
 		<view class="date-section">
-			<picker 
-				mode="date" 
-				:value="selectedDate" 
-				:start="minDate"
-				@change="onDateChange"
-				class="date-picker-wrapper"
-			>
-				<view class="date-btn">
-					<text class="date-text">选择日期</text>
+			<view class="date-card-shell" @click="showCalendarPicker">
+				<view class="date-card-main">
+					<view class="date-copy">
+						<text class="date-label">服务日期</text>
+						<text class="date-card-value" :class="{ placeholder: !selectedDate }">
+							{{ selectedDate ? formatDate(selectedDate) : '请选择就诊日期' }}
+						</text>
+					</view>
+					<view class="date-badge">
+						<text class="date-badge-text">{{ selectedDate ? '已选择' : '选择' }}</text>
+					</view>
 				</view>
-			</picker>
-			<view class="selected-date" v-if="!selectedDate">
-				<text class="placeholder-text">未选择日期</text>
-			</view>
-			<view class="selected-date" v-else>
-				<text class="date-value">{{ formatDate(selectedDate) }}</text>
+				<view class="date-card-meta">
+					<text class="date-meta-text">支持未来日期预约，建议提前安排时间段</text>
+				</view>
 			</view>
 		</view>
 
@@ -68,13 +67,21 @@
 				<text class="section-title">选择就诊医院</text>
 			</view>
 			
-			<view class="location-input">
-				<picker class="hospital-picker" mode="selector" :range="HOSPITAL_OPTIONS" :value="hospitalIndex" @change="onHospitalChange">
-					<view class="address-input" :class="{ 'address-placeholder': !hospitalAddress }">
-						<text class="address-text">{{ hospitalAddress || '请选择就诊医院' }}</text>
-						<text class="picker-arrow">▼</text>
+			<view class="hospital-card-shell" @click="showHospitalPicker">
+				<view class="hospital-card-main">
+					<view class="hospital-copy">
+						<text class="hospital-label">医院 / 地址</text>
+						<text class="hospital-card-value" :class="{ placeholder: !hospitalAddress }">
+							{{ hospitalAddress || '点击选择常用医院，或搜索后确认' }}
+						</text>
 					</view>
-				</picker>
+					<view class="hospital-badge">
+						<text class="hospital-badge-text">{{ hospitalAddress ? '已选择' : '选择' }}</text>
+					</view>
+				</view>
+				<view class="hospital-card-meta">
+					<text class="hospital-meta-text">可搜索常用医院，未命中时可直接保存输入地址</text>
+				</view>
 			</view>
 		</view>
 
@@ -192,6 +199,113 @@
 			</view>
 		</view>
 
+		<!-- 日期选择弹窗 -->
+		<view class="modal-overlay" v-if="showCalendarModal" @click="hideCalendarPicker">
+			<view class="calendar-modal-simple" @click.stop>
+				<view class="calendar-modal-header">
+					<view>
+						<text class="calendar-modal-title">选择服务日期</text>
+						<text class="calendar-modal-subtitle">仅支持当天之后的可预约日期</text>
+					</view>
+					<text class="close-btn" @click="hideCalendarPicker">✕</text>
+				</view>
+
+				<view class="cal-header">
+					<text class="cal-month">{{ currentMonthYear }}</text>
+					<view class="cal-nav">
+						<text class="cal-btn" @click="prevMonth">‹</text>
+						<text class="cal-btn" @click="nextMonth">›</text>
+					</view>
+				</view>
+
+				<view class="cal-weekdays">
+					<text class="cal-wd" v-for="dayLabel in weekdays" :key="dayLabel">{{ dayLabel }}</text>
+				</view>
+
+				<view class="cal-days">
+					<view
+						v-for="(day, index) in calendarDays"
+						:key="`${day.date || 'empty'}-${index}`"
+						class="cal-day"
+						:class="{
+							empty: day.isEmpty,
+							today: day.isToday,
+							selected: day.isSelected,
+							disabled: day.isDisabled
+						}"
+						@click="selectDay(day)"
+					>
+						<text class="cal-d">{{ day.day }}</text>
+					</view>
+				</view>
+
+				<view class="cal-footer">
+					<button class="cal-cancel" @click="hideCalendarPicker">取消</button>
+					<button class="cal-ok" @click="confirmCalendar">确定</button>
+				</view>
+			</view>
+		</view>
+
+		<!-- 医院选择弹窗 -->
+		<view class="modal-overlay" v-if="showHospitalModal" @click="hideHospitalPicker">
+			<view class="hospital-modal" @click.stop>
+				<view class="hospital-modal-header">
+					<view>
+						<text class="hospital-modal-title">选择就诊医院</text>
+						<text class="hospital-modal-subtitle">支持搜索常用医院，也可直接使用输入内容</text>
+					</view>
+					<text class="close-btn" @click="hideHospitalPicker">✕</text>
+				</view>
+
+				<view class="hospital-search-shell">
+					<input
+						v-model="hospitalKeyword"
+						class="hospital-search-input"
+						placeholder="搜索医院名称或输入具体地址"
+						confirm-type="search"
+					/>
+				</view>
+
+				<scroll-view class="hospital-list" scroll-y>
+					<view
+						v-for="option in filteredHospitalOptions"
+						:key="option"
+						class="hospital-option"
+						:class="{ selected: pendingHospitalAddress === option }"
+						@click="selectHospital(option)"
+					>
+						<view class="hospital-option-copy">
+							<text class="hospital-option-name">{{ option }}</text>
+							<text class="hospital-option-desc">常用医院</text>
+						</view>
+						<text v-if="pendingHospitalAddress === option" class="hospital-option-check">✓</text>
+					</view>
+
+					<view
+						v-if="showCustomHospitalOption"
+						class="hospital-option custom"
+						:class="{ selected: pendingHospitalAddress === normalizedHospitalKeyword }"
+						@click="selectHospital(normalizedHospitalKeyword)"
+					>
+						<view class="hospital-option-copy">
+							<text class="hospital-option-name">{{ normalizedHospitalKeyword }}</text>
+							<text class="hospital-option-desc">使用当前输入作为医院/地址</text>
+						</view>
+						<text v-if="pendingHospitalAddress === normalizedHospitalKeyword" class="hospital-option-check">✓</text>
+					</view>
+
+					<view v-if="!filteredHospitalOptions.length && !showCustomHospitalOption" class="hospital-empty">
+						<text class="hospital-empty-text">没有匹配结果，请继续输入更完整的医院名称或地址</text>
+					</view>
+				</scroll-view>
+
+				<view class="hospital-footer">
+					<button class="cancel-btn" @click="hideHospitalPicker">取消</button>
+					<button class="confirm-time-btn" @click="confirmHospital">确定</button>
+				</view>
+			</view>
+		</view>
+
 		<!-- --- 新增：添加症状弹窗 --- -->
 		<view class="modal-overlay" v-if="showAddSymptomModalFlag" @click="hideAddSymptomModal">
 			<view class="add-symptom-modal" @click.stop>
@@ -269,6 +383,13 @@ const isPhoneValid = ref(false)
 const showTimeModal = ref(false)
 const timePickerType = ref('') // 'start' 或 'end'
 const selectedTime = ref('')
+const showCalendarModal = ref(false)
+const calendarViewDate = ref(new Date())
+const pendingDate = ref('')
+const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+const showHospitalModal = ref(false)
+const hospitalKeyword = ref('')
+const pendingHospitalAddress = ref('')
 
 // --- 新增：症状和需求相关数据 ---
 const symptoms = ref(['胸痛', '头痛', '发热', '呼吸困难', '恶心呕吐', '腹痛', '头晕']);
@@ -284,6 +405,58 @@ const newSymptomError = ref('')
 const minDate = computed(() => {
 	const today = new Date()
 	return today.toISOString().split('T')[0]
+})
+
+const normalizedHospitalKeyword = computed(() => String(hospitalKeyword.value || '').trim())
+
+const filteredHospitalOptions = computed(() => {
+	const keyword = normalizedHospitalKeyword.value.toLowerCase()
+	if (!keyword) {
+		return HOSPITAL_OPTIONS
+	}
+	return HOSPITAL_OPTIONS.filter(option => option.toLowerCase().includes(keyword))
+})
+
+const showCustomHospitalOption = computed(() => {
+	const keyword = normalizedHospitalKeyword.value
+	return !!keyword && !HOSPITAL_OPTIONS.includes(keyword)
+})
+
+const currentMonthYear = computed(() => {
+	const year = calendarViewDate.value.getFullYear()
+	const month = calendarViewDate.value.getMonth() + 1
+	return `${year}年${month}月`
+})
+
+const calendarDays = computed(() => {
+	const current = calendarViewDate.value
+	const year = current.getFullYear()
+	const month = current.getMonth()
+	const firstDay = new Date(year, month, 1)
+	const lastDay = new Date(year, month + 1, 0)
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+	const days = []
+
+	for (let i = 0; i < firstDay.getDay(); i++) {
+		days.push({ isEmpty: true, day: '' })
+	}
+
+	for (let day = 1; day <= lastDay.getDate(); day++) {
+		const date = new Date(year, month, day)
+		date.setHours(0, 0, 0, 0)
+		const dateString = formatDateKey(date)
+		days.push({
+			day,
+			date: dateString,
+			isEmpty: false,
+			isDisabled: date.getTime() < today.getTime(),
+			isToday: date.getTime() === today.getTime(),
+			isSelected: pendingDate.value === dateString
+		})
+	}
+
+	return days
 })
 
 const timePickerTitle = computed(() => {
@@ -309,13 +482,89 @@ const goBack = () => {
 	});
 }
 
-const onDateChange = (e) => {
-	selectedDate.value = e.detail.value
+const formatDateKey = (date) => {
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}`
 }
 
-const onHospitalChange = (e) => {
-	hospitalIndex.value = Number(e.detail.value)
-	hospitalAddress.value = HOSPITAL_OPTIONS[hospitalIndex.value] || ''
+const syncCalendarViewDate = (dateString) => {
+	const safeDateString = dateString || minDate.value
+	const nextDate = new Date(`${safeDateString}T00:00:00`)
+	if (Number.isNaN(nextDate.getTime())) {
+		calendarViewDate.value = new Date()
+		return
+	}
+	calendarViewDate.value = nextDate
+}
+
+const showCalendarPicker = () => {
+	pendingDate.value = selectedDate.value || minDate.value
+	syncCalendarViewDate(pendingDate.value)
+	showCalendarModal.value = true
+}
+
+const hideCalendarPicker = () => {
+	showCalendarModal.value = false
+}
+
+const prevMonth = () => {
+	const current = calendarViewDate.value
+	calendarViewDate.value = new Date(current.getFullYear(), current.getMonth() - 1, 1)
+}
+
+const nextMonth = () => {
+	const current = calendarViewDate.value
+	calendarViewDate.value = new Date(current.getFullYear(), current.getMonth() + 1, 1)
+}
+
+const selectDay = (day) => {
+	if (!day || day.isEmpty || day.isDisabled) {
+		return
+	}
+	pendingDate.value = day.date
+}
+
+const confirmCalendar = () => {
+	if (!pendingDate.value) {
+		uni.showToast({
+			title: '请选择服务日期',
+			icon: 'none'
+		})
+		return
+	}
+	selectedDate.value = pendingDate.value
+	hideCalendarPicker()
+}
+
+const showHospitalPicker = () => {
+	hospitalKeyword.value = hospitalAddress.value
+	pendingHospitalAddress.value = hospitalAddress.value
+	showHospitalModal.value = true
+}
+
+const hideHospitalPicker = () => {
+	showHospitalModal.value = false
+}
+
+const selectHospital = (option) => {
+	pendingHospitalAddress.value = option
+	hospitalKeyword.value = option
+}
+
+const confirmHospital = () => {
+	const finalHospital = String(pendingHospitalAddress.value || normalizedHospitalKeyword.value || '').trim()
+	if (!finalHospital) {
+		uni.showToast({
+			title: '请选择或输入医院',
+			icon: 'none'
+		})
+		return
+	}
+	hospitalAddress.value = finalHospital
+	hospitalIndex.value = HOSPITAL_OPTIONS.indexOf(finalHospital)
+	hideHospitalPicker()
 }
 
 const showStartTimePicker = () => {
@@ -753,37 +1002,87 @@ onMounted(async () => {
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
 }
 
-.date-picker-wrapper {
-	display: inline-block;
-	margin-bottom: 30rpx;
+.date-card-shell,
+.hospital-card-shell {
+	background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+	border: 2rpx solid #e4eefc;
+	border-radius: 28rpx;
+	padding: 26rpx 24rpx 22rpx;
+	box-shadow: 0 10rpx 28rpx rgba(37, 99, 235, 0.07);
 }
 
-.date-btn {
-	background: linear-gradient(135deg, #007AFF, #2563EB);
-	color: white;
-	padding: 20rpx 60rpx;
-	border-radius: 50rpx;
-	display: inline-block;
+.date-card-main,
+.hospital-card-main {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20rpx;
 }
 
-.date-text {
-	font-size: 32rpx;
+.date-copy,
+.hospital-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.date-label,
+.hospital-label {
+	display: block;
+	font-size: 24rpx;
 	font-weight: 600;
+	color: #7a8ca5;
+	letter-spacing: 1rpx;
+	margin-bottom: 12rpx;
 }
 
-.selected-date {
-	padding: 10rpx 0;
-}
-
-.placeholder-text {
-	color: #999;
-	font-size: 28rpx;
-}
-
-.date-value {
-	color: #333;
+.date-card-value,
+.hospital-card-value {
+	display: block;
 	font-size: 32rpx;
-	font-weight: 600;
+	line-height: 1.4;
+	font-weight: 700;
+	color: #1f2937;
+	word-break: break-all;
+}
+
+.date-card-value.placeholder,
+.hospital-card-value.placeholder {
+	color: #a0aec0;
+	font-weight: 500;
+}
+
+.date-badge,
+.hospital-badge {
+	flex-shrink: 0;
+	min-width: 108rpx;
+	height: 54rpx;
+	padding: 0 22rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8rpx 20rpx rgba(37, 99, 235, 0.2);
+}
+
+.date-badge-text,
+.hospital-badge-text {
+	font-size: 24rpx;
+	font-weight: 700;
+	color: #fff;
+}
+
+.date-card-meta,
+.hospital-card-meta {
+	margin-top: 18rpx;
+	padding-top: 18rpx;
+	border-top: 1rpx solid #ebf2fb;
+}
+
+.date-meta-text,
+.hospital-meta-text {
+	font-size: 24rpx;
+	color: #8b9bb1;
 }
 
 /* 时间选择区域 */
@@ -866,47 +1165,6 @@ onMounted(async () => {
 	border-radius: 20rpx;
 	padding: 40rpx 30rpx;
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
-}
-
-.location-input {
-	background-color: #f8f9fa;
-	border-radius: 15rpx;
-	border: 2rpx solid #e9ecef;
-}
-
-.hospital-picker {
-	display: block;
-	width: 100%;
-}
-
-.address-input {
-	width: 100%;
-	padding: 25rpx 20rpx;
-	font-size: 28rpx;
-	color: #333;
-	background: transparent;
-	border: none;
-	outline: none;
-	box-sizing: border-box;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 20rpx;
-	min-height: 88rpx;
-}
-
-.address-placeholder {
-	color: #999;
-}
-
-.address-text {
-	flex: 1;
-}
-
-.picker-arrow {
-	flex-shrink: 0;
-	font-size: 22rpx;
-	color: #94a3b8;
 }
 
 /* --- 新增：症状选择区域样式 --- */
@@ -1094,12 +1352,241 @@ onMounted(async () => {
 	z-index: 1000;
 }
 
-.date-modal, .time-modal, .add-symptom-modal {
+.date-modal, .time-modal, .add-symptom-modal, .hospital-modal {
 	background-color: #ffffff;
 	border-radius: 20rpx;
 	width: 80%;
 	max-height: 80%;
 	overflow: hidden;
+}
+
+.calendar-modal-simple {
+	background-color: #ffffff;
+	border-radius: 28rpx;
+	width: 86%;
+	max-height: 82%;
+	overflow: hidden;
+}
+
+.calendar-modal-header,
+.hospital-modal-header {
+	padding: 28rpx 30rpx 24rpx;
+	border-bottom: 1rpx solid #eef3f8;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20rpx;
+}
+
+.calendar-modal-title,
+.hospital-modal-title {
+	display: block;
+	font-size: 32rpx;
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.calendar-modal-subtitle,
+.hospital-modal-subtitle {
+	display: block;
+	margin-top: 10rpx;
+	font-size: 24rpx;
+	color: #8b9bb1;
+}
+
+.cal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 24rpx 30rpx 18rpx;
+}
+
+.cal-month {
+	font-size: 30rpx;
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.cal-nav {
+	display: flex;
+	align-items: center;
+	gap: 14rpx;
+}
+
+.cal-btn {
+	width: 56rpx;
+	height: 56rpx;
+	border-radius: 50%;
+	background: #f1f6fd;
+	color: #2563eb;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 34rpx;
+	font-weight: 700;
+}
+
+.cal-weekdays {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	padding: 0 20rpx;
+}
+
+.cal-wd {
+	text-align: center;
+	font-size: 24rpx;
+	color: #94a3b8;
+	padding: 12rpx 0;
+}
+
+.cal-days {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	row-gap: 12rpx;
+	padding: 12rpx 20rpx 24rpx;
+}
+
+.cal-day {
+	height: 76rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 22rpx;
+}
+
+.cal-day.empty {
+	visibility: hidden;
+}
+
+.cal-day.disabled .cal-d {
+	color: #cbd5e1;
+}
+
+.cal-day.today {
+	background: #eef6ff;
+}
+
+.cal-day.selected {
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
+	box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);
+}
+
+.cal-day.selected .cal-d {
+	color: #ffffff;
+	font-weight: 700;
+}
+
+.cal-d {
+	font-size: 28rpx;
+	color: #334155;
+}
+
+.cal-footer,
+.hospital-footer {
+	display: flex;
+	gap: 20rpx;
+	padding: 24rpx 30rpx 30rpx;
+	border-top: 1rpx solid #eef3f8;
+}
+
+.cal-cancel,
+.cal-ok {
+	flex: 1;
+	border-radius: 999rpx;
+	font-size: 28rpx;
+	height: 82rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cal-cancel {
+	background: #f3f6fb;
+	color: #64748b;
+}
+
+.cal-ok {
+	background: linear-gradient(135deg, #007AFF 0%, #2563EB 100%);
+	color: #ffffff;
+}
+
+.hospital-search-shell {
+	padding: 24rpx 30rpx 18rpx;
+}
+
+.hospital-search-input {
+	width: 100%;
+	height: 88rpx;
+	background: #f8fafc;
+	border: 2rpx solid #e2e8f0;
+	border-radius: 22rpx;
+	padding: 0 26rpx;
+	font-size: 28rpx;
+	color: #1f2937;
+	box-sizing: border-box;
+}
+
+.hospital-list {
+	max-height: 620rpx;
+	padding: 0 30rpx 18rpx;
+}
+
+.hospital-option {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20rpx;
+	padding: 24rpx 22rpx;
+	border-radius: 22rpx;
+	background: #f8fafc;
+	border: 2rpx solid transparent;
+	margin-bottom: 18rpx;
+}
+
+.hospital-option.selected {
+	background: #eef6ff;
+	border-color: #93c5fd;
+}
+
+.hospital-option.custom {
+	background: #fffaf0;
+}
+
+.hospital-option-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.hospital-option-name {
+	display: block;
+	font-size: 28rpx;
+	font-weight: 600;
+	color: #1f2937;
+	line-height: 1.4;
+}
+
+.hospital-option-desc {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 24rpx;
+	color: #94a3b8;
+}
+
+.hospital-option-check {
+	font-size: 30rpx;
+	font-weight: 700;
+	color: #2563eb;
+}
+
+.hospital-empty {
+	padding: 50rpx 24rpx 60rpx;
+	text-align: center;
+}
+
+.hospital-empty-text {
+	font-size: 26rpx;
+	color: #94a3b8;
+	line-height: 1.6;
 }
 
 .modal-header {
