@@ -550,7 +550,6 @@ const hideHospitalPicker = () => {
 
 const selectHospital = (option) => {
 	pendingHospitalAddress.value = option
-	hospitalKeyword.value = option
 }
 
 const confirmHospital = () => {
