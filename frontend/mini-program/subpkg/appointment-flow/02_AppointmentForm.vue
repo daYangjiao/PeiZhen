@@ -248,7 +248,7 @@
 
 		<!-- 医院选择弹窗 -->
 		<view class="modal-overlay" v-if="showHospitalModal" @click="hideHospitalPicker">
-			<view class="hospital-modal" @click.stop>
+			<view class="hospital-modal hospital-modal-animated" @click.stop>
 				<view class="hospital-modal-header">
 					<view>
 						<text class="hospital-modal-title">选择就诊医院</text>
@@ -1517,6 +1517,23 @@ onMounted(async () => {
 	color: #ffffff;
 }
 
+
+.hospital-modal-animated {
+	transform-origin: center bottom;
+	animation: hospitalModalIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+	will-change: transform, opacity;
+}
+
+@keyframes hospitalModalIn {
+	0% {
+		opacity: 0;
+		transform: translateY(28rpx) scale(0.96);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
 .hospital-search-shell {
 	width: 100%;
 	box-sizing: border-box;
