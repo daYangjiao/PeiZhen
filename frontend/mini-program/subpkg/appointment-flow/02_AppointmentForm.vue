@@ -214,7 +214,7 @@
 								:class="['time-option', { 'selected': selectedTime === time }]"
 								@click="selectTime(time)"
 							>
-								<text class="time-option-text">{{ time }}</text>
+								<text class="time-option-text">{{ formatTimeOptionLabel(time) }}</text>
 							</view>
 						</view>
 					</view>

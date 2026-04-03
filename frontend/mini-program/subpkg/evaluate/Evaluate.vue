@@ -20,7 +20,7 @@
         </view>
         <view class="row">
           <text class="label">就诊时间</text>
-          <text class="value">{{ orderInfo.serviceDate }} {{ orderInfo.serviceTime }}</text>
+          <text class="value">{{ orderInfo.serviceDate }} {{ formatServiceTime(orderInfo.serviceTime) }}</text>
         </view>
         <view class="row">
           <text class="label">就诊医院</text>
@@ -95,6 +95,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post } from '@/utils/api.js'
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const orderNo = ref('')
 const orderId = ref(null)
@@ -106,6 +107,8 @@ const rating = ref(0)
 const content = ref('')
 const tags = ref(['服务专业', '沟通耐心', '时间准时', '人很亲切', '路线熟悉'])
 const selectedTags = ref([])
+
+const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || '')
 
 onLoad((options) => {
   if (options && options.orderNo) {
