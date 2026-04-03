@@ -64,7 +64,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { get, post } from '@/utils/api.js'
+import { get } from '@/utils/api.js'
 import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
@@ -79,7 +79,15 @@ const messageStore = useMessageStore()
 
 const systemUnreadCount = computed(() => messageStore.systemUnreadCount)
 const systemNoticeAvatar = brandLogo
-const isReadReceiptMessage = (msg = {}) => msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
+const isReadReceiptMessage = (msg = {}) => String(msg.type || '') === 'READ_RECEIPT' || Number(msg.msgType || 0) === 99
+
+const parseDateTimeSafe = (value) => {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  const normalized = typeof value === 'string' ? value.replace(/-/g, '/') : value
+  const parsed = new Date(normalized)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
 
 let cleanupTimer = null
 let isRefreshing = false
@@ -149,13 +157,6 @@ const getContactUnreadCount = (contact) => {
 
 const openSystemChat = () => {
   uni.navigateTo({ url: '/subpkg/system-message/system-message' })
-  ;(async () => {
-    try {
-      await post('/api/chat/read?senderId=0')
-    } catch {}
-    messageStore.resetSystemUnread()
-    messageStore.updateTabBarBadge()
-  })()
 }
 
 const openChat = (contact) => {
@@ -173,13 +174,6 @@ const openChat = (contact) => {
   uni.navigateTo({
     url: `/subpkg/chat/chat?userId=${targetId}&name=${encodeURIComponent(targetName)}&avatar=${encodeURIComponent(contact.senderAvatar || '')}`
   })
-  ;(async () => {
-    try {
-      await post(`/api/chat/read?senderId=${targetId}`)
-    } catch {}
-    messageStore.resetContactUnread(targetId)
-    messageStore.updateTabBarBadge()
-  })()
 }
 
 const decorateContact = async (contact = {}) => ({
@@ -194,7 +188,8 @@ const handleImageError = (contact) => {
 
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
-  const date = new Date(timeStr)
+  const date = parseDateTimeSafe(timeStr)
+  if (!date) return ''
   const now = new Date()
   if (date.toDateString() === now.toDateString()) {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`

@@ -215,7 +215,20 @@ const innerAudioContext = createInnerAudioContext()
 const processedMessages = new Set()
 
 const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🤠','🤡','🥳','🥴','🥺','🤥','🤫','🤭','🧐','🤓','😈','👿']
-const isReadReceiptMessage = (msg = {}) => msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
+const isReadReceiptMessage = (msg = {}) => String(msg.type || '') === 'READ_RECEIPT' || Number(msg.msgType || 0) === 99
+
+const parseDateTimeSafe = (value) => {
+  if (!value) return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  const normalized = typeof value === 'string' ? value.replace(/-/g, '/') : value
+  const parsed = new Date(normalized)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const getTimestamp = (value) => {
+  const parsed = parseDateTimeSafe(value)
+  return parsed ? parsed.getTime() : 0
+}
 
 const headerSubtitle = computed(() => '患者 · 在线沟通中')
 
@@ -263,8 +276,9 @@ onUnmounted(() => {
 
 const shouldShowTime = (index) => {
   if (index === 0) return true
-  const prevTime = new Date(messages.value[index - 1].createTime).getTime()
-  const currTime = new Date(messages.value[index].createTime).getTime()
+  const prevTime = getTimestamp(messages.value[index - 1].createTime)
+  const currTime = getTimestamp(messages.value[index].createTime)
+  if (!prevTime || !currTime) return true
   return (currTime - prevTime) > 5 * 60 * 1000
 }
 
@@ -360,12 +374,12 @@ const handleNewMessage = (msg) => {
 const applyReadReceipt = (msg) => {
   console.log('收到已读回执，更新消息状态', msg)
   const lastReadMessageId = Number(msg.lastReadMessageId || 0)
-  const readUpToTime = msg.readUpToTime ? new Date(msg.readUpToTime).getTime() : 0
+  const readUpToTime = getTimestamp(msg.readUpToTime)
   messages.value = messages.value.map((item) => {
     if (item.senderId != currentUserId.value || item.receiverId != targetUserId.value) return item
     if (item.status === 'sending' || item.status === 'failed') return item
     const itemId = Number(item.id || 0)
-    const itemTime = item.createTime ? new Date(item.createTime).getTime() : 0
+    const itemTime = getTimestamp(item.createTime)
     const shouldMarkRead = (lastReadMessageId && itemId && itemId <= lastReadMessageId) || (readUpToTime && itemTime && itemTime <= readUpToTime)
     return shouldMarkRead ? { ...item, isRead: 1 } : item
   })
@@ -564,7 +578,7 @@ const parseLocation = (content) => {
 const markAsRead = () => {
   post(`/api/chat/read?senderId=${targetUserId.value}`)
     .finally(() => {
-      messageStore.resetContactUnread(targetUserId.value)
+      messageStore.updateContactUnread(targetUserId.value, 0)
       messageStore.scheduleRefreshUnreadCounts(120)
       messageStore.updateTabBarBadge()
     })
@@ -596,7 +610,9 @@ const onMessageAvatarError = (msg) => {
 }
 
 const formatTimeCenter = (time) => {
-  if (!time) return ''; const d = new Date(time); const now = new Date();
+  const d = parseDateTimeSafe(time)
+  if (!d) return ''
+  const now = new Date()
   if (d.toDateString() === now.toDateString()) return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
   return `${d.getMonth()+1}月${d.getDate()}日 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
 }

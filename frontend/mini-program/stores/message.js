@@ -4,9 +4,9 @@ import { get } from '@/utils/api.js'
 const TABBAR_MESSAGE_BADGE_KEY = 'tabbar_message_badge'
 const TABBAR_BADGE_UPDATED_EVENT = 'message:badge-updated'
 const isReadReceiptMessage = (message = {}, payload = {}) => {
-  const content = String(message.content || payload.content || '')
   const type = String(message.type || payload.type || '')
-  return content === 'READ_RECEIPT' || type === 'READ_RECEIPT'
+  const msgType = Number(message.msgType || payload.msgType || 0)
+  return type === 'READ_RECEIPT' || msgType === 99
 }
 
 export const useMessageStore = defineStore('message', {
@@ -14,7 +14,6 @@ export const useMessageStore = defineStore('message', {
     unreadTotal: 0,
     systemUnreadCount: 0,
     contactUnreadMap: {},
-    contactIdsMarkedRead: new Set(),
     lastUpdateTime: null,
     loading: false,
     refreshTimer: null,
@@ -67,10 +66,9 @@ export const useMessageStore = defineStore('message', {
                 ? Number(contact.receiverId)
                 : Number(contact.senderId)
               if (!contactId) return
-              const count = this.contactIdsMarkedRead.has(contactId) ? 0 : (contact.unreadCount || 0)
+              const count = contact.unreadCount || 0
               contactUnreadMap[contactId] = count
               totalUnread += count
-              if (count === 0) this.contactIdsMarkedRead.delete(contactId)
             }
           })
           this.unreadTotal = totalUnread
@@ -134,7 +132,6 @@ export const useMessageStore = defineStore('message', {
         : (receiverId && receiverId !== currentUserId ? receiverId : 0)
 
       if (!contactId) return
-      if (this.contactIdsMarkedRead.has(contactId)) return
 
       this.incrementUnread(contactId, 1)
       this.updateTabBarBadge()
@@ -160,7 +157,6 @@ export const useMessageStore = defineStore('message', {
       this.unreadTotal = 0
       this.systemUnreadCount = 0
       this.contactUnreadMap = {}
-      this.contactIdsMarkedRead.clear()
       this.lastUpdateTime = null
       this.pendingRefresh = false
       if (this.refreshTimer) {
@@ -168,23 +164,12 @@ export const useMessageStore = defineStore('message', {
         this.refreshTimer = null
       }
     },
-    resetContactUnread(contactId) {
-      if (!contactId) return
-      this.contactIdsMarkedRead.add(contactId)
-      this.contactUnreadMap[contactId] = 0
-      this.recalculateTotal()
-    },
     resetSystemUnread() {
       this.systemUnreadCount = 0
     },
     updateContactUnread(contactId, count) {
       if (!contactId && contactId !== 0) return
-      if (this.contactIdsMarkedRead.has(contactId)) {
-        this.contactUnreadMap[contactId] = 0
-        if (Number(count) === 0) this.contactIdsMarkedRead.delete(contactId)
-      } else {
-        this.contactUnreadMap[contactId] = Number(count) || 0
-      }
+      this.contactUnreadMap[contactId] = Number(count) || 0
       this.recalculateTotal()
     },
     updateTabBarBadge() {
