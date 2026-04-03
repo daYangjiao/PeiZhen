@@ -176,24 +176,49 @@
 				<view class="time-modal-header">
 					<view>
 						<text class="time-modal-title">{{ timePickerTitle }}</text>
-						<text class="time-modal-subtitle">请选择更精确的服务时段，结束时间需晚于开始时间</text>
+						<text class="time-modal-subtitle">24小时可预约，结束时间需晚于开始时间</text>
 					</view>
 					<text class="close-btn" @click="hideTimePicker">✕</text>
 				</view>
 				
-				<view class="time-list">
+				<scroll-view
+					class="time-list"
+					scroll-y
+					:scroll-into-view="timeScrollTarget"
+					scroll-with-animation
+				>
 					<view v-if="timeOptions.length === 0" class="time-empty-state">
 						<text class="time-empty-text">当前日期已无可预约时段，请选择其他日期</text>
 					</view>
-					<view 
-						v-for="time in timeOptions" 
-						:key="time"
-						:class="['time-option', { 'selected': selectedTime === time }]"
-						@click="selectTime(time)"
+					<view
+						v-for="group in timeGroups"
+						:key="group.key"
+						:id="group.anchorId"
+						class="time-group"
 					>
-						<text class="time-option-text">{{ time }}</text>
+						<view class="time-group-header" @click="toggleTimeGroup(group.key)">
+							<view class="time-group-copy">
+								<text class="time-group-title">{{ group.label }}</text>
+								<text class="time-group-meta">{{ group.rangeLabel }}</text>
+							</view>
+							<view class="time-group-badge">
+								<text class="time-group-count">{{ group.options.length }}</text>
+							</view>
+							<text class="time-group-arrow" :class="{ expanded: isTimeGroupExpanded(group.key) }">⌄</text>
+						</view>
+
+						<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
+							<view
+								v-for="time in group.options"
+								:key="time"
+								:class="['time-option', { 'selected': selectedTime === time }]"
+								@click="selectTime(time)"
+							>
+								<text class="time-option-text">{{ time }}</text>
+							</view>
+						</view>
 					</view>
-				</view>
+				</scroll-view>
 				
 				<view class="time-footer">
 					<button class="cancel-btn" @click="hideTimePicker">取消</button>
@@ -389,6 +414,8 @@ const selectedTime = ref('')
 const showCalendarModal = ref(false)
 const calendarViewDate = ref(new Date())
 const pendingDate = ref('')
+const timeGroupExpandedState = ref({})
+const timeScrollTarget = ref('')
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 const showHospitalModal = ref(false)
 const hospitalKeyword = ref('')
@@ -466,6 +493,13 @@ const timePickerTitle = computed(() => {
 	return timePickerType.value === 'start' ? '选择开始时间' : '选择结束时间'
 })
 
+const TIME_GROUP_DEFINITIONS = [
+	{ key: 'lateNight', label: '凌晨', rangeLabel: '00:00 - 05:30', start: 0, end: 359 },
+	{ key: 'morning', label: '上午', rangeLabel: '06:00 - 11:30', start: 360, end: 719 },
+	{ key: 'afternoon', label: '下午', rangeLabel: '12:00 - 17:30', start: 720, end: 1079 },
+	{ key: 'evening', label: '晚上', rangeLabel: '18:00 - 23:30', start: 1080, end: 1439 }
+]
+
 const getTodayBufferMinutes = () => {
 	const now = new Date()
 	return now.getHours() * 60 + now.getMinutes() + 30
@@ -483,7 +517,7 @@ const isTodayDate = (dateValue) => {
 
 const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 	const options = []
-	for (let hour = 8; hour <= 18; hour++) {
+	for (let hour = 0; hour <= 23; hour++) {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 			const timeMinutes = parseTimeToMinutes(timeStr)
@@ -503,6 +537,60 @@ const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 }
 
 const timeOptions = computed(() => getAvailableTimeOptions(selectedDate.value, timePickerType.value))
+
+const findTimeGroupByMinutes = (minutes) => TIME_GROUP_DEFINITIONS.find(group => minutes >= group.start && minutes <= group.end) || null
+
+const findPreferredTimeGroupKey = (options) => {
+	const preferredOrder = ['morning', 'afternoon', 'evening', 'lateNight']
+	for (const key of preferredOrder) {
+		if (options.some(time => findTimeGroupByMinutes(parseTimeToMinutes(time))?.key === key)) {
+			return key
+		}
+	}
+	return ''
+}
+
+const timeGroups = computed(() => {
+	if (!timeOptions.value.length) {
+		return []
+	}
+
+	return TIME_GROUP_DEFINITIONS
+		.map(group => ({
+			...group,
+			anchorId: `time-group-${group.key}`,
+			options: timeOptions.value.filter(time => {
+				const minutes = parseTimeToMinutes(time)
+				return !Number.isNaN(minutes) && minutes >= group.start && minutes <= group.end
+			})
+		}))
+		.filter(group => group.options.length > 0)
+})
+
+const isTimeGroupExpanded = (groupKey) => !!timeGroupExpandedState.value[groupKey]
+
+const initializeTimeGroupState = () => {
+	const nextState = {}
+	const options = timeOptions.value
+	const preferredKey = findPreferredTimeGroupKey(options)
+	const selectedGroupKey = selectedTime.value
+		? findTimeGroupByMinutes(parseTimeToMinutes(selectedTime.value))?.key
+		: ''
+
+	for (const group of timeGroups.value) {
+		nextState[group.key] = group.key === preferredKey || group.key === selectedGroupKey
+	}
+
+	if (!Object.values(nextState).some(Boolean) && timeGroups.value.length > 0) {
+		nextState[timeGroups.value[0].key] = true
+	}
+
+	timeGroupExpandedState.value = nextState
+	const targetKey = selectedGroupKey && nextState[selectedGroupKey]
+		? selectedGroupKey
+		: preferredKey || timeGroups.value[0]?.key || ''
+	timeScrollTarget.value = targetKey ? `time-group-${targetKey}` : ''
+}
 
 // --- 方法 ---
 // 返回上一页 (可选，根据需求决定是否需要)
@@ -608,6 +696,7 @@ const showStartTimePicker = () => {
 	timePickerType.value = 'start'
 	selectedTime.value = startTime.value
 	showTimeModal.value = true
+	initializeTimeGroupState()
 }
 
 const showEndTimePicker = () => {
@@ -621,15 +710,24 @@ const showEndTimePicker = () => {
 	timePickerType.value = 'end'
 	selectedTime.value = endTime.value
 	showTimeModal.value = true
+	initializeTimeGroupState()
 }
 
 const hideTimePicker = () => {
 	showTimeModal.value = false
 	selectedTime.value = ''
+	timeScrollTarget.value = ''
 }
 
 const selectTime = (time) => {
 	selectedTime.value = time
+}
+
+const toggleTimeGroup = (groupKey) => {
+	timeGroupExpandedState.value = {
+		...timeGroupExpandedState.value,
+		[groupKey]: !timeGroupExpandedState.value[groupKey]
+	}
 }
 
 const syncSelectedTimesForDate = () => {
@@ -1787,8 +1885,8 @@ onMounted(async () => {
 
 .time-list {
 	max-height: 620rpx;
-	overflow-y: auto;
 	padding: 22rpx 24rpx 16rpx;
+	box-sizing: border-box;
 }
 
 .time-empty-state {
@@ -1802,16 +1900,89 @@ onMounted(async () => {
 	color: #94a3b8;
 }
 
+.time-group {
+	margin-bottom: 20rpx;
+	border-radius: 26rpx;
+	background: linear-gradient(180deg, #f8fbff 0%, #f4f8fd 100%);
+	border: 2rpx solid #e5edf8;
+	overflow: hidden;
+	box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.06);
+}
+
+.time-group-header {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	padding: 24rpx 24rpx 22rpx;
+}
+
+.time-group-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.time-group-title {
+	display: block;
+	font-size: 28rpx;
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.time-group-meta {
+	display: block;
+	margin-top: 8rpx;
+	font-size: 23rpx;
+	color: #8b9bb1;
+}
+
+.time-group-badge {
+	flex-shrink: 0;
+	min-width: 52rpx;
+	height: 44rpx;
+	padding: 0 14rpx;
+	border-radius: 999rpx;
+	background: rgba(37, 99, 235, 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.time-group-count {
+	font-size: 22rpx;
+	font-weight: 700;
+	color: #2563eb;
+}
+
+.time-group-arrow {
+	flex-shrink: 0;
+	font-size: 28rpx;
+	line-height: 1;
+	color: #94a3b8;
+	transform: rotate(0deg);
+	transition: transform 0.22s ease;
+}
+
+.time-group-arrow.expanded {
+	transform: rotate(180deg);
+}
+
+.time-group-options {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	padding: 0 24rpx 24rpx;
+}
+
 .time-option {
-	padding: 28rpx 30rpx;
-	margin: 0 0 18rpx;
+	padding: 26rpx 18rpx;
 	border-radius: 22rpx;
-	background: #f8fafc;
+	background: #ffffff;
 	border: 2rpx solid transparent;
 	text-align: center;
 	color: #334155;
 	transition: all 0.3s ease;
 	box-sizing: border-box;
+	min-width: 0;
 }
 
 .time-option.selected {
@@ -1821,7 +1992,7 @@ onMounted(async () => {
 }
 
 .time-option-text {
-	font-size: 30rpx;
+	font-size: 27rpx;
 	font-weight: 600;
 	color: inherit;
 }
