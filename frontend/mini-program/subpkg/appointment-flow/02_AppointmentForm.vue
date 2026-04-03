@@ -182,6 +182,9 @@
 				</view>
 				
 				<view class="time-list">
+					<view v-if="timeOptions.length === 0" class="time-empty-state">
+						<text class="time-empty-text">当前日期已无可预约时段，请选择其他日期</text>
+					</view>
 					<view 
 						v-for="time in timeOptions" 
 						:key="time"
@@ -463,16 +466,43 @@ const timePickerTitle = computed(() => {
 	return timePickerType.value === 'start' ? '选择开始时间' : '选择结束时间'
 })
 
-const timeOptions = computed(() => {
+const getTodayBufferMinutes = () => {
+	const now = new Date()
+	return now.getHours() * 60 + now.getMinutes() + 30
+}
+
+const isTodayDate = (dateValue) => {
+	if (!dateValue) return false
+	const appointmentDate = createSafeDate(dateValue)
+	if (Number.isNaN(appointmentDate.getTime())) return false
+	appointmentDate.setHours(0, 0, 0, 0)
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+	return appointmentDate.getTime() === today.getTime()
+}
+
+const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 	const options = []
 	for (let hour = 8; hour <= 18; hour++) {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+			const timeMinutes = parseTimeToMinutes(timeStr)
+			if (isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
+				continue
+			}
+			if (pickerType === 'end' && startTime.value) {
+				const selectedStartMinutes = parseTimeToMinutes(startTime.value)
+				if (!Number.isNaN(selectedStartMinutes) && timeMinutes <= selectedStartMinutes) {
+					continue
+				}
+			}
 			options.push(timeStr)
 		}
 	}
 	return options
-})
+}
+
+const timeOptions = computed(() => getAvailableTimeOptions(selectedDate.value, timePickerType.value))
 
 // --- 方法 ---
 // 返回上一页 (可选，根据需求决定是否需要)
@@ -535,6 +565,7 @@ const confirmCalendar = () => {
 		return
 	}
 	selectedDate.value = pendingDate.value
+	syncSelectedTimesForDate()
 	hideCalendarPicker()
 }
 
@@ -567,12 +598,26 @@ const confirmHospital = () => {
 }
 
 const showStartTimePicker = () => {
+	if (!selectedDate.value) {
+		uni.showToast({
+			title: '请先选择服务日期',
+			icon: 'none'
+		})
+		return
+	}
 	timePickerType.value = 'start'
 	selectedTime.value = startTime.value
 	showTimeModal.value = true
 }
 
 const showEndTimePicker = () => {
+	if (!selectedDate.value) {
+		uni.showToast({
+			title: '请先选择服务日期',
+			icon: 'none'
+		})
+		return
+	}
 	timePickerType.value = 'end'
 	selectedTime.value = endTime.value
 	showTimeModal.value = true
@@ -587,7 +632,28 @@ const selectTime = (time) => {
 	selectedTime.value = time
 }
 
+const syncSelectedTimesForDate = () => {
+	const availableStartTimes = getAvailableTimeOptions(selectedDate.value, 'start')
+	if (startTime.value && !availableStartTimes.includes(startTime.value)) {
+		startTime.value = ''
+		endTime.value = ''
+		return
+	}
+
+	const availableEndTimes = getAvailableTimeOptions(selectedDate.value, 'end')
+	if (endTime.value && !availableEndTimes.includes(endTime.value)) {
+		endTime.value = ''
+	}
+}
+
 const confirmTime = () => {
+	if (!selectedTime.value) {
+		uni.showToast({
+			title: '请选择时间',
+			icon: 'none'
+		})
+		return
+	}
 	if (timePickerType.value === 'start') {
 		// 如果已选择结束时间，检查开始时间是否小于结束时间
 		if (endTime.value && selectedTime.value >= endTime.value) {
@@ -1723,6 +1789,17 @@ onMounted(async () => {
 	max-height: 620rpx;
 	overflow-y: auto;
 	padding: 22rpx 24rpx 16rpx;
+}
+
+.time-empty-state {
+	padding: 48rpx 24rpx 52rpx;
+	text-align: center;
+}
+
+.time-empty-text {
+	font-size: 26rpx;
+	line-height: 1.7;
+	color: #94a3b8;
 }
 
 .time-option {
