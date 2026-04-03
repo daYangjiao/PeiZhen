@@ -44,7 +44,7 @@
               <text class="time">{{ formatTime(contact.createTime) }}</text>
             </view>
             <view class="message-body">
-              <text class="last-message">{{ contact.msgType === 2 ? '[图片]' : contact.content }}</text>
+              <text class="last-message">{{ formatLastMessage(contact) }}</text>
             </view>
           </view>
         </view>
@@ -79,6 +79,7 @@ const messageStore = useMessageStore()
 
 const systemUnreadCount = computed(() => messageStore.systemUnreadCount)
 const systemNoticeAvatar = brandLogo
+const isReadReceiptMessage = (msg = {}) => msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
 
 let cleanupTimer = null
 let isRefreshing = false
@@ -123,8 +124,7 @@ const handleNewMessage = (msg) => {
     processedMessages.clear()
     arr.forEach(k => processedMessages.add(k))
   }
-  const isReadReceipt = msg.msgType === 3 || msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
-  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !isReadReceipt) {
+  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !isReadReceiptMessage(msg)) {
     loadContacts()
   }
 }
@@ -203,6 +203,13 @@ const formatTime = (timeStr) => {
     return `${date.getMonth() + 1}/${date.getDate()}`
   }
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+}
+
+const formatLastMessage = (contact = {}) => {
+  if (contact.msgType === 2) return '[图片]'
+  if (contact.msgType === 3) return '[语音]'
+  if (contact.msgType === 4) return '[位置]'
+  return contact.content || ''
 }
 
 onMounted(async () => {

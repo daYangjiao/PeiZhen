@@ -147,6 +147,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, upload } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
+import { useMessageStore } from '@/stores/message.js'
 import {
   chooseLocationWithGuard,
   createInnerAudioContext,
@@ -163,6 +164,7 @@ const targetUserId = ref(null)
 const role = ref(uni.getStorageSync('role') || '')
 const targetName = ref(role.value === 'escort' ? '用户' : '陪诊师')
 const targetAvatar = ref(userPlaceholder)
+const messageStore = useMessageStore()
 const messages = ref([])
 const inputText = ref('')
 const scrollTop = ref(0)
@@ -182,6 +184,7 @@ const innerAudioContext = createInnerAudioContext()
 const processedMessages = new Set()
 
 const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🤠','🤡','🥳','🥴','🥺','🤥','🤫','🤭','🧐','🤓','😈','👿']
+const isReadReceiptMessage = (msg = {}) => msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
 
 const headerSubtitle = computed(() => (role.value === 'escort' ? '患者 · 在线沟通中' : '陪诊师 · 在线沟通中'))
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
@@ -239,6 +242,7 @@ const loadHistory = async () => {
       messages.value = res.data.map(normalizeChatMessage)
       hasMoreHistory.value = res.data.length === pageSize
       setTimeout(() => scrollToBottom(), 100)
+      markAsRead()
     }
   } catch {}
 }
@@ -266,10 +270,11 @@ const handleNewMessage = (msg) => {
   const msgKey = `${msg.senderId}-${msg.receiverId}-${msg.createTime}-${msg.content}`
   if (processedMessages.has(msgKey)) return
   processedMessages.add(msgKey)
-  const isNormalChatMsg = [1, 2, 3, 4].includes(Number(msg.msgType)) && 
-    msg.content !== 'READ_RECEIPT' && 
-    msg.type !== 'READ_RECEIPT' && 
-    msg.type !== 'MESSAGE_STATUS_UPDATE'
+  if (isReadReceiptMessage(msg)) {
+    applyReadReceipt(msg)
+    return
+  }
+  const isNormalChatMsg = [1, 2, 3, 4].includes(Number(msg.msgType)) && msg.type !== 'MESSAGE_STATUS_UPDATE'
   if (isNormalChatMsg && (msg.senderId == targetUserId.value || msg.receiverId == targetUserId.value)) {
     if (msg.senderId == targetUserId.value) {
       const newMsg = { ...msg }
@@ -286,6 +291,19 @@ const handleNewMessage = (msg) => {
       }
     }
   }
+}
+
+const applyReadReceipt = (msg) => {
+  const lastReadMessageId = Number(msg.lastReadMessageId || 0)
+  const readUpToTime = msg.readUpToTime ? new Date(msg.readUpToTime).getTime() : 0
+  messages.value = messages.value.map((item) => {
+    if (item.senderId != currentUserId.value || item.receiverId != targetUserId.value) return item
+    if (item.status === 'sending' || item.status === 'failed') return item
+    const itemId = Number(item.id || 0)
+    const itemTime = item.createTime ? new Date(item.createTime).getTime() : 0
+    const shouldMarkRead = (lastReadMessageId && itemId && itemId <= lastReadMessageId) || (readUpToTime && itemTime && itemTime <= readUpToTime)
+    return shouldMarkRead ? { ...item, isRead: 1 } : item
+  })
 }
 
 const sendMessage = async (content, type) => {
@@ -466,6 +484,11 @@ const parseLocation = (content) => {
 
 const markAsRead = () => {
   post(`/api/chat/read?senderId=${targetUserId.value}`)
+    .finally(() => {
+      messageStore.resetContactUnread(targetUserId.value)
+      messageStore.scheduleRefreshUnreadCounts(120)
+      messageStore.updateTabBarBadge()
+    })
 }
 
 const navigateBack = () => {

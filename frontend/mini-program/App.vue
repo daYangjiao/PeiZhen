@@ -28,7 +28,7 @@ const bindGlobalMessageSync = () => {
 
   uni.$on('chat:message', (message) => {
     if (!message) return
-    if (message.msgType === 3 || message.content === 'READ_RECEIPT' || message.type === 'READ_RECEIPT') return
+    if (message.content === 'READ_RECEIPT' || message.type === 'READ_RECEIPT') return
     messageStore.applyRealtimeUnreadFromMessage(message)
     refresh()
   })

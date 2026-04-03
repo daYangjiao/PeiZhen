@@ -76,6 +76,14 @@
         WHERE sender_id = #{senderId} AND receiver_id = #{receiverId} AND is_read = 0
     </update>
 
+    <select id="findLatestReadMessageId" resultType="long">
+        SELECT MAX(id)
+        FROM chat_message
+        WHERE sender_id = #{senderId}
+          AND receiver_id = #{receiverId}
+          AND is_read = 1
+    </select>
+
     <select id="countUnread" resultType="int">
         SELECT COUNT(*) FROM chat_message WHERE receiver_id = #{userId} AND is_read = 0
     </select>

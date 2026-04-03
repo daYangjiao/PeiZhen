@@ -23,6 +23,9 @@ public interface ChatMessageMapper {
     
     // 将消息标记为已读
     int markAsRead(@Param("senderId") Integer senderId, @Param("receiverId") Integer receiverId);
+
+    // 查询某会话中最后一条已读消息ID（用于已读回执）
+    Long findLatestReadMessageId(@Param("senderId") Integer senderId, @Param("receiverId") Integer receiverId);
     
     // 查询未读消息数
     int countUnread(@Param("userId") Integer userId);

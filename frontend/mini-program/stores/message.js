@@ -3,6 +3,11 @@ import { get } from '@/utils/api.js'
 
 const TABBAR_MESSAGE_BADGE_KEY = 'tabbar_message_badge'
 const TABBAR_BADGE_UPDATED_EVENT = 'message:badge-updated'
+const isReadReceiptMessage = (message = {}, payload = {}) => {
+  const content = String(message.content || payload.content || '')
+  const type = String(message.type || payload.type || '')
+  return content === 'READ_RECEIPT' || type === 'READ_RECEIPT'
+}
 
 export const useMessageStore = defineStore('message', {
   state: () => ({
@@ -99,9 +104,7 @@ export const useMessageStore = defineStore('message', {
       }
 
       const msgType = Number(message.msgType || payload.msgType || 0)
-      const content = String(message.content || payload.content || '')
-      const isReadReceipt = msgType === 3 || content === 'READ_RECEIPT' || message.type === 'READ_RECEIPT'
-      if (isReadReceipt) return
+      if (isReadReceiptMessage(message, payload)) return
 
       const userInfo = uni.getStorageSync('userInfo') || {}
       const currentUserId = Number(userInfo.id || userInfo.userId || 0)

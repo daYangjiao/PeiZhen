@@ -176,6 +176,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, upload } from '@/utils/api.js'
 import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
+import { useMessageStore } from '@/stores/message.js'
 import {
   chooseLocationWithGuard,
   createInnerAudioContext,
@@ -191,6 +192,7 @@ const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
 const targetName = ref('陪诊师')
 const targetAvatar = ref(doctorAvatar)
+const messageStore = useMessageStore()
 const messages = ref([])
 const inputText = ref('')
 const scrollTop = ref(0)
@@ -213,6 +215,7 @@ const innerAudioContext = createInnerAudioContext()
 const processedMessages = new Set()
 
 const emojiList = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🤠','🤡','🥳','🥴','🥺','🤥','🤫','🤭','🧐','🤓','😈','👿']
+const isReadReceiptMessage = (msg = {}) => msg.content === 'READ_RECEIPT' || msg.type === 'READ_RECEIPT'
 
 const headerSubtitle = computed(() => '患者 · 在线沟通中')
 
@@ -272,6 +275,7 @@ const loadHistory = async () => {
       messages.value = res.data.map(normalizeChatMessage)
       hasMoreHistory.value = res.data.length === pageSize
       setTimeout(() => scrollToBottom(), 100)
+      markAsRead()
     }
   } catch (e) {}
 }
@@ -302,11 +306,13 @@ const handleNewMessage = (msg) => {
   }
   processedMessages.add(msgKey);
   
-  // 严格判断普通聊天消息类型，排除已读回执和其他系统消息
-  const isNormalChatMsg = [1, 2, 3, 4].includes(Number(msg.msgType)) && 
-                         msg.content !== 'READ_RECEIPT' && 
-                         msg.type !== 'READ_RECEIPT' && 
-                         msg.type !== 'MESSAGE_STATUS_UPDATE';
+  if (isReadReceiptMessage(msg)) {
+    applyReadReceipt(msg)
+    return
+  }
+
+  // 严格判断普通聊天消息类型，排除其他系统消息
+  const isNormalChatMsg = [1, 2, 3, 4].includes(Number(msg.msgType)) && msg.type !== 'MESSAGE_STATUS_UPDATE';
 
   if (isNormalChatMsg && (msg.senderId == targetUserId.value || msg.receiverId == targetUserId.value)) {
     if (msg.senderId == targetUserId.value) {
@@ -335,28 +341,6 @@ const handleNewMessage = (msg) => {
     }
   }
 
-  // 单独处理已读回执消息 - 只更新状态，不显示在聊天列表中
-  if ((msg.type === 'READ_RECEIPT' || msg.content === 'READ_RECEIPT') && msg.msgType == 3) {
-    console.log('收到已读回执，更新消息状态');
-    const updatedMessages = messages.value.map(m => {
-      // 只更新自己发送且未读的消息
-      if (m.senderId == currentUserId.value && m.isRead !== 1) {
-        console.log('标记消息为已读:', m.id);
-        return { ...m, isRead: 1 };
-      }
-      return m;
-    });
-    
-    // 使用响应式更新
-    messages.value = updatedMessages;
-    
-    // 触发视图更新
-    nextTick(() => {
-      console.log('已读状态更新完成');
-    });
-    return; // 已读回执不添加到消息列表
-  }
-  
   // 处理其他类型的状态更新消息
   if (msg.type === 'MESSAGE_STATUS_UPDATE') {
     console.log('收到消息状态更新:', msg);
@@ -371,6 +355,20 @@ const handleNewMessage = (msg) => {
     }
     return; // 状态更新消息不添加到列表
   }
+}
+
+const applyReadReceipt = (msg) => {
+  console.log('收到已读回执，更新消息状态', msg)
+  const lastReadMessageId = Number(msg.lastReadMessageId || 0)
+  const readUpToTime = msg.readUpToTime ? new Date(msg.readUpToTime).getTime() : 0
+  messages.value = messages.value.map((item) => {
+    if (item.senderId != currentUserId.value || item.receiverId != targetUserId.value) return item
+    if (item.status === 'sending' || item.status === 'failed') return item
+    const itemId = Number(item.id || 0)
+    const itemTime = item.createTime ? new Date(item.createTime).getTime() : 0
+    const shouldMarkRead = (lastReadMessageId && itemId && itemId <= lastReadMessageId) || (readUpToTime && itemTime && itemTime <= readUpToTime)
+    return shouldMarkRead ? { ...item, isRead: 1 } : item
+  })
 }
 
 // 发送逻辑封装
@@ -563,7 +561,14 @@ const parseLocation = (content) => {
     try { return JSON.parse(content) } catch(e) { return {} }
 }
 
-const markAsRead = () => { post(`/api/chat/read?senderId=${targetUserId.value}`) }
+const markAsRead = () => {
+  post(`/api/chat/read?senderId=${targetUserId.value}`)
+    .finally(() => {
+      messageStore.resetContactUnread(targetUserId.value)
+      messageStore.scheduleRefreshUnreadCounts(120)
+      messageStore.updateTabBarBadge()
+    })
+}
 const navigateBack = () => {
   // 返回前通知消息页面更新状态
   uni.$emit('chat:return', { targetUserId: targetUserId.value })

@@ -6,9 +6,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.util.Date;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-import java.util.Date;
+
 @Data
 @ApiModel(description = "聊天消息实体")
 public class ChatMessage {
@@ -43,4 +41,14 @@ public class ChatMessage {
 
     @ApiModelProperty(value = "未读数量（仅联系人列表接口返回）")
     private Integer unreadCount;
+
+    @ApiModelProperty(value = "消息事件类型，如 READ_RECEIPT")
+    private String type;
+
+    @ApiModelProperty(value = "已读回执对应的最后一条已读消息ID")
+    private Long lastReadMessageId;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "已读截止时间")
+    private Date readUpToTime;
 }

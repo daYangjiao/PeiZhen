@@ -105,6 +105,7 @@ public class ChatServiceImpl implements ChatService {
     public void markAsRead(Integer senderId, Integer receiverId) {
         // 更新数据库中的已读状态
         chatMessageMapper.markAsRead(senderId, receiverId);
+        Long lastReadMessageId = chatMessageMapper.findLatestReadMessageId(senderId, receiverId);
         
         // 通过WebSocket通知发送方消息已被阅读
         try {
@@ -112,14 +113,17 @@ public class ChatServiceImpl implements ChatService {
             ChatMessage readReceipt = new ChatMessage();
             readReceipt.setSenderId(receiverId); // 接收者ID作为发送者
             readReceipt.setReceiverId(senderId); // 原发送者作为接收者
-            readReceipt.setMsgType(3); // 使用类型3表示已读回执
-            readReceipt.setContent("READ_RECEIPT"); // 使用content字段标识已读回执
+            readReceipt.setMsgType(99); // 专用系统类型，避免与语音消息冲突
+            readReceipt.setType("READ_RECEIPT");
+            readReceipt.setContent("READ_RECEIPT");
+            readReceipt.setLastReadMessageId(lastReadMessageId);
+            readReceipt.setReadUpToTime(new Date());
             readReceipt.setCreateTime(new Date());
             
             // 通过WebSocket推送给发送方
             webSocketHandler.sendMessageToUser(senderId, readReceipt);
             
-            logger.info("已发送已读回执: 接收者{} -> 发送者{}", receiverId, senderId);
+            logger.info("已发送已读回执: 接收者{} -> 发送者{}, lastReadMessageId={}", receiverId, senderId, lastReadMessageId);
         } catch (Exception e) {
             logger.error("发送已读回执失败", e);
         }
