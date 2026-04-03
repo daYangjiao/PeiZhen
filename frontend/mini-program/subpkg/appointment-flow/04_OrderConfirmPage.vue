@@ -689,14 +689,15 @@ const formatDate = (dateStr) => {
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  padding: 20rpx;
+  padding: 32rpx;
+  box-sizing: border-box;
 }
 
 .modal-content {
   background-color: white;
-  border-radius: 16rpx;
-  width: 90%;
-  max-width: 680rpx;
+  border-radius: 28rpx;
+  width: calc(100vw - 64rpx);
+  max-width: 720rpx;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
@@ -709,7 +710,7 @@ const formatDate = (dateStr) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx;
+  padding: 24rpx 30rpx 22rpx;
   border-bottom: 1rpx solid #eee;
   background-color: #f8f9fa;
 }
@@ -741,7 +742,7 @@ const formatDate = (dateStr) => {
 
 .modal-body {
   flex: 1;
-  padding: 20rpx;
+  padding: 28rpx 30rpx 24rpx;
   max-height: 60vh;
   overflow-y: auto;
   font-size: 24rpx;
@@ -756,8 +757,11 @@ const formatDate = (dateStr) => {
 }
 
 .rules-card {
-  background: #fff;
-  border-radius: 16rpx;
+  width: 100%;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
 .rules-banner {
@@ -879,18 +883,20 @@ const formatDate = (dateStr) => {
 }
 
 .modal-footer {
-  padding: 20rpx;
+  padding: 24rpx 30rpx 28rpx;
   border-top: 1rpx solid #eee;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .close-modal-btn {
-  padding: 10rpx 30rpx;
+  min-width: 220rpx;
+  padding: 12rpx 32rpx;
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 8rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
   cursor: pointer;
 }
