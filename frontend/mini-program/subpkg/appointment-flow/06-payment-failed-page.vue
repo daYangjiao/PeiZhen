@@ -1,8 +1,8 @@
 <template>
   <view class="payment-failed-page">
     <view class="card failed-card">
-      <view class="icon-wrap failed">
-        <text class="icon-symbol">×</text>
+      <view class="icon failed">
+        <text class="icon-check">×</text>
       </view>
       <text class="main-title">支付失败!</text>
       <text class="desc">您的订单支付失败，请确认订单后再试，或更换其它支付方式。</text>
@@ -22,15 +22,15 @@ export default {
     return {
       orderNo: '',
       scene: 'normal'
-    };
+    }
   },
 
   onLoad(options) {
     if (options.orderNo) {
-      this.orderNo = decodeURIComponent(options.orderNo);
+      this.orderNo = decodeURIComponent(options.orderNo)
     }
     if (options.scene) {
-      this.scene = options.scene;
+      this.scene = options.scene
     }
   },
 
@@ -40,18 +40,18 @@ export default {
         uni.showToast({
           title: '缺少订单号',
           icon: 'none'
-        });
-        return;
+        })
+        return
       }
 
       if (this.scene === 'balance') {
         uni.redirectTo({
           url: `/subpkg/order/order-detail?orderNo=${encodeURIComponent(this.orderNo)}`
-        });
+        })
       } else {
         uni.redirectTo({
           url: `/subpkg/appointment-flow/04-order-confirm-page?orderNo=${encodeURIComponent(this.orderNo)}`
-        });
+        })
       }
     },
 
@@ -59,22 +59,22 @@ export default {
       if (this.orderNo) {
         uni.redirectTo({
           url: `/subpkg/order/order-detail?orderNo=${encodeURIComponent(this.orderNo)}`
-        });
+        })
       } else {
         uni.showToast({
           title: '无法跳转：缺少订单号',
           icon: 'none'
-        });
+        })
       }
     },
 
     goHome() {
       uni.reLaunch({
         url: '/pages/role-user/home'
-      });
+      })
     }
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>
@@ -96,25 +96,24 @@ export default {
 
 .failed-card {
   text-align: center;
-  background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
 }
 
-.icon-wrap {
-  width: 108rpx;
-  height: 108rpx;
+.icon {
+  width: 100rpx;
+  height: 100rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24rpx;
+  margin: 0 auto 28rpx;
 }
 
-.icon-wrap.failed {
+.icon.failed {
   background: linear-gradient(135deg, #ff6a6a 0%, #ef4444 100%);
   box-shadow: 0 18rpx 36rpx rgba(239, 68, 68, 0.2);
 }
 
-.icon-symbol {
+.icon-check {
   font-size: 56rpx;
   line-height: 1;
   color: #ffffff;
@@ -124,10 +123,9 @@ export default {
 .main-title {
   display: block;
   font-size: 40rpx;
-  line-height: 1.2;
-  color: $user-color-text-main;
   font-weight: 700;
-  margin-bottom: 16rpx;
+  color: $user-color-text-main;
+  margin-bottom: 18rpx;
 }
 
 .desc {
@@ -135,7 +133,7 @@ export default {
   font-size: 24rpx;
   line-height: 1.7;
   color: $user-color-text-sub;
-  margin-bottom: 34rpx;
+  margin-bottom: 36rpx;
 }
 
 .btn-group {
@@ -148,17 +146,17 @@ export default {
   width: 100%;
   @include user-primary-btn;
   border: none;
+  line-height: 88rpx;
   font-size: 28rpx;
   font-weight: 700;
-  line-height: 88rpx;
 }
 
 .view-order-btn {
   width: 100%;
   @include user-ghost-btn(88rpx);
+  line-height: 88rpx;
   font-size: 28rpx;
   font-weight: 700;
-  line-height: 88rpx;
 }
 
 .home-btn {

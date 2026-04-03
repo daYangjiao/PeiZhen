@@ -1,16 +1,16 @@
 <template>
   <view class="payment-success-page">
     <view class="card success-card">
-      <view class="icon-wrap success">
-        <text class="icon-symbol">✓</text>
+      <view class="icon success">
+        <text class="icon-check">✓</text>
       </view>
       <text class="main-title">支付成功！</text>
       <text class="desc">您的陪诊订单已确认，正在为您匹配最合适的陪诊员</text>
       <button class="view-order-btn" @click="goToOrderDetail">查看订单详情</button>
     </view>
 
-    <view class="card info-card">
-      <view class="card-title">订单信息</view>
+    <view class="card order-info">
+      <view class="title">订单信息</view>
       <view class="info-item">
         <text class="label">订单编号</text>
         <text class="value mono">{{ orderData.orderNo || '—' }}</text>
@@ -29,16 +29,16 @@
       </view>
       <view class="info-item">
         <text class="label">订单状态</text>
-        <text class="value">{{ orderData.orderStatusDesc || '已确认' }}</text>
+        <text class="value">{{ orderData.orderStatusDesc || '—' }}</text>
       </view>
       <view class="info-item last">
         <text class="label">支付状态</text>
-        <text class="value">{{ orderData.paymentStatusDesc || '已支付' }}</text>
+        <text class="value">{{ orderData.paymentStatusDesc || '—' }}</text>
       </view>
     </view>
 
-    <view class="card info-card">
-      <view class="card-title">服务详情</view>
+    <view class="card service-detail">
+      <view class="title">服务详情</view>
       <view class="info-item">
         <text class="label">就诊时间</text>
         <text class="value">{{ orderData.serviceDate }} {{ formatServiceTime(orderData.serviceTime) }}</text>
@@ -157,18 +157,17 @@ const goToOrderDetail = () => {
 }
 
 .card {
-  @include user-card(28rpx);
+  @include user-card(28rpx 24rpx);
   margin-bottom: 18rpx;
 }
 
 .success-card {
   text-align: center;
-  background: linear-gradient(180deg, #ffffff 0%, #f3fbf7 100%);
 }
 
-.icon-wrap {
-  width: 108rpx;
-  height: 108rpx;
+.icon {
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -176,13 +175,13 @@ const goToOrderDetail = () => {
   margin: 0 auto 22rpx;
 }
 
-.icon-wrap.success {
+.icon.success {
   background: linear-gradient(135deg, #28c76f 0%, #14b86a 100%);
   box-shadow: 0 18rpx 36rpx rgba(40, 199, 111, 0.22);
 }
 
-.icon-symbol {
-  font-size: 54rpx;
+.icon-check {
+  font-size: 50rpx;
   line-height: 1;
   color: #ffffff;
   font-weight: 700;
@@ -191,10 +190,9 @@ const goToOrderDetail = () => {
 .main-title {
   display: block;
   font-size: 40rpx;
-  line-height: 1.2;
-  color: $user-color-text-main;
   font-weight: 700;
-  margin-bottom: 14rpx;
+  color: $user-color-text-main;
+  margin-bottom: 16rpx;
 }
 
 .desc {
@@ -209,12 +207,12 @@ const goToOrderDetail = () => {
   width: 100%;
   @include user-primary-btn;
   border: none;
+  line-height: 88rpx;
   font-size: 28rpx;
   font-weight: 700;
-  line-height: 88rpx;
 }
 
-.card-title {
+.title {
   font-size: 30rpx;
   line-height: 1.2;
   color: $user-color-text-main;
