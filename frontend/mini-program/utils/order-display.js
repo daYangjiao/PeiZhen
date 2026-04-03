@@ -27,8 +27,23 @@ const parseSlotDuration = (slot = '') => {
   if ([startHour, startMinute, endHour, endMinute].some(Number.isNaN)) return null
   const startTotal = startHour * 60 + startMinute
   const endTotal = endHour * 60 + endMinute
-  if (endTotal <= startTotal) return null
-  return Math.round(((endTotal - startTotal) / 60) * 10) / 10
+  if (endTotal === startTotal) return null
+  const durationMinutes = endTotal > startTotal
+    ? endTotal - startTotal
+    : 24 * 60 - startTotal + endTotal
+  return Math.round((durationMinutes / 60) * 10) / 10
+}
+
+export const formatServiceTimeSlot = (slot = '') => {
+  if (!slot || typeof slot !== 'string' || !slot.includes('-')) return slot || ''
+  const [start, end] = slot.split('-').map(item => item.trim())
+  if (!start || !end) return slot
+  const [startHour, startMinute] = start.split(':').map(Number)
+  const [endHour, endMinute] = end.split(':').map(Number)
+  if ([startHour, startMinute, endHour, endMinute].some(Number.isNaN)) return slot
+  const startTotal = startHour * 60 + startMinute
+  const endTotal = endHour * 60 + endMinute
+  return endTotal < startTotal ? `${start}-次日${end}` : `${start}-${end}`
 }
 
 export const getOrderDurationHours = (order = {}) => {

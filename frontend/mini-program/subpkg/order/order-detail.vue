@@ -71,7 +71,7 @@
       </view>
       <view class="info-item">
         <text class="label">服务时间：</text>
-        <text class="value">{{ order.serviceDate }} {{ order.serviceTime }}</text>
+        <text class="value">{{ order.serviceDate }} {{ formatServiceTimeSlot(order.serviceTime || '') }}</text>
       </view>
       <view v-if="order.actualDuration != null" class="info-item">
         <text class="label">实际服务时长：</text>
@@ -494,7 +494,7 @@ import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
-import { formatOrderDateTime, getOrderDurationLabel } from '@/utils/order-display.js'
+import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
 
 // 使用 ref 定义响应式变量
 const order = ref({});

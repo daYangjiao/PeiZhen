@@ -63,7 +63,7 @@
                 <view class="time-row">
                   <image src="/static/time.png" class="meta-icon"></image>
                   <text class="service-time">
-                    {{ order.serviceDate }} {{ order.serviceTimeSlot || '' }}
+                    {{ order.displayServiceTime }}
                   </text>
                 </view>
                 <text class="price">¥{{ formatAmount(getAttendantIncome(order.orderAmount)) }}</text>
@@ -108,6 +108,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const searchKeyword = ref('')
 
@@ -164,7 +165,8 @@ const loadOrders = async () => {
     if (res.code === 200 && res.data && res.data.content) {
       orders.value = (res.data.content || []).map((order) => ({
         ...order,
-        displayUserAvatar: resolveAvatarUrl(order?.userAvatar, userPlaceholder)
+        displayUserAvatar: resolveAvatarUrl(order?.userAvatar, userPlaceholder),
+        displayServiceTime: [order.serviceDate, formatServiceTimeSlot(order.serviceTimeSlot || '')].filter(Boolean).join(' ').trim()
       }))
     }
     else orders.value = []

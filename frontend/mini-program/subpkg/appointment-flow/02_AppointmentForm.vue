@@ -176,7 +176,7 @@
 				<view class="time-modal-header">
 					<view>
 						<text class="time-modal-title">{{ timePickerTitle }}</text>
-						<text class="time-modal-subtitle">24小时可预约，结束时间需晚于开始时间</text>
+						<text class="time-modal-subtitle">24小时可预约，结束时间可跨至次日</text>
 					</view>
 					<text class="close-btn" @click="hideTimePicker">✕</text>
 				</view>
@@ -515,21 +515,33 @@ const isTodayDate = (dateValue) => {
 	return appointmentDate.getTime() === today.getTime()
 }
 
+const calculateSlotDurationMinutes = (startValue, endValue) => {
+	const startMinutes = parseTimeToMinutes(startValue)
+	const endMinutes = parseTimeToMinutes(endValue)
+	if (Number.isNaN(startMinutes) || Number.isNaN(endMinutes)) {
+		return NaN
+	}
+	if (endMinutes === startMinutes) {
+		return 0
+	}
+	return endMinutes > startMinutes
+		? endMinutes - startMinutes
+		: 24 * 60 - startMinutes + endMinutes
+}
+
 const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 	const options = []
+	const selectedStartMinutes = parseTimeToMinutes(startTime.value)
 	for (let hour = 0; hour <= 23; hour++) {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 			const timeMinutes = parseTimeToMinutes(timeStr)
-			if (pickerType === 'start' && timeMinutes >= 23 * 60 + 30) {
+			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
 				continue
 			}
-			if (isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
-				continue
-			}
-			if (pickerType === 'end' && startTime.value) {
-				const selectedStartMinutes = parseTimeToMinutes(startTime.value)
-				if (!Number.isNaN(selectedStartMinutes) && timeMinutes <= selectedStartMinutes) {
+			if (pickerType === 'end' && !Number.isNaN(selectedStartMinutes)) {
+				const durationMinutes = calculateSlotDurationMinutes(startTime.value, timeStr)
+				if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
 					continue
 				}
 			}
@@ -544,6 +556,18 @@ const timeOptions = computed(() => getAvailableTimeOptions(selectedDate.value, t
 const findTimeGroupByMinutes = (minutes) => TIME_GROUP_DEFINITIONS.find(group => minutes >= group.start && minutes <= group.end) || null
 
 const findPreferredTimeGroupKey = (options) => {
+	if (timePickerType.value === 'end' && startTime.value) {
+		let preferredKey = ''
+		let minDuration = Infinity
+		for (const option of options) {
+			const durationMinutes = calculateSlotDurationMinutes(startTime.value, option)
+			if (!Number.isNaN(durationMinutes) && durationMinutes > 0 && durationMinutes < minDuration) {
+				minDuration = durationMinutes
+				preferredKey = findTimeGroupByMinutes(parseTimeToMinutes(option))?.key || ''
+			}
+		}
+		if (preferredKey) return preferredKey
+	}
 	const preferredOrder = ['morning', 'afternoon', 'evening', 'lateNight']
 	for (const key of preferredOrder) {
 		if (options.some(time => findTimeGroupByMinutes(parseTimeToMinutes(time))?.key === key)) {
@@ -710,6 +734,13 @@ const showEndTimePicker = () => {
 		})
 		return
 	}
+	if (!startTime.value) {
+		uni.showToast({
+			title: '请先选择开始时间',
+			icon: 'none'
+		})
+		return
+	}
 	timePickerType.value = 'end'
 	selectedTime.value = endTime.value
 	showTimeModal.value = true
@@ -724,6 +755,18 @@ const hideTimePicker = () => {
 
 const selectTime = (time) => {
 	selectedTime.value = time
+}
+
+const isNextDayEndTimeOption = (timeValue) => {
+	if (timePickerType.value !== 'end' || !startTime.value) return false
+	const durationMinutes = calculateSlotDurationMinutes(startTime.value, timeValue)
+	const endMinutes = parseTimeToMinutes(timeValue)
+	const startMinutes = parseTimeToMinutes(startTime.value)
+	return !Number.isNaN(durationMinutes) && durationMinutes > 0 && endMinutes < startMinutes
+}
+
+const formatTimeOptionLabel = (timeValue) => {
+	return isNextDayEndTimeOption(timeValue) ? `次日 ${timeValue}` : timeValue
 }
 
 const toggleTimeGroup = (groupKey) => {
@@ -742,7 +785,7 @@ const syncSelectedTimesForDate = () => {
 	}
 
 	const availableEndTimes = getAvailableTimeOptions(selectedDate.value, 'end')
-	if (endTime.value && !availableEndTimes.includes(endTime.value)) {
+	if (endTime.value && (!availableEndTimes.includes(endTime.value) || calculateSlotDurationMinutes(startTime.value, endTime.value) <= 0)) {
 		endTime.value = ''
 	}
 }
@@ -756,8 +799,7 @@ const confirmTime = () => {
 		return
 	}
 	if (timePickerType.value === 'start') {
-		// 如果已选择结束时间，检查开始时间是否小于结束时间
-		if (endTime.value && selectedTime.value >= endTime.value) {
+		if (startTime.value !== selectedTime.value) {
 			endTime.value = ''
 		}
 		startTime.value = selectedTime.value
@@ -770,10 +812,10 @@ const confirmTime = () => {
 		})
 		return
 	} else {
-		// 检查结束时间是否大于开始时间
-		if (startTime.value && selectedTime.value <= startTime.value) {
+		const durationMinutes = calculateSlotDurationMinutes(startTime.value, selectedTime.value)
+		if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
 			uni.showToast({
-				title: '结束时间必须大于开始时间',
+				title: '结束时间必须晚于开始时间',
 				icon: 'none'
 			})
 			return
@@ -997,7 +1039,8 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 		const [h, m] = String(t).split(':').map(Number)
 		return (h || 0) * 60 + (m || 0)
 	}
-	if (toMinutes(endTime.value) <= toMinutes(startTime.value)) {
+	const durationMinutes = calculateSlotDurationMinutes(startTime.value, endTime.value)
+	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
 		uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' })
 		return
 	}

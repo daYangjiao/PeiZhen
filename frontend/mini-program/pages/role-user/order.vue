@@ -59,7 +59,7 @@
               <view class="order-meta">
                 <view class="time-row">
                   <image src="/static/time.png" class="meta-icon"></image>
-                  <text class="service-time">{{ order.serviceDate }} {{ order.serviceTimeSlot }}</text>
+                  <text class="service-time">{{ order.displayServiceTime }}</text>
                 </view>
                 <text class="price">¥{{ order.orderAmount.toFixed(2) }}</text>
               </view>
@@ -110,6 +110,7 @@ import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/
 import { defaultAvatar } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
@@ -219,7 +220,8 @@ const loadOrders = async () => {
     if (response.code === 200 && response.data && response.data.content) {
       orders.value = (response.data.content || []).map((order) => ({
         ...order,
-        displayAttendantAvatar: resolveAvatarUrl(order.attendantAvatar, defaultAvatar)
+        displayAttendantAvatar: resolveAvatarUrl(order.attendantAvatar, defaultAvatar),
+        displayServiceTime: [order.serviceDate, formatServiceTimeSlot(order.serviceTimeSlot)].filter(Boolean).join(' ').trim()
       }))
     } else {
       orders.value = []

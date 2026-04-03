@@ -123,7 +123,10 @@ export default {
             if (parts.length === 2) {
               const start = this.parseTime(parts[0])
               const end = this.parseTime(parts[1])
-              const minutes = (end - start) / 60000
+              let minutes = (end - start) / 60000
+              if (minutes < 0) {
+                minutes += 24 * 60
+              }
               if (minutes > 0) {
                 est = Math.round((minutes / 60) * 10) / 10
               }

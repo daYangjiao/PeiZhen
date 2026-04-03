@@ -134,6 +134,7 @@ import { get, post } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -213,7 +214,7 @@ const formatOrderData = (raw) => {
 		userAvatar: placeholder,
 		serviceType: raw.serviceContent || raw.serviceTypeName || '陪诊服务',
 		hospitalName: raw.hospital || '未知医院',
-		appointmentTime: (raw.serviceDate || '') + ' ' + (raw.serviceTimeSlot || ''),
+		appointmentTime: [raw.serviceDate, formatServiceTimeSlot(raw.serviceTimeSlot || '')].filter(Boolean).join(' ').trim(),
 		price: ((raw.orderAmount || 0) * 0.9).toFixed(2),
 		symptomDescription,
 		otherRequirement,

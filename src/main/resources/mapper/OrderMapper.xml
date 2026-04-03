@@ -131,7 +131,15 @@
         <if test="query != null and query.expectedDurationMinHours != null">
             AND (TIMESTAMPDIFF(MINUTE,
                 STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))), '%Y-%m-%d %H:%i'),
-                STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i')
+                CASE
+                    WHEN STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i')
+                         &lt; STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))), '%Y-%m-%d %H:%i')
+                    THEN DATE_ADD(
+                        STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i'),
+                        INTERVAL 1 DAY
+                    )
+                    ELSE STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i')
+                END
             ) / 60.0) &gt;= #{query.expectedDurationMinHours}
         </if>
     </sql>

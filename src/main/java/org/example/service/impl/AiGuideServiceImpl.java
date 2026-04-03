@@ -294,6 +294,23 @@ public class AiGuideServiceImpl implements AiGuideService {
             throw new AppointmentValidationException("服务开始时间格式错误，请重新选择");
         }
 
+        String endTimeRaw = String.valueOf(request.getServiceEndTime()).trim();
+        if (endTimeRaw.isEmpty()) {
+            throw new AppointmentValidationException("服务结束时间不能为空");
+        }
+
+        final LocalTime appointmentEndTime;
+        try {
+            appointmentEndTime = parseStartTime(endTimeRaw);
+        } catch (DateTimeParseException e) {
+            throw new AppointmentValidationException("服务结束时间格式错误，请重新选择");
+        }
+
+        long durationMinutes = calculateSlotDurationMinutes(appointmentStartTime, appointmentEndTime);
+        if (durationMinutes <= 0) {
+            throw new AppointmentValidationException("结束时间需晚于开始时间");
+        }
+
         if (appointmentDate.isEqual(today)) {
             LocalTime minAllowedStartTime = LocalTime.now().plusMinutes(30);
             if (appointmentStartTime.isBefore(minAllowedStartTime)) {
@@ -308,6 +325,17 @@ public class AiGuideServiceImpl implements AiGuideService {
             normalized = normalized.split("-")[0].trim();
         }
         return LocalTime.parse(normalized, DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    private long calculateSlotDurationMinutes(LocalTime startTime, LocalTime endTime) {
+        int startMinutes = startTime.getHour() * 60 + startTime.getMinute();
+        int endMinutes = endTime.getHour() * 60 + endTime.getMinute();
+        if (endMinutes == startMinutes) {
+            return 0;
+        }
+        return endMinutes > startMinutes
+                ? endMinutes - startMinutes
+                : 24 * 60L - startMinutes + endMinutes;
     }
 
     @Override
@@ -388,7 +416,15 @@ public class AiGuideServiceImpl implements AiGuideService {
             String[] end = appointment.getServiceEndTime().split(":");
             int h1 = Integer.parseInt(start[0]), m1 = Integer.parseInt(start[1]);
             int h2 = Integer.parseInt(end[0]), m2 = Integer.parseInt(end[1]);
-            return (h2 * 60 + m2 - h1 * 60 - m1) / 60.0;
+            int startMinutes = h1 * 60 + m1;
+            int endMinutes = h2 * 60 + m2;
+            int durationMinutes = endMinutes > startMinutes
+                    ? endMinutes - startMinutes
+                    : (endMinutes < startMinutes ? 24 * 60 - startMinutes + endMinutes : 0);
+            if (durationMinutes <= 0) {
+                return 2.0;
+            }
+            return durationMinutes / 60.0;
         } catch (Exception e) {
             return 2.0;
         }

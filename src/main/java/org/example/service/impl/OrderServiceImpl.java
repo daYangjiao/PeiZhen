@@ -250,6 +250,9 @@ try {
                         Date start = fmt.parse(parts[0].trim());
                         Date end = fmt.parse(parts[1].trim());
                         long minutes = (end.getTime() - start.getTime()) / 60000;
+                        if (minutes < 0) {
+                            minutes += 24 * 60;
+                        }
                         if (minutes > 0) {
                             estimated = BigDecimal.valueOf(minutes / 60.0).setScale(1, RoundingMode.HALF_UP);
                         }

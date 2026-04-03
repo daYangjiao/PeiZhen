@@ -509,7 +509,7 @@ import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runti
 import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
-import { formatOrderDateTime, getOrderDurationLabel } from '@/utils/order-display.js'
+import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
 
 function fullAvatarUrl(path) {
 	return resolveAvatarUrl(path, placeholderImg)
@@ -524,14 +524,43 @@ function getSlotEndText(slot) {
 }
 
 function buildAppointmentTime(order) {
-	return [order.serviceDate, order.serviceTimeSlot].filter(Boolean).join(' ').trim()
+	return [order.serviceDate, formatServiceTimeSlot(order.serviceTimeSlot || '')].filter(Boolean).join(' ').trim()
 }
 
 function buildAppointmentEndTime(order) {
 	if (order.appointmentEndTime) return formatOrderDateTime(order.appointmentEndTime)
 	const endText = getSlotEndText(order.serviceTimeSlot)
 	if (!order.serviceDate || !endText) return ''
-	return `${order.serviceDate} ${endText}`
+	const startText = getSlotStartText(order.serviceTimeSlot)
+	const endDate = resolveSlotEndDate(order.serviceDate, startText, endText)
+	return `${endDate} ${endText}`
+}
+
+function getSlotStartText(slot) {
+	if (!slot) return ''
+	const text = String(slot).trim()
+	const rangeMatch = text.match(/(\d{1,2}:\d{2})\s*[-~至]\s*(\d{1,2}:\d{2})/)
+	if (rangeMatch) return rangeMatch[1]
+	return ''
+}
+
+function resolveSlotEndDate(serviceDate, startText, endText) {
+	if (!serviceDate || !endText) return serviceDate || ''
+	const [startHour, startMinute] = String(startText || '').split(':').map(Number)
+	const [endHour, endMinute] = String(endText || '').split(':').map(Number)
+	if ([startHour, startMinute, endHour, endMinute].some(Number.isNaN)) return serviceDate
+	const startTotal = startHour * 60 + startMinute
+	const endTotal = endHour * 60 + endMinute
+	if (endTotal >= startTotal) {
+		return serviceDate
+	}
+	const base = new Date(`${serviceDate}T00:00:00`)
+	if (Number.isNaN(base.getTime())) return serviceDate
+	base.setDate(base.getDate() + 1)
+	const year = base.getFullYear()
+	const month = String(base.getMonth() + 1).padStart(2, '0')
+	const day = String(base.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}`
 }
 
 function buildEscortServiceRecords(order, status) {
