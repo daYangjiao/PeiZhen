@@ -29,46 +29,46 @@
 
     <view v-else class="confirm-page-content">
       <view class="confirm-summary-card">
-        <view class="summary-card-head">
-          <view>
-            <text class="summary-card-eyebrow">订单摘要</text>
-            <text class="summary-card-title">{{ orderData.serviceTypeName || '陪诊服务' }}</text>
+        <view class="summary-card-header">
+          <view class="summary-card-copy">
+            <text class="summary-card-caption">订单摘要</text>
+            <text class="summary-card-service">{{ orderData.serviceTypeName || '陪诊服务' }}</text>
           </view>
-          <view class="summary-card-icon">
-            <text class="summary-card-icon-text">✓</text>
-          </view>
-        </view>
-
-        <view class="summary-focus-row">
-          <view class="summary-focus-chip">
-            <text class="summary-focus-label">就诊时间</text>
-            <text class="summary-focus-value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
-          </view>
-          <view class="summary-focus-chip light">
-            <text class="summary-focus-label">医院</text>
-            <text class="summary-focus-value">{{ orderData.hospital || '未知' }}</text>
+          <view class="summary-card-check">
+            <text class="summary-card-check-text">✓</text>
           </view>
         </view>
 
-        <view class="summary-detail-grid">
-          <view class="summary-detail-item">
-            <text class="summary-detail-label">就诊人</text>
-            <text class="summary-detail-value">{{ orderData.patientName || '未知' }}</text>
+        <view class="summary-field-list">
+          <view class="summary-field-card primary">
+            <text class="summary-field-label">就诊时间</text>
+            <text class="summary-field-value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
           </view>
-          <view class="summary-detail-item">
-            <text class="summary-detail-label">订单编号</text>
-            <text class="summary-detail-value mono">{{ orderData.orderNo || '未知' }}</text>
+
+          <view class="summary-field-card">
+            <text class="summary-field-label">医院</text>
+            <text class="summary-field-value">{{ orderData.hospital || '未知' }}</text>
           </view>
-        </view>
 
-        <view class="summary-note-card">
-          <text class="summary-note-title">症状描述</text>
-          <text class="summary-note-text">{{ getSymptomDescription() }}</text>
-        </view>
+          <view class="summary-field-card">
+            <text class="summary-field-label">就诊人</text>
+            <text class="summary-field-value">{{ orderData.patientName || '未知' }}</text>
+          </view>
 
-        <view class="summary-note-card muted">
-          <text class="summary-note-title">其他需求</text>
-          <text class="summary-note-text">{{ orderData.otherRequirement || '暂无补充要求' }}</text>
+          <view class="summary-field-card">
+            <text class="summary-field-label">订单编号</text>
+            <text class="summary-field-value mono">{{ orderData.orderNo || '未知' }}</text>
+          </view>
+
+          <view class="summary-field-card">
+            <text class="summary-field-label">症状描述</text>
+            <text class="summary-field-value">{{ getSymptomDescription() }}</text>
+          </view>
+
+          <view class="summary-field-card" v-if="orderData.otherRequirement">
+            <text class="summary-field-label">其他需求</text>
+            <text class="summary-field-value">{{ orderData.otherRequirement }}</text>
+          </view>
         </view>
       </view>
 
@@ -76,19 +76,10 @@
       <!-- 费用明细（预付款说明） -->
       <view class="card fee-detail-card">
         <view class="title fee-detail-head">
-          <view class="section-title-stack">
-            <text class="section-eyebrow">金额确认</text>
-            <text class="section-title-main">费用明细</text>
-          </view>
+          <text class="section-title-main">费用明细</text>
           <view class="rule-entry-pill" @click="showBillingRules = true">
             <text class="rule-entry-text">查看计费规则</text>
             <text class="rule-entry-arrow">›</text>
-          </view>
-        </view>
-        <view class="fee-tip">
-          <view class="fee-tip-tag">预付款说明</view>
-          <view class="fee-tip-text">
-            本次为服务预付款，服务结束后按实际时长结算，多退少补。
           </view>
         </view>
         <view class="fee-list-shell">
@@ -110,11 +101,7 @@
       <!-- 支付方式 -->
       <view class="card payment-method-card">
         <view class="title payment-method-title">
-          <view class="section-title-stack">
-            <text class="section-eyebrow">支付方式</text>
-            <text class="section-title-main">选择支付渠道</text>
-          </view>
-          <text class="payment-method-hint">可随时切换</text>
+          <text class="section-title-main">支付方式</text>
         </view>
         <view class="payment-method-list">
           <view
@@ -149,7 +136,6 @@
           <text class="footer-price-sign">¥</text>
           <text class="footer-price-value">{{ formatAmount(orderData.totalPrice) }}</text>
         </view>
-        <text class="footer-price-hint">支付后锁定当前服务订单</text>
       </view>
       <button class="confirm-btn" @click="confirmPay">确认支付</button>
     </view>
@@ -582,69 +568,76 @@ const formatServiceTime = (serviceTime) => {
   font-weight: 600;
 }
 
-.summary-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20rpx;
-  margin-bottom: 24rpx;
+.confirm-summary-card {
+  padding: 24rpx;
 }
 
-.summary-card-eyebrow {
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-card-copy {
+  min-width: 0;
+}
+
+.summary-card-caption {
   display: block;
   font-size: 22rpx;
   line-height: 1;
   color: $user-color-primary;
   font-weight: 700;
-  letter-spacing: 2rpx;
   margin-bottom: 12rpx;
 }
 
-.summary-card-title {
+.summary-card-service {
   display: block;
-  font-size: 36rpx;
-  line-height: 1.18;
+  font-size: 40rpx;
+  line-height: 1.16;
   color: $user-color-text-main;
   font-weight: 700;
 }
 
-.summary-card-icon {
-  width: 72rpx;
-  height: 72rpx;
+.summary-card-check {
+  width: 76rpx;
+  height: 76rpx;
   border-radius: 24rpx;
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(37, 99, 235, 0.18) 100%);
+  background: linear-gradient(135deg, rgba(76, 139, 245, 0.14) 0%, rgba(0, 122, 255, 0.2) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.summary-card-icon-text {
+.summary-card-check-text {
   font-size: 34rpx;
   color: $user-color-primary;
   font-weight: 700;
 }
 
-.summary-focus-row {
+.summary-field-list {
   display: flex;
   flex-direction: column;
   gap: 14rpx;
-  margin-bottom: 18rpx;
 }
 
-.summary-focus-chip {
-  padding: 22rpx;
+.summary-field-card {
+  padding: 20rpx 22rpx;
   border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(220, 232, 248, 0.95);
+  box-shadow: 0 10rpx 22rpx rgba(18, 56, 109, 0.05);
+}
+
+.summary-field-card.primary {
   background: linear-gradient(145deg, #edf6ff 0%, #f7fbff 100%);
-  border: 1rpx solid rgba(214, 234, 255, 0.95);
+  border-color: rgba(214, 234, 255, 0.95);
 }
 
-.summary-focus-chip.light {
-  background: linear-gradient(145deg, #ffffff 0%, #f7fbff 100%);
-}
-
-.summary-focus-label,
-.summary-detail-label,
-.summary-note-title,
+.summary-field-label,
 .section-eyebrow {
   display: block;
   font-size: 22rpx;
@@ -653,8 +646,7 @@ const formatServiceTime = (serviceTime) => {
   margin-bottom: 10rpx;
 }
 
-.summary-focus-value,
-.summary-detail-value {
+.summary-field-value {
   display: block;
   font-size: 28rpx;
   line-height: 1.55;
@@ -663,47 +655,17 @@ const formatServiceTime = (serviceTime) => {
   word-break: break-word;
 }
 
-.summary-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14rpx;
-  margin-bottom: 18rpx;
+.summary-field-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 24rpx;
 }
 
-.summary-detail-item,
-.summary-note-card,
 .fee-list-shell,
 .payment-option-card {
   border-radius: 22rpx;
   background: #ffffff;
   border: 1rpx solid rgba(220, 232, 248, 0.9);
   box-shadow: 0 10rpx 22rpx rgba(18, 56, 109, 0.05);
-}
-
-.summary-detail-item {
-  padding: 20rpx;
-}
-
-.summary-detail-value.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 24rpx;
-}
-
-.summary-note-card {
-  padding: 20rpx 22rpx;
-  margin-bottom: 14rpx;
-}
-
-.summary-note-card.muted {
-  margin-bottom: 0;
-  background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
-}
-
-.summary-note-text {
-  display: block;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: $user-color-text-main;
 }
 
 .section-title-stack {
@@ -721,8 +683,11 @@ const formatServiceTime = (serviceTime) => {
 
 .fee-detail-head,
 .payment-method-title {
-  margin-bottom: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .fee-list-shell {
@@ -763,42 +728,6 @@ const formatServiceTime = (serviceTime) => {
 
 .total-price {
   font-size: 36rpx;
-}
-
-.fee-tip {
-  margin-bottom: 16rpx;
-  padding: 16rpx 18rpx;
-  border-radius: 14rpx;
-  background: #f0f7ff;
-  border: 1rpx solid #d6eaff;
-  display: flex;
-  align-items: flex-start;
-  gap: 12rpx;
-}
-
-.fee-tip-tag {
-  font-size: 22rpx;
-  color: #007AFF;
-  font-weight: 600;
-  padding: 4rpx 10rpx;
-  border-radius: 999rpx;
-  background: #e6f3ff;
-  flex-shrink: 0;
-}
-
-.fee-tip-text {
-  font-size: 24rpx;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.fee-detail-head {
-  align-items: flex-start;
-}
-
-.payment-method-hint {
-  font-size: 22rpx;
-  color: $user-color-text-sub;
 }
 
 .payment-method-list {
@@ -942,12 +871,6 @@ const formatServiceTime = (serviceTime) => {
   line-height: 1;
   color: $user-color-primary;
   font-weight: 700;
-}
-
-.footer-price-hint {
-  display: block;
-  font-size: 20rpx;
-  color: #8aa0b8;
 }
 
 .price {

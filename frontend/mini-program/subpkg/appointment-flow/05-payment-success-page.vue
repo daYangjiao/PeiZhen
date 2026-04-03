@@ -4,18 +4,13 @@
       <view class="success-hero-icon">
         <text class="success-hero-icon-text">✓</text>
       </view>
-      <text class="success-hero-title">支付成功，订单已锁定</text>
-      <text class="success-hero-desc">我们已收到您的预付款，系统正在继续匹配合适的陪诊员，后续进展可在订单页查看。</text>
-      <view class="success-hero-actions">
-        <button class="hero-primary-btn" @click="goToOrderDetail">查看订单详情</button>
-        <button class="hero-secondary-btn" @click="goToOrderList">返回订单列表</button>
-      </view>
+      <text class="success-hero-title">支付成功</text>
+      <text class="success-hero-desc">订单已锁定</text>
     </view>
 
     <view class="card summary-card">
       <view class="section-head">
         <view>
-          <text class="section-eyebrow">支付凭证</text>
           <text class="section-title">订单摘要</text>
         </view>
         <view class="summary-amount-chip">
@@ -47,7 +42,6 @@
     <view class="card service-card">
       <view class="section-head compact">
         <view>
-          <text class="section-eyebrow">服务内容</text>
           <text class="section-title">本次陪诊安排</text>
         </view>
       </view>
@@ -83,23 +77,9 @@
       </view>
     </view>
 
-    <view class="card next-step-card">
-      <text class="section-eyebrow">后续进展</text>
-      <text class="section-title">下一步会发生什么</text>
-      <view class="next-step-list">
-        <view class="next-step-item">
-          <view class="next-step-dot"></view>
-          <text class="next-step-text">平台已锁定本次服务订单，并开始继续匹配合适的陪诊员。</text>
-        </view>
-        <view class="next-step-item">
-          <view class="next-step-dot"></view>
-          <text class="next-step-text">订单状态变化会同步到订单详情与消息中心。</text>
-        </view>
-        <view class="next-step-item">
-          <view class="next-step-dot"></view>
-          <text class="next-step-text">如需再次确认信息，可随时进入订单详情页查看。</text>
-        </view>
-      </view>
+    <view class="success-action-bar">
+      <button class="hero-primary-btn" @click="goToOrderDetail">查看订单详情</button>
+      <button class="hero-secondary-btn" @click="goToOrderList">返回订单列表</button>
     </view>
   </view>
 </template>
@@ -225,7 +205,7 @@ const goToOrderDetail = () => {
 @import '@/styles/user-ui.scss';
 .payment-success-page {
   @include user-page;
-  padding: 28rpx 24rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 24rpx calc(172rpx + env(safe-area-inset-bottom));
   font-size: 28rpx;
   min-height: 100vh;
   box-sizing: border-box;
@@ -237,7 +217,7 @@ const goToOrderDetail = () => {
 }
 
 .success-hero-card {
-  padding: 36rpx 30rpx 30rpx;
+  padding: 40rpx 30rpx 32rpx;
   text-align: center;
   background: linear-gradient(180deg, #ffffff 0%, #f1f8ff 100%);
   margin-bottom: 24rpx;
@@ -268,21 +248,14 @@ const goToOrderDetail = () => {
   line-height: 1.2;
   color: $user-color-text-main;
   font-weight: 700;
-  margin-bottom: 14rpx;
+  margin-bottom: 10rpx;
 }
 
 .success-hero-desc {
   display: block;
   font-size: 24rpx;
-  line-height: 1.75;
+  line-height: 1.4;
   color: $user-color-text-sub;
-  margin-bottom: 28rpx;
-}
-
-.success-hero-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
 }
 
 .hero-primary-btn,
@@ -318,16 +291,6 @@ const goToOrderDetail = () => {
 
 .section-head.compact {
   margin-bottom: 18rpx;
-}
-
-.section-eyebrow {
-  display: block;
-  font-size: 22rpx;
-  line-height: 1;
-  color: $user-color-primary;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  margin-bottom: 12rpx;
 }
 
 .section-title {
@@ -396,8 +359,7 @@ const goToOrderDetail = () => {
   font-size: 22rpx;
 }
 
-.service-card,
-.next-step-card {
+.service-card {
   margin-top: 24rpx;
 }
 
@@ -458,31 +420,16 @@ const goToOrderDetail = () => {
   background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
 }
 
-.next-step-list {
+.success-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin-top: 28rpx;
+  padding: 20rpx 0 calc(8rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(244, 248, 255, 0) 0%, rgba(244, 248, 255, 0.96) 28%, rgba(244, 248, 255, 1) 100%);
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-}
-
-.next-step-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14rpx;
-}
-
-.next-step-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background: $user-color-primary;
-  margin-top: 10rpx;
-  flex-shrink: 0;
-}
-
-.next-step-text {
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: $user-color-text-main;
 }
 
 @media (max-width: 680px) {

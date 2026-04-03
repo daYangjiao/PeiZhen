@@ -5,29 +5,15 @@
         <text class="failed-hero-icon-text">!</text>
       </view>
       <text class="failed-hero-title">支付未完成</text>
-      <text class="failed-hero-desc">这笔订单还没有完成支付。你可以立即重新支付，或者先进入订单详情稍后继续处理。</text>
+      <text class="failed-hero-desc">订单尚未支付</text>
     </view>
 
-    <view class="card failed-reason-card">
-      <text class="section-eyebrow">处理建议</text>
-      <text class="section-title">你现在可以这样做</text>
-      <view class="reason-list">
-        <view class="reason-item">
-          <view class="reason-dot"></view>
-          <text class="reason-text">重新发起支付，继续完成当前订单锁单流程。</text>
-        </view>
-        <view class="reason-item">
-          <view class="reason-dot"></view>
-          <text class="reason-text">如果暂时不支付，可进入订单详情稍后继续处理。</text>
-        </view>
-        <view class="reason-item">
-          <view class="reason-dot"></view>
-          <text class="reason-text">若本次失败发生在补付差价阶段，重新支付会回到对应订单继续补付。</text>
-        </view>
-      </view>
+    <view class="card failed-status-card">
+      <text class="status-card-label">订单编号</text>
+      <text class="status-card-value">{{ orderNo || '—' }}</text>
     </view>
 
-    <view class="card failed-action-card">
+    <view class="failed-action-card">
       <button class="retry-btn" @click="retryPayment">重新支付</button>
       <button class="view-order-btn" @click="goToOrderDetail">查看订单详情</button>
       <button class="home-btn" @click="goHome">返回首页</button>
@@ -104,7 +90,7 @@ export default {
 @import '@/styles/user-ui.scss';
 .payment-failed-page {  
   @include user-page;
-  padding: 28rpx 24rpx calc(40rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 24rpx calc(172rpx + env(safe-area-inset-bottom));
   font-size: 28rpx;
   min-height: 100vh;
   box-sizing: border-box;
@@ -154,60 +140,40 @@ export default {
 .failed-hero-desc {  
   color: $user-color-text-sub;
   font-size: 24rpx;
-  line-height: 1.75;
+  line-height: 1.4;
   display: block;
 }
 
-.section-eyebrow {
-  display: block;
-  font-size: 22rpx;
-  line-height: 1;
-  color: #ef4444;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  margin-bottom: 12rpx;
-}
-
-.section-title {
-  display: block;
-  font-size: 32rpx;
-  line-height: 1.2;
-  color: $user-color-text-main;
-  font-weight: 700;
-  margin-bottom: 22rpx;
-}
-
-.failed-reason-card,
-.failed-action-card {
+.failed-status-card {
+  padding: 24rpx;
   margin-bottom: 24rpx;
 }
 
-.reason-list,
+.status-card-label {
+  display: block;
+  font-size: 22rpx;
+  color: $user-color-text-sub;
+  margin-bottom: 12rpx;
+}
+
+.status-card-value {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: $user-color-text-main;
+  font-weight: 700;
+  word-break: break-all;
+}
+
 .failed-action-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  padding: 20rpx 0 calc(8rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(244, 248, 255, 0) 0%, rgba(244, 248, 255, 0.96) 28%, rgba(244, 248, 255, 1) 100%);
   display: flex;
   flex-direction: column;
   gap: 18rpx;
-}
-
-.reason-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14rpx;
-}
-
-.reason-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background: #ef4444;
-  margin-top: 10rpx;
-  flex-shrink: 0;
-}
-
-.reason-text {
-  font-size: 24rpx;
-  line-height: 1.72;
-  color: $user-color-text-main;
 }
 
 .retry-btn {

@@ -340,9 +340,7 @@
 				<view class="symptom-sheet-handle"></view>
 				<view class="symptom-sheet-header">
 					<view class="symptom-sheet-copy">
-						<text class="symptom-sheet-eyebrow">症状补充</text>
 						<text class="symptom-sheet-title">添加其他症状</text>
-						<text class="symptom-sheet-subtitle">补充当前症状或特殊表现，帮助后续更准确地匹配陪诊服务。</text>
 					</view>
 					<view class="symptom-sheet-close" @click="hideAddSymptomModal">
 						<text class="symptom-sheet-close-icon">✕</text>
@@ -351,12 +349,7 @@
 
 				<view class="symptom-sheet-body">
 					<view class="symptom-input-card" :class="{ error: !!newSymptomError }">
-						<view class="symptom-input-label-row">
-							<text class="symptom-input-badge">症状描述</text>
-							<text class="symptom-input-hint">最多 50 个字</text>
-						</view>
 						<view class="symptom-input-field">
-							<text class="symptom-input-icon">✦</text>
 							<input
 								v-model="newSymptomInput"
 								placeholder="例如：夜间胸闷、持续性头痛、术后伤口疼痛"
