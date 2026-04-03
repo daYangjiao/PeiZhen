@@ -1,26 +1,24 @@
 <template>
   <view class="order-confirm-page">
-
-    <!-- 进度条 -->
-    <view class="step-bar">
-      <view class="step-item completed">
-        <text class="step-dot">✓</text>
-        <text class="step-text">选择服务</text>
+    <view class="confirm-hero-card">
+      <view class="confirm-hero-top">
+        <view class="confirm-hero-badge">最后一步</view>
+        <view class="confirm-hero-status">待支付</view>
       </view>
-      <view class="progress-line green"></view>
-      <view class="step-item completed">
-        <text class="step-dot">✓</text>
-        <text class="step-text">描述症状</text>
-      </view>
-      <view class="progress-line green"></view>
-      <view class="step-item completed">
-        <text class="step-dot">✓</text>
-        <text class="step-text">提交需求</text>
-      </view>
-      <view class="progress-line green"></view>
-      <view class="step-item active">
-        <text class="step-dot"></text>
-        <text class="step-text">确认订单</text>
+      <text class="confirm-hero-title">确认本次陪诊服务订单</text>
+      <text class="confirm-hero-subtitle">请核对预约信息与预付款金额，确认无误后完成支付。</text>
+      <view class="confirm-hero-progress">
+        <view
+          v-for="step in flowSteps"
+          :key="step.label"
+          class="confirm-progress-item"
+          :class="step.state"
+        >
+          <view class="confirm-progress-dot">
+            <text v-if="step.state === 'done'" class="confirm-progress-check">✓</text>
+          </view>
+          <text class="confirm-progress-text">{{ step.label }}</text>
+        </view>
       </view>
     </view>
 
@@ -29,97 +27,129 @@
       <text>加载中...</text>
     </view>
 
-    <!-- 订单信息 -->
-    <view v-else class="card order-info">
-      <view class="title">
-        <text class="iconfont icon-info"> 订单信息</text>
-      </view>
-      <view class="info-item">
-        <text class="label"><text class="iconfont icon-hospital"> 就诊医院</text></text>
-        <text class="value">{{ orderData.hospital || '未知' }}</text>
-      </view>
-      <!-- 合并就诊日期和时间 -->
-      <view class="info-item">
-        <text class="label"><text class="iconfont icon-calendar"> 就诊时间</text></text>
-        <text class="value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="label"><text class="iconfont icon-user"> 就诊人</text></text>
-        <text class="value">{{ orderData.patientName || '未知' }}</text>
-      </view>
-      <!-- 显示后端返回的 symptoms 和 otherRequirement -->
-      <view class="info-item">
-        <text class="label"><text class="iconfont icon-note"> 症状描述</text></text>
-        <text class="value">{{ getSymptomDescription() }}</text>
-      </view>
-      <!-- 新增：其他需求 -->
-      <view class="info-item">
-        <text class="label"><text class="iconfont icon-note"> 其他需求</text></text>
-        <text class="value">{{ orderData.otherRequirement || '无' }}</text>
-      </view>
-
-    </view>
-
-
-    <!-- 费用明细（预付款说明） -->
-    <view v-if="!isLoading" class="card fee-detail">
-      <view class="title fee-detail-head">
-        <text class="iconfont icon-list"> 费用明细</text>
-        <view class="rule-entry-pill" @click="showBillingRules = true">
-          <text class="rule-entry-text">查看计费规则</text>
-          <text class="rule-entry-arrow">›</text>
-        </view>
-      </view>
-      <view class="fee-tip">
-        <view class="fee-tip-tag">预付款说明</view>
-        <view class="fee-tip-text">
-          本次为服务预付款，服务结束后按实际时长结算，多退少补。
-        </view>
-      </view>
-      <view class="fee-item">
-        陪诊服务预付款
-        <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
-      </view>
-      <view class="fee-item">优惠券
-        <text class="discount">-¥0.00</text>
-      </view>
-      <view class="total">
-        预付款合计
-        <text class="total-price">¥{{ formatAmount(orderData.totalPrice) }}</text>
-      </view>
-    </view>
-
-    <!-- 支付方式 -->
-    <view v-if="!isLoading" class="card payment-method">
-      <view class="title">
-        <text class="iconfont icon-pay"> 选择支付方式</text>
-      </view>
-      <radio-group @change="onPaymentChange" :value="payMethod">
-        <view class="payment-option">
-          <radio value="wechat" :checked="payMethod === 'wechat'" />
-          <view class="pay-icon">
-            <text class="iconfont icon-wechat"> 微信支付</text>
+    <view v-else class="confirm-page-content">
+      <view class="confirm-summary-card">
+        <view class="summary-card-head">
+          <view>
+            <text class="summary-card-eyebrow">订单摘要</text>
+            <text class="summary-card-title">{{ orderData.serviceTypeName || '陪诊服务' }}</text>
+          </view>
+          <view class="summary-card-icon">
+            <text class="summary-card-icon-text">✓</text>
           </view>
         </view>
-        <view class="payment-option">
-          <radio value="alipay" :checked="payMethod === 'alipay'" />
-          <view class="pay-icon">
-            <text class="iconfont icon-alipay"> 支付宝支付</text>
+
+        <view class="summary-focus-row">
+          <view class="summary-focus-chip">
+            <text class="summary-focus-label">就诊时间</text>
+            <text class="summary-focus-value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
+          </view>
+          <view class="summary-focus-chip light">
+            <text class="summary-focus-label">医院</text>
+            <text class="summary-focus-value">{{ orderData.hospital || '未知' }}</text>
           </view>
         </view>
-        <view class="payment-option">
-          <radio value="unionpay" :checked="payMethod === 'unionpay'" />
-          <view class="pay-icon">
-            <text class="iconfont icon-unionpay"> 银联支付</text>
+
+        <view class="summary-detail-grid">
+          <view class="summary-detail-item">
+            <text class="summary-detail-label">就诊人</text>
+            <text class="summary-detail-value">{{ orderData.patientName || '未知' }}</text>
+          </view>
+          <view class="summary-detail-item">
+            <text class="summary-detail-label">订单编号</text>
+            <text class="summary-detail-value mono">{{ orderData.orderNo || '未知' }}</text>
           </view>
         </view>
-      </radio-group>
+
+        <view class="summary-note-card">
+          <text class="summary-note-title">症状描述</text>
+          <text class="summary-note-text">{{ getSymptomDescription() }}</text>
+        </view>
+
+        <view class="summary-note-card muted">
+          <text class="summary-note-title">其他需求</text>
+          <text class="summary-note-text">{{ orderData.otherRequirement || '暂无补充要求' }}</text>
+        </view>
+      </view>
+
+
+      <!-- 费用明细（预付款说明） -->
+      <view class="card fee-detail-card">
+        <view class="title fee-detail-head">
+          <view class="section-title-stack">
+            <text class="section-eyebrow">金额确认</text>
+            <text class="section-title-main">费用明细</text>
+          </view>
+          <view class="rule-entry-pill" @click="showBillingRules = true">
+            <text class="rule-entry-text">查看计费规则</text>
+            <text class="rule-entry-arrow">›</text>
+          </view>
+        </view>
+        <view class="fee-tip">
+          <view class="fee-tip-tag">预付款说明</view>
+          <view class="fee-tip-text">
+            本次为服务预付款，服务结束后按实际时长结算，多退少补。
+          </view>
+        </view>
+        <view class="fee-list-shell">
+          <view class="fee-item">
+            <text>陪诊服务预付款</text>
+            <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
+          </view>
+          <view class="fee-item">
+            <text>优惠券</text>
+            <text class="discount">-¥0.00</text>
+          </view>
+          <view class="total">
+            <text>预付款合计</text>
+            <text class="total-price">¥{{ formatAmount(orderData.totalPrice) }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 支付方式 -->
+      <view class="card payment-method-card">
+        <view class="title payment-method-title">
+          <view class="section-title-stack">
+            <text class="section-eyebrow">支付方式</text>
+            <text class="section-title-main">选择支付渠道</text>
+          </view>
+          <text class="payment-method-hint">可随时切换</text>
+        </view>
+        <view class="payment-method-list">
+          <view
+            v-for="method in paymentMethods"
+            :key="method.value"
+            class="payment-option-card"
+            :class="{ selected: payMethod === method.value }"
+            @click="selectPayMethod(method.value)"
+          >
+            <view class="payment-option-main">
+              <view class="payment-option-icon" :class="method.value">
+                <text class="payment-option-icon-text">{{ method.short }}</text>
+              </view>
+              <view class="payment-option-copy">
+                <text class="payment-option-name">{{ method.label }}</text>
+                <text class="payment-option-desc">{{ method.desc }}</text>
+              </view>
+            </view>
+            <view class="payment-option-indicator" :class="{ selected: payMethod === method.value }">
+              <view class="payment-option-indicator-inner"></view>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 底部支付栏 -->
     <view v-if="!isLoading" class="footer">
-      <view class="real-price">实付款：
-        <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
+      <view class="footer-price-block">
+        <text class="footer-price-label">实付款</text>
+        <view class="footer-price-line">
+          <text class="footer-price-sign">¥</text>
+          <text class="footer-price-value">{{ formatAmount(orderData.totalPrice) }}</text>
+        </view>
+        <text class="footer-price-hint">支付后锁定当前服务订单</text>
       </view>
       <button class="confirm-btn" @click="confirmPay">确认支付</button>
     </view>
@@ -231,6 +261,17 @@ const payMethod = ref('wechat'); // 默认支付方式
 const isLoading = ref(true);
 const showBillingRules = ref(false); // 控制模态框显示
 const showPaymentModal = ref(false); // 控制支付弹窗显示
+const paymentMethods = [
+  { value: 'wechat', label: '微信支付', desc: '推荐使用，支付体验更顺畅', short: '微' },
+  { value: 'alipay', label: '支付宝支付', desc: '适合常用支付宝的用户', short: '支' },
+  { value: 'unionpay', label: '银联支付', desc: '支持银行卡渠道支付', short: '银' }
+]
+const flowSteps = [
+  { label: '选择服务', state: 'done' },
+  { label: '填写需求', state: 'done' },
+  { label: '提交预约', state: 'done' },
+  { label: '确认支付', state: 'active' }
+]
 
 // 页面加载时获取 orderNo
 const orderNo = ref('');
@@ -292,6 +333,10 @@ const fetchOrderDetail = async (orderNo) => {
 const onPaymentChange = (e) => {
   payMethod.value = e.detail.value;
 };
+
+const selectPayMethod = (value) => {
+  payMethod.value = value
+}
 
 /**
  * 确认支付 (触发弹窗)
@@ -410,169 +455,317 @@ const formatServiceTime = (serviceTime) => {
 @import '@/styles/user-ui.scss';
 /* 保持原有样式不变 */
 .order-confirm-page {
-  background-color: #f5f7fa;
-  padding: 40rpx;
+  @include user-page;
+  padding: 28rpx 24rpx calc(180rpx + env(safe-area-inset-bottom));
   font-size: 28rpx;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .loading-container {
   text-align: center;
-  padding: 40rpx;
-  color: #999;
+  padding: 80rpx 20rpx;
+  color: $user-color-text-sub;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20rpx;
-  color: #333;
-  font-size: 32rpx;
-}
-
-.step-bar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 40px;
-  padding: 0 20rpx;
-  position: relative;
-  align-items: center;
-}
-
-.step-dot {
-  width: 36rpx;
-  height: 36rpx;
-  line-height: 36rpx;
-  border-radius: 50%;
-  color: white;
-  font-size: 24rpx;
-  text-align: center;
-  margin-bottom: 10rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.3s ease;
-}
-
-.step-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.step-item {
+.confirm-page-content {
   display: flex;
   flex-direction: column;
+  gap: 24rpx;
+}
+
+.confirm-hero-card,
+.card {
+  @include user-card(28rpx);
+}
+
+.confirm-hero-card {
+  padding: 28rpx 28rpx 30rpx;
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%);
+}
+
+.confirm-hero-top {
+  display: flex;
   align-items: center;
-  width: 10%;
-  margin: 0 10px -25px 10px;
-  text-align: center;
-  font-size: 28rpx;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 
-.step-item.completed .step-dot {
-  background-color: #4caf50;
-  color: white;
+.confirm-hero-badge,
+.confirm-hero-status {
+  min-height: 46rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
-.step-item.active .step-dot {
-  background-color: #007AFF;
-  color: white;
+.confirm-hero-badge {
+  background: rgba(0, 122, 255, 0.10);
+  color: $user-color-primary;
 }
 
-.step-item.completed .step-text {
-  color: #4caf50;
+.confirm-hero-status {
+  background: rgba(250, 173, 20, 0.14);
+  color: #d97706;
 }
 
-.step-item.active .step-text {
-  color: #007AFF;
+.confirm-hero-title {
+  display: block;
+  font-size: 42rpx;
+  line-height: 1.18;
+  color: $user-color-text-main;
+  font-weight: 700;
+  margin-bottom: 14rpx;
 }
 
-.progress-line {
-  width: 60rpx;
-  height: 2rpx;
-  background-color: #ddd;
-  margin: 8px 10rpx;
+.confirm-hero-subtitle {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: $user-color-text-sub;
+  margin-bottom: 26rpx;
+}
+
+.confirm-hero-progress {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.confirm-progress-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  min-height: 52rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(220, 232, 248, 0.95);
+}
+
+.confirm-progress-item.done {
+  background: rgba(82, 196, 26, 0.10);
+  border-color: rgba(82, 196, 26, 0.18);
+}
+
+.confirm-progress-item.active {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.22);
+}
+
+.confirm-progress-dot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.progress-line.green {
-  background-color: #4caf50;
+.confirm-progress-item.done .confirm-progress-dot {
+  background: #52c41a;
 }
 
-.card {
-  background-color: white;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 40px;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+.confirm-progress-item.active .confirm-progress-dot {
+  background: $user-color-primary;
 }
 
-.title {
-  font-weight: bold;
-  margin-bottom: 20rpx;
+.confirm-progress-check {
+  color: #ffffff;
+  font-size: 18rpx;
+  line-height: 1;
+}
+
+.confirm-progress-text {
+  font-size: 22rpx;
+  color: $user-color-text-main;
+  font-weight: 600;
+}
+
+.summary-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.summary-card-eyebrow {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1;
+  color: $user-color-primary;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  margin-bottom: 12rpx;
+}
+
+.summary-card-title {
+  display: block;
+  font-size: 36rpx;
+  line-height: 1.18;
+  color: $user-color-text-main;
+  font-weight: 700;
+}
+
+.summary-card-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(37, 99, 235, 0.18) 100%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
-.title .iconfont {
-  margin-right: 10rpx;
-  color: #007AFF;
+.summary-card-icon-text {
+  font-size: 34rpx;
+  color: $user-color-primary;
+  font-weight: 700;
 }
 
-.info-item {
+.summary-focus-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-bottom: 18rpx;
+}
+
+.summary-focus-chip {
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(145deg, #edf6ff 0%, #f7fbff 100%);
+  border: 1rpx solid rgba(214, 234, 255, 0.95);
+}
+
+.summary-focus-chip.light {
+  background: linear-gradient(145deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.summary-focus-label,
+.summary-detail-label,
+.summary-note-title,
+.section-eyebrow {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.2;
+  color: $user-color-text-sub;
+  margin-bottom: 10rpx;
+}
+
+.summary-focus-value,
+.summary-detail-value {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.55;
+  color: $user-color-text-main;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.summary-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-bottom: 18rpx;
+}
+
+.summary-detail-item,
+.summary-note-card,
+.fee-list-shell,
+.payment-option-card {
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(220, 232, 248, 0.9);
+  box-shadow: 0 10rpx 22rpx rgba(18, 56, 109, 0.05);
+}
+
+.summary-detail-item {
+  padding: 20rpx;
+}
+
+.summary-detail-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 24rpx;
+}
+
+.summary-note-card {
+  padding: 20rpx 22rpx;
+  margin-bottom: 14rpx;
+}
+
+.summary-note-card.muted {
+  margin-bottom: 0;
+  background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
+}
+
+.summary-note-text {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: $user-color-text-main;
+}
+
+.section-title-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.section-title-main {
+  font-size: 32rpx;
+  line-height: 1.18;
+  color: $user-color-text-main;
+  font-weight: 700;
+}
+
+.fee-detail-head,
+.payment-method-title {
+  margin-bottom: 22rpx;
+  gap: 20rpx;
+}
+
+.fee-list-shell {
+  padding: 8rpx 22rpx;
+}
+
+.label,
+.value {
+  color: inherit;
+}
+
+.fee-item,
+.total {
   display: flex;
   justify-content: space-between;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #eee;
+  align-items: center;
+  padding: 18rpx 0;
+  font-size: 24rpx;
+  color: $user-color-text-main;
+  border-bottom: 1rpx solid rgba(220, 232, 248, 0.8);
 }
 
-.info-item:last-child {
+.fee-item:last-of-type {
   border-bottom: none;
 }
 
-.label {
-  font-size: 24rpx;
-  color: #666;
-  font-weight: 800;
-}
-
-.value {
-  color: #333;
-  font-weight: 500;
-  font-size: 24rpx;
-  text-align: right;
-  max-width: 60%;
-  word-break: break-all;
-}
-
-.fee-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #eee;
-  font-size: 24rpx;
-}
-
-.price {
-  color: #333;
-  font-weight: 500;
-}
-
 .discount {
-  color: #007AFF;
+  color: $user-color-primary;
   font-weight: 500;
 }
 
 .total {
-  display: flex;
-  justify-content: space-between;
-  padding: 20rpx 0;
-  font-weight: bold;
-  color: #007AFF;
+  padding-bottom: 8rpx;
+  font-weight: 700;
+  border-bottom: none;
+  color: $user-color-primary;
 }
 
 .total-price {
@@ -607,63 +800,179 @@ const formatServiceTime = (serviceTime) => {
 }
 
 .fee-detail-head {
+  align-items: flex-start;
+}
+
+.payment-method-hint {
+  font-size: 22rpx;
+  color: $user-color-text-sub;
+}
+
+.payment-method-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.payment-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 20rpx;
-  align-items: center;
+  padding: 20rpx 22rpx;
 }
 
-.payment-option {
+.payment-option-card.selected {
+  border-color: rgba(0, 122, 255, 0.34);
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.06) 0%, rgba(37, 99, 235, 0.10) 100%);
+  box-shadow: 0 14rpx 28rpx rgba(0, 122, 255, 0.12);
+}
+
+.payment-option-main {
   display: flex;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #eee;
-}
-
-.pay-icon {
+  gap: 18rpx;
   flex: 1;
-  display: flex;
-  align-items: center;
-  font-size: 24rpx;
 }
 
-.pay-icon .iconfont {
-  margin-right: 10rpx;
+.payment-option-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(0, 122, 255, 0.10);
+}
+
+.payment-option-icon.alipay {
+  background: rgba(37, 99, 235, 0.10);
+}
+
+.payment-option-icon.unionpay {
+  background: rgba(22, 50, 79, 0.08);
+}
+
+.payment-option-icon-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $user-color-primary;
+}
+
+.payment-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.payment-option-name {
+  font-size: 28rpx;
+  color: $user-color-text-main;
+  font-weight: 600;
+}
+
+.payment-option-desc {
+  font-size: 22rpx;
+  color: $user-color-text-sub;
+  line-height: 1.5;
+}
+
+.payment-option-indicator {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(148, 163, 184, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.payment-option-indicator.selected {
+  border-color: $user-color-primary;
+}
+
+.payment-option-indicator-inner {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.payment-option-indicator.selected .payment-option-indicator-inner {
+  background: $user-color-primary;
 }
 
 .footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 30rpx;
-  background-color: white;
-  border-radius: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-  margin-top: 20rpx;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 22rpx 24rpx calc(22rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1rpx solid rgba(220, 232, 248, 0.9);
   position: sticky;
   bottom: 0;
-  z-index: 10;
+  z-index: 20;
+  margin-top: 28rpx;
+  backdrop-filter: blur(18rpx);
 }
 
-.real-price {
-  font-size: 28rpx;
-  color: #333;
+.footer-price-block {
+  min-width: 0;
+}
+
+.footer-price-label {
+  display: block;
+  font-size: 22rpx;
+  color: $user-color-text-sub;
+  margin-bottom: 8rpx;
+}
+
+.footer-price-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+  margin-bottom: 6rpx;
+}
+
+.footer-price-sign {
+  font-size: 24rpx;
+  color: $user-color-primary;
+  font-weight: 700;
+}
+
+.footer-price-value {
+  font-size: 42rpx;
+  line-height: 1;
+  color: $user-color-primary;
+  font-weight: 700;
+}
+
+.footer-price-hint {
+  display: block;
+  font-size: 20rpx;
+  color: #8aa0b8;
 }
 
 .price {
-  color: #007AFF;
-  font-weight: bold;
-  font-size: 32rpx;
+  color: $user-color-text-main;
+  font-weight: 600;
 }
 
 .confirm-btn {
-  width: 200rpx;
-  height: 60rpx;
-  background-color: #007AFF;
+  min-width: 230rpx;
+  height: 88rpx;
+  background: linear-gradient(135deg, #007aff 0%, #2563eb 100%);
   color: white;
-  border-radius: 30rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
-  line-height: 60rpx;
-  margin-right: -5px;
+  line-height: 88rpx;
+  font-weight: 700;
   border: none;
+  box-shadow: 0 16rpx 30rpx rgba(37, 99, 235, 0.24);
 }
 
 .rule-entry-pill {
@@ -1008,7 +1317,7 @@ const formatServiceTime = (serviceTime) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(15, 23, 42, 0.44);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1017,63 +1326,70 @@ const formatServiceTime = (serviceTime) => {
 }
 
 .payment-modal-content {
-  background-color: white;
-  border-radius: 16rpx;
-  width: 90%;
-  max-width: 500rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 30rpx;
+  width: 100%;
+  max-width: 560rpx;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24rpx 48rpx rgba(15, 23, 42, 0.18);
   overflow: hidden;
 }
 
 .payment-modal-header {
-  padding: 20rpx;
-  border-bottom: 1rpx solid #eee;
-  background-color: #f8f9fa;
+  padding: 28rpx 24rpx 20rpx;
   text-align: center;
 }
 
 .payment-modal-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: $user-color-text-main;
 }
 
 .payment-modal-body {
-  padding: 40rpx 20rpx;
+  padding: 10rpx 28rpx 34rpx;
   text-align: center;
 }
 
 .payment-modal-text {
   font-size: 28rpx;
-  color: #333;
+  color: $user-color-text-sub;
+  line-height: 1.65;
 }
 
 .payment-modal-footer {
   display: flex;
-  justify-content: space-around;
-  padding: 20rpx;
-  border-top: 1rpx solid #eee;
+  gap: 18rpx;
+  padding: 20rpx 24rpx 26rpx;
+  border-top: 1rpx solid rgba(220, 232, 248, 0.85);
 }
 
 .payment-modal-btn {
-  padding: 16rpx 30rpx;
-  border-radius: 8rpx;
+  height: 82rpx;
+  line-height: 82rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
-  cursor: pointer;
+  font-weight: 700;
   border: none;
   flex: 1;
-  margin: 0 10rpx;
 }
 
 .success-btn {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
   color: white;
+  box-shadow: 0 12rpx 24rpx rgba(37, 99, 235, 0.2);
 }
 
 .fail-btn {
-  background-color: #ff5252;
-  color: white;
+  background: #ffffff;
+  color: #ef4444;
+  border: 1rpx solid rgba(239, 68, 68, 0.22);
+}
+
+@media (max-width: 680px) {
+  .summary-detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

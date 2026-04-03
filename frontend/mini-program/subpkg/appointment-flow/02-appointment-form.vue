@@ -335,28 +335,43 @@
 		</view>
 
 		<!-- --- 新增：添加症状弹窗 --- -->
-		<view class="modal-overlay" v-if="showAddSymptomModalFlag" @click="hideAddSymptomModal">
-			<view class="add-symptom-modal" @click.stop>
-				<view class="modal-header">
-					<text class="modal-title">添加自定义症状</text>
-					<text class="close-btn" @click="hideAddSymptomModal">✕</text>
-				</view>
-				
-				<view class="modal-body">
-					<view class="input-group">
-						<input 
-							v-model="newSymptomInput" 
-							placeholder="请输入症状描述" 
-							class="contact-input"
-							@confirm="confirmAddSymptom" 
-						></input>
+		<view class="modal-overlay symptom-sheet-overlay" v-if="showAddSymptomModalFlag" @click="hideAddSymptomModal">
+			<view class="symptom-sheet" @click.stop>
+				<view class="symptom-sheet-handle"></view>
+				<view class="symptom-sheet-header">
+					<view class="symptom-sheet-copy">
+						<text class="symptom-sheet-eyebrow">症状补充</text>
+						<text class="symptom-sheet-title">添加其他症状</text>
+						<text class="symptom-sheet-subtitle">补充当前症状或特殊表现，帮助后续更准确地匹配陪诊服务。</text>
 					</view>
-					<text v-if="newSymptomError" class="error-text">{{ newSymptomError }}</text>
+					<view class="symptom-sheet-close" @click="hideAddSymptomModal">
+						<text class="symptom-sheet-close-icon">✕</text>
+					</view>
 				</view>
-				
-				<view class="modal-footer">
-					<button class="cancel-btn" @click="hideAddSymptomModal">取消</button>
-					<button class="confirm-time-btn" @click="confirmAddSymptom">确定</button>
+
+				<view class="symptom-sheet-body">
+					<view class="symptom-input-card" :class="{ error: !!newSymptomError }">
+						<view class="symptom-input-label-row">
+							<text class="symptom-input-badge">症状描述</text>
+							<text class="symptom-input-hint">最多 50 个字</text>
+						</view>
+						<view class="symptom-input-field">
+							<text class="symptom-input-icon">✦</text>
+							<input
+								v-model="newSymptomInput"
+								placeholder="例如：夜间胸闷、持续性头痛、术后伤口疼痛"
+								class="symptom-input-control"
+								@confirm="confirmAddSymptom"
+								maxlength="50"
+							></input>
+						</view>
+					</view>
+					<text v-if="newSymptomError" class="symptom-sheet-error">{{ newSymptomError }}</text>
+				</view>
+
+				<view class="symptom-sheet-footer">
+					<button class="symptom-sheet-secondary-btn" @click="hideAddSymptomModal">取消</button>
+					<button class="symptom-sheet-primary-btn" @click="confirmAddSymptom">确认添加</button>
 				</view>
 			</view>
 		</view>
@@ -2091,35 +2106,205 @@ onMounted(async () => {
 	font-weight: 600;
 }
 
-/* --- 新增：添加症状弹窗样式 --- */
-.add-symptom-modal .modal-body {
-	padding: 30rpx;
+.symptom-sheet-overlay {
+	align-items: flex-end;
+	padding: 24rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
 }
 
-.add-symptom-modal .input-group {
-  background-color: #f8f9fa; /* 与其它输入区域一致的背景色 */
-  border-radius: 15rpx;
-  padding: 5rpx 20rpx; /* 与其它输入区域一致的内边距 */
-  border: 2rpx solid #e9ecef; /* 与其它输入区域一致的边框 */
-  margin-bottom: 20rpx; 
-  width: 90%;
- 
-  /* 确保输入框填满容器 */
+.symptom-sheet {
+	width: 100%;
+	background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+	border-radius: 34rpx 34rpx 28rpx 28rpx;
+	box-shadow: 0 -16rpx 44rpx rgba(15, 23, 42, 0.12), 0 18rpx 50rpx rgba(15, 23, 42, 0.18);
+	overflow: hidden;
+	animation: symptomSheetRise 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
-.add-symptom-modal .contact-input {
-  width: 100%;
-  padding: 25rpx ; /* 与其它输入框一致的上下内边距 */
-  font-size: 28rpx;
-  color: #333;
-  background: transparent;
-  border: none;
-  outline: none;
-  
-  /* 如果需要，可以设置字体粗细 */
-  /* font-weight: normal; */
+.symptom-sheet-handle {
+	width: 88rpx;
+	height: 10rpx;
+	border-radius: 999rpx;
+	background: rgba(148, 163, 184, 0.35);
+	margin: 16rpx auto 0;
 }
 
-/* --- 结束新增：添加症状弹窗样式 --- */
+.symptom-sheet-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20rpx;
+	padding: 22rpx 28rpx 20rpx;
+}
+
+.symptom-sheet-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 10rpx;
+	flex: 1;
+	min-width: 0;
+}
+
+.symptom-sheet-eyebrow {
+	font-size: 22rpx;
+	line-height: 1;
+	letter-spacing: 2rpx;
+	font-weight: 700;
+	color: #2563eb;
+}
+
+.symptom-sheet-title {
+	font-size: 38rpx;
+	line-height: 1.14;
+	font-weight: 700;
+	color: #16324f;
+}
+
+.symptom-sheet-subtitle {
+	font-size: 24rpx;
+	line-height: 1.7;
+	color: #5d738b;
+}
+
+.symptom-sheet-close {
+	width: 64rpx;
+	height: 64rpx;
+	border-radius: 999rpx;
+	background: rgba(148, 163, 184, 0.12);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.symptom-sheet-close-icon {
+	font-size: 34rpx;
+	color: #64748b;
+	line-height: 1;
+}
+
+.symptom-sheet-body {
+	padding: 4rpx 28rpx 20rpx;
+}
+
+.symptom-input-card {
+	padding: 24rpx;
+	border-radius: 26rpx;
+	background: #ffffff;
+	border: 1rpx solid rgba(220, 232, 248, 0.92);
+	box-shadow: 0 10rpx 28rpx rgba(18, 56, 109, 0.08);
+	box-sizing: border-box;
+}
+
+.symptom-input-card.error {
+	border-color: rgba(239, 68, 68, 0.45);
+	box-shadow: 0 10rpx 28rpx rgba(239, 68, 68, 0.08);
+}
+
+.symptom-input-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16rpx;
+	margin-bottom: 18rpx;
+}
+
+.symptom-input-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40rpx;
+	padding: 0 16rpx;
+	border-radius: 999rpx;
+	background: rgba(0, 122, 255, 0.10);
+	color: #007aff;
+	font-size: 22rpx;
+	font-weight: 700;
+}
+
+.symptom-input-hint {
+	font-size: 22rpx;
+	color: #8aa0b8;
+}
+
+.symptom-input-field {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	padding: 22rpx 20rpx;
+	border-radius: 22rpx;
+	background: linear-gradient(180deg, #f7fbff 0%, #f0f7ff 100%);
+	border: 1rpx solid rgba(214, 234, 255, 0.9);
+}
+
+.symptom-input-icon {
+	font-size: 28rpx;
+	color: #007aff;
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+.symptom-input-control {
+	flex: 1;
+	width: 100%;
+	font-size: 28rpx;
+	line-height: 1.4;
+	color: #16324f;
+	background: transparent;
+	border: none;
+}
+
+.symptom-sheet-error {
+	display: block;
+	margin-top: 16rpx;
+	padding-left: 8rpx;
+	font-size: 24rpx;
+	line-height: 1.5;
+	color: #ef4444;
+}
+
+.symptom-sheet-footer {
+	display: flex;
+	gap: 18rpx;
+	padding: 18rpx 28rpx calc(22rpx + env(safe-area-inset-bottom));
+	background: rgba(255, 255, 255, 0.92);
+	backdrop-filter: blur(16rpx);
+	border-top: 1rpx solid rgba(220, 232, 248, 0.85);
+}
+
+.symptom-sheet-secondary-btn,
+.symptom-sheet-primary-btn {
+	flex: 1;
+	height: 88rpx;
+	line-height: 88rpx;
+	border-radius: 999rpx;
+	font-size: 28rpx;
+	font-weight: 600;
+	border: none;
+}
+
+.symptom-sheet-secondary-btn {
+	background: #ffffff;
+	color: #007aff;
+	border: 1rpx solid rgba(0, 122, 255, 0.22);
+	box-shadow: 0 8rpx 20rpx rgba(148, 163, 184, 0.08);
+}
+
+.symptom-sheet-primary-btn {
+	background: linear-gradient(135deg, #007aff 0%, #2563eb 100%);
+	color: #ffffff;
+	box-shadow: 0 16rpx 32rpx rgba(37, 99, 235, 0.24);
+}
+
+@keyframes symptomSheetRise {
+	from {
+		opacity: 0;
+		transform: translateY(44rpx) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
 
 </style>
