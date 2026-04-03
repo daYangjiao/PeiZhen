@@ -46,7 +46,7 @@
 
       <view class="info-item">
         <text class="label">就诊时间</text>
-        <text class="value">{{ orderData.serviceDate }} {{ orderData.serviceTime }}</text>
+        <text class="value">{{ orderData.serviceDate }} {{ formatServiceTime(orderData.serviceTime) }}</text>
       </view>
       <view class="info-item">
         <text class="label">就诊医院</text>
@@ -83,6 +83,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get } from '@/utils/api.js';
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const orderData = ref({});
 const payTime = ref('');
@@ -142,6 +143,10 @@ const formatAmount = (amount) => {
   if (isNaN(num)) return '0.00';
   return num.toFixed(2);
 };
+
+const formatServiceTime = (serviceTime) => {
+  return formatServiceTimeSlot(serviceTime || '')
+}
 
 /**
  * 获取症状描述文本

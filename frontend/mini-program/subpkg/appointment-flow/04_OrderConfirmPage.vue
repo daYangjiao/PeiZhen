@@ -41,7 +41,7 @@
       <!-- 合并就诊日期和时间 -->
       <view class="info-item">
         <text class="label"><text class="iconfont icon-calendar"> 就诊时间</text></text>
-        <text class="value">{{ formatDate(orderData.serviceDate) }} {{ orderData.serviceTime || '未知' }}</text>
+        <text class="value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
       </view>
       <view class="info-item">
         <text class="label"><text class="iconfont icon-user"> 就诊人</text></text>
@@ -223,6 +223,7 @@ import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { get, post, config } from '@/utils/api.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const orderData = ref({});
 const showInvoice = ref(false);
@@ -398,6 +399,10 @@ const formatDate = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return '未知';
   return dateStr; // 后端已返回格式化好的日期
 };
+
+const formatServiceTime = (serviceTime) => {
+  return formatServiceTimeSlot(serviceTime || '')
+}
 
 </script>
 

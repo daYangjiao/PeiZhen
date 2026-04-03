@@ -48,7 +48,7 @@
 				</view>
 				<view class="time-picker" @click="showEndTimePicker">
 					<text class="time-label">结束时间</text>
-					<text class="time-value" v-if="endTime">{{ endTime }}</text>
+					<text class="time-value" v-if="endTime">{{ formatSelectedEndTimeDisplay() }}</text>
 					<text class="time-placeholder" v-else>请选择</text>
 					<text class="time-arrow">▼</text>
 				</view>
@@ -767,6 +767,18 @@ const isNextDayEndTimeOption = (timeValue) => {
 
 const formatTimeOptionLabel = (timeValue) => {
 	return isNextDayEndTimeOption(timeValue) ? `次日 ${timeValue}` : timeValue
+}
+
+const formatSelectedEndTimeDisplay = () => {
+	if (!endTime.value) return ''
+	if (!startTime.value) return endTime.value
+	const durationMinutes = calculateSlotDurationMinutes(startTime.value, endTime.value)
+	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
+		return endTime.value
+	}
+	return parseTimeToMinutes(endTime.value) < parseTimeToMinutes(startTime.value)
+		? `次日 ${endTime.value}`
+		: endTime.value
 }
 
 const toggleTimeGroup = (groupKey) => {
