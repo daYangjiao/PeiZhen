@@ -521,6 +521,9 @@ const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 			const timeMinutes = parseTimeToMinutes(timeStr)
+			if (pickerType === 'start' && timeMinutes >= 23 * 60 + 30) {
+				continue
+			}
 			if (isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
 				continue
 			}
@@ -755,13 +758,17 @@ const confirmTime = () => {
 	if (timePickerType.value === 'start') {
 		// 如果已选择结束时间，检查开始时间是否小于结束时间
 		if (endTime.value && selectedTime.value >= endTime.value) {
-			uni.showToast({
-				title: '开始时间必须小于结束时间',
-				icon: 'none'
-			})
-			return
+			endTime.value = ''
 		}
 		startTime.value = selectedTime.value
+		timePickerType.value = 'end'
+		selectedTime.value = endTime.value
+		initializeTimeGroupState()
+		uni.showToast({
+			title: '请选择结束时间',
+			icon: 'none'
+		})
+		return
 	} else {
 		// 检查结束时间是否大于开始时间
 		if (startTime.value && selectedTime.value <= startTime.value) {
