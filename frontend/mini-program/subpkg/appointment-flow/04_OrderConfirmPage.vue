@@ -63,10 +63,12 @@
 
     <!-- 费用明细（预付款说明） -->
     <view v-if="!isLoading" class="card fee-detail">
-      <view class="title">
+      <view class="title fee-detail-head">
         <text class="iconfont icon-list"> 费用明细</text>
-        <!-- 新增：右上角的小字“查看计费规则”按钮 -->
-        <button class="rule-link-button" @click="showBillingRules = true">查看计费规则</button>
+        <view class="rule-entry-pill" @click="showBillingRules = true">
+          <text class="rule-entry-text">查看计费规则</text>
+          <text class="rule-entry-arrow">›</text>
+        </view>
       </view>
       <view class="fee-tip">
         <view class="fee-tip-tag">预付款说明</view>
@@ -122,87 +124,78 @@
       <button class="confirm-btn" @click="confirmPay">确认支付</button>
     </view>
 
-    <!-- 计费规则模态框 -->
-    <view v-if="showBillingRules" class="modal-overlay" @click="showBillingRules = false">
-      <view class="modal-content" @click.stop>
-        <view class="modal-header">
-          <view class="modal-header-left">
-            <text class="modal-title">计费规则</text>
-            <text class="modal-subtitle">按实际服务时长结算，多退少补</text>
+    <!-- 计费规则底部抽屉 -->
+    <view v-if="showBillingRules" class="rules-sheet-overlay" @click="showBillingRules = false">
+      <view class="rules-sheet" @click.stop>
+        <view class="rules-sheet-handle"></view>
+        <view class="rules-sheet-header">
+          <view class="rules-sheet-header-copy">
+            <text class="rules-sheet-eyebrow">费用说明</text>
+            <text class="rules-sheet-title">计费规则</text>
+            <text class="rules-sheet-subtitle">预付款先行锁单，服务结束后按实际时长结算，多退少补。</text>
           </view>
-          <text class="close-btn" @click="showBillingRules = false">×</text>
+          <view class="rules-sheet-close" @click="showBillingRules = false">
+            <text class="rules-sheet-close-icon">×</text>
+          </view>
         </view>
-        <scroll-view class="modal-body" scroll-y="true">
-          <view class="rules-card">
-            <view class="rules-banner">
-              <text class="rules-banner-title">费用如何计算？</text>
-              <text class="rules-banner-desc">下单时先支付预付款，服务结束后按实际时长结算，多退少补。</text>
-            </view>
+        <view class="rules-sheet-body">
+          <view class="rules-hero-card">
+            <view class="rules-hero-badge">结算原则</view>
+            <text class="rules-hero-title">先支付预付款，服务完成后自动结算差额</text>
+            <text class="rules-hero-desc">如果实际服务时长高于预估，将补差价；若低于预估，系统会自动退回剩余费用。</text>
+          </view>
 
-            <view class="rules-section">
-              <view class="rules-section-title">服务类型与单价</view>
-
-              <view class="rule-item">
-                <view class="rule-dot"></view>
-                <view class="rule-main">
-                  <text class="rule-name">普通陪诊</text>
-                  <text class="rule-desc">起步价 ¥50（含 2 小时），超出部分 ¥30/小时；不足 1 小时按 1 小时计。</text>
-                </view>
+          <view class="rules-block">
+            <text class="rules-block-title">服务类型与单价</text>
+            <view class="rules-rate-grid">
+              <view class="rules-rate-card">
+                <text class="rules-rate-name">普通陪诊</text>
+                <text class="rules-rate-price">¥50 起</text>
+                <text class="rules-rate-desc">含 2 小时，超出部分 ¥30/小时，不足 1 小时按 1 小时计。</text>
               </view>
-
-              <view class="rule-item">
-                <view class="rule-dot"></view>
-                <view class="rule-main">
-                  <text class="rule-name">术后护理</text>
-                  <text class="rule-desc">¥45/小时，不足 1 小时按 1 小时计。</text>
-                </view>
+              <view class="rules-rate-card">
+                <text class="rules-rate-name">术后护理</text>
+                <text class="rules-rate-price">¥45 / 小时</text>
+                <text class="rules-rate-desc">按实际时长计费，不足 1 小时按 1 小时计。</text>
               </view>
-
-              <view class="rule-item">
-                <view class="rule-dot"></view>
-                <view class="rule-main">
-                  <text class="rule-name">急诊陪同</text>
-                  <text class="rule-desc">在普通陪诊基础上加收加急费 ¥100。</text>
-                </view>
+              <view class="rules-rate-card accent">
+                <text class="rules-rate-name">急诊陪同</text>
+                <text class="rules-rate-price">+¥100</text>
+                <text class="rules-rate-desc">在普通陪诊基础上加收加急服务费。</text>
               </view>
-
-              <view class="rule-item">
-                <view class="rule-dot"></view>
-                <view class="rule-main">
-                  <text class="rule-name">上门陪诊</text>
-                  <text class="rule-desc">在普通陪诊基础上加收上门费 ¥30。</text>
-                </view>
+              <view class="rules-rate-card accent">
+                <text class="rules-rate-name">上门陪诊</text>
+                <text class="rules-rate-price">+¥30</text>
+                <text class="rules-rate-desc">在普通陪诊基础上加收上门服务费。</text>
               </view>
-            </view>
-
-            <view class="rules-section">
-              <view class="rules-section-title">示例（便于理解）</view>
-              <view class="example-item">
-                <text class="example-name">普通陪诊 3 小时</text>
-                <text class="example-desc">¥50 + ¥30 × 1 = ¥80</text>
-              </view>
-              <view class="example-item">
-                <text class="example-name">急诊陪同 3 小时</text>
-                <text class="example-desc">普通陪诊 ¥80 + 加急费 ¥100 = ¥180</text>
-              </view>
-              <view class="example-item">
-                <text class="example-name">上门陪诊 3 小时</text>
-                <text class="example-desc">普通陪诊 ¥80 + 上门费 ¥30 = ¥110</text>
-              </view>
-              <view class="example-item">
-                <text class="example-name">术后护理 1.5 小时</text>
-                <text class="example-desc">按 2 小时计：¥45 × 2 = ¥90</text>
-              </view>
-            </view>
-
-            <view class="rules-note">
-              <text class="note-title">温馨提示</text>
-              <text class="note-desc">若实际服务时长与预估不一致，将在服务结束后进行差额补付或自动退款。</text>
             </view>
           </view>
-        </scroll-view>
-        <view class="modal-footer">
-          <button class="close-modal-btn" @click="showBillingRules = false">我知道了</button>
+
+          <view class="rules-block">
+            <text class="rules-block-title">常见示例</text>
+            <view class="rules-example-list">
+              <view class="rules-example-item">
+                <text class="rules-example-name">普通陪诊 3 小时</text>
+                <text class="rules-example-value">¥50 + ¥30 × 1 = ¥80</text>
+              </view>
+              <view class="rules-example-item">
+                <text class="rules-example-name">急诊陪同 3 小时</text>
+                <text class="rules-example-value">普通陪诊 ¥80 + 加急费 ¥100 = ¥180</text>
+              </view>
+              <view class="rules-example-item">
+                <text class="rules-example-name">术后护理 1.5 小时</text>
+                <text class="rules-example-value">按 2 小时计：¥45 × 2 = ¥90</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="rules-footnote">
+            <text class="rules-footnote-title">温馨提示</text>
+            <text class="rules-footnote-text">下单金额仅用于锁定陪诊服务。最终费用会在服务完成后自动按实际时长结算，多退少补。</text>
+          </view>
+        </view>
+        <view class="rules-sheet-footer">
+          <button class="rules-sheet-primary-btn" @click="showBillingRules = false">我知道了</button>
         </view>
       </view>
     </view>
@@ -608,6 +601,11 @@ const formatDate = (dateStr) => {
   line-height: 1.6;
 }
 
+.fee-detail-head {
+  gap: 20rpx;
+  align-items: center;
+}
+
 .payment-option {
   display: flex;
   align-items: center;
@@ -663,242 +661,340 @@ const formatDate = (dateStr) => {
   border: none;
 }
 
-.rule-link-button {
-  display: inline-block;
+.rule-entry-pill {
   margin-left: auto;
-  padding: 0;
-  border: none;
-  background: none;
-  color: #007AFF;
-  font-size: 24rpx;
-  text-decoration: underline;
-  cursor: pointer;
-  line-height: 1;
-  margin-top: -10rpx;
-  margin-right: 10rpx;
+  min-height: 58rpx;
+  padding: 0 22rpx 0 24rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1rpx solid rgba(37, 99, 235, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  box-shadow: 0 10rpx 24rpx rgba(37, 99, 235, 0.10);
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.modal-overlay {
+.rule-entry-text {
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.rule-entry-arrow {
+  font-size: 26rpx;
+  line-height: 1;
+  color: #2563eb;
+  margin-top: -2rpx;
+}
+
+.rules-sheet-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.38);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   z-index: 9999;
-  padding: 32rpx;
+  padding: 32rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  animation: rulesOverlayFadeIn 0.24s ease;
 }
 
-.modal-content {
-  background-color: white;
-  border-radius: 28rpx;
-  width: calc(100vw - 64rpx);
+.rules-sheet {
+  width: 100%;
   max-width: 720rpx;
-  max-height: 80vh;
+  max-height: 78vh;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 36rpx 36rpx 28rpx 28rpx;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -12rpx 40rpx rgba(15, 23, 42, 0.12), 0 16rpx 48rpx rgba(15, 23, 42, 0.18);
   overflow: hidden;
   box-sizing: border-box;
+  animation: rulesSheetRiseUp 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 30rpx 22rpx;
-  border-bottom: 1rpx solid #eee;
-  background-color: #f8f9fa;
-}
-
-.modal-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.modal-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.modal-subtitle {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.close-btn {
-  font-size: 40rpx;
-  color: #999;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 10rpx;
-}
-
-.modal-body {
-  flex: 1;
-  padding: 28rpx 30rpx 24rpx;
-  max-height: 60vh;
-  overflow-y: auto;
-  font-size: 24rpx;
-  line-height: 1.5;
-  color: #333;
-  box-sizing: border-box;
-}
-
-.rule-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.rules-card {
-  width: 100%;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  box-sizing: border-box;
-}
-
-.rules-banner {
-  padding: 18rpx 20rpx;
-  border-radius: 14rpx;
-  background: #f0f7ff;
-  border: 1rpx solid #d6eaff;
-  margin-bottom: 22rpx;
-}
-
-.rules-banner-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #007AFF;
-  margin-bottom: 8rpx;
-}
-
-.rules-banner-desc {
-  display: block;
-  font-size: 24rpx;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.rules-section {
-  margin-top: 18rpx;
-}
-
-.rules-section-title {
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #333;
-  margin: 6rpx 0 14rpx;
-}
-
-.rule-item {
-  display: flex;
-  gap: 14rpx;
-  padding: 14rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.rule-item:last-child {
-  border-bottom: none;
-}
-
-.rule-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background: #007AFF;
-  margin-top: 10rpx;
+.rules-sheet-handle {
+  width: 88rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(148, 163, 184, 0.35);
+  margin: 16rpx auto 0;
   flex-shrink: 0;
 }
 
-.rule-main {
+.rules-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 22rpx 30rpx 18rpx;
+}
+
+.rules-sheet-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
   flex: 1;
   min-width: 0;
 }
 
-.rule-name {
+.rules-sheet-eyebrow {
+  font-size: 22rpx;
+  line-height: 1;
+  color: #2563eb;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.rules-sheet-title {
+  font-size: 40rpx;
+  line-height: 1.12;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.rules-sheet-subtitle {
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.rules-sheet-close {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 999rpx;
+  background: rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rules-sheet-close-icon {
+  font-size: 40rpx;
+  color: #64748b;
+  line-height: 1;
+}
+
+.rules-sheet-body {
+  flex: 1;
+  padding: 4rpx 30rpx 16rpx;
+  overflow-y: auto;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+.rules-sheet-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.rules-hero-card {
+  padding: 26rpx 24rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.10) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border: 1rpx solid rgba(147, 197, 253, 0.5);
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+}
+
+.rules-hero-badge {
+  display: inline-flex;
+  min-height: 42rpx;
+  padding: 0 16rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.68);
+  color: #1d4ed8;
+  font-size: 22rpx;
+  font-weight: 700;
+  margin-bottom: 18rpx;
+}
+
+.rules-hero-title {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.45;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12rpx;
+}
+
+.rules-hero-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.rules-block {
+  margin-bottom: 24rpx;
+}
+
+.rules-block-title {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 16rpx;
+}
+
+.rules-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.rules-rate-card {
+  padding: 22rpx 20rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 8rpx 20rpx rgba(148, 163, 184, 0.08);
+  box-sizing: border-box;
+}
+
+.rules-rate-card.accent {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+  border-color: rgba(147, 197, 253, 0.55);
+}
+
+.rules-rate-name {
   display: block;
   font-size: 26rpx;
+  line-height: 1.3;
+  color: #0f172a;
   font-weight: 700;
-  color: #111827;
-  margin-bottom: 6rpx;
+  margin-bottom: 10rpx;
 }
 
-.rule-desc {
+.rules-rate-price {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.2;
+  color: #2563eb;
+  font-weight: 700;
+  margin-bottom: 12rpx;
+}
+
+.rules-rate-desc {
   display: block;
   font-size: 24rpx;
-  color: #4b5563;
-  line-height: 1.6;
+  color: #475569;
+  line-height: 1.65;
 }
 
-.example-item {
-  padding: 12rpx 0;
-  border-bottom: 1rpx dashed #eef2f7;
+.rules-example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
 }
 
-.example-item:last-child {
-  border-bottom: none;
+.rules-example-item {
+  padding: 20rpx 22rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 6rpx 18rpx rgba(148, 163, 184, 0.06);
 }
 
-.example-name {
+.rules-example-name {
   display: block;
   font-size: 24rpx;
-  color: #111827;
+  line-height: 1.5;
+  color: #0f172a;
   font-weight: 600;
   margin-bottom: 6rpx;
 }
 
-.example-desc {
+.rules-example-value {
   display: block;
   font-size: 24rpx;
-  color: #4b5563;
+  line-height: 1.6;
+  color: #2563eb;
 }
 
-.rules-note {
-  margin-top: 20rpx;
-  padding-top: 18rpx;
-  border-top: 1rpx solid #f0f0f0;
+.rules-footnote {
+  padding: 22rpx 22rpx 26rpx;
+  border-radius: 22rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(226, 232, 240, 0.75);
+  margin-bottom: 10rpx;
 }
 
-.note-title {
+.rules-footnote-title {
   display: block;
   font-size: 24rpx;
+  line-height: 1.3;
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;
   margin-bottom: 8rpx;
 }
 
-.note-desc {
+.rules-footnote-text {
   display: block;
   font-size: 24rpx;
+  line-height: 1.65;
   color: #6b7280;
-  line-height: 1.6;
 }
 
-.modal-footer {
-  padding: 24rpx 30rpx 28rpx;
-  border-top: 1rpx solid #eee;
+.rules-sheet-footer {
+  padding: 18rpx 30rpx calc(22rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid rgba(226, 232, 240, 0.9);
   display: flex;
   justify-content: center;
   box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16rpx);
 }
 
-.close-modal-btn {
-  min-width: 220rpx;
-  padding: 12rpx 32rpx;
-  background-color: #007bff;
+.rules-sheet-primary-btn {
+  width: 100%;
+  min-height: 88rpx;
+  padding: 0 32rpx;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 999rpx;
   font-size: 28rpx;
-  cursor: pointer;
+  line-height: 88rpx;
+  box-shadow: 0 16rpx 32rpx rgba(37, 99, 235, 0.24);
+}
+
+@keyframes rulesOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rulesSheetRiseUp {
+  from {
+    opacity: 0;
+    transform: translateY(48rpx) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .rules-rate-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .payment-modal-overlay {
