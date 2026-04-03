@@ -94,14 +94,14 @@
       </scroll-view>
     </view>
 
-    <EscortBottomBar active="order" />
+    <escort-bottom-bar active="order" />
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import EscortBottomBar from '@/components/EscortBottomBar.vue'
+import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'

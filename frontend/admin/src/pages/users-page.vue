@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="用户管理">
+  <app-shell title="用户管理">
     <div class="split-grid">
       <section class="panel-card">
         <div class="toolbar">
@@ -103,12 +103,12 @@
         <div v-else class="empty">选择左侧一位用户后，这里会显示详细信息。</div>
       </section>
     </div>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { fetchUserDetail, fetchUsers, updateUserStatus } from '../utils/admin-api'
 import { formatDateTime, formatMoney } from '../utils/format'
 

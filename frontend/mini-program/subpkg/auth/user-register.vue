@@ -12,7 +12,7 @@
       <view class="card-title">手机号注册</view>
       <view class="card-subtitle">请填写基础信息，完成后回到登录页即可使用手机号密码登录</view>
 
-      <AvatarPickerField
+      <avatar-picker-field
         v-model="form.avatar"
         :options="userDefaultAvatarOptions"
         title="头像设置"
@@ -77,7 +77,7 @@
 import { ref } from 'vue'
 import { post } from '@/utils/api.js'
 import { brandLogo, userDefaultAvatarOptions } from '@/utils/assets.js'
-import AvatarPickerField from '@/components/AvatarPickerField.vue'
+import AvatarPickerField from '@/components/avatar-picker-field.vue'
 
 const phonePattern = /^1\d{10}$/
 const defaultUserAvatar = userDefaultAvatarOptions[Math.floor(Math.random() * userDefaultAvatarOptions.length)].value

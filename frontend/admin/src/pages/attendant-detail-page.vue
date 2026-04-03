@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="陪诊师详情">
+  <app-shell title="陪诊师详情">
     <div v-if="loading" class="panel-card loading">加载中...</div>
     <div v-else-if="detail" class="panel-grid">
       <section class="hero-card">
@@ -59,13 +59,13 @@
         </table>
       </section>
     </div>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { fetchAttendantDetail, reviewAttendant, updateAttendantStatus } from '../utils/admin-api'
 import { formatMoney } from '../utils/format'
 

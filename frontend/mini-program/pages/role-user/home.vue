@@ -121,7 +121,7 @@
         @touchend="handleTouchEnd"
         @touchcancel="handleTouchCancel"
         @change="handleFloatingChange"
-        @click.stop="navigateToAIaks"
+        @click.stop="navigateToAiAsk"
       >
         <image class="floating-icon" :src="assistantEntryIcon" mode="aspectFit" />
       </movable-view>
@@ -276,13 +276,13 @@ const updatePositionAfterViewportChange = () => {
   btnTop.value = y
 }
 
-const navigateToAIaks = () => {
+const navigateToAiAsk = () => {
   if (publicSafeMode) {
     uni.reLaunch({ url: PUBLIC_SAFE_LANDING_URL })
     return
   }
   if (suppressClick.value) return
-  uni.navigateTo({ url: '/subpkg/ai/AIaks' })
+  uni.navigateTo({ url: '/subpkg/ai/ai-ask' })
 }
 
 const navigateToAppointmentForm = () => {
@@ -290,8 +290,8 @@ const navigateToAppointmentForm = () => {
     showPublicSafeNotice('当前网站主要提供服务介绍与流程参考')
     return
   }
-  // 与底部“预约”Tab 保持一致，先进入 AItriage 页面，再由该页重定向到子包表单
-  uni.switchTab({ url: '/pages/AItriage/01_AppointmentSelection' })
+  // 与底部“预约”Tab 保持一致，先进入 ai-triage 页面，再由该页重定向到子包表单
+  uni.switchTab({ url: '/pages/ai-triage/01-appointment-selection' })
 }
 
 const navigateToCategory = (item) => {

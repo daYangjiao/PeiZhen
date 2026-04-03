@@ -96,7 +96,7 @@
 		>
 			<view class="content-wrapper">
 				<view v-if="filteredOrderList.length > 0" class="order-container">
-					<OrderCard
+					<order-card
 						v-for="(order, index) in filteredOrderList"
 						:key="`${order.orderId || order.id || 'order'}-${index}`"
 						:order-data="formatOrderData(order)"
@@ -121,15 +121,15 @@
 			</view>
 		</scroll-view>
 
-		<EscortBottomBar active="hall" />
+		<escort-bottom-bar active="hall" />
 	</view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import OrderCard from '@/components/OrderCard.vue'
-import EscortBottomBar from '@/components/EscortBottomBar.vue'
+import OrderCard from '@/components/order-card.vue'
+import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get, post } from '@/utils/api.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'

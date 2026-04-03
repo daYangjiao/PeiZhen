@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="概览看板">
+  <app-shell title="概览看板">
     <section class="hero-card">
       <p class="subtle" style="margin-top: 0">今天优先关注</p>
       <div class="stats-grid">
@@ -71,13 +71,13 @@
         </table>
       </section>
     </div>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { fetchDashboard } from '../utils/admin-api'
 import { formatDateTime, formatMoney } from '../utils/format'
 

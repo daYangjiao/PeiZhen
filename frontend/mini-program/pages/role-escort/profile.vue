@@ -50,7 +50,7 @@
       <view class="menu-section">
         <view class="menu-group" v-for="(group, groupIndex) in menuGroups" :key="`group-${groupIndex}`">
           <view class="menu-row" v-for="(item, itemIndex) in group" :key="item.key">
-            <EscortMenuCell
+            <escort-menu-cell
               :icon="item.icon"
               :title="item.title"
               :balance="item.balance"
@@ -70,7 +70,7 @@
       </view>
     </view>
 
-    <EscortBottomBar active="profile" />
+    <escort-bottom-bar active="profile" />
   </view>
 </template>
 
@@ -78,8 +78,8 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onShow } from '@dcloudio/uni-app'
-import EscortBottomBar from '@/components/EscortBottomBar.vue'
-import EscortMenuCell from '@/components/EscortMenuCell.vue'
+import EscortBottomBar from '@/components/escort-bottom-bar.vue'
+import EscortMenuCell from '@/components/escort-menu-cell.vue'
 import { useSessionStore } from '@/stores/session'
 import { useUserStore } from '@/stores/user'
 import { clearToken } from '@/utils/api.js'

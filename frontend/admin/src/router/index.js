@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import LoginPage from '../pages/LoginPage.vue'
-import DashboardPage from '../pages/DashboardPage.vue'
-import UsersPage from '../pages/UsersPage.vue'
-import AttendantsPage from '../pages/AttendantsPage.vue'
-import AttendantDetailPage from '../pages/AttendantDetailPage.vue'
-import OrdersPage from '../pages/OrdersPage.vue'
-import OrderDetailPage from '../pages/OrderDetailPage.vue'
+import LoginPage from '../pages/login-page.vue'
+import DashboardPage from '../pages/dashboard-page.vue'
+import UsersPage from '../pages/users-page.vue'
+import AttendantsPage from '../pages/attendants-page.vue'
+import AttendantDetailPage from '../pages/attendant-detail-page.vue'
+import OrdersPage from '../pages/orders-page.vue'
+import OrderDetailPage from '../pages/order-detail-page.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: LoginPage, meta: { guestOnly: true } },

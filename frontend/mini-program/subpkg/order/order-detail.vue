@@ -1172,7 +1172,7 @@ const handlePrimaryAction = () => {
     if (!hasEvaluated.value) {
       if (orderNo) {
         uni.navigateTo({
-          url: `/subpkg/evaluate/Evaluate?orderNo=${encodeURIComponent(orderNo)}`
+          url: `/subpkg/evaluate/evaluate?orderNo=${encodeURIComponent(orderNo)}`
         });
       }
     } else {

@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="陪诊师审核">
+  <app-shell title="陪诊师审核">
     <section class="panel-card" style="margin-bottom: 18px">
       <div class="meta-grid">
         <div class="meta-card">
@@ -57,13 +57,13 @@
         </tbody>
       </table>
     </section>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { fetchAttendants, reviewAttendant, updateAttendantStatus } from '../utils/admin-api'
 
 const filters = reactive({

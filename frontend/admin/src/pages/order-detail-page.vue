@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="订单详情">
+  <app-shell title="订单详情">
     <div v-if="loading" class="panel-card loading">加载中...</div>
     <div v-else-if="detail" class="panel-grid">
       <section class="hero-card">
@@ -33,13 +33,13 @@
         </div>
       </section>
     </div>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { cancelOrder, fetchOrderDetail, resolveDispute } from '../utils/admin-api'
 import { formatMoney } from '../utils/format'
 

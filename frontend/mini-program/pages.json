@@ -25,7 +25,7 @@
       }
     },
     {
-      "path": "pages/AItriage/01_AppointmentSelection",
+      "path": "pages/ai-triage/01-appointment-selection",
       "style": {
         "navigationBarTitleText": "预约类型选择"
       }
@@ -110,7 +110,7 @@
           }
         },
         {
-          "path": "evaluate/Evaluate",
+          "path": "evaluate/evaluate",
           "style": {
             "navigationBarTitleText": "订单评价"
           }
@@ -164,7 +164,7 @@
           }
         },
         {
-          "path": "ai/AIaks",
+          "path": "ai/ai-ask",
           "style": {
             "navigationBarTitleText": "AI助手",
             "disableScroll": true
@@ -294,7 +294,7 @@
         "selectedIconPath": "static/order_active.png"
       },
       {
-        "pagePath": "pages/AItriage/01_AppointmentSelection",
+        "pagePath": "pages/ai-triage/01-appointment-selection",
         "text": "预约",
         "iconPath": "static/yvyue_2.png",
         "selectedIconPath": "static/yvyue_2_active.png"

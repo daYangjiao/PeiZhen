@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="订单管理">
+  <app-shell title="订单管理">
     <section class="panel-card">
       <div class="toolbar">
         <input v-model="filters.keyword" placeholder="搜索订单号 / 用户 / 陪诊师 / 医院" />
@@ -54,13 +54,13 @@
         </tbody>
       </table>
     </section>
-  </AppShell>
+  </app-shell>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import AppShell from '../components/AppShell.vue'
+import AppShell from '../components/app-shell.vue'
 import { cancelOrder, fetchOrders, resolveDispute } from '../utils/admin-api'
 import { formatMoney } from '../utils/format'
 

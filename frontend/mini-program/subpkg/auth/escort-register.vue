@@ -12,7 +12,7 @@
       <view class="card-title">陪诊师注册</view>
       <view class="card-subtitle">请使用真实资料注册，提交成功后可使用手机号和密码登录陪诊师端，并在个人中心继续补充资质材料。</view>
 
-      <AvatarPickerField
+      <avatar-picker-field
         v-model="form.avatar"
         :options="escortDefaultAvatarOptions"
         title="头像设置"
@@ -102,7 +102,7 @@
 import { ref } from 'vue'
 import { post } from '@/utils/api.js'
 import { brandLogo, escortDefaultAvatarOptions } from '@/utils/assets.js'
-import AvatarPickerField from '@/components/AvatarPickerField.vue'
+import AvatarPickerField from '@/components/avatar-picker-field.vue'
 
 const phonePattern = /^1\d{10}$/
 const defaultEscortAvatar = escortDefaultAvatarOptions[Math.floor(Math.random() * escortDefaultAvatarOptions.length)].value

@@ -283,7 +283,7 @@ const handleAction = (msg) => {
     } else {
       const orderNo = extractOrderNo(msg.content)
       if (orderNo && !orderNo.includes('*')) {
-        uni.navigateTo({ url: `/subpkg/evaluate/Evaluate?orderNo=${orderNo}` })
+        uni.navigateTo({ url: `/subpkg/evaluate/evaluate?orderNo=${orderNo}` })
       } else {
         uni.switchTab({ url: orderTab })
       }

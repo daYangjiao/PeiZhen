@@ -57,7 +57,7 @@
       </view>
     </scroll-view>
 
-    <EscortBottomBar active="message" />
+    <escort-bottom-bar active="message" />
   </view>
 </template>
 
@@ -68,7 +68,7 @@ import { get } from '@/utils/api.js'
 import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
-import EscortBottomBar from '@/components/EscortBottomBar.vue'
+import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { brandLogo, defaultAvatar } from '@/utils/assets.js'
 import { resolveDisplayImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
