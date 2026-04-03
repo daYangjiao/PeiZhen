@@ -614,11 +614,67 @@ const confirmTime = () => {
 
 const formatDate = (dateStr) => {
 	if (!dateStr) return ''
-	const date = new Date(dateStr)
+	const date = createSafeDate(dateStr)
+	if (Number.isNaN(date.getTime())) return dateStr
 	const year = date.getFullYear()
 	const month = date.getMonth() + 1
 	const day = date.getDate()
 	return `${year}年${month}月${day}日`
+}
+
+const createSafeDate = (dateStr) => {
+	const normalizedDate = String(dateStr || '').trim().replace(/-/g, '/')
+	return new Date(normalizedDate)
+}
+
+const parseTimeToMinutes = (timeValue) => {
+	const normalizedTime = String(timeValue || '').trim()
+	if (!normalizedTime) return NaN
+	const startSegment = normalizedTime.includes('-') ? normalizedTime.split('-')[0].trim() : normalizedTime
+	const match = startSegment.match(/^(\d{1,2}):(\d{2})$/)
+	if (!match) return NaN
+	const hour = Number(match[1])
+	const minute = Number(match[2])
+	if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return NaN
+	return hour * 60 + minute
+}
+
+const validateAppointmentDateTime = () => {
+	if (!selectedDate.value) {
+		return { valid: false, message: '请选择服务日期' }
+	}
+
+	const appointmentDate = createSafeDate(selectedDate.value)
+	if (Number.isNaN(appointmentDate.getTime())) {
+		return { valid: false, message: '服务日期格式错误，请重新选择' }
+	}
+	appointmentDate.setHours(0, 0, 0, 0)
+
+	const now = new Date()
+	const today = new Date(now)
+	today.setHours(0, 0, 0, 0)
+
+	if (appointmentDate.getTime() < today.getTime()) {
+		return { valid: false, message: '不能预约过去的日期' }
+	}
+
+	if (!startTime.value) {
+		return { valid: false, message: '请选择开始时间' }
+	}
+
+	const startMinutes = parseTimeToMinutes(startTime.value)
+	if (Number.isNaN(startMinutes)) {
+		return { valid: false, message: '服务开始时间格式错误，请重新选择' }
+	}
+
+	if (appointmentDate.getTime() === today.getTime()) {
+		const minAllowedStartMinutes = now.getHours() * 60 + now.getMinutes() + 30
+		if (startMinutes < minAllowedStartMinutes) {
+			return { valid: false, message: '今日预约需至少提前30分钟' }
+		}
+	}
+
+	return { valid: true, message: '' }
 }
 
 const validatePhone = () => {
@@ -656,6 +712,7 @@ const isSymptomSelected = (symptom) => {
 
 // 除“其他需求”外，其余都必须填写/选择（含症状至少选择1项）
 const isFormComplete = computed(() => {
+	const appointmentTimeValidation = validateAppointmentDateTime()
 	return (
 		!!selectedDate.value &&
 		!!startTime.value &&
@@ -663,7 +720,8 @@ const isFormComplete = computed(() => {
 		!!String(hospitalAddress.value || '').trim() &&
 		!!String(patientName.value || '').trim() &&
 		isValidPhone.value &&
-		getSelectedSymptoms().length > 0
+		getSelectedSymptoms().length > 0 &&
+		appointmentTimeValidation.valid
 	)
 })
 
@@ -770,6 +828,15 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 	}
 	if (toMinutes(endTime.value) <= toMinutes(startTime.value)) {
 		uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' })
+		return
+	}
+
+	const appointmentTimeValidation = validateAppointmentDateTime()
+	if (!appointmentTimeValidation.valid) {
+		uni.showToast({
+			title: appointmentTimeValidation.message,
+			icon: 'none'
+		})
 		return
 	}
 

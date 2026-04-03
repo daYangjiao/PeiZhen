@@ -4,6 +4,7 @@ import org.example.dao.ChatMessageMapper;
 import org.example.dao.GuideAppointmentMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
+import org.example.exception.AppointmentValidationException;
 import org.example.model.*;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.response.AppointmentResponse;
@@ -21,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -239,6 +244,8 @@ public class AiGuideServiceImpl implements AiGuideService {
     @Override
     @Transactional
     public AppointmentResponse submitDemand(GuideAppointmentRequest request) {
+        validateAppointmentSchedule(request);
+
         String appointmentNo = "APP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6);
         GuideAppointment appointment = new GuideAppointment();
         appointment.setAppointmentNo(appointmentNo);
@@ -260,6 +267,47 @@ public class AiGuideServiceImpl implements AiGuideService {
         response.setAppointmentNo(appointmentNo);
         response.setMessage("需求提交成功");
         return response;
+    }
+
+    private void validateAppointmentSchedule(GuideAppointmentRequest request) {
+        final LocalDate appointmentDate;
+        try {
+            appointmentDate = LocalDate.parse(String.valueOf(request.getServiceDate()).trim(), DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            throw new AppointmentValidationException("服务日期格式错误，请重新选择");
+        }
+
+        LocalDate today = LocalDate.now();
+        if (appointmentDate.isBefore(today)) {
+            throw new AppointmentValidationException("不能预约过去的日期");
+        }
+
+        String startTimeRaw = String.valueOf(request.getServiceStartTime()).trim();
+        if (startTimeRaw.isEmpty()) {
+            throw new AppointmentValidationException("服务开始时间不能为空");
+        }
+
+        final LocalTime appointmentStartTime;
+        try {
+            appointmentStartTime = parseStartTime(startTimeRaw);
+        } catch (DateTimeParseException e) {
+            throw new AppointmentValidationException("服务开始时间格式错误，请重新选择");
+        }
+
+        if (appointmentDate.isEqual(today)) {
+            LocalTime minAllowedStartTime = LocalTime.now().plusMinutes(30);
+            if (appointmentStartTime.isBefore(minAllowedStartTime)) {
+                throw new AppointmentValidationException("今日预约需至少提前30分钟");
+            }
+        }
+    }
+
+    private LocalTime parseStartTime(String timeValue) {
+        String normalized = timeValue.trim();
+        if (normalized.contains("-")) {
+            normalized = normalized.split("-")[0].trim();
+        }
+        return LocalTime.parse(normalized, DateTimeFormatter.ofPattern("HH:mm"));
     }
 
     @Override

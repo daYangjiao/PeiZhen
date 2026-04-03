@@ -696,12 +696,13 @@ const formatDate = (dateStr) => {
   background-color: white;
   border-radius: 16rpx;
   width: 90%;
-  max-width: 600rpx;
+  max-width: 680rpx;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .modal-header {
@@ -741,10 +742,12 @@ const formatDate = (dateStr) => {
 .modal-body {
   flex: 1;
   padding: 20rpx;
+  max-height: 60vh;
   overflow-y: auto;
   font-size: 24rpx;
   line-height: 1.5;
   color: #333;
+  box-sizing: border-box;
 }
 
 .rule-text {
@@ -755,8 +758,6 @@ const formatDate = (dateStr) => {
 .rules-card {
   background: #fff;
   border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
 }
 
 .rules-banner {

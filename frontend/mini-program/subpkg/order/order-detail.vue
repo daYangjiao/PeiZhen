@@ -190,11 +190,17 @@
       <view class="qr-title">服务确认二维码</view>
       <view class="qr-container">
         <image
+          v-if="!qrLoadFailed"
           :src="getQrCodeUrl(order.qrCodeUrl, order.orderId)"
           class="qr-image"
           mode="aspectFit"
           @click="previewQrCode"
+          @error="handleQrError"
         ></image>
+        <view v-else class="qr-error-box">
+          <text class="qr-error-text">加载失败，点击重试</text>
+          <button class="qr-retry-btn" @click="retryQrCode">重新加载</button>
+        </view>
         <text class="qr-preview-hint" @click="previewQrCode">点按放大预览</text>
         <br>
         <text class="qr-desc">请陪诊师扫描此二维码确认开始服务</text>
@@ -506,6 +512,8 @@ let pageActive = false; // 页面可见态
 const REALTIME_SYNC_INTERVAL = 4000;
 
 const payCountdown = ref('');
+const qrLoadFailed = ref(false);
+const qrRefreshToken = ref(Date.now());
 const showCancelModal = ref(false);
 const cancelReasons = [
   '计划有变，暂不就诊',
@@ -527,8 +535,8 @@ const showPayCountdown = computed(() => {
 
 // 计算属性
 const showQRCode = computed(() => {
-  // 状态为2(已接单)且有二维码URL时显示
-  return order.value.orderStatus === 2 && order.value.qrCodeUrl;
+  // 状态为2(待服务)且存在订单ID时即可显示，二维码可按 orderId 回退生成
+  return order.value.orderStatus === 2 && !!order.value.orderId;
 });
 
 const showDurationConfirm = computed(() => {
@@ -897,16 +905,27 @@ const orderAttendantAvatar = computed(() =>
 
 const getQrCodeUrl = (qrCodeUrl, orderId) => {
   const base = config.baseURL.endsWith('/') ? config.baseURL.slice(0, -1) : config.baseURL;
-  if (orderId) {
-    return `${base}/order-qr/${orderId}.png`;
+  let finalUrl = '';
+  if (qrCodeUrl) {
+    if (qrCodeUrl.startsWith('http')) {
+      finalUrl = qrCodeUrl;
+    } else {
+      const path = qrCodeUrl.startsWith('/') ? qrCodeUrl : '/' + qrCodeUrl;
+      finalUrl = base + path;
+    }
+  } else if (orderId) {
+    finalUrl = `${base}/order-qr/${orderId}.png`;
   }
-  if (!qrCodeUrl) return '';
-  if (qrCodeUrl.startsWith('http')) return qrCodeUrl;
-  const path = qrCodeUrl.startsWith('/') ? qrCodeUrl : '/' + qrCodeUrl;
-  return base + path;
+  if (!finalUrl) return '';
+  const joiner = finalUrl.includes('?') ? '&' : '?';
+  return `${finalUrl}${joiner}t=${qrRefreshToken.value}`;
 };
 
 const previewQrCode = () => {
+  if (qrLoadFailed.value) {
+    uni.showToast({ title: '二维码加载失败，请先重试', icon: 'none' });
+    return;
+  }
   const qrUrl = getQrCodeUrl(order.value?.qrCodeUrl, order.value?.orderId);
   if (!qrUrl) {
     uni.showToast({ title: '二维码暂未生成', icon: 'none' });
@@ -916,6 +935,15 @@ const previewQrCode = () => {
     urls: [qrUrl],
     current: qrUrl
   });
+};
+
+const handleQrError = () => {
+  qrLoadFailed.value = true;
+};
+
+const retryQrCode = () => {
+  qrLoadFailed.value = false;
+  qrRefreshToken.value = Date.now();
 };
 
 // 图片加载错误处理
@@ -1302,6 +1330,8 @@ const fetchOrderDetail = async (orderKey) => {
       ...data,
       qrCodeUrl: getQrCodeUrl(data.qrCodeUrl, data.orderId)
     };
+    qrLoadFailed.value = false;
+    qrRefreshToken.value = Date.now();
     currentOrderKey = data.orderNo || orderKey;
 
     // 更新待支付倒计时（仅对有支付倒计时的用户端订单生效）
@@ -1542,6 +1572,35 @@ onUnmounted(() => {
   width: 300rpx;
   height: 300rpx;
   margin: 0 auto 20rpx;
+}
+.qr-error-box {
+  width: 300rpx;
+  min-height: 300rpx;
+  margin: 0 auto 20rpx;
+  border-radius: 20rpx;
+  background: #f8fafc;
+  border: 2rpx dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+.qr-error-text {
+  font-size: 26rpx;
+  color: #475569;
+  margin-bottom: 18rpx;
+}
+.qr-retry-btn {
+  min-width: 180rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #fff;
+  font-size: 24rpx;
+  border: none;
 }
 .qr-preview-hint {
   display: block;
