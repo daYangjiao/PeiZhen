@@ -304,7 +304,7 @@ const navigateToCategory = (item) => {
     return
   }
   uni.navigateTo({
-    url: `/subpkg/appointment-flow/02_AppointmentForm?serviceTypeNumber=${encodeURIComponent(item.serviceTypeNumber)}&serviceTypeName=${encodeURIComponent(item.name)}`
+    url: `/subpkg/appointment-flow/02-appointment-form?serviceTypeNumber=${encodeURIComponent(item.serviceTypeNumber)}&serviceTypeName=${encodeURIComponent(item.name)}`
   })
 }
 

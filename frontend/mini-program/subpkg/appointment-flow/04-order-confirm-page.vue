@@ -327,7 +327,7 @@ const handlePaymentResult = async (isPaid) => {
           success() {
             setTimeout(() => {
               uni.navigateTo({
-                url: `/subpkg/appointment-flow/05_PaymentSuccessPage?orderNo=${o}`
+                url: `/subpkg/appointment-flow/05-payment-success-page?orderNo=${o}`
               })
             }, 150)
           }
@@ -337,7 +337,7 @@ const handlePaymentResult = async (isPaid) => {
       uni.showToast({ title: '支付未完成', icon: 'none' });
       setTimeout(() => {
         uni.navigateTo({
-          url: `/subpkg/appointment-flow/PaymentFailedPage?orderNo=${encodeURIComponent(orderNo.value)}`
+          url: `/subpkg/appointment-flow/06-payment-failed-page?orderNo=${encodeURIComponent(orderNo.value)}`
         });
       }, 1000);
     }
@@ -351,14 +351,14 @@ const handlePaymentResult = async (isPaid) => {
           success() {
             setTimeout(() => {
               uni.navigateTo({
-                url: `/subpkg/appointment-flow/05_PaymentSuccessPage?orderNo=${o}`
+                url: `/subpkg/appointment-flow/05-payment-success-page?orderNo=${o}`
               })
             }, 150)
           }
         })
     } else {
         uni.navigateTo({
-          url: `/subpkg/appointment-flow/PaymentFailedPage?orderNo=${encodeURIComponent(orderNo.value)}`
+          url: `/subpkg/appointment-flow/06-payment-failed-page?orderNo=${encodeURIComponent(orderNo.value)}`
         });
     }
   }

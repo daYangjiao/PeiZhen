@@ -291,7 +291,7 @@ const handleDetailClick = (order) => {
 
 const handlePay = (order) => {
   uni.navigateTo({
-    url: `/subpkg/appointment-flow/04_OrderConfirmPage?orderNo=${order.orderNo}`
+    url: `/subpkg/appointment-flow/04-order-confirm-page?orderNo=${order.orderNo}`
   })
 }
 

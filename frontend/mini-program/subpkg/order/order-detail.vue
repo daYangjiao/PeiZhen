@@ -1121,7 +1121,7 @@ const handleBalancePayResult = async (isPaid) => {
     await doConfirmTimeAndFee();
   } else {
     uni.navigateTo({
-      url: `/subpkg/appointment-flow/PaymentFailedPage?orderNo=${encodeURIComponent(order.value.orderNo)}&scene=balance`
+      url: `/subpkg/appointment-flow/06-payment-failed-page?orderNo=${encodeURIComponent(order.value.orderNo)}&scene=balance`
     });
   }
 };
@@ -1143,7 +1143,7 @@ const handlePrimaryAction = () => {
   if (paymentStatus === 0 && status !== 7) {
     if (orderNo) {
       uni.navigateTo({
-        url: `/subpkg/appointment-flow/04_OrderConfirmPage?orderNo=${encodeURIComponent(orderNo)}`
+        url: `/subpkg/appointment-flow/04-order-confirm-page?orderNo=${encodeURIComponent(orderNo)}`
       });
     }
     return;
@@ -1177,7 +1177,7 @@ const handlePrimaryAction = () => {
       }
     } else {
       uni.navigateTo({
-        url: '/subpkg/appointment-flow/01_AppointmentSelection'
+        url: '/subpkg/appointment-flow/01-appointment-selection'
       });
     }
     return;
@@ -1186,7 +1186,7 @@ const handlePrimaryAction = () => {
   // 已取消：再次下单
   if (status === 7) {
     uni.navigateTo({
-      url: '/subpkg/appointment-flow/01_AppointmentSelection'
+      url: '/subpkg/appointment-flow/01-appointment-selection'
     });
   }
 };

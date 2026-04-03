@@ -1151,7 +1151,7 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 
 					// --- 直接跳转到订单确认页面 ---
 					uni.redirectTo({
-						url: '/subpkg/appointment-flow/04_OrderConfirmPage?orderNo=' + orderNo
+						url: '/subpkg/appointment-flow/04-order-confirm-page?orderNo=' + orderNo
 					});
 				} else {
 					throw new Error(orderResponse.message || '创建订单失败');

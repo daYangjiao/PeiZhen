@@ -134,37 +134,31 @@
           }
         },
         {
-          "path": "appointment-flow/01_AppointmentSelection",
+          "path": "appointment-flow/01-appointment-selection",
           "style": {
             "navigationBarTitleText": "预约类型选择"
           }
         },
         {
-          "path": "appointment-flow/02_AppointmentForm",
+          "path": "appointment-flow/02-appointment-form",
           "style": {
             "navigationBarTitleText": "服务预约"
           }
         },
         {
-          "path": "appointment-flow/03_AICareMatchPage",
-          "style": {
-            "navigationBarTitleText": "AI智能推荐陪诊师"
-          }
-        },
-        {
-          "path": "appointment-flow/04_OrderConfirmPage",
+          "path": "appointment-flow/04-order-confirm-page",
           "style": {
             "navigationBarTitleText": "确认订单"
           }
         },
         {
-          "path": "appointment-flow/05_PaymentSuccessPage",
+          "path": "appointment-flow/05-payment-success-page",
           "style": {
             "navigationBarTitleText": "支付成功"
           }
         },
         {
-          "path": "appointment-flow/PaymentFailedPage",
+          "path": "appointment-flow/06-payment-failed-page",
           "style": {
             "navigationBarTitleText": "支付失败"
           }

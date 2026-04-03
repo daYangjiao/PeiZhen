@@ -54,7 +54,7 @@ export default {
         });
       } else {
         uni.redirectTo({
-          url: `/subpkg/appointment-flow/04_OrderConfirmPage?orderNo=${encodeURIComponent(this.orderNo)}`
+          url: `/subpkg/appointment-flow/04-order-confirm-page?orderNo=${encodeURIComponent(this.orderNo)}`
         });
       }
     },

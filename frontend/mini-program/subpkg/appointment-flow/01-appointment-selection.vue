@@ -191,7 +191,7 @@ const goToNext = () => {
 
 	// 跳转到预约表单页面，并传递服务类型数据
 	uni.navigateTo({
-		url: '/subpkg/appointment-flow/02_AppointmentForm?serviceTypeNumber=' + serviceTypeNumber + '&serviceTypeName=' + encodeURIComponent(serviceTypeName)
+		url: '/subpkg/appointment-flow/02-appointment-form?serviceTypeNumber=' + serviceTypeNumber + '&serviceTypeName=' + encodeURIComponent(serviceTypeName)
 	})
 }
 </script>

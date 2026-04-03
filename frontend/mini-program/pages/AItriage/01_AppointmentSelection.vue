@@ -152,7 +152,7 @@ const goToNext = () => {
 		case 'home': serviceTypeNumber = 4; serviceTypeName = '上门陪诊'; break
 	}
 	uni.navigateTo({
-		url: '/subpkg/appointment-flow/02_AppointmentForm?serviceTypeNumber=' + serviceTypeNumber + '&serviceTypeName=' + encodeURIComponent(serviceTypeName)
+		url: '/subpkg/appointment-flow/02-appointment-form?serviceTypeNumber=' + serviceTypeNumber + '&serviceTypeName=' + encodeURIComponent(serviceTypeName)
 	})
 }
 
