@@ -35,7 +35,7 @@
         </view>
         <view class="summary-item">
           <text class="summary-label">支付方式</text>
-          <text class="summary-value">微信支付</text>
+          <text class="summary-value">在线支付</text>
         </view>
         <view class="summary-item">
           <text class="summary-label">支付状态</text>

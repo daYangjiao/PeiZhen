@@ -249,14 +249,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { get, post, config } from '@/utils/api.js';
+import { get, post } from '@/utils/api.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const orderData = ref({});
-const showInvoice = ref(false);
 const payMethod = ref('wechat'); // 默认支付方式
 const isLoading = ref(true);
 const showBillingRules = ref(false); // 控制模态框显示
@@ -325,13 +324,6 @@ const fetchOrderDetail = async (orderNo) => {
   } finally {
     isLoading.value = false;
   }
-};
-
-/**
- * 处理支付方式变更
- */
-const onPaymentChange = (e) => {
-  payMethod.value = e.detail.value;
 };
 
 const selectPayMethod = (value) => {
@@ -475,6 +467,7 @@ const formatServiceTime = (serviceTime) => {
 }
 
 .confirm-hero-card,
+.confirm-summary-card,
 .card {
   @include user-card(28rpx);
 }
