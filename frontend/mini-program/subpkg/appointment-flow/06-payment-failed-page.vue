@@ -90,7 +90,7 @@ export default {
 }
 
 .card {
-  @include user-card(36rpx 28rpx);
+  @include user-card(40rpx 28rpx);
   width: 100%;
 }
 
@@ -99,8 +99,8 @@ export default {
 }
 
 .icon {
-  width: 100rpx;
-  height: 100rpx;
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -133,7 +133,7 @@ export default {
   font-size: 24rpx;
   line-height: 1.7;
   color: $user-color-text-sub;
-  margin-bottom: 36rpx;
+  margin-bottom: 40rpx;
 }
 
 .btn-group {
@@ -142,32 +142,40 @@ export default {
   gap: 16rpx;
 }
 
-.retry-btn {
+.retry-btn,
+.view-order-btn,
+.home-btn {
   width: 100%;
-  @include user-primary-btn;
-  border: none;
+  height: 88rpx;
   line-height: 88rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
   font-weight: 700;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.retry-btn::after,
+.view-order-btn::after,
+.home-btn::after {
+  border: none;
+}
+
+.retry-btn {
+  @include user-primary-btn;
+  border: none;
 }
 
 .view-order-btn {
-  width: 100%;
   @include user-ghost-btn(88rpx);
-  line-height: 88rpx;
-  font-size: 28rpx;
-  font-weight: 700;
 }
 
 .home-btn {
-  width: 100%;
-  height: 72rpx;
-  line-height: 72rpx;
-  background: transparent;
-  border: none;
+  background: #f6faff;
   color: $user-color-text-sub;
-  font-size: 24rpx;
-  font-weight: 600;
-  border-radius: 999rpx;
+  border: 1rpx solid rgba(220, 232, 248, 0.92);
 }
 </style>

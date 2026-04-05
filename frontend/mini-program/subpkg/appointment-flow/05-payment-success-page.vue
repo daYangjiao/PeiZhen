@@ -59,13 +59,13 @@
         <text class="label">服务类型</text>
         <text class="value">{{ orderData.serviceTypeName || '—' }}</text>
       </view>
-      <view class="info-item">
+      <view class="info-item multiline-item">
         <text class="label">症状描述</text>
-        <text class="value">{{ getSymptomDescription() }}</text>
+        <text class="value multiline-value">{{ getSymptomDescription() }}</text>
       </view>
-      <view class="info-item last">
+      <view class="info-item last multiline-item">
         <text class="label">其他要求</text>
-        <text class="value">{{ orderData.otherRequirement || '无' }}</text>
+        <text class="value multiline-value">{{ orderData.otherRequirement || '无' }}</text>
       </view>
     </view>
   </view>
@@ -207,9 +207,19 @@ const goToOrderDetail = () => {
   width: 100%;
   @include user-primary-btn;
   border: none;
+  height: 88rpx;
   line-height: 88rpx;
   font-size: 28rpx;
   font-weight: 700;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.view-order-btn::after {
+  border: none;
 }
 
 .title {
@@ -221,7 +231,11 @@ const goToOrderDetail = () => {
 }
 
 .info-item {
-  padding: 18rpx 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid rgba(220, 232, 248, 0.92);
 }
 
@@ -231,19 +245,22 @@ const goToOrderDetail = () => {
 }
 
 .label {
-  display: block;
-  font-size: 22rpx;
-  line-height: 1.3;
+  width: 144rpx;
+  flex-shrink: 0;
+  font-size: 24rpx;
+  line-height: 1.6;
   color: $user-color-text-sub;
-  margin-bottom: 10rpx;
 }
 
 .value {
+  flex: 1;
+  min-width: 0;
   display: block;
   font-size: 26rpx;
   line-height: 1.6;
   color: $user-color-text-main;
   font-weight: 600;
+  text-align: right;
   word-break: break-word;
 }
 
@@ -254,5 +271,13 @@ const goToOrderDetail = () => {
 
 .value.price {
   color: $user-color-primary;
+}
+
+.multiline-item {
+  align-items: flex-start;
+}
+
+.multiline-value {
+  white-space: normal;
 }
 </style>

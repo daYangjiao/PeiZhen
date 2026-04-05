@@ -26,82 +26,92 @@
       <text>加载中...</text>
     </view>
 
-    <view v-else class="card order-info">
-      <view class="title">
-        <text>订单信息</text>
-      </view>
-      <view class="info-item">
-        <text class="label">就诊医院</text>
-        <text class="value">{{ orderData.hospital || '未知' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="label">就诊时间</text>
-        <text class="value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="label">就诊人</text>
-        <text class="value">{{ orderData.patientName || '未知' }}</text>
-      </view>
-      <view class="info-item">
-        <text class="label">症状描述</text>
-        <text class="value">{{ getSymptomDescription() }}</text>
-      </view>
-      <view class="info-item last">
-        <text class="label">其他需求</text>
-        <text class="value">{{ orderData.otherRequirement || '无' }}</text>
-      </view>
-    </view>
-
-    <view v-if="!isLoading" class="card fee-detail">
-      <view class="title fee-detail-head">
-        <text>费用明细</text>
-        <view class="rule-entry-pill" @click="showBillingRules = true">
-          <text class="rule-entry-text">查看计费规则</text>
-          <text class="rule-entry-arrow">›</text>
+    <template v-else>
+      <view class="card order-info">
+        <view class="title">
+          <text>订单信息</text>
+        </view>
+        <view class="info-item">
+          <text class="label">就诊医院</text>
+          <text class="value">{{ orderData.hospital || '未知' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">就诊时间</text>
+          <text class="value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">就诊人</text>
+          <text class="value">{{ orderData.patientName || '未知' }}</text>
+        </view>
+        <view class="info-item multiline-item">
+          <text class="label">症状描述</text>
+          <text class="value multiline-value">{{ getSymptomDescription() }}</text>
+        </view>
+        <view class="info-item last multiline-item">
+          <text class="label">其他需求</text>
+          <text class="value multiline-value">{{ orderData.otherRequirement || '无' }}</text>
         </view>
       </view>
-      <view class="fee-tip">
-        <view class="fee-tip-tag">预付款说明</view>
-        <view class="fee-tip-text">本次为服务预付款，服务结束后按实际时长结算，多退少补。</view>
-      </view>
-      <view class="fee-item">
-        <text>陪诊服务预付款</text>
-        <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
-      </view>
-      <view class="fee-item">
-        <text>优惠券</text>
-        <text class="discount">-¥0.00</text>
-      </view>
-      <view class="total">
-        <text>预付款合计</text>
-        <text class="total-price">¥{{ formatAmount(orderData.totalPrice) }}</text>
-      </view>
-    </view>
 
-    <view v-if="!isLoading" class="card payment-method">
-      <view class="title">
-        <text>选择支付方式</text>
-      </view>
-      <view
-        v-for="method in paymentMethods"
-        :key="method.value"
-        class="payment-option"
-        :class="{ selected: payMethod === method.value }"
-        @click="selectPayMethod(method.value)"
-      >
-        <view class="payment-left">
-          <image class="payment-icon" :src="method.icon" mode="aspectFit" />
-          <text class="payment-name">{{ method.label }}</text>
+      <view class="card fee-detail">
+        <view class="title fee-detail-head">
+          <text>费用明细</text>
+          <view class="rule-entry-pill" @click="showBillingRules = true">
+            <text class="rule-entry-text">查看计费规则</text>
+            <text class="rule-entry-arrow">›</text>
+          </view>
         </view>
-        <view class="payment-check" :class="{ selected: payMethod === method.value }">
-          <view class="payment-check-inner"></view>
+        <view class="fee-tip">
+          <view class="fee-tip-tag">预付款说明</view>
+          <view class="fee-tip-text">本次为服务预付款，服务结束后按实际时长结算，多退少补。</view>
+        </view>
+        <view class="fee-item">
+          <text>陪诊服务预付款</text>
+          <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
+        </view>
+        <view class="fee-item">
+          <text>优惠券</text>
+          <text class="discount">-¥0.00</text>
+        </view>
+        <view class="total">
+          <text>预付款合计</text>
+          <text class="total-price">¥{{ formatAmount(orderData.totalPrice) }}</text>
         </view>
       </view>
-    </view>
 
+      <view class="card payment-method">
+        <view class="title">
+          <text>选择支付方式</text>
+        </view>
+        <view
+          v-for="method in paymentMethods"
+          :key="method.value"
+          class="payment-option"
+          :class="{ selected: payMethod === method.value }"
+          @click="selectPayMethod(method.value)"
+        >
+          <view class="payment-left">
+            <view class="payment-icon-shell">
+              <image class="payment-icon" :src="method.icon" mode="aspectFit" />
+            </view>
+            <text class="payment-name">{{ method.label }}</text>
+          </view>
+          <view class="payment-check" :class="{ selected: payMethod === method.value }">
+            <view class="payment-check-inner"></view>
+          </view>
+        </view>
+      </view>
+    </template>
+
+    <view v-if="!isLoading" class="footer-spacer"></view>
     <view v-if="!isLoading" class="footer">
-      <view class="real-price">实付款：<text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text></view>
-      <button class="confirm-btn" @click="confirmPay">确认支付</button>
+      <view class="footer-content">
+        <view class="real-price">
+          <text class="real-price-label">实付款：</text>
+          <text class="price">¥{{ formatAmount(orderData.totalPrice) }}</text>
+        </view>
+        <button class="confirm-btn" @click="confirmPay">确认支付</button>
+      </view>
     </view>
 
     <view v-if="showBillingRules" class="rules-sheet-overlay" @click="showBillingRules = false">
@@ -211,8 +221,8 @@ const showPaymentModal = ref(false)
 const orderNo = ref('')
 const paymentMethods = [
   { value: 'wechat', label: '微信支付', icon: '/static/wechat-icon.png' },
-  { value: 'alipay', label: '支付宝支付', icon: '/static/alipay-icon.svg' },
-  { value: 'unionpay', label: '银联支付', icon: '/static/unionpay-icon.svg' }
+  { value: 'alipay', label: '支付宝支付', icon: '/static/alipay-pay-icon.png' },
+  { value: 'unionpay', label: '银联支付', icon: '/static/unionpay-pay-icon.png' }
 ]
 
 onLoad((options) => {
@@ -336,12 +346,12 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 .order-confirm-page {
   @include user-page;
   min-height: 100vh;
-  padding: 28rpx 24rpx calc(168rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 24rpx 24rpx;
   box-sizing: border-box;
 }
 
 .loading-container {
-  @include user-card(56rpx 24rpx);
+  @include user-card(64rpx 24rpx);
   text-align: center;
   color: $user-color-text-sub;
   font-size: 26rpx;
@@ -351,7 +361,7 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 10rpx;
+  padding: 0 8rpx;
   margin-bottom: 24rpx;
 }
 
@@ -435,9 +445,10 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 
 .info-item {
   display: flex;
-  flex-direction: column;
-  gap: 10rpx;
-  padding: 18rpx 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid rgba(220, 232, 248, 0.92);
 }
 
@@ -447,17 +458,30 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 }
 
 .label {
-  font-size: 22rpx;
-  line-height: 1.3;
+  width: 144rpx;
+  flex-shrink: 0;
+  font-size: 24rpx;
+  line-height: 1.6;
   color: $user-color-text-sub;
 }
 
 .value {
+  flex: 1;
+  min-width: 0;
   font-size: 27rpx;
   line-height: 1.6;
   color: $user-color-text-main;
   font-weight: 600;
+  text-align: right;
   word-break: break-word;
+}
+
+.multiline-item {
+  align-items: flex-start;
+}
+
+.multiline-value {
+  white-space: normal;
 }
 
 .fee-detail-head {
@@ -530,7 +554,7 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  padding: 18rpx 0;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid rgba(220, 232, 248, 0.92);
 }
 
@@ -542,14 +566,25 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 .payment-left {
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  gap: 16rpx;
   min-width: 0;
 }
 
-.payment-icon {
-  width: 42rpx;
-  height: 42rpx;
+.payment-icon-shell {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  background: #f6faff;
+  border: 1rpx solid rgba(220, 232, 248, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+.payment-icon {
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .payment-name {
@@ -560,8 +595,8 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 }
 
 .payment-check {
-  width: 32rpx;
-  height: 32rpx;
+  width: 34rpx;
+  height: 34rpx;
   border-radius: 50%;
   border: 2rpx solid rgba(148, 163, 184, 0.55);
   display: flex;
@@ -575,8 +610,8 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 }
 
 .payment-check-inner {
-  width: 14rpx;
-  height: 14rpx;
+  width: 16rpx;
+  height: 16rpx;
   border-radius: 50%;
   background: transparent;
 }
@@ -585,42 +620,69 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   background: $user-color-primary;
 }
 
+.footer-spacer {
+  height: calc(132rpx + env(safe-area-inset-bottom));
+}
+
 .footer {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
-  z-index: 20;
-  margin-top: 14rpx;
-  padding: 22rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid rgba(220, 232, 248, 0.92);
-  background: rgba(255, 255, 255, 0.96);
+  z-index: 40;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20rpx);
+  border-top: 1rpx solid rgba(220, 232, 248, 0.92);
+  box-sizing: border-box;
+}
+
+.footer-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
+  width: 100%;
 }
 
 .real-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.real-price-label {
   font-size: 24rpx;
-  line-height: 1.5;
   color: $user-color-text-main;
   font-weight: 600;
 }
 
 .real-price .price {
   color: $user-color-primary;
-  font-size: 40rpx;
+  font-size: 42rpx;
   line-height: 1;
   font-weight: 700;
 }
 
 .confirm-btn {
-  min-width: 236rpx;
+  width: 260rpx;
+  margin: 0 0 0 auto;
   @include user-primary-btn;
   border: none;
   font-size: 28rpx;
   font-weight: 700;
+  height: 88rpx;
   line-height: 88rpx;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.confirm-btn::after {
+  border: none;
 }
 
 .rule-entry-pill {
@@ -881,7 +943,7 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 .payment-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.42);
+  background: rgba(15, 23, 42, 0.46);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -892,47 +954,59 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 
 .payment-modal-content {
   width: 100%;
-  max-width: 620rpx;
+  max-width: 700rpx;
+  min-height: 396rpx;
   background: #ffffff;
-  border-radius: 30rpx;
+  border-radius: 36rpx;
   overflow: hidden;
-  box-shadow: 0 24rpx 50rpx rgba(15, 23, 42, 0.22);
+  box-shadow: 0 28rpx 56rpx rgba(15, 23, 42, 0.22);
 }
 
 .payment-modal-header {
-  padding: 28rpx 30rpx 16rpx;
+  padding: 42rpx 40rpx 16rpx;
 }
 
 .payment-modal-title {
-  font-size: 32rpx;
+  font-size: 34rpx;
   color: $user-color-text-main;
   font-weight: 700;
+  text-align: center;
 }
 
 .payment-modal-body {
-  padding: 0 30rpx 24rpx;
+  padding: 20rpx 40rpx 42rpx;
 }
 
 .payment-modal-text {
-  font-size: 26rpx;
-  line-height: 1.6;
+  font-size: 28rpx;
+  line-height: 1.8;
   color: $user-color-text-sub;
+  text-align: center;
 }
 
 .payment-modal-footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16rpx;
-  padding: 0 30rpx 30rpx;
+  gap: 20rpx;
+  padding: 0 40rpx 40rpx;
 }
 
 .payment-modal-btn {
-  height: 82rpx;
-  line-height: 82rpx;
+  height: 100rpx;
+  line-height: 100rpx;
   border-radius: 999rpx;
   border: none;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.payment-modal-btn::after {
+  border: none;
 }
 
 .success-btn {
