@@ -209,12 +209,12 @@
 
 						<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
 							<view
-								v-for="time in group.options"
-								:key="time"
-								:class="['time-option', { 'selected': selectedTime === time }]"
-								@click="selectTime(time)"
+								v-for="option in group.options"
+								:key="`${group.key}-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
+								:class="['time-option', { 'selected': isSelectedTimeOption(option) }]"
+								@click="selectTime(option)"
 							>
-								<text class="time-option-text">{{ formatTimeOptionLabel(time) }}</text>
+								<text class="time-option-text">{{ option.displayLabel }}</text>
 							</view>
 						</view>
 					</view>
@@ -537,9 +537,38 @@ const calculateSlotDurationMinutes = (startValue, endValue) => {
 		: 24 * 60 - startMinutes + endMinutes
 }
 
+const formatMinutesToTime = (minutes) => {
+	const safeMinutes = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60)
+	const hour = Math.floor(safeMinutes / 60)
+	const minute = safeMinutes % 60
+	return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+}
+
+const createTimeOption = (timeStr, isNextDay = false, relativeOrder = 0) => {
+	const minutes = parseTimeToMinutes(timeStr)
+	return {
+		time: timeStr,
+		minutes,
+		isNextDay,
+		relativeOrder,
+		groupKey: findTimeGroupByMinutes(minutes)?.key || '',
+		displayLabel: `${isNextDay ? '次日 ' : ''}${timeStr}`
+	}
+}
+
 const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 	const options = []
 	const selectedStartMinutes = parseTimeToMinutes(startTime.value)
+	if (pickerType === 'end' && !Number.isNaN(selectedStartMinutes)) {
+		for (let offset = 30; offset < 24 * 60; offset += 30) {
+			const absoluteMinutes = selectedStartMinutes + offset
+			const isNextDay = absoluteMinutes >= 24 * 60
+			const timeStr = formatMinutesToTime(absoluteMinutes)
+			options.push(createTimeOption(timeStr, isNextDay, offset))
+		}
+		return options
+	}
+
 	for (let hour = 0; hour <= 23; hour++) {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
@@ -547,13 +576,7 @@ const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
 				continue
 			}
-			if (pickerType === 'end' && !Number.isNaN(selectedStartMinutes)) {
-				const durationMinutes = calculateSlotDurationMinutes(startTime.value, timeStr)
-				if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
-					continue
-				}
-			}
-			options.push(timeStr)
+			options.push(createTimeOption(timeStr))
 		}
 	}
 	return options
@@ -565,20 +588,11 @@ const findTimeGroupByMinutes = (minutes) => TIME_GROUP_DEFINITIONS.find(group =>
 
 const findPreferredTimeGroupKey = (options) => {
 	if (timePickerType.value === 'end' && startTime.value) {
-		let preferredKey = ''
-		let minDuration = Infinity
-		for (const option of options) {
-			const durationMinutes = calculateSlotDurationMinutes(startTime.value, option)
-			if (!Number.isNaN(durationMinutes) && durationMinutes > 0 && durationMinutes < minDuration) {
-				minDuration = durationMinutes
-				preferredKey = findTimeGroupByMinutes(parseTimeToMinutes(option))?.key || ''
-			}
-		}
-		if (preferredKey) return preferredKey
+		return options[0]?.groupKey || ''
 	}
 	const preferredOrder = ['morning', 'afternoon', 'evening', 'lateNight']
 	for (const key of preferredOrder) {
-		if (options.some(time => findTimeGroupByMinutes(parseTimeToMinutes(time))?.key === key)) {
+		if (options.some(option => option.groupKey === key)) {
 			return key
 		}
 	}
@@ -594,10 +608,7 @@ const timeGroups = computed(() => {
 		.map(group => ({
 			...group,
 			anchorId: `time-group-${group.key}`,
-			options: timeOptions.value.filter(time => {
-				const minutes = parseTimeToMinutes(time)
-				return !Number.isNaN(minutes) && minutes >= group.start && minutes <= group.end
-			})
+			options: timeOptions.value.filter(option => option.groupKey === group.key)
 		}))
 		.filter(group => group.options.length > 0)
 })
@@ -608,9 +619,8 @@ const initializeTimeGroupState = () => {
 	const nextState = {}
 	const options = timeOptions.value
 	const preferredKey = findPreferredTimeGroupKey(options)
-	const selectedGroupKey = selectedTime.value
-		? findTimeGroupByMinutes(parseTimeToMinutes(selectedTime.value))?.key
-		: ''
+	const selectedOption = timeOptions.value.find(option => isSelectedTimeOption(option))
+	const selectedGroupKey = selectedOption?.groupKey || ''
 
 	for (const group of timeGroups.value) {
 		nextState[group.key] = group.key === preferredKey || group.key === selectedGroupKey
@@ -761,8 +771,8 @@ const hideTimePicker = () => {
 	timeScrollTarget.value = ''
 }
 
-const selectTime = (time) => {
-	selectedTime.value = time
+const selectTime = (option) => {
+	selectedTime.value = option.time
 }
 
 const isNextDayEndTimeOption = (timeValue) => {
@@ -773,8 +783,10 @@ const isNextDayEndTimeOption = (timeValue) => {
 	return !Number.isNaN(durationMinutes) && durationMinutes > 0 && endMinutes < startMinutes
 }
 
-const formatTimeOptionLabel = (timeValue) => {
-	return isNextDayEndTimeOption(timeValue) ? `次日 ${timeValue}` : timeValue
+const isSelectedTimeOption = (option) => {
+	if (!option || selectedTime.value !== option.time) return false
+	if (timePickerType.value !== 'end') return true
+	return isNextDayEndTimeOption(option.time) === option.isNextDay
 }
 
 const formatSelectedEndTimeDisplay = () => {
@@ -797,14 +809,14 @@ const toggleTimeGroup = (groupKey) => {
 }
 
 const syncSelectedTimesForDate = () => {
-	const availableStartTimes = getAvailableTimeOptions(selectedDate.value, 'start')
+	const availableStartTimes = getAvailableTimeOptions(selectedDate.value, 'start').map(option => option.time)
 	if (startTime.value && !availableStartTimes.includes(startTime.value)) {
 		startTime.value = ''
 		endTime.value = ''
 		return
 	}
 
-	const availableEndTimes = getAvailableTimeOptions(selectedDate.value, 'end')
+	const availableEndTimes = getAvailableTimeOptions(selectedDate.value, 'end').map(option => option.time)
 	if (endTime.value && (!availableEndTimes.includes(endTime.value) || calculateSlotDurationMinutes(startTime.value, endTime.value) <= 0)) {
 		endTime.value = ''
 	}
