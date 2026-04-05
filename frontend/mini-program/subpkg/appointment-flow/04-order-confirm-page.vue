@@ -220,7 +220,7 @@ const showBillingRules = ref(false)
 const showPaymentModal = ref(false)
 const orderNo = ref('')
 const paymentMethods = [
-  { value: 'wechat', label: '微信支付', icon: '/static/wechat-icon.png' },
+  { value: 'wechat', label: '微信支付', icon: '/static/wechat-pay-icon.png' },
   { value: 'alipay', label: '支付宝支付', icon: '/static/alipay-pay-icon.png' },
   { value: 'unionpay', label: '银联支付', icon: '/static/unionpay-pay-icon.png' }
 ]
@@ -989,12 +989,14 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   grid-template-columns: 1fr 1fr;
   gap: 20rpx;
   padding: 0 40rpx 40rpx;
+  align-items: stretch;
 }
 
 .payment-modal-btn {
+  width: 100%;
   height: 100rpx;
   line-height: 100rpx;
-  border-radius: 999rpx;
+  border-radius: 26rpx;
   border: none;
   font-size: 30rpx;
   font-weight: 700;
