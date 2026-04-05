@@ -190,32 +190,44 @@
 					<view v-if="timeOptions.length === 0" class="time-empty-state">
 						<text class="time-empty-text">当前日期已无可预约时段，请选择其他日期</text>
 					</view>
-					<view
-						v-for="group in timeGroups"
-						:key="group.key"
-						:id="group.anchorId"
-						class="time-group"
-					>
-						<view class="time-group-header" @click="toggleTimeGroup(group.key)">
-							<view class="time-group-copy">
-								<text class="time-group-title">{{ group.label }}</text>
-								<text class="time-group-meta">{{ group.rangeLabel }}</text>
+					<template v-if="timePickerType === 'start'">
+						<view
+							v-for="group in timeGroups"
+							:key="group.key"
+							:id="group.anchorId"
+							class="time-group"
+						>
+							<view class="time-group-header" @click="toggleTimeGroup(group.key)">
+								<view class="time-group-copy">
+									<text class="time-group-title">{{ group.label }}</text>
+									<text class="time-group-meta">{{ group.rangeLabel }}</text>
+								</view>
+								<view class="time-group-badge">
+									<text class="time-group-count">{{ group.options.length }}</text>
+								</view>
+								<text class="time-group-arrow" :class="{ expanded: isTimeGroupExpanded(group.key) }">⌄</text>
 							</view>
-							<view class="time-group-badge">
-								<text class="time-group-count">{{ group.options.length }}</text>
-							</view>
-							<text class="time-group-arrow" :class="{ expanded: isTimeGroupExpanded(group.key) }">⌄</text>
-						</view>
 
-						<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
-							<view
-								v-for="option in group.options"
-								:key="`${group.key}-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
-								:class="['time-option', { 'selected': isSelectedTimeOption(option) }]"
-								@click="selectTime(option)"
-							>
-								<text class="time-option-text">{{ option.displayLabel }}</text>
+							<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
+								<view
+									v-for="option in group.options"
+									:key="`${group.key}-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
+									:class="['time-option', { 'selected': isSelectedTimeOption(option) }]"
+									@click="selectTime(option)"
+								>
+									<text class="time-option-text">{{ option.displayLabel }}</text>
+								</view>
 							</view>
+						</view>
+					</template>
+					<view v-else class="time-sequence-grid">
+						<view
+							v-for="option in timeOptions"
+							:key="`end-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
+							:class="['time-option', 'sequence-option', { 'selected': isSelectedTimeOption(option) }]"
+							@click="selectTime(option)"
+						>
+							<text class="time-option-text">{{ option.displayLabel }}</text>
 						</view>
 					</view>
 				</scroll-view>
@@ -616,6 +628,12 @@ const timeGroups = computed(() => {
 const isTimeGroupExpanded = (groupKey) => !!timeGroupExpandedState.value[groupKey]
 
 const initializeTimeGroupState = () => {
+	if (timePickerType.value === 'end') {
+		timeGroupExpandedState.value = {}
+		timeScrollTarget.value = ''
+		return
+	}
+
 	const nextState = {}
 	const options = timeOptions.value
 	const preferredKey = findPreferredTimeGroupKey(options)
@@ -837,7 +855,6 @@ const confirmTime = () => {
 		startTime.value = selectedTime.value
 		timePickerType.value = 'end'
 		selectedTime.value = endTime.value
-		initializeTimeGroupState()
 		uni.showToast({
 			title: '请选择结束时间',
 			icon: 'none'
@@ -2055,6 +2072,13 @@ onMounted(async () => {
 	padding: 0 24rpx 24rpx;
 }
 
+.time-sequence-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16rpx;
+	padding: 8rpx 8rpx 4rpx;
+}
+
 .time-option {
 	padding: 26rpx 18rpx;
 	border-radius: 22rpx;
@@ -2065,6 +2089,10 @@ onMounted(async () => {
 	transition: all 0.3s ease;
 	box-sizing: border-box;
 	min-width: 0;
+}
+
+.sequence-option {
+	padding: 24rpx 16rpx;
 }
 
 .time-option.selected {
