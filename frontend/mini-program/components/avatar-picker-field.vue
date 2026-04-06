@@ -38,7 +38,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { pickCropAndUploadAvatar } from '@/utils/avatar-upload.js'
 import { uploadPublicAvatarImage } from '@/api/user.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 
@@ -105,12 +105,8 @@ const handleChooseAvatar = async () => {
   uploading.value = true
   uni.showLoading({ title: '处理中...' })
   try {
-    const pickedFilePath = await chooseAvatarFile()
-    const compressedFilePath = await compressAvatarFile(pickedFilePath)
-    localPreviewPath.value = compressedFilePath || pickedFilePath
-    const response = await uploadPublicAvatarImage(compressedFilePath || pickedFilePath)
-    const avatarUrl = response?.data?.avatarUrl || response?.data
-    if (!avatarUrl) throw new Error('头像上传失败')
+    const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadPublicAvatarImage)
+    localPreviewPath.value = localFilePath || ''
     emit('update:modelValue', avatarUrl)
     emit('uploaded', avatarUrl)
     uni.showToast({ title: '头像已更新', icon: 'success' })

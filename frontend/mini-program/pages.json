@@ -179,6 +179,14 @@
           }
         },
         {
+          "path": "profile/avatar-crop",
+          "style": {
+            "navigationBarTitleText": "裁剪头像",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
           "path": "profile/edit-escort",
           "style": {
             "navigationBarTitleText": "编辑资料",

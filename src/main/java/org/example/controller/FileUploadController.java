@@ -208,8 +208,9 @@ public class FileUploadController {
     }
 
     private BufferedImage normalizeAvatarImage(BufferedImage sourceImage) {
-        int sourceWidth = sourceImage.getWidth();
-        int sourceHeight = sourceImage.getHeight();
+        BufferedImage squareImage = cropToSquare(sourceImage);
+        int sourceWidth = squareImage.getWidth();
+        int sourceHeight = squareImage.getHeight();
         int longestSide = Math.max(sourceWidth, sourceHeight);
 
         if (longestSide <= AVATAR_MAX_SIDE) {
@@ -218,7 +219,7 @@ public class FileUploadController {
             applyRenderHints(graphics);
             graphics.setColor(Color.WHITE);
             graphics.fillRect(0, 0, sourceWidth, sourceHeight);
-            graphics.drawImage(sourceImage, 0, 0, null);
+            graphics.drawImage(squareImage, 0, 0, null);
             graphics.dispose();
             return target;
         }
@@ -232,7 +233,35 @@ public class FileUploadController {
         applyRenderHints(graphics);
         graphics.setColor(Color.WHITE);
         graphics.fillRect(0, 0, targetWidth, targetHeight);
-        graphics.drawImage(sourceImage, 0, 0, targetWidth, targetHeight, null);
+        graphics.drawImage(squareImage, 0, 0, targetWidth, targetHeight, null);
+        graphics.dispose();
+        return target;
+    }
+
+    private BufferedImage cropToSquare(BufferedImage sourceImage) {
+        int sourceWidth = sourceImage.getWidth();
+        int sourceHeight = sourceImage.getHeight();
+        int squareSize = Math.min(sourceWidth, sourceHeight);
+        int sourceX = Math.max(0, (sourceWidth - squareSize) / 2);
+        int sourceY = Math.max(0, (sourceHeight - squareSize) / 2);
+
+        BufferedImage target = new BufferedImage(squareSize, squareSize, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = target.createGraphics();
+        applyRenderHints(graphics);
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, squareSize, squareSize);
+        graphics.drawImage(
+                sourceImage,
+                0,
+                0,
+                squareSize,
+                squareSize,
+                sourceX,
+                sourceY,
+                sourceX + squareSize,
+                sourceY + squareSize,
+                null
+        );
         graphics.dispose();
         return target;
     }

@@ -53,9 +53,10 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { get, put, upload } from '@/utils/api.js'
+import { get, put } from '@/utils/api.js'
+import { uploadPublicAvatarImage } from '@/api/user.js'
 import { userPlaceholder } from '@/utils/assets.js'
-import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { pickCropAndUploadAvatar } from '@/utils/avatar-upload.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 
 const userStore = useUserStore()
@@ -120,18 +121,15 @@ const chooseAvatar = async () => {
   uploading.value = true
   uni.showLoading({ title: '处理中...' })
   try {
-    const pickedFilePath = await chooseAvatarFile()
-    if (!pickedFilePath) return
-    const compressedFilePath = await compressAvatarFile(pickedFilePath)
-    localAvatarPreview.value = compressedFilePath || pickedFilePath
-    const uploadRes = await upload('/api/common/upload-avatar', compressedFilePath || pickedFilePath, {}, 'file')
+    const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadPublicAvatarImage)
     uni.hideLoading()
-    if (uploadRes.code === 200 && uploadRes.data) {
-      form.avatarUrl = uploadRes.data
-      form.avatar = uploadRes.data
+    if (avatarUrl) {
+      localAvatarPreview.value = localFilePath || ''
+      form.avatarUrl = avatarUrl
+      form.avatar = avatarUrl
       uni.showToast({ title: '头像上传成功', icon: 'success' })
     } else {
-      uni.showToast({ title: uploadRes.message || '头像上传失败', icon: 'none' })
+      uni.showToast({ title: '头像上传失败', icon: 'none' })
     }
   } catch (error) {
     uni.hideLoading()

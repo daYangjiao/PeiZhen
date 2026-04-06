@@ -75,7 +75,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserInfo, updateUserInfo, uploadAvatar } from '@/api/user.js'
 import { userPlaceholder } from '@/utils/assets.js'
-import { chooseAvatarFile, compressAvatarFile } from '@/utils/avatar-upload.js'
+import { pickCropAndUploadAvatar } from '@/utils/avatar-upload.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 
 // 响应式数据
@@ -168,15 +168,11 @@ const chooseAvatar = () => {
 // 上传头像（上传后后端已更新用户 avatar，并已同步到 store）
 const uploadUserAvatar = async () => {
 	try {
-		const pickedFilePath = await chooseAvatarFile()
-		if (!pickedFilePath) return
 		uni.showLoading({ title: '处理中...' })
-		const compressedFilePath = await compressAvatarFile(pickedFilePath)
-		localAvatarPreview.value = compressedFilePath || pickedFilePath
-		const response = await uploadAvatar(compressedFilePath)
+		const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadAvatar)
 		uni.hideLoading()
-		const avatarUrl = response?.data?.avatarUrl || response?.data
 		if (avatarUrl) {
+			localAvatarPreview.value = localFilePath || ''
 			userForm.value.avatar = avatarUrl
 			originalUserData.value.avatar = avatarUrl
 			avatarUploadedThisEdit.value = true
