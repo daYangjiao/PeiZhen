@@ -371,18 +371,38 @@ onUnload(() => {
 .ghost-btn {
   @include user-ghost-btn(88rpx);
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  text-align: center;
+  line-height: 1;
   font-size: 28rpx;
   font-weight: 600;
   border-radius: 26rpx;
+
+  &::after {
+    border: none;
+  }
 }
 
 .primary-btn {
   @include user-primary-btn;
   width: 100%;
   height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  text-align: center;
+  line-height: 1;
   font-size: 28rpx;
   font-weight: 700;
   border-radius: 26rpx;
+
+  &::after {
+    border: none;
+  }
 }
 
 .hidden-canvas {
