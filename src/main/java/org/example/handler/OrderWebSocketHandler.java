@@ -62,6 +62,20 @@ public class OrderWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    public void broadcastMessage(String message) {
+        userSessions.forEach((userId, session) -> {
+            if (session == null || !session.isOpen()) {
+                return;
+            }
+            try {
+                session.sendMessage(new TextMessage(message));
+                logger.info("广播订单消息成功, userId={}, message={}", userId, message);
+            } catch (IOException e) {
+                logger.error("广播订单消息失败, userId={}", userId, e);
+            }
+        });
+    }
+
     private String getUserIdFromSession(WebSocketSession session) {
         Object currentUserId = session.getAttributes().get("currentUserId");
         return currentUserId == null ? null : String.valueOf(currentUserId);

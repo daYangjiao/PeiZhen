@@ -139,17 +139,8 @@ public class OrderServiceImpl implements OrderService {
                 orderId, order.getOrderStatus(), attendantUser.getName());
 
         // 只有在数据库更新成功后才发送通知
-        try {
-            // 发送 WebSocket 消息给用户
-            String orderAcceptedMessage = String.format("{\"type\":\"ORDER_ACCEPTED\",\"orderId\":%d,\"attendantName\":\"%s\"}",
-                                          orderId, attendantUser.getName());
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), orderAcceptedMessage);
-            
-            log.info("已向用户 {} 发送接单通知", order.getUserId());
-        } catch (Exception e) {
-            log.error("发送订单状态 WebSocket 消息失败，但不影响主流程", e);
-            // WebSocket发送失败不应该影响主流程，继续执行
-        }
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+        broadcastWaitingOrderUpdate(order);
 
         try {
             // 插入系统消息（serviceDate 为 String 如 "2026-02-22"，需解析后格式化）
@@ -208,12 +199,7 @@ try {
         orderMapper.updateByPrimaryKeySelective(order);
 
         // 发送 WebSocket 消息
-        try {
-            String message = String.format("{\"type\":\"SERVICE_STARTED\",\"orderId\":%d}", orderId);
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), message);
-        } catch (Exception e) {
-            log.error("发送服务开始 WebSocket 消息失败", e);
-        }
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         // 插入系统消息（用户）
         String msgContent = "您的订单No." + order.getOrderNo() + "服务已开始。陪诊师已到达指定位置，请准备就诊。";
@@ -285,12 +271,7 @@ try {
         orderMapper.updateByPrimaryKeySelective(order);
 
         // 通知用户：服务已结束，请确认时长和费用
-        try {
-            String message = String.format("{\"type\":\"SERVICE_COMPLETED\",\"orderId\":%d}", orderId);
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), message);
-        } catch (Exception e) {
-            log.error("发送服务结束 WebSocket 消息失败", e);
-        }
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         String msgContent = "您的陪诊服务(订单No." + order.getOrderNo() + ")已结束，请确认本次服务时长和费用（多退少补）。";
         sendSystemMessage(order.getUserId(), msgContent);
@@ -314,16 +295,7 @@ try {
         orderMapper.updateByPrimaryKeySelective(order);
 
         // 通过 WebSocket 通知用户和陪诊师，便于前端实时刷新
-        try {
-            String wsMsg = String.format("{\"type\":\"SERVICE_PROGRESS_UPDATED\",\"orderId\":%d,\"step\":%d}",
-                    orderId, step);
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            if (order.getAttendantId() != null) {
-                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
-            }
-        } catch (Exception e) {
-            log.error("发送服务进度 WebSocket 消息失败, orderId={}", orderId, e);
-        }
+        publishOrderEvent(order, "SERVICE_PROGRESS_UPDATED", null, step, true, true);
 
         return "服务进度已更新";
     }
@@ -355,16 +327,7 @@ try {
         sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，订单已完成。");
 
         // 通过 WebSocket 推送订单状态变更（方便前端实时刷新列表和详情）
-        try {
-            String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderStatus\":6}",
-                    orderId);
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            if (order.getAttendantId() != null) {
-                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
-            }
-        } catch (Exception e) {
-            log.error("发送订单完成状态 WebSocket 消息失败, orderId={}", orderId, e);
-        }
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         return "确认成功，订单已完成";
     }
@@ -387,16 +350,7 @@ try {
                 "用户对订单 " + order.getOrderNo() + " 的服务时长与费用提出异议，请关注平台处理结果。");
 
         // WebSocket 推送争议状态，前端可实时更新为“时长费用有争议”
-        try {
-            String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderStatus\":5}",
-                    orderId);
-            webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            if (order.getAttendantId() != null) {
-                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
-            }
-        } catch (Exception e) {
-            log.error("发送订单争议状态 WebSocket 消息失败, orderId={}", orderId, e);
-        }
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         return "申诉已提交，等待平台处理";
     }
@@ -423,15 +377,14 @@ try {
                 log.error("释放订单回接单大厅失败，orderId={}", orderId);
                 return "操作失败，请重试";
             }
-            String userMsg = "您的订单" + order.getOrderNo() + "因陪诊师取消已重新进入接单大厅，将为您重新匹配合诊师。取消原因：" + reason.trim();
-            sendSystemMessage(order.getUserId(), userMsg);
-            try {
-                String wsMsg = String.format("{\"type\":\"ORDER_RELEASED_BY_ATTENDANT\",\"orderId\":%d,\"orderNo\":\"%s\",\"reason\":\"%s\"}",
-                        orderId, order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "", reason.trim().replace("\"", "\\\""));
-                webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            } catch (Exception e) {
-                log.error("发送订单释放 WebSocket 消息失败", e);
-            }
+            order.setOrderStatus(1);
+            notifyOrderParties(
+                    order,
+                    "您的订单" + order.getOrderNo() + "因陪诊师取消已重新进入接单大厅，将为您重新匹配陪诊师。取消原因：" + reason.trim(),
+                    "您已取消订单 " + order.getOrderNo() + "，订单已重新进入接单大厅。"
+            );
+            publishOrderEvent(order, "ORDER_RELEASED_BY_ATTENDANT", reason.trim(), null, true, true);
+            broadcastWaitingOrderUpdate(order);
             return "订单已释放回接单大厅，将重新为您匹配合诊师";
         }
 
@@ -448,18 +401,60 @@ try {
         order.setPenaltyAmount(finalPenalty);
         order.setRefundAmount(finalRefund);
         orderMapper.updateByPrimaryKeySelective(order);
+        notifyOrderParties(
+                order,
+                "您的订单" + order.getOrderNo() + "已取消。取消原因：" + reason.trim(),
+                "订单 " + order.getOrderNo() + " 已取消。取消原因：" + reason.trim()
+        );
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
         return "订单已取消";
     }
 
     @Override
     public void notifyUserOrderCancelled(Order order) {
-        if (order == null || order.getUserId() == null) {
-            return;
-        }
         String reason = order.getCancelReason() != null ? order.getCancelReason() : "订单已取消";
-        String msg = "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "")
-                + "已取消。取消原因：" + reason;
-        sendSystemMessage(order.getUserId(), msg);
+        notifyOrderParties(order,
+                "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + "已取消。取消原因：" + reason,
+                null);
+    }
+
+    @Override
+    public void notifyOrderParties(Order order, String userMessage, String attendantMessage) {
+        if (order == null) return;
+        if (order.getUserId() != null && userMessage != null && !userMessage.trim().isEmpty()) {
+            sendSystemMessage(order.getUserId(), userMessage.trim());
+        }
+        if (order.getAttendantId() != null && attendantMessage != null && !attendantMessage.trim().isEmpty()) {
+            sendSystemMessage(order.getAttendantId(), attendantMessage.trim());
+        }
+    }
+
+    @Override
+    public void publishOrderEvent(Order order, String eventType, String reason, Integer step,
+                                  boolean notifyUser, boolean notifyAttendant) {
+        if (order == null || eventType == null || eventType.trim().isEmpty()) return;
+        String wsMsg = buildOrderEventPayload(order, eventType.trim(), reason, step);
+        try {
+            if (notifyUser && order.getUserId() != null) {
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            }
+            if (notifyAttendant && order.getAttendantId() != null) {
+                webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
+            }
+        } catch (Exception e) {
+            log.error("发送订单实时事件失败, orderId={}, type={}", order.getOrderId(), eventType, e);
+        }
+    }
+
+    @Override
+    public void broadcastWaitingOrderUpdate(Order order) {
+        if (order == null) return;
+        try {
+            String wsMsg = buildOrderEventPayload(order, "WAITING_ORDER_UPDATED", null, null);
+            webSocketHandler.broadcastMessage(wsMsg);
+        } catch (Exception e) {
+            log.error("广播待接单大厅事件失败, orderId={}", order.getOrderId(), e);
+        }
     }
 
     /**
@@ -500,6 +495,35 @@ try {
         } catch (Exception e) {
             log.error("发送系统消息失败", e);
         }
+    }
+
+    private String buildOrderEventPayload(Order order, String eventType, String reason, Integer step) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\"type\":\"").append(escapeJson(eventType)).append("\"");
+        if (order.getOrderId() != null) {
+            builder.append(",\"orderId\":").append(order.getOrderId());
+        }
+        if (order.getOrderNo() != null && !order.getOrderNo().trim().isEmpty()) {
+            builder.append(",\"orderNo\":\"").append(escapeJson(order.getOrderNo())).append("\"");
+        }
+        if (order.getOrderStatus() != null) {
+            builder.append(",\"orderStatus\":").append(order.getOrderStatus());
+        }
+        if (step != null) {
+            builder.append(",\"step\":").append(step);
+        }
+        if (reason != null && !reason.trim().isEmpty()) {
+            builder.append(",\"reason\":\"").append(escapeJson(reason.trim())).append("\"");
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) return "";
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 
     @Override

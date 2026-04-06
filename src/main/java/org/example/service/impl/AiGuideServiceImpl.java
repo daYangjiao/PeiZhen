@@ -5,7 +5,6 @@ import org.example.dao.GuideAppointmentMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
 import org.example.exception.AppointmentValidationException;
-import org.example.handler.OrderWebSocketHandler;
 import org.example.model.*;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.response.AppointmentResponse;
@@ -14,6 +13,7 @@ import org.example.model.response.CompleteOrderInfoResponse;
 import org.example.model.response.SimpleOrderDetailResponse;
 import org.example.service.AiGuideService;
 import org.example.service.AttendantService;
+import org.example.service.OrderService;
 import org.example.unity.ServiceFeeCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public class AiGuideServiceImpl implements AiGuideService {
     private AttendantService attendantService;
 
     @Autowired
-    private OrderWebSocketHandler orderWebSocketHandler;
+    private OrderService orderService;
 
     @Override
     @Transactional
@@ -148,16 +148,9 @@ public class AiGuideServiceImpl implements AiGuideService {
             }
         }
         orderMapper.updateByPrimaryKeySelective(order);
-        if (orderStatusChanged && order.getUserId() != null) {
-            try {
-                String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderNo\":\"%s\",\"orderStatus\":%d}",
-                        order.getOrderId(),
-                        order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "",
-                        order.getOrderStatus());
-                orderWebSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            } catch (Exception e) {
-                logger.error("支付成功后发送订单状态 WebSocket 失败, orderNo={}", orderNo, e);
-            }
+        if (orderStatusChanged) {
+            orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, false);
+            orderService.broadcastWaitingOrderUpdate(order);
         }
     }
 

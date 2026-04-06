@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onHide } from '@dcloudio/uni-app'
 import OrderCard from '@/components/order-card.vue'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get, post } from '@/utils/api.js'
@@ -135,6 +135,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -174,6 +175,9 @@ const filterDurationIndex = ref(0)
 const filterFeeIndex = ref(0)
 const expandWhich = ref(null)
 let localOrderUpdatedListener = null
+let socketListener = null
+let pageActive = false
+let queuedSilentRefresh = false
 
 const filterParams = ref({
 	serviceType: null,
@@ -223,15 +227,21 @@ const formatOrderData = (raw) => {
 	}
 }
 
-const loadOrders = async (reset = false) => {
-	if (isLoading.value) return
+const loadOrders = async ({ reset = false, silent = false } = {}) => {
+	if (isLoading.value) {
+		if (reset && silent) queuedSilentRefresh = true
+		return
+	}
 	if (!reset && !hasMore.value) return
 	if (reset) {
 		page.value = 0
 		hasMore.value = true
-		orderList.value = []
+		if (!silent) {
+			orderList.value = []
+		}
 	}
-	isLoading.value = true
+	if (silent) isRefreshing.value = true
+	else isLoading.value = true
 	try {
 		const params = { page: page.value, size: pageSize }
 		if (filterParams.value.serviceType != null) params.serviceType = filterParams.value.serviceType
@@ -272,6 +282,10 @@ const loadOrders = async (reset = false) => {
 	} finally {
 		isLoading.value = false
 		isRefreshing.value = false
+		if (queuedSilentRefresh && pageActive) {
+			queuedSilentRefresh = false
+			loadOrders({ reset: true, silent: true })
+		}
 	}
 }
 
@@ -292,7 +306,7 @@ const onRefresh = async () => {
 	const startTs = Date.now()
 	beginRefreshVisual()
 	isRefreshing.value = true
-	await loadOrders(true)
+	await loadOrders({ reset: true })
 	endRefreshVisual(startTs)
 }
 
@@ -302,7 +316,7 @@ const refreshOrders = () => {
 }
 const loadMore = () => {
 	if (isRefreshing.value || isLoading.value || !hasMore.value) return
-	loadOrders()
+	loadOrders({})
 }
 
 // 查看详情：陪诊师端从大厅进入“陪诊师专用订单详情”
@@ -331,7 +345,7 @@ const handleAccept = (actionData) => {
 				const response = await post(`/attendant/orders/${order.id}/accept?attendantId=${attendantInfo.id}`)
 				if (response.code === 200) {
 					uni.showToast({ title: '接单成功', icon: 'success' })
-					loadOrders(true)
+					loadOrders({ reset: true, silent: true })
 				} else {
 					uni.showToast({ title: response.message || '接单失败', icon: 'none' })
 				}
@@ -363,27 +377,56 @@ const confirmFilter = () => {
 	}
 	showFilterPopup.value = false
 	expandWhich.value = null
-	loadOrders(true)
+	loadOrders({ reset: true })
+}
+
+const handleOrderSocketMessage = (message) => {
+	if (!pageActive || !message) return
+	if (String(message.type || '').toUpperCase() !== 'WAITING_ORDER_UPDATED') return
+	setTimeout(() => {
+		loadOrders({ reset: true, silent: true })
+	}, 600)
 }
 
 onMounted(() => {
-	loadOrders(true)
+	setupOrderSocketListener()
+	loadOrders({ reset: true })
 	localOrderUpdatedListener = (payload) => {
 		if (payload && payload.action === 'released') {
-			loadOrders(true)
+			loadOrders({ reset: true, silent: true })
 		}
 	}
 	uni.$on('escort-order-updated', localOrderUpdatedListener)
 })
 onShow(() => {
 	if (redirectPublicSafeToHome()) return
+	pageActive = true
 	ensureRole('escort')
+	connectOrderSocket()
+	if (orderList.value.length > 0) {
+		loadOrders({ reset: true, silent: true })
+	}
+})
+onHide(() => {
+	pageActive = false
 })
 onUnmounted(() => {
 	if (localOrderUpdatedListener) {
 		uni.$off('escort-order-updated', localOrderUpdatedListener)
 	}
+	if (socketListener) {
+		removeOrderListener(socketListener)
+		socketListener = null
+	}
 })
+
+const setupOrderSocketListener = () => {
+	if (socketListener) {
+		removeOrderListener(socketListener)
+	}
+	socketListener = handleOrderSocketMessage
+	addOrderListener(socketListener)
+}
 </script>
 
 <style lang="scss" scoped>

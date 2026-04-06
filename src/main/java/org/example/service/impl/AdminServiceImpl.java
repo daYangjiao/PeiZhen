@@ -285,6 +285,7 @@ public class AdminServiceImpl implements AdminService {
                 : (order.getPaymentStatus() != null && order.getPaymentStatus() == 1
                 ? (order.getOrderAmount() == null ? BigDecimal.ZERO : order.getOrderAmount())
                 : BigDecimal.ZERO);
+        Integer previousStatus = order.getOrderStatus();
 
         Order patch = new Order();
         patch.setOrderId(orderId);
@@ -299,7 +300,24 @@ public class AdminServiceImpl implements AdminService {
             patch.setAdminRemark(trim(request.getAdminRemark()));
         }
         orderMapper.updateByPrimaryKeySelective(patch);
-        orderService.notifyUserOrderCancelled(orderMapper.selectByPrimaryKey(orderId));
+        order.setOrderStatus(7);
+        order.setCancelBy(2);
+        order.setCancelReason(reason);
+        order.setCancelTime(patch.getCancelTime());
+        order.setPenaltyAmount(BigDecimal.ZERO);
+        order.setPenaltyRate(BigDecimal.ZERO);
+        order.setRefundAmount(refundAmount);
+        orderService.notifyOrderParties(
+                order,
+                "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + "已取消。取消原因：" + reason,
+                order.getAttendantId() != null
+                        ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 已被管理员取消。取消原因：" + reason
+                        : null
+        );
+        orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+        if (previousStatus != null && previousStatus == 1) {
+            orderService.broadcastWaitingOrderUpdate(order);
+        }
     }
 
     @Override
@@ -330,6 +348,18 @@ public class AdminServiceImpl implements AdminService {
             patch.setAdminRemark(trim(request.getAdminRemark()));
         }
         orderMapper.updateByPrimaryKeySelective(patch);
+        order.setActualDuration(finalDuration);
+        order.setOrderAmount(finalAmount.setScale(2, RoundingMode.HALF_UP));
+        order.setBalanceAmount(finalAmount.subtract(currentAmount).setScale(2, RoundingMode.HALF_UP));
+        order.setOrderStatus(6);
+        orderService.notifyOrderParties(
+                order,
+                "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。",
+                order.getAttendantId() != null
+                        ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。"
+                        : null
+        );
+        orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
     }
 
     private List<AdminOrderListItemResponse> loadRecentUserOrders(Integer userId) {

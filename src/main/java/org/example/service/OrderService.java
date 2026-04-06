@@ -49,6 +49,13 @@ public interface OrderService {
      */
     void notifyUserOrderCancelled(Order order);
 
+    void notifyOrderParties(Order order, String userMessage, String attendantMessage);
+
+    void publishOrderEvent(Order order, String eventType, String reason, Integer step,
+                           boolean notifyUser, boolean notifyAttendant);
+
+    void broadcastWaitingOrderUpdate(Order order);
+
     PagedResponse<OrderListResponse> getUserOrdersWithPagination(Integer userId, OrderListQueryRequest queryRequest);
 
     PagedResponse<OrderListResponse> getAllOrdersWithPagination(OrderListQueryRequest queryRequest);

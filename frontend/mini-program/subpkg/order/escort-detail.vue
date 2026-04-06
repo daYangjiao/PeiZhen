@@ -1207,16 +1207,31 @@ export default {
 			return `${num.toFixed(1).replace(/\.0$/, '')}小时`
 		},
 		handleSocketMessage(message) {
-			const isCurrentOrder = message.orderId === this.orderInfo.id || 
-			                      message.orderNo === this.orderInfo.orderNo ||
-			                      (message.data && (message.data.orderId === this.orderInfo.id || message.data.orderNo === this.orderInfo.orderNo))
-			if (isCurrentOrder && (message.type === 'SERVICE_STARTED' || 
-			                       message.type === 'SERVICE_COMPLETED' ||
-			                       message.type === 'ORDER_STATUS_CHANGED')) {
-				setTimeout(() => {
-					this.loadOrderDetail(this.orderInfo.id)
-				}, 1000)
-			}
+			if (!message || !this.orderInfo) return
+			const payload = message.data && typeof message.data === 'object' ? message.data : {}
+			const isCurrentOrder = message.orderId === this.orderInfo.id ||
+				message.orderNo === this.orderInfo.orderNo ||
+				payload.orderId === this.orderInfo.id ||
+				payload.orderNo === this.orderInfo.orderNo
+			const type = String(message.type || message.eventType || payload.type || '').toUpperCase()
+			const relatedTypes = [
+				'SERVICE_STARTED',
+				'SERVICE_COMPLETED',
+				'ORDER_STATUS_CHANGED',
+				'ORDER_RELEASED_BY_ATTENDANT',
+				'SERVICE_PROGRESS_UPDATED',
+				'SERVICE_PROGRESS_CHANGED',
+				'ORDER_UPDATED',
+				'ORDER_CANCELLED',
+				'ORDER_FINISHED',
+				'TIME_FEE_CONFIRMED',
+				'TIME_FEE_DISPUTED',
+				'BALANCE_PAYMENT_REQUIRED'
+			]
+			if (!isCurrentOrder || !relatedTypes.includes(type)) return
+			setTimeout(() => {
+				this.loadOrderDetail(this.orderInfo.id)
+			}, 1000)
 		},
 		setupWebSocketListener() {
 			this.socketListener = this.handleSocketMessage.bind(this)

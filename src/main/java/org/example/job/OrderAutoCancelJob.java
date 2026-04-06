@@ -2,7 +2,6 @@ package org.example.job;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.dao.OrderMapper;
-import org.example.handler.OrderWebSocketHandler;
 import org.example.model.Order;
 import org.example.service.OrderService;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,12 +21,10 @@ public class OrderAutoCancelJob {
 
     private final OrderMapper orderMapper;
     private final OrderService orderService;
-    private final OrderWebSocketHandler webSocketHandler;
 
-    public OrderAutoCancelJob(OrderMapper orderMapper, OrderService orderService, OrderWebSocketHandler webSocketHandler) {
+    public OrderAutoCancelJob(OrderMapper orderMapper, OrderService orderService) {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
-        this.webSocketHandler = webSocketHandler;
     }
 
     @Scheduled(fixedDelay = 60_000) // 每分钟扫描一次
@@ -69,19 +66,7 @@ public class OrderAutoCancelJob {
                 order.setCancelBy(2);
                 orderService.notifyUserOrderCancelled(order);
 
-                // WebSocket 推送订单状态变更，前端实时刷新列表/详情
-                try {
-                    String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderStatus\":7}",
-                            order.getOrderId());
-                    if (order.getUserId() != null) {
-                        webSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-                    }
-                    if (order.getAttendantId() != null) {
-                        webSocketHandler.sendMessageToUser(String.valueOf(order.getAttendantId()), wsMsg);
-                    }
-                } catch (Exception e) {
-                    log.error("自动取消订单后发送 WebSocket 失败, orderId={}", order.getOrderId(), e);
-                }
+                orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
                 log.info("自动取消超时未支付订单成功, orderId={}, orderNo={}", order.getOrderId(), order.getOrderNo());
             } catch (Exception e) {
@@ -90,4 +75,3 @@ public class OrderAutoCancelJob {
         }
     }
 }
-

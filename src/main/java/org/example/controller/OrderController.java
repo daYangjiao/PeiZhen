@@ -8,7 +8,6 @@ import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
-import org.example.handler.OrderWebSocketHandler;
 import org.example.model.Order;
 import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.OrderListResponse;
@@ -29,7 +28,6 @@ import javax.validation.Valid;
 public class OrderController {
 
     private final OrderService orderService;
-    private final OrderWebSocketHandler orderWebSocketHandler;
 
     @PostMapping
     @ApiOperation(value = "创建订单", notes = "用户提交订单请求创建新订单。userId 从当前登录态自动注入，请求体无需传 userId。")
@@ -208,6 +206,7 @@ public class OrderController {
             java.math.BigDecimal finalRate = penaltyRate != null ? penaltyRate : java.math.BigDecimal.ZERO;
             java.math.BigDecimal finalPenalty = penaltyAmount != null ? penaltyAmount : orderAmount.multiply(finalRate);
             java.math.BigDecimal finalRefund = refundAmount != null ? refundAmount : orderAmount;
+            Integer previousStatus = order.getOrderStatus();
             order.setOrderStatus(7); // 已取消
             order.setCancelReason(reason != null ? reason.trim() : null);
             order.setCancelTime(new java.util.Date());
@@ -216,16 +215,18 @@ public class OrderController {
             order.setPenaltyAmount(finalPenalty);
             order.setRefundAmount(finalRefund);
             orderService.updateOrder(order);
-            // 发送系统消息通知用户订单已取消
-            orderService.notifyUserOrderCancelled(order);
-            try {
-                String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderNo\":\"%s\",\"orderStatus\":%d}",
-                        order.getOrderId(),
-                        order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "",
-                        order.getOrderStatus());
-                orderWebSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
-            } catch (Exception e) {
-                log.error("用户取消订单后发送订单状态 WebSocket 失败, orderId={}", orderId, e);
+            orderService.notifyOrderParties(
+                    order,
+                    "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + "已取消。取消原因："
+                            + (order.getCancelReason() != null ? order.getCancelReason() : "订单已取消"),
+                    order.getAttendantId() != null
+                            ? "用户已取消订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + "。取消原因："
+                            + (order.getCancelReason() != null ? order.getCancelReason() : "订单已取消")
+                            : null
+            );
+            orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+            if (previousStatus != null && previousStatus == 1) {
+                orderService.broadcastWaitingOrderUpdate(order);
             }
             return ResponseResult.success("订单已取消");
         } catch (Exception e) {
