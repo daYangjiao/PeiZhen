@@ -1,7 +1,6 @@
 <template>
   <view class="page">
     <view class="hero">
-      <text class="title">裁剪头像</text>
       <text class="tip">请拖动并缩放图片，裁剪为正方形头像</text>
     </view>
 
@@ -96,25 +95,25 @@ const resolveCropBoxSize = () => {
   const systemInfo = uni.getSystemInfoSync()
   const safeBottom = systemInfo.safeAreaInsets?.bottom || 0
   const horizontalPadding = rpxToPx(56)
-  const cropShellInnerPadding = rpxToPx(40)
-  const pageVerticalPadding = rpxToPx(44) + rpxToPx(24) + safeBottom
-  const heroHeightBudget = rpxToPx(136)
-  const hintHeightBudget = rpxToPx(56)
-  const actionHeightBudget = rpxToPx(104)
-  const actionGapBudget = rpxToPx(20)
+  const cropShellInnerPadding = rpxToPx(32)
+  const pageVerticalPadding = rpxToPx(20) + rpxToPx(20) + safeBottom
+  const navigationHeightBudget = rpxToPx(88)
+  const heroHeightBudget = rpxToPx(52)
+  const hintHeightBudget = rpxToPx(44)
+  const actionHeightBudget = rpxToPx(96)
+  const actionGapBudget = rpxToPx(16)
 
   const widthBudget = systemInfo.windowWidth - horizontalPadding - cropShellInnerPadding
   const heightBudget =
     systemInfo.windowHeight -
+    navigationHeightBudget -
     pageVerticalPadding -
     heroHeightBudget -
     hintHeightBudget -
     actionHeightBudget -
     actionGapBudget -
     cropShellInnerPadding
-
-  const minSize = rpxToPx(320)
-  return Math.min(widthBudget, Math.max(minSize, heightBudget))
+  return Math.max(rpxToPx(200), Math.min(widthBudget, heightBudget))
 }
 
 const getDisplaySize = () => ({
@@ -294,8 +293,8 @@ onUnload(() => {
 .page {
   @include user-page;
   min-height: 100vh;
-  padding: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
-  padding: 20rpx 28rpx calc(24rpx + constant(safe-area-inset-bottom));
+  padding: 16rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 24rpx calc(20rpx + constant(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -303,27 +302,19 @@ onUnload(() => {
 }
 
 .hero {
-  padding: 6rpx 6rpx 16rpx;
-}
-
-.title {
-  display: block;
-  font-size: 36rpx;
-  line-height: 1.2;
-  font-weight: 700;
-  color: $user-color-text-main;
-  margin-bottom: 6rpx;
+  padding: 2rpx 4rpx 10rpx;
 }
 
 .tip {
   display: block;
   font-size: 22rpx;
-  line-height: 1.5;
+  line-height: 1.4;
   color: $user-color-text-sub;
+  text-align: center;
 }
 
 .crop-shell {
-  @include user-card(20rpx);
+  @include user-card(16rpx);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -358,36 +349,40 @@ onUnload(() => {
 }
 
 .hint-row {
-  padding: 14rpx 8rpx 0;
+  padding: 10rpx 6rpx 0;
 }
 
 .hint-text {
   display: block;
-  font-size: 22rpx;
-  line-height: 1.5;
+  font-size: 20rpx;
+  line-height: 1.4;
   color: $user-color-text-sub;
   text-align: center;
 }
 
 .action-row {
-  padding-top: 20rpx;
+  padding-top: 16rpx;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
+  gap: 16rpx;
   flex-shrink: 0;
 }
 
 .ghost-btn {
-  @include user-ghost-btn(84rpx);
+  @include user-ghost-btn(88rpx);
+  width: 100%;
   font-size: 28rpx;
   font-weight: 600;
+  border-radius: 26rpx;
 }
 
 .primary-btn {
   @include user-primary-btn;
-  height: 84rpx;
+  width: 100%;
+  height: 88rpx;
   font-size: 28rpx;
   font-weight: 700;
+  border-radius: 26rpx;
 }
 
 .hidden-canvas {
