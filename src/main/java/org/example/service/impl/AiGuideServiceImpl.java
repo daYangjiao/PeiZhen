@@ -5,6 +5,7 @@ import org.example.dao.GuideAppointmentMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
 import org.example.exception.AppointmentValidationException;
+import org.example.handler.OrderWebSocketHandler;
 import org.example.model.*;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.response.AppointmentResponse;
@@ -47,6 +48,9 @@ public class AiGuideServiceImpl implements AiGuideService {
 
     @Autowired
     private AttendantService attendantService;
+
+    @Autowired
+    private OrderWebSocketHandler orderWebSocketHandler;
 
     @Override
     @Transactional
@@ -133,15 +137,28 @@ public class AiGuideServiceImpl implements AiGuideService {
         if (order == null) return;
 
         order.setPaymentStatus(paymentStatus);
+        boolean orderStatusChanged = false;
         if (paymentStatus == 1) {
             order.setPaymentTime(new Date());
             if (order.getOrderStatus() == 0) {
                 order.setOrderStatus(1);
+                orderStatusChanged = true;
                 // 支付成功时发送系统消息（仅当订单状态从0变为1时）
                 sendSystemMessage(order.getUserId(), "恭喜您!订单No." + orderNo + "支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。");
             }
         }
         orderMapper.updateByPrimaryKeySelective(order);
+        if (orderStatusChanged && order.getUserId() != null) {
+            try {
+                String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderNo\":\"%s\",\"orderStatus\":%d}",
+                        order.getOrderId(),
+                        order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "",
+                        order.getOrderStatus());
+                orderWebSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            } catch (Exception e) {
+                logger.error("支付成功后发送订单状态 WebSocket 失败, orderNo={}", orderNo, e);
+            }
+        }
     }
 
     @Override

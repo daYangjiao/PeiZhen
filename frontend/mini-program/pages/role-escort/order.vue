@@ -34,12 +34,12 @@
     </view>
 
     <view class="content-wrapper">
-      <view v-if="loading" class="loading-state">
+      <view v-if="initialLoading" class="loading-state">
         <text class="loading-text">加载中...</text>
       </view>
 
       <scroll-view class="order-list" scroll-y>
-        <view v-if="!loading && filteredOrders.length > 0" class="order-container">
+        <view v-if="!initialLoading && filteredOrders.length > 0" class="order-container">
           <view
             v-for="order in filteredOrders"
             :key="order.orderId"
@@ -87,7 +87,7 @@
           </view>
         </view>
 
-        <view v-else-if="!loading" class="empty-state">
+        <view v-else-if="!initialLoading" class="empty-state">
           <image class="empty-icon" src="/static/order.png" mode="aspectFit"></image>
           <text class="empty-text">暂无相关订单</text>
         </view>
@@ -100,10 +100,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onHide } from '@dcloudio/uni-app'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get } from '@/utils/api.js'
-import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
@@ -123,40 +123,60 @@ const statusTabs = ref([
 
 const activeStatus = ref(null)
 const orders = ref([])
-const loading = ref(false)
+const initialLoading = ref(false)
+const isRefreshing = ref(false)
 let socketListener = null
 let pollTimer = null
 let localOrderUpdatedListener = null
+let pageActive = false
+let queuedReload = false
+let queuedReloadSilent = true
 
 onMounted(() => {
-  loadOrders()
   setupWebSocketListener()
   setupLocalOrderUpdatedListener()
-  startPolling()
 })
 
 onShow(() => {
   if (redirectPublicSafeToHome()) return
+  pageActive = true
   if (ensureRole('escort')) {
-    loadOrders()
+    connectOrderSocket()
+    loadOrders({ silent: orders.value.length > 0 })
+    startPolling()
   }
+})
+
+onHide(() => {
+  pageActive = false
+  stopPolling()
 })
 
 const switchTab = (status) => {
   activeStatus.value = status
-  loadOrders()
+  loadOrders({ silent: orders.value.length > 0 })
 }
 
 const handleSearch = () => {}
 
-const loadOrders = async () => {
+const isOrderListLoading = () => initialLoading.value || isRefreshing.value
+
+const loadOrders = async ({ silent = false } = {}) => {
   const userInfo = uni.getStorageSync('userInfo')
   if (!userInfo || !userInfo.id) {
     orders.value = []
     return
   }
 
-  loading.value = true
+  if (isOrderListLoading()) {
+    queuedReload = true
+    queuedReloadSilent = queuedReloadSilent && silent
+    return
+  }
+
+  const useSilentRefresh = silent && orders.value.length > 0
+  if (useSilentRefresh) isRefreshing.value = true
+  else initialLoading.value = true
   try {
     const params = { attendantId: userInfo.id, page: 0, size: 200 }
     if (activeStatus.value !== null) params.orderStatus = activeStatus.value
@@ -174,7 +194,17 @@ const loadOrders = async () => {
     console.error('获取陪诊师订单失败:', e)
     orders.value = []
   } finally {
-    loading.value = false
+    initialLoading.value = false
+    isRefreshing.value = false
+    if (queuedReload && pageActive) {
+      const nextSilent = queuedReloadSilent
+      queuedReload = false
+      queuedReloadSilent = true
+      loadOrders({ silent: nextSilent })
+    } else {
+      queuedReload = false
+      queuedReloadSilent = true
+    }
   }
 }
 
@@ -228,6 +258,7 @@ const goToDetail = (order) => {
 }
 
 const handleSocketMessage = (message) => {
+  if (!pageActive) return
   if (
     message.type === 'NEW_ORDER' ||
     message.type === 'ORDER_ACCEPTED' ||
@@ -236,32 +267,45 @@ const handleSocketMessage = (message) => {
     message.type === 'ORDER_STATUS_CHANGED' ||
     message.type === 'ORDER_RELEASED_BY_ATTENDANT'
   ) {
-    setTimeout(() => loadOrders(), 1000)
+    setTimeout(() => loadOrders({ silent: true }), 700)
   }
 }
 
 const setupWebSocketListener = () => {
-  if (socketListener) removeChatListener(socketListener)
+  if (socketListener) removeOrderListener(socketListener)
   socketListener = handleSocketMessage
-  addChatListener(socketListener)
+  addOrderListener(socketListener)
 }
 
 const setupLocalOrderUpdatedListener = () => {
   if (localOrderUpdatedListener) uni.$off('escort-order-updated', localOrderUpdatedListener)
   localOrderUpdatedListener = () => {
-    loadOrders()
+    loadOrders({ silent: true })
   }
   uni.$on('escort-order-updated', localOrderUpdatedListener)
 }
 
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
 const startPolling = () => {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(() => loadOrders(), 15000)
+  stopPolling()
+  pollTimer = setInterval(() => {
+    if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
+    const shouldPoll = orders.value.some((order) => [2, 3, 4, 5].includes(normalizeStatus(order.orderStatus)))
+    if (shouldPoll) {
+      loadOrders({ silent: true })
+    }
+  }, 30000)
 }
 
 onUnmounted(() => {
-  if (socketListener) removeChatListener(socketListener)
-  if (pollTimer) clearInterval(pollTimer)
+  if (socketListener) removeOrderListener(socketListener)
+  stopPolling()
   if (localOrderUpdatedListener) uni.$off('escort-order-updated', localOrderUpdatedListener)
 })
 </script>

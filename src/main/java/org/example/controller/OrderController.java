@@ -8,6 +8,7 @@ import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
+import org.example.handler.OrderWebSocketHandler;
 import org.example.model.Order;
 import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.OrderListResponse;
@@ -28,6 +29,7 @@ import javax.validation.Valid;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderWebSocketHandler orderWebSocketHandler;
 
     @PostMapping
     @ApiOperation(value = "创建订单", notes = "用户提交订单请求创建新订单。userId 从当前登录态自动注入，请求体无需传 userId。")
@@ -216,6 +218,15 @@ public class OrderController {
             orderService.updateOrder(order);
             // 发送系统消息通知用户订单已取消
             orderService.notifyUserOrderCancelled(order);
+            try {
+                String wsMsg = String.format("{\"type\":\"ORDER_STATUS_CHANGED\",\"orderId\":%d,\"orderNo\":\"%s\",\"orderStatus\":%d}",
+                        order.getOrderId(),
+                        order.getOrderNo() != null ? order.getOrderNo().replace("\"", "\\\"") : "",
+                        order.getOrderStatus());
+                orderWebSocketHandler.sendMessageToUser(String.valueOf(order.getUserId()), wsMsg);
+            } catch (Exception e) {
+                log.error("用户取消订单后发送订单状态 WebSocket 失败, orderId={}", orderId, e);
+            }
             return ResponseResult.success("订单已取消");
         } catch (Exception e) {
             log.error("取消订单失败，orderId={}", orderId, e);

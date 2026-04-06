@@ -31,12 +31,12 @@
         </scroll-view>
       </view>
 
-      <view v-if="loading" class="loading-state">
+      <view v-if="initialLoading" class="loading-state">
         <text class="loading-text">加载中...</text>
       </view>
 
       <scroll-view class="order-list" scroll-y>
-        <view v-if="!loading && filteredOrders.length > 0" class="order-container">
+        <view v-if="!initialLoading && filteredOrders.length > 0" class="order-container">
           <view
             v-for="order in filteredOrders"
             :key="order.orderNo"
@@ -91,7 +91,7 @@
           </view>
         </view>
 
-        <view v-else-if="!loading" class="empty-state">
+        <view v-else-if="!initialLoading" class="empty-state">
           <image class="empty-icon" src="/static/order.png" mode="aspectFit"></image>
           <text class="empty-text">暂无相关订单</text>
         </view>
@@ -106,7 +106,7 @@ import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { get } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { ensureRole } from '@/utils/auth-guard.js'
-import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js'
 import { defaultAvatar } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
@@ -129,14 +129,16 @@ const statusTabs = ref([
 
 const activeStatus = ref(null)
 const orders = ref([])
-const loading = ref(false)
+const initialLoading = ref(false)
+const isRefreshing = ref(false)
 const userStore = useUserStore()
 let pollTimer = null
 let socketListener = null
 let socketRefreshTimer = null
 let pageActive = false
 let queuedReload = false
-const ORDER_LIST_POLL_INTERVAL = 6000
+let queuedReloadSilent = true
+const ORDER_LIST_POLL_INTERVAL = 30000
 const ORDER_EVENT_TYPES = [
   'NEW_ORDER',
   'ORDER_ACCEPTED',
@@ -177,9 +179,9 @@ onShow(() => {
     return
   }
   userStore.restoreFromStorage()
-  connectChatSocket()
+  connectOrderSocket()
   setupWebSocketListener()
-  loadOrders()
+  loadOrders({ silent: orders.value.length > 0 })
   startPolling()
 })
 
@@ -199,18 +201,27 @@ onUnload(() => {
 
 const switchTab = (status) => {
   activeStatus.value = status
+  loadOrders({ silent: orders.value.length > 0 })
 }
 
-const loadOrders = async () => {
+const isOrderListLoading = () => initialLoading.value || isRefreshing.value
+
+const loadOrders = async ({ silent = false } = {}) => {
   if (!userStore.isLoggedIn) {
     orders.value = []
     return
   }
-  if (loading.value) {
+  if (isOrderListLoading()) {
     queuedReload = true
+    queuedReloadSilent = queuedReloadSilent && silent
     return
   }
-  loading.value = true
+  const useSilentRefresh = silent && orders.value.length > 0
+  if (useSilentRefresh) {
+    isRefreshing.value = true
+  } else {
+    initialLoading.value = true
+  }
   try {
     const response = await get('/api/orders/user-orders', {
       page: 0,
@@ -230,12 +241,16 @@ const loadOrders = async () => {
     orders.value = []
     console.error('加载订单数据出错:', e)
   } finally {
-    loading.value = false
+    initialLoading.value = false
+    isRefreshing.value = false
     if (queuedReload && pageActive) {
+      const nextSilent = queuedReloadSilent
       queuedReload = false
-      loadOrders()
+      queuedReloadSilent = true
+      loadOrders({ silent: nextSilent })
     } else {
       queuedReload = false
+      queuedReloadSilent = true
     }
   }
 }
@@ -296,7 +311,7 @@ const handlePay = (order) => {
 }
 
 const handleSearch = () => {
-  loadOrders()
+  loadOrders({ silent: orders.value.length > 0 })
 }
 
 const stopPolling = () => {
@@ -309,50 +324,26 @@ const stopPolling = () => {
 const startPolling = () => {
   stopPolling()
   pollTimer = setInterval(() => {
-    if (!pageActive || loading.value) return
+    if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
     const shouldPoll = orders.value.some(order =>
       (order.paymentStatus === 0 && order.orderStatus !== 7) ||
       [1, 2, 3, 4, 5].includes(order.orderStatus)
     )
-    if (shouldPoll) loadOrders()
+    if (shouldPoll) loadOrders({ silent: true })
   }, ORDER_LIST_POLL_INTERVAL)
 }
 
 const isOrderRelatedMessage = (message) => {
   if (!message) return false
-
-  let payload = {}
-  if (message.data && typeof message.data === 'object') {
-    payload = message.data
-  } else if (typeof message.data === 'string') {
-    try {
-      payload = JSON.parse(message.data)
-    } catch (e) {
-      payload = {}
-    }
-  }
-
-  const type = String(message.type || message.eventType || payload.type || '').toUpperCase()
-  if (ORDER_EVENT_TYPES.includes(type)) return true
-
-  const msgType = Number(message.msgType || payload.msgType || 0)
-  if ([1, 2, 3, 4].includes(msgType)) return false
-
-  const content = String(message.content || payload.content || '')
-  if (!content) return false
-  const senderId = Number(message.senderId || payload.senderId || 0)
-  const receiverId = Number(message.receiverId || payload.receiverId || 0)
-  const fromSystem = senderId === 0 || receiverId === 0
-  if (!fromSystem) return false
-
-  return /订单|服务|就诊|陪诊|时长|补款|取消|接单|支付/.test(content)
+  const type = String(message.type || message.eventType || '').toUpperCase()
+  return ORDER_EVENT_TYPES.includes(type)
 }
 
 const scheduleOrderListRefresh = (delay = 700) => {
   if (!pageActive) return
   if (socketRefreshTimer) clearTimeout(socketRefreshTimer)
   socketRefreshTimer = setTimeout(() => {
-    loadOrders()
+    loadOrders({ silent: true })
   }, delay)
 }
 
@@ -363,14 +354,14 @@ const handleSocketMessage = (message) => {
 }
 
 const setupWebSocketListener = () => {
-  if (socketListener) removeChatListener(socketListener)
+  if (socketListener) removeOrderListener(socketListener)
   socketListener = handleSocketMessage
-  addChatListener(socketListener)
+  addOrderListener(socketListener)
 }
 
 const teardownWebSocketListener = () => {
   if (socketListener) {
-    removeChatListener(socketListener)
+    removeOrderListener(socketListener)
     socketListener = null
   }
 }

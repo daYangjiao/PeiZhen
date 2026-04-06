@@ -504,7 +504,7 @@
 
 <script>
 import { get, post } from '@/utils/api.js'
-import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runtime.js'
 import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
@@ -754,6 +754,7 @@ export default {
 		if (options.orderId) {
 			this.loadOrderDetail(options.orderId)
 		}
+		connectOrderSocket()
 		this.setupWebSocketListener()
 	},
 	onShow() {
@@ -762,10 +763,11 @@ export default {
 		if (this.orderInfo && this.orderInfo.id) {
 			this.loadOrderDetail(this.orderInfo.id)
 		}
+		connectOrderSocket()
 	},
 	beforeDestroy() {
 		if (this.socketListener) {
-			removeChatListener(this.socketListener)
+			removeOrderListener(this.socketListener)
 		}
 	},
 	
@@ -1218,7 +1220,7 @@ export default {
 		},
 		setupWebSocketListener() {
 			this.socketListener = this.handleSocketMessage.bind(this)
-			addChatListener(this.socketListener)
+			addOrderListener(this.socketListener)
 		}
 	}
 }

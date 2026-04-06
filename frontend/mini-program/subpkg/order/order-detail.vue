@@ -489,7 +489,7 @@
 import { ref, computed, onUnmounted } from 'vue';
 import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app';
 import { get, post, put, config } from '@/utils/api.js';
-import { addChatListener, removeChatListener, connectChatSocket } from '@/utils/chat-websocket.js';
+import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js';
 import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
@@ -509,7 +509,7 @@ let currentOrderKey = ''; // 当前订单号（优先）
 let isFetchingOrder = false; // 防止并发请求
 let queuedOrderKey = ''; // 并发请求期间记录下一次刷新目标
 let pageActive = false; // 页面可见态
-const REALTIME_SYNC_INTERVAL = 4000;
+const REALTIME_SYNC_INTERVAL = 30000;
 
 const payCountdown = ref('');
 const qrLoadFailed = ref(false);
@@ -1259,6 +1259,7 @@ const startRealtimeSync = (orderKey) => {
   if (!orderKey) return;
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(() => {
+    if (!pageActive || isFetchingOrder || isOrderSocketOpen()) return;
     fetchOrderDetail(orderKey);
   }, REALTIME_SYNC_INTERVAL);
 };
@@ -1358,7 +1359,7 @@ const fetchOrderDetail = async (orderKey) => {
   }
 };
 
-const isOrderRelatedMessage = (messageType, content) => {
+const isOrderRelatedMessage = (messageType) => {
   const type = String(messageType || '').toUpperCase();
   const orderEventTypes = [
     'ORDER_ACCEPTED',
@@ -1376,9 +1377,6 @@ const isOrderRelatedMessage = (messageType, content) => {
     'BALANCE_PAYMENT_REQUIRED'
   ];
   if (orderEventTypes.includes(type)) return true;
-  if (typeof content === 'string') {
-    return /订单|服务|就诊|进度|时长|补款|取消/.test(content);
-  }
   return false;
 };
 
@@ -1406,7 +1404,7 @@ const handleSocketMessage = (message) => {
     (typeof message.content === 'string' && currentOrderNo && message.content.includes(currentOrderNo));
 
   const messageType = message.type || message.eventType || payload.type || '';
-  const related = isOrderRelatedMessage(messageType, message.content);
+  const related = isOrderRelatedMessage(messageType);
   if (!isCurrentOrder || !related) return;
 
   if (String(messageType).toUpperCase() === 'ORDER_RELEASED_BY_ATTENDANT') {
@@ -1417,7 +1415,7 @@ const handleSocketMessage = (message) => {
 };
 
 const cleanupRealtimeResources = () => {
-  removeChatListener(handleSocketMessage);
+  removeOrderListener(handleSocketMessage);
   stopRealtimeSync();
   if (socketRefreshTimer) {
     clearTimeout(socketRefreshTimer);
@@ -1448,8 +1446,8 @@ onLoad(async (options) => {
   currentOrderKey = orderNo;
   await fetchOrderDetail(orderNo);
 
-  connectChatSocket();
-  addChatListener(handleSocketMessage);
+  connectOrderSocket();
+  addOrderListener(handleSocketMessage);
 });
 
 onShow(() => {
@@ -1457,7 +1455,7 @@ onShow(() => {
   pageActive = true;
   const key = currentOrderKey || order.value?.orderNo || order.value?.orderId;
   if (!key) return;
-  connectChatSocket();
+  connectOrderSocket();
   updateRealtimeSyncState(key, order.value);
   fetchOrderDetail(key);
 });
