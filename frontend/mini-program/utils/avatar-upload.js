@@ -22,11 +22,6 @@ const compressImageAsync = (options) =>
     })
   })
 
-const isCancelError = (error) => {
-  const message = error?.errMsg || error?.message || String(error || '')
-  return /cancel/i.test(message)
-}
-
 const readSelectedFilePath = (result = {}) =>
   result.tempFilePaths?.[0] ||
   result.tempFiles?.[0]?.path ||
@@ -114,5 +109,3 @@ export const pickCropAndUploadAvatar = async (uploadFn = uploadPublicAvatarImage
     uni.hideLoading()
   }
 }
-
-export const chooseAndUploadAvatar = pickCropAndUploadAvatar

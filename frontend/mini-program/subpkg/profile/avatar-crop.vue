@@ -311,7 +311,6 @@ onUnload(() => {
 
 .crop-image {
   position: absolute;
-  will-change: transform;
 }
 
 .crop-mask {
