@@ -92,6 +92,31 @@ const rpxToPx = (rpx) => {
   return (Number(rpx) * windowWidth) / 750
 }
 
+const resolveCropBoxSize = () => {
+  const systemInfo = uni.getSystemInfoSync()
+  const safeBottom = systemInfo.safeAreaInsets?.bottom || 0
+  const horizontalPadding = rpxToPx(56)
+  const cropShellInnerPadding = rpxToPx(40)
+  const pageVerticalPadding = rpxToPx(44) + rpxToPx(24) + safeBottom
+  const heroHeightBudget = rpxToPx(136)
+  const hintHeightBudget = rpxToPx(56)
+  const actionHeightBudget = rpxToPx(104)
+  const actionGapBudget = rpxToPx(20)
+
+  const widthBudget = systemInfo.windowWidth - horizontalPadding - cropShellInnerPadding
+  const heightBudget =
+    systemInfo.windowHeight -
+    pageVerticalPadding -
+    heroHeightBudget -
+    hintHeightBudget -
+    actionHeightBudget -
+    actionGapBudget -
+    cropShellInnerPadding
+
+  const minSize = rpxToPx(320)
+  return Math.min(widthBudget, Math.max(minSize, heightBudget))
+}
+
 const getDisplaySize = () => ({
   width: imageWidth.value * baseScale.value * userScale.value,
   height: imageHeight.value * baseScale.value * userScale.value
@@ -173,7 +198,7 @@ const loadImageInfo = async () => {
   }
 
   sourcePath.value = path
-  cropBoxSize.value = Math.max(240, uni.getSystemInfoSync().windowWidth - rpxToPx(72))
+  cropBoxSize.value = resolveCropBoxSize()
 
   try {
     const imageInfo = await new Promise((resolve, reject) => {
@@ -269,34 +294,36 @@ onUnload(() => {
 .page {
   @include user-page;
   min-height: 100vh;
-  padding: 32rpx 28rpx 44rpx;
+  padding: 20rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 28rpx calc(24rpx + constant(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .hero {
-  padding: 18rpx 6rpx 28rpx;
+  padding: 6rpx 6rpx 16rpx;
 }
 
 .title {
   display: block;
-  font-size: 40rpx;
+  font-size: 36rpx;
   line-height: 1.2;
   font-weight: 700;
   color: $user-color-text-main;
-  margin-bottom: 10rpx;
+  margin-bottom: 6rpx;
 }
 
 .tip {
   display: block;
-  font-size: 24rpx;
-  line-height: 1.6;
+  font-size: 22rpx;
+  line-height: 1.5;
   color: $user-color-text-sub;
 }
 
 .crop-shell {
-  @include user-card(28rpx);
+  @include user-card(20rpx);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -331,23 +358,23 @@ onUnload(() => {
 }
 
 .hint-row {
-  padding: 22rpx 10rpx 0;
+  padding: 14rpx 8rpx 0;
 }
 
 .hint-text {
   display: block;
   font-size: 22rpx;
-  line-height: 1.6;
+  line-height: 1.5;
   color: $user-color-text-sub;
   text-align: center;
 }
 
 .action-row {
-  margin-top: auto;
-  padding-top: 40rpx;
+  padding-top: 20rpx;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20rpx;
+  flex-shrink: 0;
 }
 
 .ghost-btn {
