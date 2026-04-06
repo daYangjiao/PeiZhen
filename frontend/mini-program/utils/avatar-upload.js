@@ -100,13 +100,18 @@ export const compressAvatarFile = async (filePath) => {
 export const pickCropAndUploadAvatar = async (uploadFn = uploadPublicAvatarImage) => {
   const selectedFilePath = await chooseAvatarFile()
   const croppedFilePath = await cropAvatarFile(selectedFilePath)
-  const compressedFilePath = await compressAvatarFile(croppedFilePath)
-  const response = await uploadFn(compressedFilePath)
-  const avatarUrl = response?.data?.avatarUrl || response?.data
-  if (!avatarUrl) throw new Error('头像上传失败')
-  return {
-    avatarUrl,
-    localFilePath: compressedFilePath || croppedFilePath || selectedFilePath
+  uni.showLoading({ title: '处理中...' })
+  try {
+    const compressedFilePath = await compressAvatarFile(croppedFilePath)
+    const response = await uploadFn(compressedFilePath)
+    const avatarUrl = response?.data?.avatarUrl || response?.data
+    if (!avatarUrl) throw new Error('头像上传失败')
+    return {
+      avatarUrl,
+      localFilePath: compressedFilePath || croppedFilePath || selectedFilePath
+    }
+  } finally {
+    uni.hideLoading()
   }
 }
 

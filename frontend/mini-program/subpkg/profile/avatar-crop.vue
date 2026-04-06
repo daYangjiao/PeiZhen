@@ -80,9 +80,10 @@ const imageStyle = computed(() => {
   const width = imageWidth.value * baseScale.value * userScale.value
   const height = imageHeight.value * baseScale.value * userScale.value
   return {
+    left: `${(cropBoxSize.value - width) / 2 + offsetX.value}px`,
+    top: `${(cropBoxSize.value - height) / 2 + offsetY.value}px`,
     width: `${width}px`,
     height: `${height}px`,
-    transform: `translate(${offsetX.value}px, ${offsetY.value}px)`
   }
 })
 
@@ -310,9 +311,6 @@ onUnload(() => {
 
 .crop-image {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: center center;
   will-change: transform;
 }
 

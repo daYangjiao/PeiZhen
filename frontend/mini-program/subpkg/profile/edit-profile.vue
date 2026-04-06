@@ -4,11 +4,11 @@
 			<!-- 头像上传 -->
 			<view class="avatar-upload">
 				<image 
-					class="avatar-img" 
-					:src="displayAvatarUrl" 
-					mode="aspectFit"
-					@click="isEditing ? chooseAvatar : null"
-				></image>
+						class="avatar-img" 
+						:src="displayAvatarUrl" 
+						mode="aspectFill"
+						@click="isEditing ? chooseAvatar : null"
+					></image>
 				<view v-if="isEditing" class="upload-text" @click="chooseAvatar">点击更换头像</view>
 			</view>
 			
@@ -168,9 +168,7 @@ const chooseAvatar = () => {
 // 上传头像（上传后后端已更新用户 avatar，并已同步到 store）
 const uploadUserAvatar = async () => {
 	try {
-		uni.showLoading({ title: '处理中...' })
 		const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadAvatar)
-		uni.hideLoading()
 		if (avatarUrl) {
 			localAvatarPreview.value = localFilePath || ''
 			userForm.value.avatar = avatarUrl
@@ -179,7 +177,6 @@ const uploadUserAvatar = async () => {
 			uni.showToast({ title: '头像上传成功', icon: 'success' })
 		}
 	} catch (error) {
-		uni.hideLoading()
 		if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
 			uni.showToast({ title: '头像上传失败', icon: 'none' })
 		}

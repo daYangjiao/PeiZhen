@@ -2,7 +2,7 @@
   <view class="page">
     <view class="form-card">
       <view class="avatar-row">
-        <image class="avatar" :src="displayAvatarUrl" mode="aspectFit"></image>
+        <image class="avatar" :src="displayAvatarUrl" mode="aspectFill"></image>
         <view class="avatar-btn" @click.stop="chooseAvatar">
           <text>{{ uploading ? '上传中...' : '更换头像' }}</text>
         </view>
@@ -119,10 +119,8 @@ const loadProfile = async () => {
 const chooseAvatar = async () => {
   if (uploading.value) return
   uploading.value = true
-  uni.showLoading({ title: '处理中...' })
   try {
     const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadPublicAvatarImage)
-    uni.hideLoading()
     if (avatarUrl) {
       localAvatarPreview.value = localFilePath || ''
       form.avatarUrl = avatarUrl
@@ -132,7 +130,6 @@ const chooseAvatar = async () => {
       uni.showToast({ title: '头像上传失败', icon: 'none' })
     }
   } catch (error) {
-    uni.hideLoading()
     if (!/cancel/i.test(error?.message || error?.errMsg || '')) {
       console.error('上传头像失败:', error)
       uni.showToast({ title: '头像上传失败', icon: 'none' })

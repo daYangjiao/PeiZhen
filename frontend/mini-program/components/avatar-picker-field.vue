@@ -9,7 +9,7 @@
 
     <view class="avatar-shell">
       <view class="avatar-preview-card">
-        <image class="avatar-preview" :src="previewUrl" mode="aspectFit"></image>
+        <image class="avatar-preview" :src="previewUrl" mode="aspectFill"></image>
         <view class="avatar-copy">
           <text class="avatar-copy-title">{{ previewTitle }}</text>
           <text class="avatar-copy-desc">{{ previewDesc }}</text>
@@ -103,7 +103,6 @@ const selectDefaultAvatar = (value) => {
 const handleChooseAvatar = async () => {
   if (uploading.value) return
   uploading.value = true
-  uni.showLoading({ title: '处理中...' })
   try {
     const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadPublicAvatarImage)
     localPreviewPath.value = localFilePath || ''
@@ -116,7 +115,6 @@ const handleChooseAvatar = async () => {
       uni.showToast({ title: '头像上传失败', icon: 'none' })
     }
   } finally {
-    uni.hideLoading()
     uploading.value = false
   }
 }
