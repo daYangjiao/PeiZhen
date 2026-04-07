@@ -1,22 +1,18 @@
-import { get, post, put, upload } from '@/utils/api.js'
+import { get, put, upload } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 
-// 获取个人信息
 export const getUserInfo = (userId) => {
   return get(`/api/users/${userId}`)
 }
 
-// 通过用户ID获取用户详细信息
 export const getUserById = (userId) => {
   return get(`/api/users/${userId}`)
 }
 
-// 获取当前登录用户信息
 export const getCurrentUserInfo = () => {
   return get('/api/users/current')
 }
 
-// 更新个人信息（兼容旧小程序逻辑）
 export const updateUserInfo = (data) => {
   const store = useUserStore()
   const userInfo = store.userInfo || {}
@@ -31,7 +27,7 @@ export const updateUserInfo = (data) => {
   }
 
   const requestData = {
-    id: userId,
+    id: userId
   }
 
   if (data.name !== undefined) requestData.name = data.name
@@ -44,7 +40,6 @@ export const updateUserInfo = (data) => {
   return put(`/api/users/${userId}`, requestData)
 }
 
-// 上传头像：先上传图片，再更新用户 avatar 字段
 export const uploadAvatar = async (filePath) => {
   const store = useUserStore()
   const userInfo = store.userInfo || {}
@@ -53,17 +48,13 @@ export const uploadAvatar = async (filePath) => {
     return Promise.reject(new Error('请先登录'))
   }
 
-  // 1. 上传图片，后端返回 /uploads/xxx
   const uploadRes = await upload('/api/common/upload-avatar', filePath, {}, 'file')
   const avatarPath = uploadRes.data
   if (!avatarPath) {
     return Promise.reject(new Error('上传失败'))
   }
 
-  // 2. 更新用户头像字段
   await put(`/api/users/${userId}`, { id: userId, avatar: avatarPath })
-
-  // 3. 同步到本地 store
   store.setUserInfo({ ...userInfo, avatar: avatarPath })
   return { code: 200, data: { avatarUrl: avatarPath } }
 }
@@ -73,6 +64,15 @@ export const uploadPublicAvatarImage = async (filePath) => {
   const avatarPath = uploadRes.data
   if (!avatarPath) {
     return Promise.reject(new Error('上传失败'))
+  }
+  return { code: 200, data: { avatarUrl: avatarPath } }
+}
+
+export const uploadEscortAvatar = async (filePath) => {
+  const uploadRes = await upload('/attendant/profile/avatar', filePath, {}, 'file')
+  const avatarPath = uploadRes?.data?.avatarUrl || uploadRes?.data || uploadRes?.url
+  if (!avatarPath) {
+    return Promise.reject(new Error('头像上传失败'))
   }
   return { code: 200, data: { avatarUrl: avatarPath } }
 }

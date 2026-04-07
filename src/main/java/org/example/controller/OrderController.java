@@ -60,10 +60,15 @@ public class OrderController {
     })
     public ResponseResult<Order> getOrderById(
             @ApiParam(value = "订单ID", required = true, example = "62")
-            @PathVariable Integer orderId) {
+            @PathVariable Integer orderId,
+            @ApiIgnore HttpServletRequest request) {
         Order order = orderService.getOrderById(orderId);
         if (order == null) {
             return ResponseResult.error("订单不存在");
+        }
+        Integer currentUserId = AuthUtil.getCurrentUserId(request);
+        if (order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
+            return ResponseResult.unauthorized("无权限查看该订单");
         }
         return ResponseResult.success(order);
     }

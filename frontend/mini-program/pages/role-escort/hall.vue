@@ -146,6 +146,7 @@ const page = ref(0)
 const pageSize = 10
 const hasMore = ref(true)
 const showFilterPopup = ref(false)
+const acceptingOrderId = ref('')
 
 const serviceTypeOptions = [
 	{ label: '全部', value: null },
@@ -331,6 +332,11 @@ const goToDetail = (orderData) => {
 
 const handleAccept = (actionData) => {
 	const order = actionData.data || actionData
+	const currentOrderId = order.orderId || order.id
+	if (!currentOrderId) {
+		uni.showToast({ title: '订单信息有误', icon: 'none' })
+		return
+	}
 	const attendantInfo = uni.getStorageSync('userInfo')
 	if (!attendantInfo || !attendantInfo.id) {
 		uni.showToast({ title: '请先登录', icon: 'none' })
@@ -340,16 +346,28 @@ const handleAccept = (actionData) => {
 		title: '确认接单',
 		content: '确定要接受该订单吗？',
 		success: async (res) => {
-			if (!res.confirm) return
+			if (!res.confirm || acceptingOrderId.value) return
+			acceptingOrderId.value = String(currentOrderId)
+			uni.showLoading({ title: '接单中...', mask: true })
 			try {
-				const response = await post(`/attendant/orders/${order.id}/accept?attendantId=${attendantInfo.id}`)
+				const response = await post(`/attendant/orders/${currentOrderId}/accept?attendantId=${attendantInfo.id}`)
 				if (response.code === 200) {
 					uni.showToast({ title: '接单成功', icon: 'success' })
 					loadOrders({ reset: true, silent: true })
+					const acceptedOrderId = response?.data?.orderId || currentOrderId
+					acceptingOrderId.value = ''
+					uni.hideLoading()
+					setTimeout(() => {
+						uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${acceptedOrderId}` })
+					}, 300)
 				} else {
+					acceptingOrderId.value = ''
+					uni.hideLoading()
 					uni.showToast({ title: response.message || '接单失败', icon: 'none' })
 				}
 			} catch (e) {
+				acceptingOrderId.value = ''
+				uni.hideLoading()
 				uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
 			}
 		}

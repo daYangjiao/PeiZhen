@@ -117,7 +117,7 @@ public class AiGuideServiceImpl implements AiGuideService {
         try {
             if (order.getUserId() != null) {
                 String msg = "您已成功创建订单 " + orderNo + "，请在15分钟内完成预付款，逾期系统将自动取消订单。";
-                sendSystemMessage(order.getUserId(), msg);
+                sendSystemMessage(order.getUserId(), msg, order.getOrderId());
             }
         } catch (Exception e) {
             logger.error("发送下单成功系统消息失败, orderNo={}", orderNo, e);
@@ -144,7 +144,7 @@ public class AiGuideServiceImpl implements AiGuideService {
                 order.setOrderStatus(1);
                 orderStatusChanged = true;
                 // 支付成功时发送系统消息（仅当订单状态从0变为1时）
-                sendSystemMessage(order.getUserId(), "恭喜您!订单No." + orderNo + "支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。");
+                sendSystemMessage(order.getUserId(), "恭喜您!订单No." + orderNo + "支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。", order.getOrderId());
             }
         }
         orderMapper.updateByPrimaryKeySelective(order);
@@ -470,6 +470,22 @@ public class AiGuideServiceImpl implements AiGuideService {
     }
 
     // 辅助方法：发送系统消息
+    private void sendSystemMessage(Integer receiverId, String content, Integer orderId) {
+        try {
+            ChatMessage sysMsg = new ChatMessage();
+            sysMsg.setSenderId(0);
+            sysMsg.setReceiverId(receiverId);
+            sysMsg.setContent(content);
+            sysMsg.setOrderId(orderId);
+            sysMsg.setMsgType(1);
+            sysMsg.setIsRead(false);
+            sysMsg.setCreateTime(new Date());
+            chatMessageMapper.insert(sysMsg);
+        } catch (Exception e) {
+            logger.error("发送系统消息失败", e);
+        }
+    }
+
     private void sendSystemMessage(Integer receiverId, String content) {
         try {
             ChatMessage sysMsg = new ChatMessage();

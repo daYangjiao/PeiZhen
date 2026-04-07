@@ -54,7 +54,7 @@
 import { reactive, ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { get, put } from '@/utils/api.js'
-import { uploadPublicAvatarImage } from '@/api/user.js'
+import { uploadEscortAvatar } from '@/api/user.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { pickCropAndUploadAvatar } from '@/utils/avatar-upload.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
@@ -120,11 +120,18 @@ const chooseAvatar = async () => {
   if (uploading.value) return
   uploading.value = true
   try {
-    const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadPublicAvatarImage)
+    const { avatarUrl, localFilePath } = await pickCropAndUploadAvatar(uploadEscortAvatar)
     if (avatarUrl) {
       localAvatarPreview.value = localFilePath || ''
       form.avatarUrl = avatarUrl
       form.avatar = avatarUrl
+      userStore.setAttendantInfo({
+        ...userStore.attendantInfo,
+        name: form.name,
+        phone: form.phone,
+        avatarUrl,
+        avatar: avatarUrl
+      })
       uni.showToast({ title: '头像上传成功', icon: 'success' })
     } else {
       uni.showToast({ title: '头像上传失败', icon: 'none' })
@@ -176,12 +183,7 @@ const saveProfile = async () => {
       await userStore.fetchAttendantProfile(userInfo.id)
       const latest = userStore.attendantInfo
       localAvatarPreview.value = ''
-      uni.setStorageSync('userInfo', {
-        ...userInfo,
-        name: latest.name || userInfo.name,
-        phone: latest.phone || userInfo.phone,
-        avatar: latest.avatarUrl || latest.avatar || userInfo.avatar
-      })
+      userStore.syncAttendantSessionProfile(latest)
 
       uni.showToast({ title: '保存成功', icon: 'success' })
       setTimeout(() => {

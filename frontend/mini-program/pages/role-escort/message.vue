@@ -21,9 +21,9 @@
 
       <view class="contact-list">
         <view
-          class="message-card contact-card"
           v-for="contact in contacts"
           :key="contact.id"
+          class="message-card contact-card"
           @click="openChat(contact)"
         >
           <view class="avatar-container">
@@ -53,7 +53,7 @@
       <view class="empty-state" v-if="contacts.length === 0 && !lastSystemMsg.content">
         <image class="empty-icon" src="/static/xiaoxi_1.png" mode="aspectFit"></image>
         <text class="empty-text">暂无消息</text>
-        <text class="empty-subtext">当有新订单或用户咨询时，消息会显示在这里</text>
+        <text class="empty-subtext">当用户咨询或系统通知到来时，消息会显示在这里</text>
       </view>
     </scroll-view>
 
@@ -62,10 +62,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { get } from '@/utils/api.js'
-import { connectChatSocket, addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
+import { addChatListener, connectChatSocket, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'
 import { ensureRole } from '@/utils/auth-guard.js'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
@@ -94,6 +94,25 @@ let isRefreshing = false
 let refreshTimeout = null
 let processedMessages = new Set()
 
+const decorateContact = async (contact = {}) => ({
+  ...contact,
+  displayAvatar: await resolveDisplayImageUrl(contact.senderAvatar, defaultAvatar)
+})
+
+const updateContactUnreadMap = (contactList) => {
+  const user = uni.getStorageSync('userInfo') || {}
+  const currentUserId = Number(user.id || 0)
+  if (!currentUserId) return
+
+  contactList.forEach((contact) => {
+    const contactId = Number(contact.senderId) === currentUserId
+      ? Number(contact.receiverId)
+      : Number(contact.senderId)
+    if (!contactId) return
+    messageStore.updateContactUnread(contactId, contact.unreadCount || 0)
+  })
+}
+
 const loadContacts = async () => {
   if (isRefreshing) return
   isRefreshing = true
@@ -101,15 +120,11 @@ const loadContacts = async () => {
     const res = await get('/api/chat/contacts')
     if (res.code === 200) {
       const allContacts = res.data || []
-      const sysMsg = allContacts.find(c => c.senderId === 0 || c.receiverId === 0)
-      const normalContacts = allContacts.filter(c => c.senderId !== 0 && c.receiverId !== 0)
-      if (sysMsg) {
-        lastSystemMsg.value = sysMsg
-        messageStore.systemUnreadCount = sysMsg.unreadCount || 0
-      } else {
-        lastSystemMsg.value = {}
-        messageStore.systemUnreadCount = 0
-      }
+      const systemContact = allContacts.find((item) => Number(item.senderId) === 0 || Number(item.receiverId) === 0)
+      const normalContacts = allContacts.filter((item) => Number(item.senderId) !== 0 && Number(item.receiverId) !== 0)
+
+      lastSystemMsg.value = systemContact || {}
+      messageStore.systemUnreadCount = Number(systemContact?.unreadCount || 0)
       contacts.value = await Promise.all(normalContacts.map(decorateContact))
       updateContactUnreadMap(normalContacts)
       messageStore.updateTabBarBadge()
@@ -118,40 +133,33 @@ const loadContacts = async () => {
     clearTimeout(refreshTimeout)
     refreshTimeout = setTimeout(() => {
       isRefreshing = false
-    }, 1000)
+    }, 800)
   }
 }
 
 const handleNewMessage = (msg) => {
-  if (!msg) return
+  if (!msg || isReadReceiptMessage(msg)) return
   const msgKey = `${msg.senderId}-${msg.receiverId}-${msg.createTime || msg.id}`
   if (processedMessages.has(msgKey)) return
   processedMessages.add(msgKey)
+
   if (processedMessages.size > 100) {
-    const arr = Array.from(processedMessages).slice(-50)
-    processedMessages.clear()
-    arr.forEach(k => processedMessages.add(k))
+    const recent = Array.from(processedMessages).slice(-50)
+    processedMessages = new Set(recent)
   }
-  if ((msg.senderId === 0 || (msg.senderId && msg.receiverId)) && !isReadReceiptMessage(msg)) {
+
+  if (msg.senderId === 0 || (msg.senderId && msg.receiverId)) {
     loadContacts()
   }
 }
 
-const updateContactUnreadMap = (contactList) => {
-  const user = uni.getStorageSync('userInfo') || {}
-  const currentUserId = user.id
-  if (!currentUserId) return
-  contactList.forEach(contact => {
-    const contactId = contact.senderId === currentUserId ? contact.receiverId : contact.senderId
-    messageStore.updateContactUnread(contactId, contact.unreadCount || 0)
-  })
-}
-
 const getContactUnreadCount = (contact) => {
   const user = uni.getStorageSync('userInfo') || {}
-  const currentUserId = user.id
+  const currentUserId = Number(user.id || 0)
   if (!currentUserId) return 0
-  const contactId = contact.senderId === currentUserId ? contact.receiverId : contact.senderId
+  const contactId = Number(contact.senderId) === currentUserId
+    ? Number(contact.receiverId)
+    : Number(contact.senderId)
   return messageStore.getContactUnreadCount(contactId)
 }
 
@@ -161,25 +169,23 @@ const openSystemChat = () => {
 
 const openChat = (contact) => {
   const user = uni.getStorageSync('userInfo') || {}
-  const currentUserId = user.id
+  const currentUserId = Number(user.id || 0)
   if (!currentUserId) {
     uni.navigateTo({ url: '/pages/auth/login?role=escort' })
     return
   }
-  let targetId
-  if (contact.senderId === currentUserId) targetId = contact.receiverId
-  else targetId = contact.senderId
+
+  const targetId = Number(contact.senderId) === currentUserId
+    ? Number(contact.receiverId)
+    : Number(contact.senderId)
   if (!targetId) return
-  const targetName = contact.senderName === '我' ? '用户' : (contact.senderName || '用户')
+
+  messageStore.updateContactUnread(targetId, 0)
+  messageStore.updateTabBarBadge()
   uni.navigateTo({
-    url: `/subpkg/chat/chat?userId=${targetId}&name=${encodeURIComponent(targetName)}&avatar=${encodeURIComponent(contact.senderAvatar || '')}`
+    url: `/subpkg/chat/chat-escort?userId=${targetId}&name=${encodeURIComponent(contact.senderName || '用户')}&avatar=${encodeURIComponent(contact.senderAvatar || '')}`
   })
 }
-
-const decorateContact = async (contact = {}) => ({
-  ...contact,
-  displayAvatar: await resolveDisplayImageUrl(contact.senderAvatar, defaultAvatar)
-})
 
 const handleImageError = (contact) => {
   if (!contact) return
@@ -209,16 +215,16 @@ const formatLastMessage = (contact = {}) => {
 
 onMounted(async () => {
   cleanupTimer = setInterval(() => {
-    const cacheSize = processedMessages.size
-    if (cacheSize > 100) {
-      const recentMessages = Array.from(processedMessages).slice(-50)
-      processedMessages = new Set(recentMessages)
+    if (processedMessages.size > 100) {
+      processedMessages = new Set(Array.from(processedMessages).slice(-50))
     }
   }, 30000)
+
   await messageStore.initMessageStatus()
   connectChatSocket()
   addChatListener(handleNewMessage)
   uni.$on('chat:return', loadContacts)
+  uni.$on('system-message:read', loadContacts)
 })
 
 onShow(() => {
@@ -230,6 +236,7 @@ onShow(() => {
 onUnmounted(() => {
   removeChatListener(handleNewMessage)
   uni.$off('chat:return', loadContacts)
+  uni.$off('system-message:read', loadContacts)
   if (cleanupTimer) {
     clearInterval(cleanupTimer)
     cleanupTimer = null

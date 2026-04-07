@@ -80,9 +80,22 @@
           }
         },
         {
+          "path": "chat/chat-escort",
+          "style": {
+            "navigationBarTitleText": "聊天",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "system-message/system-message",
           "style": {
             "navigationBarTitleText": "系统消息"
+          }
+        },
+        {
+          "path": "system-message/escort-detail",
+          "style": {
+            "navigationBarTitleText": "系统消息详情"
           }
         },
         {
