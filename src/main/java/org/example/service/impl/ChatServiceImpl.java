@@ -71,6 +71,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public ChatMessage getSystemMessageDetail(Long messageId, Integer receiverId) {
+        return chatMessageMapper.findByIdAndReceiver(messageId, receiverId);
+    }
+
+    @Override
     public List<ChatMessage> getRecentContacts(Integer userId) {
         List<ChatMessage> contacts = chatMessageMapper.findRecentContacts(userId);
         
@@ -127,6 +132,12 @@ public class ChatServiceImpl implements ChatService {
         } catch (Exception e) {
             logger.error("发送已读回执失败", e);
         }
+    }
+
+    @Override
+    @Transactional
+    public int markMessageAsRead(Long messageId, Integer receiverId) {
+        return chatMessageMapper.markMessageAsRead(messageId, receiverId);
     }
 
     @Override

@@ -153,7 +153,7 @@ try {
                 }
             }
             String msgContent = "您预约的(" + dateStr + ")" + (order.getServiceTimeSlot() != null ? order.getServiceTimeSlot() : "") + "有" + (order.getHospital() != null ? order.getHospital() : "") + "的就诊安排，陪诊师" + attendantUser.getName() + "已接单。请携带身份证、医保卡及相关检查报告。";
-            sendSystemMessage(order.getUserId(), msgContent);
+            sendSystemMessage(order.getUserId(), msgContent, order.getOrderId());
             
             log.info("已向用户 {} 发送系统消息", order.getUserId());
         } catch (Exception e) {
@@ -165,6 +165,7 @@ try {
             ChatMessage greetingMsg = new ChatMessage();
             greetingMsg.setSenderId(attendantId);
             greetingMsg.setReceiverId(order.getUserId());
+            greetingMsg.setOrderId(order.getOrderId());
             greetingMsg.setContent("您好！我是陪诊师" + attendantUser.getName() + "，很高兴为您服务。我会尽快与您联系确认服务细节。");
             greetingMsg.setMsgType(1);
             greetingMsg.setIsRead(false);
@@ -203,10 +204,10 @@ try {
 
         // 插入系统消息（用户）
         String msgContent = "您的订单No." + order.getOrderNo() + "服务已开始。陪诊师已到达指定位置，请准备就诊。";
-        sendSystemMessage(order.getUserId(), msgContent);
+        sendSystemMessage(order.getUserId(), msgContent, order.getOrderId());
 
         // 插入系统消息（陪诊师）
-        sendSystemMessage(order.getAttendantId(), "您已开始为订单 " + order.getOrderNo() + " 提供服务，请按时完成服务。");
+        sendSystemMessage(order.getAttendantId(), "您已开始为订单 " + order.getOrderNo() + " 提供服务，请按时完成服务。", order.getOrderId());
 
         return "服务开始成功";
     }
@@ -274,8 +275,8 @@ try {
         publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         String msgContent = "您的陪诊服务(订单No." + order.getOrderNo() + ")已结束，请确认本次服务时长和费用（多退少补）。";
-        sendSystemMessage(order.getUserId(), msgContent);
-        sendSystemMessage(order.getAttendantId(), "您已结束订单 " + order.getOrderNo() + " 的服务，请提醒用户确认时长与费用。");
+        sendSystemMessage(order.getUserId(), msgContent, order.getOrderId());
+        sendSystemMessage(order.getAttendantId(), "您已结束订单 " + order.getOrderNo() + " 的服务，请提醒用户确认时长与费用。", order.getOrderId());
 
         return "服务结束成功，待用户确认时长费用";
     }
@@ -323,8 +324,8 @@ try {
         orderMapper.updateByPrimaryKeySelective(order);
 
         // 消息通知
-        sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，订单已完成。");
-        sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，订单已完成。");
+        sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，订单已完成。", order.getOrderId());
+        sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，订单已完成。", order.getOrderId());
 
         // 通过 WebSocket 推送订单状态变更（方便前端实时刷新列表和详情）
         publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
@@ -422,10 +423,10 @@ try {
     public void notifyOrderParties(Order order, String userMessage, String attendantMessage) {
         if (order == null) return;
         if (order.getUserId() != null && userMessage != null && !userMessage.trim().isEmpty()) {
-            sendSystemMessage(order.getUserId(), userMessage.trim());
+            sendSystemMessage(order.getUserId(), userMessage.trim(), order.getOrderId());
         }
         if (order.getAttendantId() != null && attendantMessage != null && !attendantMessage.trim().isEmpty()) {
-            sendSystemMessage(order.getAttendantId(), attendantMessage.trim());
+            sendSystemMessage(order.getAttendantId(), attendantMessage.trim(), order.getOrderId());
         }
     }
 
@@ -481,6 +482,23 @@ try {
     }
 
     // 辅助方法：发送系统消息（写入 DB 并 WebSocket 推送，用户端可实时收到未读提示）
+    private void sendSystemMessage(Integer receiverId, String content, Integer orderId) {
+        try {
+            ChatMessage sysMsg = new ChatMessage();
+            sysMsg.setSenderId(0);
+            sysMsg.setReceiverId(receiverId);
+            sysMsg.setContent(content);
+            sysMsg.setOrderId(orderId);
+            sysMsg.setMsgType(1);
+            sysMsg.setIsRead(false);
+            sysMsg.setCreateTime(new Date());
+            chatMessageMapper.insert(sysMsg);
+            chatWebSocketHandler.sendMessageToUser(receiverId, sysMsg);
+        } catch (Exception e) {
+            log.error("发送系统消息失败", e);
+        }
+    }
+
     private void sendSystemMessage(Integer receiverId, String content) {
         try {
             ChatMessage sysMsg = new ChatMessage();

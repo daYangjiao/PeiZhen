@@ -174,6 +174,7 @@ CREATE TABLE `chat_message` (
   `sender_id` int NOT NULL,
   `receiver_id` int NOT NULL,
   `content` text NOT NULL,
+  `order_id` int DEFAULT NULL,
   `msg_type` int NOT NULL DEFAULT 1,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,

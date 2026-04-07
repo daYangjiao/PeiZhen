@@ -16,16 +16,21 @@ import org.example.model.request.AttendantCancelOrderRequest;
 import org.example.model.request.AttendantQualificationUpdateRequest;
 import org.example.model.request.AttendantProfileUpdateRequest;
 import org.example.model.request.OrderListQueryRequest;
+import org.example.model.response.AttendantAvatarUploadResponse;
 import org.example.model.response.AttendantProfileResponse;
+import org.example.model.response.OrderAcceptResponse;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
 import org.example.model.OrderEvaluation;
 import org.example.service.AttendantService;
+import org.example.service.FileStorageService;
 import org.example.service.OrderEvaluationService;
 import org.example.service.OrderService;
 import org.example.service.UserService;
 import org.example.util.AuthUtil;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.ApiIgnore;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +54,7 @@ public class AttendantController {
     private final AttendantService attendantService;
     private final UserService userService;
     private final OrderEvaluationService evaluationService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 获取陪诊师个人资料
@@ -141,6 +147,43 @@ public class AttendantController {
     /**
      * 更新陪诊师三证资质信息
      */
+    @PostMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ApiOperation(value = "上传陪诊师头像", notes = "上传头像后立即更新当前陪诊师账号头像字段，并返回最新头像地址。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "上传成功"),
+            @ApiResponse(code = 400, message = "图片格式或大小不合法"),
+            @ApiResponse(code = 401, message = "未登录"),
+            @ApiResponse(code = 500, message = "上传失败")
+    })
+    public ResponseResult<AttendantAvatarUploadResponse> uploadAvatar(
+            @ApiParam(value = "头像文件", required = true)
+            @RequestParam("file") MultipartFile file,
+            @ApiIgnore HttpServletRequest request) {
+        try {
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            User existUser = userService.findById(currentUserId);
+            if (existUser == null) {
+                return ResponseResult.error("用户不存在");
+            }
+
+            String avatarUrl = fileStorageService.storeAvatar(file);
+            User user = new User();
+            user.setId(currentUserId);
+            user.setAvatar(avatarUrl);
+            userService.update(user);
+
+            AttendantAvatarUploadResponse response = new AttendantAvatarUploadResponse();
+            response.setUserId(currentUserId);
+            response.setAvatarUrl(avatarUrl);
+            return ResponseResult.success(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("上传陪诊师头像失败", e);
+            return ResponseResult.error("上传头像失败");
+        }
+    }
+
     @PutMapping("/qualification/{userId}")
     @ApiOperation(value = "更新陪诊师三证资质信息", notes = "更新身份证、执业证书、健康证上传状态及文件地址，不会自动触发审核。")
     @ApiResponses({
@@ -253,13 +296,16 @@ public class AttendantController {
             @ApiResponse(code = 400, message = "订单状态不允许接单或接单失败"),
             @ApiResponse(code = 500, message = "接单失败")
     })
-    public ResponseResult<String> acceptOrder(
+    public ResponseResult<OrderAcceptResponse> acceptOrder(
             @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
             @ApiParam(value = "陪诊师ID", required = true, example = "21") @RequestParam Integer attendantId) {
         try {
             String result = orderService.attendantAcceptOrder(orderId, attendantId);
             if ("接单成功".equals(result)) {
-                return ResponseResult.success(result);
+                OrderAcceptResponse response = new OrderAcceptResponse();
+                response.setOrderId(orderId);
+                response.setMessage("接单成功");
+                return ResponseResult.success(response);
             } else {
                 return ResponseResult.error(result);
             }
@@ -466,8 +512,15 @@ public class AttendantController {
             @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
             @ApiIgnore HttpServletRequest request) {
         try {
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
             Order order = orderService.getOrderById(orderId);
             if (order != null) {
+                if (order.getOrderStatus() != null
+                        && order.getOrderStatus() >= 2
+                        && order.getAttendantId() != null
+                        && !order.getAttendantId().equals(currentUserId)) {
+                    return ResponseResult.unauthorized("无权限查看该订单");
+                }
                 if (order.getOrderStatus() != null && order.getOrderStatus() >= 2 && order.getUserId() != null) {
                     User user = userService.findById(order.getUserId());
                     if (user != null && user.getAvatar() != null) {

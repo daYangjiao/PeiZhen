@@ -22,7 +22,10 @@ public class ChatMessage {
     @ApiModelProperty(value = "消息内容")
     private String content;
 
-    @ApiModelProperty(value = "消息类型：1=文本, 2=图片")
+    @ApiModelProperty(value = "关联订单ID")
+    private Integer orderId;
+
+    @ApiModelProperty(value = "消息类型（1=文本, 2=图片）")
     private Integer msgType;
 
     @ApiModelProperty(value = "是否已读")
@@ -32,7 +35,6 @@ public class ChatMessage {
     @ApiModelProperty(value = "发送时间")
     private Date createTime;
 
-    // 辅助字段：发送者头像和姓名（用于前端展示）
     @ApiModelProperty(value = "发送者姓名")
     private String senderName;
 
