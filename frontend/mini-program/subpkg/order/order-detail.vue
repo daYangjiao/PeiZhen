@@ -536,7 +536,10 @@ const showPayCountdown = computed(() => {
 
 // 计算属性
 const showQRCode = computed(() => {
-  return order.value.orderStatus === 2 && order.value.paymentStatus === 1 && !!order.value.orderId;
+  return order.value.orderStatus === 2
+    && order.value.paymentStatus === 1
+    && !!order.value.orderId
+    && !!order.value.attendantId;
 });
 
 const currentQrCodeUrl = computed(() => getQrCodeUrl(order.value?.qrCodeUrl, order.value?.orderId));
@@ -925,7 +928,7 @@ const getQrCodeUrl = (qrCodeUrl, orderId) => {
 
 const getQrSourceKey = (detail = {}) => {
   if (!detail?.orderId) return '';
-  return `${detail.orderId}|${detail.qrCodeUrl || ''}|${detail.orderStatus || ''}|${detail.paymentStatus || ''}`;
+  return `${detail.orderId}|${detail.qrCodeUrl || ''}|${detail.orderStatus || ''}|${detail.paymentStatus || ''}|${detail.attendantId || ''}`;
 };
 
 const previewQrCode = () => {
