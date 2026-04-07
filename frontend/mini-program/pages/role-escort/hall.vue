@@ -320,14 +320,37 @@ const loadMore = () => {
 	loadOrders({})
 }
 
+const wait = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const openEscortOrderDetail = async (orderId, attempt = 0) => {
+	const targetOrderId = Number(orderId || 0)
+	if (!targetOrderId) {
+		throw new Error('订单信息有误')
+	}
+	try {
+		await get(`/attendant/orders/${targetOrderId}`)
+		uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${targetOrderId}` })
+	} catch (error) {
+		if (attempt < 1) {
+			await wait(350)
+			return openEscortOrderDetail(targetOrderId, attempt + 1)
+		}
+		throw error
+	}
+}
+
 // 查看详情：陪诊师端从大厅进入“陪诊师专用订单详情”
-const goToDetail = (orderData) => {
+const goToDetail = async (orderData) => {
 	const id = orderData.orderId || orderData.id
 	if (!id) {
 		uni.showToast({ title: '订单信息有误', icon: 'none' })
 		return
 	}
-	uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${id}` })
+	try {
+		await openEscortOrderDetail(id)
+	} catch (error) {
+		uni.showToast({ title: error?.message || '订单详情暂时无法打开', icon: 'none' })
+	}
 }
 
 const handleAccept = (actionData) => {
@@ -357,8 +380,14 @@ const handleAccept = (actionData) => {
 					const acceptedOrderId = response?.data?.orderId || currentOrderId
 					acceptingOrderId.value = ''
 					uni.hideLoading()
-					setTimeout(() => {
-						uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${acceptedOrderId}` })
+					setTimeout(async () => {
+						try {
+							await openEscortOrderDetail(acceptedOrderId)
+						} catch (error) {
+							console.error('接单后跳转详情失败:', error)
+							uni.showToast({ title: error?.message || '接单成功，请到我的订单查看', icon: 'none' })
+							uni.switchTab({ url: '/pages/role-escort/order' })
+						}
 					}, 300)
 				} else {
 					acceptingOrderId.value = ''

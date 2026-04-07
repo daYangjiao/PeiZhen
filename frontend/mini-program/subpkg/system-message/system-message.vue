@@ -17,10 +17,10 @@
       </scroll-view>
     </view>
 
-    <scroll-view class="message-list-unified" scroll-y>
+    <scroll-view class="message-list" scroll-y>
       <view
         v-for="msg in filteredMessages"
-        :key="msg.id"
+        :key="getMessageId(msg)"
         class="system-message-card"
         :class="{ clickable: isEscortRole }"
         @click="openMessage(msg)"
@@ -72,7 +72,7 @@ const isEscortRole = computed(() => role.value === 'escort')
 const messageStore = useMessageStore()
 const actionLoadingKey = ref('')
 
-const inferType = (content) => {
+const inferType = (content = '') => {
   if (!content) return '平台公告'
   if (content.includes('订单') || content.includes('支付')) return '订单状态'
   if (content.includes('就诊') || content.includes('服务') || content.includes('评价')) return '服务提醒'
@@ -81,7 +81,7 @@ const inferType = (content) => {
   return '平台公告'
 }
 
-const inferTitle = (content) => {
+const inferTitle = (content = '') => {
   if (!content) return '系统通知'
   if (content.includes('支付完成') || content.includes('支付成功')) return '订单支付成功'
   if (content.includes('就诊安排') || content.includes('就诊提醒')) return '就诊提醒'
@@ -91,7 +91,7 @@ const inferTitle = (content) => {
   return '系统通知'
 }
 
-const inferAction = (content) => {
+const inferAction = (content = '') => {
   if (!content) return ''
   if (content.includes('评价')) return '去评价'
   if (content.includes('订单')) return '查看订单'
@@ -99,21 +99,23 @@ const inferAction = (content) => {
   return ''
 }
 
-const extractOrderNo = (content) => {
+const extractOrderNo = (content = '') => {
   if (!content) return null
   const patterns = [
-    /订单(?:No\.?|号)?\s*[：: ]?\s*([A-Za-z0-9_-]{8,})/i,
-    /订单\s*([A-Za-z0-9_-]{8,})/i,
+    /订单(?:No\.?|号)?[:：\s]*([A-Za-z0-9_-]{8,})/i,
     /\b(ORD[A-Za-z0-9_-]{6,})\b/i
   ]
   for (const pattern of patterns) {
     const match = content.match(pattern)
     if (match?.[1]) {
-      return match[1].replace(/[，。,;；]+$/g, '')
+      return match[1].replace(/[，。；;,]+$/g, '')
     }
   }
   return null
 }
+
+const getMessageId = (msg) => Number(msg?.id || msg?.messageId || 0)
+const getMessageOrderId = (msg) => Number(msg?.orderId || msg?.order?.orderId || 0)
 
 const showOrderAccessError = (error, fallbackMessage = '订单暂时无法打开') => {
   const code = Number(error?.code || 0)
@@ -125,7 +127,7 @@ const showOrderAccessError = (error, fallbackMessage = '订单暂时无法打开
 }
 
 const resolveMessageOrderTarget = async (msg) => {
-  const directOrderId = Number(msg?.orderId || 0)
+  const directOrderId = getMessageOrderId(msg)
   const orderNo = extractOrderNo(msg?.content)
 
   if (directOrderId > 0) {
@@ -146,10 +148,33 @@ const resolveMessageOrderTarget = async (msg) => {
   return { orderId: null, orderNo }
 }
 
-const openOrderFromMessage = async (msg) => {
-  const target = await resolveMessageOrderTarget(msg)
+const resolveEscortMessageOrderTarget = async (msg) => {
+  const directOrderId = getMessageOrderId(msg)
+  if (directOrderId > 0) {
+    return { orderId: directOrderId, orderNo: extractOrderNo(msg?.content) }
+  }
 
+  const messageId = getMessageId(msg)
+  if (messageId > 0) {
+    try {
+      const res = await get(`/api/chat/system/${messageId}`)
+      const detail = res?.data || {}
+      const orderId = Number(detail?.order?.orderId || detail?.orderId || 0)
+      if (orderId > 0) {
+        return {
+          orderId,
+          orderNo: detail?.order?.orderNo || extractOrderNo(msg?.content)
+        }
+      }
+    } catch {}
+  }
+
+  return resolveMessageOrderTarget(msg)
+}
+
+const openOrderFromMessage = async (msg) => {
   if (isEscortRole.value) {
+    const target = await resolveEscortMessageOrderTarget(msg)
     if (!target.orderId) {
       uni.showToast({ title: '未找到可跳转的订单', icon: 'none' })
       return
@@ -159,21 +184,21 @@ const openOrderFromMessage = async (msg) => {
     return
   }
 
+  const target = await resolveMessageOrderTarget(msg)
   if (target.orderId) {
     await get(`/api/orders/${target.orderId}`)
     uni.navigateTo({ url: `/subpkg/order/order-detail?orderId=${target.orderId}` })
     return
   }
-
   if (target.orderNo) {
     uni.navigateTo({ url: `/subpkg/order/order-detail?orderNo=${encodeURIComponent(target.orderNo)}` })
     return
   }
-
   uni.showToast({ title: '未找到可跳转的订单', icon: 'none' })
 }
 
-const buildActionLoadingKey = (msg) => `${msg?.id || ''}_${msg?.createTime || ''}_${msg?.orderId || ''}`
+const buildActionLoadingKey = (msg) =>
+  `${getMessageId(msg)}_${msg?.createTime || ''}_${getMessageOrderId(msg)}`
 
 const loadSystemMessages = async () => {
   const res = await get('/api/chat/system')
@@ -221,7 +246,7 @@ const getActionText = (msg) => {
   return msg.action || ''
 }
 const showFooterAction = (msg) => {
-  if (isEscortRole.value) return !!msg.orderId
+  if (isEscortRole.value) return !!(getMessageOrderId(msg) || extractOrderNo(msg?.content))
   return !!msg.action
 }
 
@@ -229,9 +254,18 @@ const switchTab = (index) => {
   currentTab.value = index
 }
 
-const openMessage = (msg) => {
+const openMessage = async (msg) => {
   if (!isEscortRole.value) return
-  uni.navigateTo({ url: `/subpkg/system-message/escort-detail?messageId=${msg.id}` })
+  const messageId = getMessageId(msg)
+  if (messageId > 0) {
+    uni.navigateTo({ url: `/subpkg/system-message/escort-detail?messageId=${messageId}` })
+    return
+  }
+  try {
+    await openOrderFromMessage(msg)
+  } catch (error) {
+    showOrderAccessError(error)
+  }
 }
 
 const handleAction = async (msg) => {
@@ -333,103 +367,91 @@ onUnmounted(() => {
 @import '@/styles/escort-ui.scss';
 
 .container {
-  --msg-primary: #{$user-color-primary};
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background: #f5f7fa;
   display: flex;
   flex-direction: column;
 }
 
-.container.role-escort {
-  --msg-primary: #{$escort-color-primary};
-}
-
 .tabs-container {
-  background-color: #fff;
-  padding: 10rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  background: #fff;
+  padding-top: 8rpx;
 }
 
 .tabs-scroll {
   white-space: nowrap;
-  width: 100%;
 }
 
 .tabs-wrapper {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  min-width: 100%;
   padding: 0 20rpx;
+  box-sizing: border-box;
 }
 
 .tab-item {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20rpx 30rpx;
   position: relative;
+  padding: 24rpx 20rpx 22rpx;
+  margin-right: 20rpx;
+  color: #6b7280;
+  font-size: 30rpx;
+  flex-shrink: 0;
 }
 
-.tab-item.active .tab-text {
-  color: var(--msg-primary);
+.tab-item.active {
+  color: #1677ff;
   font-weight: 600;
-  font-size: 22rpx;
-}
-
-.tab-text {
-  font-size: 22rpx;
-  color: #666;
-  transition: all 0.3s;
 }
 
 .tab-line {
-  width: 40rpx;
-  height: 6rpx;
-  background-color: var(--msg-primary);
-  border-radius: 3rpx;
   position: absolute;
-  bottom: 6rpx;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: 8rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: #1677ff;
 }
 
-.message-list-unified {
-  padding: 24rpx;
+.message-list {
+  flex: 1;
+  padding: 20rpx 24rpx 32rpx;
   box-sizing: border-box;
-  min-height: calc(100vh - 180rpx);
 }
 
 .system-message-card {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
-}
-
-.system-message-card.clickable {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin-bottom: 22rpx;
+  box-shadow: 0 10rpx 26rpx rgba(15, 23, 42, 0.05);
 }
 
 .system-message-card.clickable:active {
-  transform: scale(0.99);
-  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.06);
+  transform: scale(0.995);
 }
 
-.message-header {
-  margin-bottom: 20rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20rpx;
-}
-
+.message-header,
+.message-footer,
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+}
+
+.message-header,
+.message-footer {
+  justify-content: space-between;
+}
+
+.header-left {
+  gap: 10rpx;
 }
 
 .message-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 .unread-dot {
@@ -437,62 +459,52 @@ onUnmounted(() => {
   height: 14rpx;
   border-radius: 50%;
   background: #ff4d4f;
-  box-shadow: 0 0 0 6rpx rgba(255, 77, 79, 0.12);
 }
 
 .message-time {
-  font-size: 24rpx;
-  color: #999;
-  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #9ca3af;
 }
 
 .message-content {
-  margin-bottom: 20rpx;
+  padding: 24rpx 0 20rpx;
 }
 
 .content-text {
-  font-size: 28rpx;
-  line-height: 1.6;
-  color: #666;
-  text-align: justify;
+  font-size: 31rpx;
+  line-height: 1.8;
+  color: #4b5563;
 }
 
 .message-footer {
-  border-top: 1rpx solid #f5f7fa;
   padding-top: 20rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-top: 1rpx solid #eef2f7;
 }
 
 .action-text {
-  font-size: 28rpx;
-  color: var(--msg-primary);
-  font-weight: 500;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1677ff;
 }
 
 .action-arrow {
-  font-size: 28rpx;
-  color: #ccc;
+  font-size: 32rpx;
+  color: #c4c9d4;
 }
 
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: 200rpx;
+  padding: 160rpx 40rpx;
+  text-align: center;
+  color: #94a3b8;
 }
 
 .empty-icon {
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: 20rpx;
-  opacity: 0.5;
+  width: 180rpx;
+  height: 180rpx;
+  margin-bottom: 24rpx;
 }
 
 .empty-text {
-  color: #999;
   font-size: 28rpx;
 }
 </style>

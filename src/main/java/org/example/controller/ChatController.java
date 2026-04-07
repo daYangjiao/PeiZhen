@@ -18,12 +18,17 @@ import springfox.documentation.annotations.ApiIgnore;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/chat")
 @Api(tags = "聊天消息接口")
 @RequiredArgsConstructor
 public class ChatController {
+
+    private static final Pattern ORDER_NO_PATTERN =
+            Pattern.compile("\\b(ORD[A-Za-z0-9_-]{6,})\\b", Pattern.CASE_INSENSITIVE);
 
     private final ChatService chatService;
     private final OrderService orderService;
@@ -103,7 +108,7 @@ public class ChatController {
         response.setCreateTime(message.getCreateTime());
         response.setIsRead(Boolean.TRUE.equals(message.getIsRead()));
         response.setMarkedRead(markedRead);
-        fillOrderSummary(response, message.getOrderId(), currentUserId);
+        fillOrderSummary(response, message, currentUserId);
         return ResponseResult.success(response);
     }
 
@@ -134,17 +139,11 @@ public class ChatController {
         return ResponseResult.success(null);
     }
 
-    private void fillOrderSummary(EscortSystemMessageDetailResponse response, Integer orderId, Integer currentUserId) {
-        if (orderId == null || orderId <= 0) {
-            response.setOrderAvailable(false);
-            response.setOrderUnavailableReason("该消息未关联订单");
-            return;
-        }
-
-        Order order = orderService.getOrderById(orderId);
+    private void fillOrderSummary(EscortSystemMessageDetailResponse response, ChatMessage message, Integer currentUserId) {
+        Order order = resolveOrderFromMessage(message);
         if (order == null) {
             response.setOrderAvailable(false);
-            response.setOrderUnavailableReason("关联订单不存在或已删除");
+            response.setOrderUnavailableReason("该消息未关联订单");
             return;
         }
 
@@ -164,8 +163,40 @@ public class ChatController {
         summary.setServiceDate(order.getServiceDate());
         summary.setServiceTimeSlot(order.getServiceTimeSlot());
 
+        response.setOrderId(order.getOrderId());
         response.setOrderAvailable(true);
         response.setOrder(summary);
+    }
+
+    private Order resolveOrderFromMessage(ChatMessage message) {
+        if (message == null) {
+            return null;
+        }
+
+        Integer directOrderId = message.getOrderId();
+        if (directOrderId != null && directOrderId > 0) {
+            Order directOrder = orderService.getOrderById(directOrderId);
+            if (directOrder != null) {
+                return directOrder;
+            }
+        }
+
+        String orderNo = extractOrderNo(message.getContent());
+        if (orderNo == null || orderNo.isBlank()) {
+            return null;
+        }
+        return orderService.getOrderByOrderNo(orderNo);
+    }
+
+    private String extractOrderNo(String content) {
+        if (content == null || content.isBlank()) {
+            return null;
+        }
+        Matcher matcher = ORDER_NO_PATTERN.matcher(content);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1);
     }
 
     private String resolveOrderStatusText(Integer status) {

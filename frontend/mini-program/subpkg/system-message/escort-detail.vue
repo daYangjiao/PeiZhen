@@ -95,12 +95,18 @@ const goBack = () => {
   uni.navigateBack()
 }
 
-const openOrderDetail = () => {
-  if (!detail.value.orderAvailable || !detail.value.order?.orderId) {
+const openOrderDetail = async () => {
+  const orderId = Number(detail.value.order?.orderId || detail.value.orderId || 0)
+  if (!detail.value.orderAvailable || !orderId) {
     uni.showToast({ title: detail.value.orderUnavailableReason || '订单暂时无法查看', icon: 'none' })
     return
   }
-  uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${detail.value.order.orderId}` })
+  try {
+    await get(`/attendant/orders/${orderId}`)
+    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${orderId}` })
+  } catch (error) {
+    uni.showToast({ title: error?.message || '订单暂时无法查看', icon: 'none' })
+  }
 }
 
 const loadDetail = async (messageId) => {
@@ -191,7 +197,7 @@ onLoad((options) => {
   padding: 8rpx 18rpx;
   border-radius: 999rpx;
   background: rgba(0, 122, 255, 0.1);
-  color: #007AFF;
+  color: #007aff;
   font-size: 22rpx;
   font-weight: 600;
 }
@@ -223,25 +229,22 @@ onLoad((options) => {
 .value {
   flex: 1;
   text-align: right;
-  font-size: 25rpx;
-  color: #1f2937;
+  font-size: 26rpx;
+  color: #111827;
+  line-height: 1.6;
 }
 
 .primary-btn,
 .state-btn {
-  margin-top: 24rpx;
-  @include escort-primary-btn;
+  margin-top: 28rpx;
+  height: 84rpx;
   border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: $escort-shadow-primary;
-}
-
-.primary-btn text,
-.state-btn text {
+  background: linear-gradient(135deg, #1677ff, #0f5fe5);
   color: #fff;
   font-size: 28rpx;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
