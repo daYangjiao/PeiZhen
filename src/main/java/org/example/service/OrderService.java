@@ -14,6 +14,8 @@ public interface OrderService {
 
     Order getOrderById(Integer orderId);
 
+    Order getOrderByOrderNo(String orderNo);
+
     int updateOrder(Order order);
 
     String attendantAcceptOrder(Integer orderId, Integer attendantId);

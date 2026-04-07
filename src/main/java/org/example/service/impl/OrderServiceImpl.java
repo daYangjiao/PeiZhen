@@ -64,6 +64,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public Order getOrderByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.trim().isEmpty()) {
+            return null;
+        }
+        return orderMapper.selectByOrderNo(orderNo.trim());
+    }
+
+    @Override
     public int updateOrder(Order order) {
         return orderMapper.updateByPrimaryKeySelective(order);
     }
