@@ -191,7 +191,7 @@
       <view class="qr-container">
         <image
           v-if="!qrLoadFailed"
-          :src="getQrCodeUrl(order.qrCodeUrl, order.orderId)"
+          :src="currentQrCodeUrl"
           class="qr-image"
           mode="aspectFit"
           @click="previewQrCode"
@@ -201,7 +201,7 @@
           <text class="qr-error-text">加载失败，点击重试</text>
           <button class="qr-retry-btn" @click="retryQrCode">重新加载</button>
         </view>
-        <text class="qr-preview-hint" @click="previewQrCode">点按放大预览</text>
+        <text v-if="!qrLoadFailed" class="qr-preview-hint" @click="previewQrCode">点按放大预览</text>
         <br>
         <text class="qr-desc">请陪诊师扫描此二维码确认开始服务</text>
       </view>
@@ -514,6 +514,7 @@ const REALTIME_SYNC_INTERVAL = 30000;
 const payCountdown = ref('');
 const qrLoadFailed = ref(false);
 const qrRefreshToken = ref(Date.now());
+const currentQrSourceKey = ref('');
 const showCancelModal = ref(false);
 const cancelReasons = [
   '计划有变，暂不就诊',
@@ -535,9 +536,10 @@ const showPayCountdown = computed(() => {
 
 // 计算属性
 const showQRCode = computed(() => {
-  // 状态为2(待服务)且存在订单ID时即可显示，二维码可按 orderId 回退生成
-  return order.value.orderStatus === 2 && !!order.value.orderId;
+  return order.value.orderStatus === 2 && order.value.paymentStatus === 1 && !!order.value.orderId;
 });
+
+const currentQrCodeUrl = computed(() => getQrCodeUrl(order.value?.qrCodeUrl, order.value?.orderId));
 
 const showDurationConfirm = computed(() => {
   return order.value.orderStatus === 4; // 待确认时长费用
@@ -919,6 +921,11 @@ const getQrCodeUrl = (qrCodeUrl, orderId) => {
   if (!finalUrl) return '';
   const joiner = finalUrl.includes('?') ? '&' : '?';
   return `${finalUrl}${joiner}t=${qrRefreshToken.value}`;
+};
+
+const getQrSourceKey = (detail = {}) => {
+  if (!detail?.orderId) return '';
+  return `${detail.orderId}|${detail.qrCodeUrl || ''}|${detail.orderStatus || ''}|${detail.paymentStatus || ''}`;
 };
 
 const previewQrCode = () => {
@@ -1327,12 +1334,19 @@ const fetchOrderDetail = async (orderKey) => {
       return;
     }
 
+    const nextQrSourceKey = getQrSourceKey(data);
+    const qrSourceChanged = nextQrSourceKey !== currentQrSourceKey.value;
+
     order.value = {
-      ...data,
-      qrCodeUrl: getQrCodeUrl(data.qrCodeUrl, data.orderId)
+      ...data
     };
-    qrLoadFailed.value = false;
-    qrRefreshToken.value = Date.now();
+
+    if (qrSourceChanged) {
+      currentQrSourceKey.value = nextQrSourceKey;
+      qrLoadFailed.value = false;
+      qrRefreshToken.value = Date.now();
+    }
+
     currentOrderKey = data.orderNo || orderKey;
 
     // 更新待支付倒计时（仅对有支付倒计时的用户端订单生效）
