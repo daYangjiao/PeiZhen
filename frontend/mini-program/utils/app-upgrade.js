@@ -78,20 +78,6 @@ const installPackage = (filePath, options = {}) => {
   })
 }
 
-const showConfirm = ({ title, content, forceUpdate = false }) => {
-  return new Promise((resolve) => {
-    uni.showModal({
-      title,
-      content,
-      showCancel: !forceUpdate,
-      confirmText: '立即更新',
-      cancelText: '稍后再说',
-      success: (res) => resolve(!!res.confirm),
-      fail: () => resolve(false)
-    })
-  })
-}
-
 const installWgt = async (payload) => {
   uni.showLoading({ title: '更新资源中...', mask: true })
   try {
@@ -112,17 +98,11 @@ const installWgt = async (payload) => {
 }
 
 const installApk = async (payload) => {
-  const confirmed = await showConfirm({
-    title: payload.title || '检测到新版本',
-    content: payload.notes || '发现新的安装包版本，是否立即下载并安装？',
-    forceUpdate: !!payload.forceUpdate
-  })
-  if (!confirmed) return
-
   uni.showLoading({ title: '下载新版本中...', mask: true })
   try {
     const filePath = await downloadFile(payload.downloadUrl)
     uni.hideLoading()
+    uni.showToast({ title: '下载完成，正在打开安装界面', icon: 'none', duration: 1800 })
     await installPackage(filePath, { force: true })
   } catch (error) {
     uni.hideLoading()
