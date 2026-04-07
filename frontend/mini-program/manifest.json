@@ -2,8 +2,8 @@
     "name" : "愈安伴陪诊",
     "appid" : "__UNI__73289DB",
     "description" : "合并后的陪诊小程序（用户端+陪诊师端）",
-    "versionName" : "1.0.1-beta5",
-    "versionCode" : "105",
+    "versionName" : "1.0.1-beta6",
+    "versionCode" : "106",
     "transformPx" : false,
     "vueVersion" : "3",
     "app-plus" : {

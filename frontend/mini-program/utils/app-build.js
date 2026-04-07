@@ -1,8 +1,8 @@
 export const APP_BUILD = Object.freeze({
-  buildLabel: 'beta5',
+  buildLabel: 'beta6',
   appid: '__UNI__73289DB',
-  versionName: '1.0.1-beta5',
-  versionCode: 105,
+  versionName: '1.0.1-beta6',
+  versionCode: 106,
   packageName: 'cn.yuanban.peizhen'
 })
 
