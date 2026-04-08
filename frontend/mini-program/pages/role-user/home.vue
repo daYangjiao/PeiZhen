@@ -681,18 +681,18 @@ if (typeof uni.onWindowResize === 'function') {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 120rpx;
+  width: 128rpx;
   flex-shrink: 0;
 }
 .service-node-shell {
-  width: 80rpx;
-  height: 80rpx;
+  width: 84rpx;
+  height: 84rpx;
   border-radius: 50%;
   padding: 0;
   background: #eef6ff;
   border: 1rpx solid rgba(84, 151, 221, 0.14);
   box-shadow: 0 6rpx 14rpx rgba(34, 101, 170, 0.06);
-  margin-bottom: 18rpx;
+  margin-bottom: 20rpx;
 }
 .service-node {
   width: 100%;
@@ -705,25 +705,26 @@ if (typeof uni.onWindowResize === 'function') {
   border: none;
 }
 .service-icon {
-  width: 52rpx;
-  height: 52rpx;
+  width: 54rpx;
+  height: 54rpx;
   filter: none;
 }
 .service-arrow {
-  width: 28rpx;
+  width: 56rpx;
   display: flex;
   justify-content: center;
-  padding-top: 28rpx;
+  align-items: center;
+  padding-top: 18rpx;
   flex-shrink: 0;
 }
 .service-arrow-text {
-  font-size: 20rpx;
-  font-weight: 400;
-  color: #9cb8d6;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #2b8bf2;
   line-height: 1;
 }
 .service-text {
-  max-width: 120rpx;
+  max-width: 128rpx;
   font-size: 22rpx;
   line-height: 1.4;
   color: #5b7289;
