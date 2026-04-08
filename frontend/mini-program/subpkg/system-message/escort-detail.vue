@@ -66,12 +66,17 @@
 
 <script setup>
 import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { get } from '@/utils/api.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 
 const loading = ref(true)
 const loadError = ref('')
 const detail = ref({})
+let currentMessageId = 0
+let socketListener = null
+let socketRefreshTimer = null
+let pageActive = false
 
 const getEscortOrderStatusText = (order = {}) => {
   const status = Number(order?.orderStatus)
@@ -106,6 +111,81 @@ const formatServiceTime = (order = {}) => {
   return [date, slot].filter(Boolean).join(' ')
 }
 
+const isOrderRelatedEvent = (type = '') => {
+  const relatedTypes = [
+    'ORDER_STATUS_CHANGED',
+    'SERVICE_STARTED',
+    'SERVICE_COMPLETED',
+    'SERVICE_PROGRESS_UPDATED',
+    'SERVICE_PROGRESS_CHANGED',
+    'ORDER_UPDATED',
+    'ORDER_CANCELLED',
+    'ORDER_FINISHED',
+    'ORDER_RELEASED_BY_ATTENDANT',
+    'TIME_FEE_CONFIRMED',
+    'TIME_FEE_DISPUTED',
+    'BALANCE_PAYMENT_REQUIRED'
+  ]
+  return relatedTypes.includes(String(type).toUpperCase())
+}
+
+const patchLocalOrderStatus = (orderStatus) => {
+  const nextStatus = Number(orderStatus)
+  if (!Number.isFinite(nextStatus) || !detail.value?.order) return
+  detail.value = {
+    ...detail.value,
+    order: {
+      ...detail.value.order,
+      orderStatus: nextStatus
+    }
+  }
+}
+
+const scheduleSilentRefresh = () => {
+  if (!pageActive || !currentMessageId) return
+  if (socketRefreshTimer) clearTimeout(socketRefreshTimer)
+  socketRefreshTimer = setTimeout(() => {
+    loadDetail(currentMessageId, { silent: true })
+  }, 700)
+}
+
+const handleOrderMessage = (message) => {
+  const currentOrder = detail.value?.order
+  if (!pageActive || !currentOrder) return
+  const payload = message?.data && typeof message.data === 'object' ? message.data : {}
+  const type = String(message?.type || message?.eventType || payload?.type || '').toUpperCase()
+  if (!isOrderRelatedEvent(type)) return
+  const currentOrderId = Number(currentOrder.orderId || detail.value.orderId || 0)
+  const currentOrderNo = String(currentOrder.orderNo || '')
+  const payloadOrderId = Number(payload.orderId ?? message?.orderId ?? 0)
+  const payloadOrderNo = String(payload.orderNo ?? message?.orderNo ?? '')
+  const isCurrentOrder =
+    (currentOrderId > 0 && payloadOrderId === currentOrderId) ||
+    (currentOrderNo && payloadOrderNo && payloadOrderNo === currentOrderNo)
+  if (!isCurrentOrder) return
+  patchLocalOrderStatus(payload.orderStatus ?? message?.orderStatus)
+  scheduleSilentRefresh()
+}
+
+const bindOrderListener = () => {
+  connectOrderSocket()
+  if (!socketListener) {
+    socketListener = (message) => handleOrderMessage(message)
+  }
+  removeOrderListener(socketListener)
+  addOrderListener(socketListener)
+}
+
+const unbindOrderListener = () => {
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer)
+    socketRefreshTimer = null
+  }
+  if (socketListener) {
+    removeOrderListener(socketListener)
+  }
+}
+
 const goBack = () => {
   uni.navigateBack()
 }
@@ -124,9 +204,11 @@ const openOrderDetail = async () => {
   }
 }
 
-const loadDetail = async (messageId) => {
-  loading.value = true
-  loadError.value = ''
+const loadDetail = async (messageId, { silent = false } = {}) => {
+  if (!silent) {
+    loading.value = true
+    loadError.value = ''
+  }
   try {
     const res = await get(`/api/chat/system/${messageId}`)
     if (res.code === 200 && res.data) {
@@ -138,23 +220,45 @@ const loadDetail = async (messageId) => {
     }
     loadError.value = res.message || '消息不存在'
   } catch (error) {
-    loadError.value = error?.message || '消息不存在或已删除'
-    if (Number(error?.code || 0) === 401) {
-      loadError.value = '无权限查看这条系统消息'
+    if (!silent) {
+      loadError.value = error?.message || '消息不存在或已删除'
+      if (Number(error?.code || 0) === 401) {
+        loadError.value = '无权限查看这条系统消息'
+      }
     }
   } finally {
-    loading.value = false
+    if (!silent) {
+      loading.value = false
+    }
   }
 }
 
 onLoad((options) => {
-  const messageId = Number(options?.messageId || 0)
-  if (!messageId) {
+  currentMessageId = Number(options?.messageId || 0)
+  if (!currentMessageId) {
     loadError.value = '缺少消息ID'
     loading.value = false
     return
   }
-  loadDetail(messageId)
+  pageActive = true
+  bindOrderListener()
+  loadDetail(currentMessageId)
+})
+
+onShow(() => {
+  if (!currentMessageId) return
+  pageActive = true
+  bindOrderListener()
+})
+
+onHide(() => {
+  pageActive = false
+  unbindOrderListener()
+})
+
+onUnload(() => {
+  pageActive = false
+  unbindOrderListener()
 })
 </script>
 

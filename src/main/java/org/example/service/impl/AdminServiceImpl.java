@@ -493,9 +493,9 @@ public class AdminServiceImpl implements AdminService {
             case 3:
                 return "服务中";
             case 4:
-                return "待确认费用";
+                return "待确认时长";
             case 5:
-                return "争议处理中";
+                return "待补款";
             case 6:
                 return "已完成";
             case 7:

@@ -52,7 +52,7 @@ public class OrderDetailResponse {
     @ApiModelProperty(value = "支付状态（0=待支付，1=已支付）", example = "0")
     private Integer paymentStatus;
 
-    @ApiModelProperty(value = "订单状态（0=待接单，1=已接单，2=已完成，3=已取消）", example = "0")
+    @ApiModelProperty(value = "订单状态（0=待支付，1=待接单，2=待服务，3=服务中，4=待确认时长，5=待补款，6=已完成，7=已取消）", example = "2")
     private Integer orderStatus;
 
     /**
