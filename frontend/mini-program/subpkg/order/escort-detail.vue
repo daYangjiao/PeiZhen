@@ -218,7 +218,7 @@
 							<button
 								v-if="orderInfo.status === 'completed'"
 								class="flow-btn done"
-							>已完成</button>
+							>已更新</button>
 							<button
 								v-else-if="currentFlowStep === index + 1 && index + 1 !== serviceFlowSteps.length"
 								class="flow-btn doing"
@@ -226,7 +226,7 @@
 							<button
 								v-else-if="currentFlowStep === index + 1 && index + 1 === serviceFlowSteps.length"
 								class="flow-btn done"
-							>已完成</button>
+							>流程完成</button>
 							<button
 								v-else-if="currentFlowStep < index + 1"
 								class="flow-btn update"
@@ -235,7 +235,7 @@
 							<button
 								v-else
 								class="flow-btn done"
-							>已完成</button>
+							>已更新</button>
 						</view>
 					</view>
 				</view>
@@ -715,7 +715,9 @@ export default {
 				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
 			}
 			if (status === 'in_progress') {
-				return `当前服务流程进度：第${this.currentFlowStep}步 / 共4步`
+				return this.currentFlowStep >= 4
+					? '服务流程已完成，请点击底部“结束服务”提交时长与费用'
+					: `当前服务流程进度：第${this.currentFlowStep}步 / 共4步`
 			}
 			if (status === 'waiting_confirm') {
 				return '您已提交时长与费用，正在等待患者确认'
@@ -1229,6 +1231,20 @@ export default {
 				'BALANCE_PAYMENT_REQUIRED'
 			]
 			if (!isCurrentOrder || !relatedTypes.includes(type)) return
+			const nextStatus = Number(payload.orderStatus ?? message.orderStatus)
+			if (Number.isFinite(nextStatus)) {
+				if (nextStatus === 3) this.orderInfo.status = 'in_progress'
+				else if (nextStatus === 4) this.orderInfo.status = 'waiting_confirm'
+				else if (nextStatus === 5) this.orderInfo.status = 'disputed'
+				else if (nextStatus === 6) this.orderInfo.status = 'completed'
+				else if (nextStatus === 7) this.orderInfo.status = 'cancelled'
+			}
+			const nextStep = Number(payload.step ?? message.step)
+			if (Number.isFinite(nextStep) && nextStep >= 1 && nextStep <= 4) {
+				this.currentFlowStep = nextStep
+			} else if (type === 'SERVICE_COMPLETED' && this.currentFlowStep < 4) {
+				this.currentFlowStep = 4
+			}
 			setTimeout(() => {
 				this.loadOrderDetail(this.orderInfo.id)
 			}, 1000)

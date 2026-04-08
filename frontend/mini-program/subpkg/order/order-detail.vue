@@ -1410,6 +1410,31 @@ const isOrderRelatedMessage = (messageType) => {
   return false;
 };
 
+const applyOrderEventPatch = (payload = {}, messageType = '') => {
+  if (!order.value) return;
+  const nextStatus = Number(payload.orderStatus);
+  if (Number.isFinite(nextStatus) && Number(order.value.orderStatus) !== nextStatus) {
+    order.value = {
+      ...order.value,
+      orderStatus: nextStatus
+    };
+  }
+
+  const nextStep = Number(payload.step);
+  const normalizedType = String(messageType || '').toUpperCase();
+  if (Number.isFinite(nextStep) && nextStep >= 1 && nextStep <= 4) {
+    order.value = {
+      ...order.value,
+      serviceProgressStep: nextStep
+    };
+  } else if ((normalizedType === 'SERVICE_COMPLETED' || nextStatus >= 4) && Number(order.value.serviceProgressStep || 0) < 4) {
+    order.value = {
+      ...order.value,
+      serviceProgressStep: 4
+    };
+  }
+};
+
 // WebSocket 消息处理
 const handleSocketMessage = (message) => {
   if (!pageActive || !message || !order.value) return;
@@ -1436,6 +1461,11 @@ const handleSocketMessage = (message) => {
   const messageType = message.type || message.eventType || payload.type || '';
   const related = isOrderRelatedMessage(messageType);
   if (!isCurrentOrder || !related) return;
+
+  applyOrderEventPatch({
+    orderStatus: payload.orderStatus ?? message.orderStatus,
+    step: payload.step ?? message.step
+  }, messageType);
 
   if (String(messageType).toUpperCase() === 'ORDER_RELEASED_BY_ATTENDANT') {
     uni.showToast({ title: '订单已重新进入接单大厅，将为您重新匹配陪诊师', icon: 'none', duration: 2500 });

@@ -204,6 +204,10 @@ export default {
       try {
         const res = await post(`/attendant/orders/${this.orderId}/end?actualDuration=${this.actualDuration}`)
         if (res.code === 200) {
+          uni.$emit('escort-order-updated', {
+            orderId: Number(this.orderId),
+            action: 'waiting_confirm'
+          })
           uni.showToast({ title: '已提交待确认', icon: 'success' })
           setTimeout(() => {
             uni.navigateBack()

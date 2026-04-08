@@ -257,6 +257,31 @@ const goToDetail = (order) => {
   uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${order.orderId}` })
 }
 
+const extractOrderEventPayload = (message) => {
+  if (!message) return {}
+  const payload = message.data && typeof message.data === 'object' ? message.data : {}
+  return {
+    orderId: Number(message.orderId || payload.orderId || 0),
+    orderNo: String(message.orderNo || payload.orderNo || ''),
+    orderStatus: payload.orderStatus ?? message.orderStatus
+  }
+}
+
+const applyOrderStatusPatch = ({ orderId, orderNo, orderStatus }) => {
+  const nextStatus = Number(orderStatus)
+  if (!Number.isFinite(nextStatus)) return
+  orders.value = orders.value.map((order) => {
+    const matchById = orderId && Number(order.orderId || 0) === orderId
+    const matchByNo = orderNo && String(order.orderNo || '') === orderNo
+    if (!matchById && !matchByNo) return order
+    if (Number(order.orderStatus) === nextStatus) return order
+    return {
+      ...order,
+      orderStatus: nextStatus
+    }
+  })
+}
+
 const handleSocketMessage = (message) => {
   if (!pageActive) return
   if (
@@ -267,6 +292,7 @@ const handleSocketMessage = (message) => {
     message.type === 'ORDER_STATUS_CHANGED' ||
     message.type === 'ORDER_RELEASED_BY_ATTENDANT'
   ) {
+    applyOrderStatusPatch(extractOrderEventPayload(message))
     setTimeout(() => loadOrders({ silent: true }), 700)
   }
 }
