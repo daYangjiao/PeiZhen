@@ -22,7 +22,7 @@
 				<text class="overview-order-no">订单号：{{ orderInfo.orderNo }}</text>
 			</view>
 
-			<!-- 顶部：订单整体状态进度条（待核销 / 服务中 / 待确认） -->
+			<!-- 顶部：订单整体状态进度条（待核销 / 服务中 / 待患者确认） -->
 			<view class="status-card top-progress-card" v-if="['accepted','in_progress','waiting_confirm'].includes(orderInfo.status)">
 				<view class="progress-title-row">
 					<text class="progress-title">服务进度</text>
@@ -41,7 +41,7 @@
 					<view class="progress-line" :class="{ active: serviceProgressStep >= 3 }"></view>
 					<view class="progress-step" :class="{ active: serviceProgressStep >= 3, current: serviceProgressStep === 3 }">
 						<view class="step-dot"></view>
-						<text class="step-label">待确认</text>
+						<text class="step-label">待患者确认</text>
 					</view>
 				</view>
 				<!-- 待服务时：服务准备状态 + 前往准备 -->
@@ -705,7 +705,7 @@ export default {
 			const map = {
 				accepted: '待核销',
 				in_progress: '服务中',
-				waiting_confirm: '待确认'
+				waiting_confirm: '待患者确认'
 			}
 			return map[this.orderInfo.status] || '待接单'
 		},

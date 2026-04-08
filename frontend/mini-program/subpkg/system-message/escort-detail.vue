@@ -36,7 +36,7 @@
           </view>
           <view class="summary-row">
             <text class="label">状态</text>
-            <text class="value">{{ detail.order.orderStatusText || '--' }}</text>
+            <text class="value">{{ getEscortOrderStatusText(detail.order) }}</text>
           </view>
           <view class="summary-row">
             <text class="label">医院</text>
@@ -72,6 +72,21 @@ import { get } from '@/utils/api.js'
 const loading = ref(true)
 const loadError = ref('')
 const detail = ref({})
+
+const getEscortOrderStatusText = (order = {}) => {
+  const status = Number(order?.orderStatus)
+  const map = {
+    0: '待支付',
+    1: '待接单',
+    2: '待核销',
+    3: '服务中',
+    4: '待患者确认',
+    5: '待补款',
+    6: '已完成',
+    7: '已取消'
+  }
+  return map[status] || order?.orderStatusText || '--'
+}
 
 const formatTime = (value) => {
   if (!value) return ''

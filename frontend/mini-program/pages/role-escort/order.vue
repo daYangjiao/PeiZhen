@@ -131,6 +131,22 @@ let localOrderUpdatedListener = null
 let pageActive = false
 let queuedReload = false
 let queuedReloadSilent = true
+const ORDER_EVENT_TYPES = [
+  'NEW_ORDER',
+  'ORDER_ACCEPTED',
+  'SERVICE_STARTED',
+  'SERVICE_COMPLETED',
+  'ORDER_STATUS_CHANGED',
+  'ORDER_RELEASED_BY_ATTENDANT',
+  'SERVICE_PROGRESS_UPDATED',
+  'SERVICE_PROGRESS_CHANGED',
+  'ORDER_UPDATED',
+  'ORDER_CANCELLED',
+  'ORDER_FINISHED',
+  'TIME_FEE_CONFIRMED',
+  'TIME_FEE_DISPUTED',
+  'BALANCE_PAYMENT_REQUIRED'
+]
 
 onMounted(() => {
   setupWebSocketListener()
@@ -284,17 +300,10 @@ const applyOrderStatusPatch = ({ orderId, orderNo, orderStatus }) => {
 
 const handleSocketMessage = (message) => {
   if (!pageActive) return
-  if (
-    message.type === 'NEW_ORDER' ||
-    message.type === 'ORDER_ACCEPTED' ||
-    message.type === 'SERVICE_STARTED' ||
-    message.type === 'SERVICE_COMPLETED' ||
-    message.type === 'ORDER_STATUS_CHANGED' ||
-    message.type === 'ORDER_RELEASED_BY_ATTENDANT'
-  ) {
-    applyOrderStatusPatch(extractOrderEventPayload(message))
-    setTimeout(() => loadOrders({ silent: true }), 700)
-  }
+  const type = String(message?.type || '').toUpperCase()
+  if (!ORDER_EVENT_TYPES.includes(type)) return
+  applyOrderStatusPatch(extractOrderEventPayload(message))
+  setTimeout(() => loadOrders({ silent: true }), 700)
 }
 
 const setupWebSocketListener = () => {
