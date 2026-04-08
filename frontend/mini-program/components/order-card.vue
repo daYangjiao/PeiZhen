@@ -96,18 +96,50 @@ const onAvatarError = () => {
 }
 
 const statusClass = computed(() => {
-	const statusMap = { 1: 'status-pending', 2: 'status-accepted', 3: 'status-progress', 6: 'status-completed', 7: 'status-cancelled' }
+	const statusMap = {
+		1: 'status-pending',
+		2: 'status-accepted',
+		3: 'status-progress',
+		4: 'status-confirm',
+		5: 'status-balance',
+		6: 'status-completed',
+		7: 'status-cancelled'
+	}
 	if (typeof props.orderData.status === 'string') {
-		const strMap = { pending: 'status-pending', accepted: 'status-accepted', in_progress: 'status-progress', completed: 'status-completed', cancelled: 'status-cancelled' }
+		const strMap = {
+			pending: 'status-pending',
+			accepted: 'status-accepted',
+			in_progress: 'status-progress',
+			waiting_confirm: 'status-confirm',
+			disputed: 'status-balance',
+			completed: 'status-completed',
+			cancelled: 'status-cancelled'
+		}
 		return strMap[props.orderData.status] || 'status-pending'
 	}
 	return statusMap[props.orderData.orderStatus] || 'status-pending'
 })
 
 const statusText = computed(() => {
-	const statusMap = { 1: '待接单', 2: '待服务', 3: '服务中', 6: '已完成', 7: '已取消' }
+	const statusMap = {
+		1: '待接单',
+		2: '待服务',
+		3: '服务中',
+		4: '待确认时长',
+		5: '待补款',
+		6: '已完成',
+		7: '已取消'
+	}
 	if (typeof props.orderData.status === 'string') {
-		const strMap = { pending: '待接单', accepted: '待服务', in_progress: '服务中', completed: '已完成', cancelled: '已取消' }
+		const strMap = {
+			pending: '待接单',
+			accepted: '待服务',
+			in_progress: '服务中',
+			waiting_confirm: '待确认时长',
+			disputed: '待补款',
+			completed: '已完成',
+			cancelled: '已取消'
+		}
 		return strMap[props.orderData.status] || '待接单'
 	}
 	return statusMap[props.orderData.orderStatus] || '待接单'

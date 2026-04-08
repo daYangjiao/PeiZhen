@@ -67,7 +67,7 @@ public class Order {
     @ApiModelProperty(value = "支付时间")
     private Date paymentTime;
 
-    @ApiModelProperty(value = "订单状态：0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长费用, 5=时长费用有争议, 6=已完成, 7=已取消")
+    @ApiModelProperty(value = "订单状态：0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长, 5=待补款, 6=已完成, 7=已取消")
     private Integer orderStatus;
 
     @ApiModelProperty(value = "取消原因")

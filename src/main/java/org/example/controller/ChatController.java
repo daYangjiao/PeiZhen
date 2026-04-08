@@ -206,8 +206,8 @@ public class ChatController {
             case 1 -> "待接单";
             case 2 -> "待服务";
             case 3 -> "服务中";
-            case 4 -> "待确认时长费用";
-            case 5 -> "时长费用有争议";
+            case 4 -> "待确认时长";
+            case 5 -> "待补款";
             case 6 -> "已完成";
             case 7 -> "已取消";
             default -> "未知";

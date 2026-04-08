@@ -344,7 +344,7 @@ public class AttendantController {
      * 结束服务
      */
     @PostMapping("/orders/{orderId}/end")
-    @ApiOperation(value = "结束服务", notes = "填写实际服务时长并结束服务，订单会进入待确认时长费用状态。")
+    @ApiOperation(value = "结束服务", notes = "填写实际服务时长并结束服务，订单会进入待确认时长状态。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "服务结束成功"),
             @ApiResponse(code = 400, message = "订单状态不允许结束服务或时长不合法"),
@@ -490,8 +490,8 @@ public class AttendantController {
             case 1 -> "待接单";
             case 2 -> "待服务";
             case 3 -> "服务中";
-            case 4 -> "待确认时长费用";
-            case 5 -> "时长费用有争议";
+            case 4 -> "待确认时长";
+            case 5 -> "待补款";
             case 6 -> "已完成";
             case 7 -> "已取消";
             default -> "未知";
