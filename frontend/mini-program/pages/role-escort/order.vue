@@ -116,7 +116,7 @@ const statusTabs = ref([
   { name: '全部', value: null },
   { name: '待核销', value: 2 },
   { name: '服务中', value: 3 },
-  { name: '待确认', value: 4 },
+  { name: '待患者确认', value: 4 },
   { name: '已完成', value: 6 },
   { name: '已取消', value: 7 }
 ])
@@ -244,7 +244,7 @@ const formatAmount = (amount) => (amount ? Number(amount).toFixed(2) : '0.00')
 const getAttendantIncome = (orderAmount) => Number(orderAmount || 0) * 0.9
 
 const getStatusText = (status) => {
-  const map = { 1: '待接单', 2: '待核销', 3: '服务中', 4: '待确认', 5: '待补款', 6: '已完成', 7: '已取消' }
+  const map = { 1: '待接单', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '待补款', 6: '已完成', 7: '已取消' }
   return map[status] || '未知'
 }
 const getStatusClass = (status) => {
