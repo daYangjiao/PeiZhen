@@ -146,6 +146,7 @@ const page = ref(0)
 const pageSize = 10
 const hasMore = ref(true)
 const showFilterPopup = ref(false)
+const acceptingOrderId = ref('')
 
 const serviceTypeOptions = [
 	{ label: '全部', value: null },
@@ -319,18 +320,46 @@ const loadMore = () => {
 	loadOrders({})
 }
 
+const wait = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const openEscortOrderDetail = async (orderId, attempt = 0) => {
+	const targetOrderId = Number(orderId || 0)
+	if (!targetOrderId) {
+		throw new Error('订单信息有误')
+	}
+	try {
+		await get(`/attendant/orders/${targetOrderId}`)
+		uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${targetOrderId}` })
+	} catch (error) {
+		if (attempt < 1) {
+			await wait(350)
+			return openEscortOrderDetail(targetOrderId, attempt + 1)
+		}
+		throw error
+	}
+}
+
 // 查看详情：陪诊师端从大厅进入“陪诊师专用订单详情”
-const goToDetail = (orderData) => {
+const goToDetail = async (orderData) => {
 	const id = orderData.orderId || orderData.id
 	if (!id) {
 		uni.showToast({ title: '订单信息有误', icon: 'none' })
 		return
 	}
-	uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${id}` })
+	try {
+		await openEscortOrderDetail(id)
+	} catch (error) {
+		uni.showToast({ title: error?.message || '订单详情暂时无法打开', icon: 'none' })
+	}
 }
 
 const handleAccept = (actionData) => {
 	const order = actionData.data || actionData
+	const currentOrderId = order.orderId || order.id
+	if (!currentOrderId) {
+		uni.showToast({ title: '订单信息有误', icon: 'none' })
+		return
+	}
 	const attendantInfo = uni.getStorageSync('userInfo')
 	if (!attendantInfo || !attendantInfo.id) {
 		uni.showToast({ title: '请先登录', icon: 'none' })
@@ -340,16 +369,34 @@ const handleAccept = (actionData) => {
 		title: '确认接单',
 		content: '确定要接受该订单吗？',
 		success: async (res) => {
-			if (!res.confirm) return
+			if (!res.confirm || acceptingOrderId.value) return
+			acceptingOrderId.value = String(currentOrderId)
+			uni.showLoading({ title: '接单中...', mask: true })
 			try {
-				const response = await post(`/attendant/orders/${order.id}/accept?attendantId=${attendantInfo.id}`)
+				const response = await post(`/attendant/orders/${currentOrderId}/accept?attendantId=${attendantInfo.id}`)
 				if (response.code === 200) {
 					uni.showToast({ title: '接单成功', icon: 'success' })
 					loadOrders({ reset: true, silent: true })
+					const acceptedOrderId = response?.data?.orderId || currentOrderId
+					acceptingOrderId.value = ''
+					uni.hideLoading()
+					setTimeout(async () => {
+						try {
+							await openEscortOrderDetail(acceptedOrderId)
+						} catch (error) {
+							console.error('接单后跳转详情失败:', error)
+							uni.showToast({ title: error?.message || '接单成功，请到我的订单查看', icon: 'none' })
+							uni.switchTab({ url: '/pages/role-escort/order' })
+						}
+					}, 300)
 				} else {
+					acceptingOrderId.value = ''
+					uni.hideLoading()
 					uni.showToast({ title: response.message || '接单失败', icon: 'none' })
 				}
 			} catch (e) {
+				acceptingOrderId.value = ''
+				uni.hideLoading()
 				uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
 			}
 		}

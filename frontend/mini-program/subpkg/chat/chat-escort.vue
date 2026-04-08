@@ -202,6 +202,7 @@ const hasMoreHistory = ref(true)
 const pageSize = 20
 const currentPage = ref(1)
 const isSending = ref(false)
+const readSyncing = ref(false)
 
 // 新增状态
 const isVoiceMode = ref(false)
@@ -289,7 +290,7 @@ const loadHistory = async () => {
       messages.value = res.data.map(normalizeChatMessage)
       hasMoreHistory.value = res.data.length === pageSize
       setTimeout(() => scrollToBottom(), 100)
-      markAsRead()
+      markAsRead(true)
     }
   } catch (e) {}
 }
@@ -344,7 +345,7 @@ const handleNewMessage = (msg) => {
         if (!messages.value.some(m => m.id == newMsg.id)) {
             messages.value.push(normalizeChatMessage(newMsg));
             scrollToBottom();
-            markAsRead();
+            markAsRead(true);
         }
     } else if (msg.receiverId == targetUserId.value) {
         // 自己发送的消息回显
@@ -575,13 +576,23 @@ const parseLocation = (content) => {
     try { return JSON.parse(content) } catch(e) { return {} }
 }
 
-const markAsRead = () => {
-  post(`/api/chat/read?senderId=${targetUserId.value}`)
-    .finally(() => {
-      messageStore.updateContactUnread(targetUserId.value, 0)
-      messageStore.scheduleRefreshUnreadCounts(120)
-      messageStore.updateTabBarBadge()
-    })
+const markAsRead = async (silent = false) => {
+  if (!targetUserId.value || readSyncing.value) return
+  messageStore.updateContactUnread(targetUserId.value, 0)
+  messageStore.updateTabBarBadge()
+  readSyncing.value = true
+  try {
+    await post(`/api/chat/read?senderId=${targetUserId.value}`)
+    messageStore.scheduleRefreshUnreadCounts(120)
+  } catch (error) {
+    console.error('sync escort read status failed', error)
+    messageStore.scheduleRefreshUnreadCounts(120)
+    if (!silent) {
+      uni.showToast({ title: '已读状态同步失败', icon: 'none' })
+    }
+  } finally {
+    readSyncing.value = false
+  }
 }
 const navigateBack = () => {
   // 返回前通知消息页面更新状态
@@ -594,7 +605,8 @@ const previewImage = (url) => uni.previewImage({ urls: [url], current: url })
 
 const normalizeChatMessage = (msg) => {
     if (!msg) return msg
-    const currentUserAvatar = uni.getStorageSync('userInfo')?.avatar || ''
+    const userInfo = uni.getStorageSync('userInfo') || {}
+    const currentUserAvatar = userInfo.avatarUrl || userInfo.avatar || ''
     const displayAvatar = msg.senderId === currentUserId.value
         ? resolveAvatarUrl(currentUserAvatar, userPlaceholder)
         : resolveAvatarUrl(msg.senderAvatar || targetAvatar.value || '', userPlaceholder)

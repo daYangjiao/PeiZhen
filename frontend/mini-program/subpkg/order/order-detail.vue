@@ -1307,6 +1307,7 @@ const fetchOrderDetail = async (orderKey) => {
     console.log('正在获取订单详情，订单标识:', orderKey);
 
     let data = null;
+    const isNumericOrderId = /^\d+$/.test(String(orderKey || ''));
 
     // 1. 先尝试用户端统一详情接口（根据订单号）
     try {
@@ -1320,6 +1321,18 @@ const fetchOrderDetail = async (orderKey) => {
     }
 
     // 2. 如果按订单号查不到，再尝试陪诊师端接口（根据订单 ID）
+    if (!data && isNumericOrderId) {
+      try {
+        const byUserOrderId = await get(`/api/orders/${orderKey}`);
+        console.log('订单详情响应(用户ID接口):', byUserOrderId);
+        if (byUserOrderId && byUserOrderId.code === 200 && byUserOrderId.data) {
+          data = byUserOrderId.data;
+        }
+      } catch (e) {
+        console.warn('用户ID订单详情接口调用失败:', e);
+      }
+    }
+
     if (!data) {
       try {
         const byId = await get(`/attendant/orders/${orderKey}`);

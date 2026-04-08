@@ -184,6 +184,29 @@ export const useUserStore = defineStore('user', {
     setAttendantInfo(payload = {}) {
       this.attendantInfo = this.normalizeAttendantInfo(payload)
       uni.setStorageSync('attendantInfo', this.attendantInfo)
+      this.syncAttendantSessionProfile(this.attendantInfo)
+    },
+
+    syncAttendantSessionProfile(payload = {}) {
+      const current = this.userInfo || uni.getStorageSync('userInfo') || {}
+      if (!current || !current.id) return null
+
+      const next = {
+        ...current,
+        name: payload.name || current.name || '',
+        phone: payload.phone || current.phone || '',
+        avatar: payload.avatarUrl || payload.avatar || current.avatar || '',
+        avatarUrl: payload.avatarUrl || payload.avatar || current.avatarUrl || current.avatar || ''
+      }
+
+      if (!next.nickName) {
+        next.nickName = next.name || next.phone || '用户'
+      }
+
+      this.userInfo = next
+      uni.setStorageSync('userInfo', next)
+      uni.$emit('user:profile-updated', next)
+      return next
     },
 
     restoreAttendantInfo() {
