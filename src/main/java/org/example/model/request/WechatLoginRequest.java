@@ -11,6 +11,6 @@ public class WechatLoginRequest {
     @ApiModelProperty(value = "wx.login 返回的 code", required = true, example = "031m7qGa1b0abcDEF1234567890")
     private String code;
 
-    @ApiModelProperty(value = "当前登录角色，当前阶段仅支持 user", example = "user")
+    @ApiModelProperty(value = "当前登录角色，支持 user 或 escort", example = "user")
     private String role;
 }

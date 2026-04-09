@@ -20,11 +20,11 @@
         </view>
         <view class="rule-item">
           <view class="rule-dot"></view>
-          <text class="rule-text">如果这个手机号还没注册，我们会直接为你创建一个普通用户账号。</text>
+          <text class="rule-text">如果这个手机号还没注册，我们会直接为你创建一个{{ roleLabel }}账号。</text>
         </view>
         <view class="rule-item">
           <view class="rule-dot"></view>
-          <text class="rule-text">当前阶段仅支持普通用户微信登录，陪诊师仍使用手机号密码登录。</text>
+          <text class="rule-text">同一个微信账号只能绑定一个账号，请确认当前入口角色正确。</text>
         </view>
       </view>
 
@@ -96,6 +96,7 @@ const agreed = ref(false)
 const bindCompleted = ref(false)
 
 const phonePattern = /^1\d{10}$/
+const roleLabel = computed(() => role.value === 'escort' ? '陪诊师' : '普通用户')
 
 const formReady = computed(() => (
   agreed.value &&
@@ -107,8 +108,8 @@ const formReady = computed(() => (
 onLoad((options) => {
   role.value = options?.role || uni.getStorageSync('wechatBindRolePending') || 'user'
   wechatBindToken.value = uni.getStorageSync('wechatBindTokenPending') || ''
-  if (role.value !== 'user') {
-    uni.showToast({ title: '当前仅支持普通用户微信绑定', icon: 'none' })
+  if (!['user', 'escort'].includes(role.value)) {
+    uni.showToast({ title: '当前角色暂不支持微信绑定', icon: 'none' })
     setTimeout(() => {
       uni.navigateBack({ delta: 1 })
     }, 500)
@@ -189,7 +190,11 @@ const handleBind = async () => {
 
     uni.showToast({ title: '绑定成功，正在登录', icon: 'success' })
     setTimeout(() => {
-      uni.switchTab({ url: targetUrl })
+      if (role.value === 'escort') {
+        uni.reLaunch({ url: targetUrl })
+      } else {
+        uni.switchTab({ url: targetUrl })
+      }
     }, 450)
   } catch (error) {
     uni.hideLoading()

@@ -27,11 +27,12 @@
         </view>
       </view>
 
-      <button v-if="!publicSafeMode" class="wechat-login-btn" :disabled="wechatLoading" @click="handleWechatLogin">
+      <button v-if="showWechatEntry" class="wechat-login-btn" :disabled="wechatLoading" @click="handleWechatLogin">
         {{ wechatLoading ? '处理中...' : '微信登录' }}
       </button>
 
-      <view v-if="!publicSafeMode" class="wechat-tip">{{ wechatTip }}</view>
+      <view v-if="showWechatEntry" class="wechat-tip">{{ wechatTip }}</view>
+      <view v-else-if="!publicSafeMode" class="wechat-tip">微信登录仅支持微信小程序，当前可继续使用手机号密码登录</view>
 
       <view v-if="!publicSafeMode" class="input-group">
         <view class="input-item">
@@ -75,9 +76,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { post } from '@/utils/api.js'
+import { isWeixinMiniProgramRuntime, post } from '@/utils/api.js'
 import { getWechatConfigStatus, loginByWechat } from '@/api/wechat-auth.js'
 import { completeLoginSession, getSessionLandingUrl } from '@/utils/auth-session.js'
 import { useSessionStore } from '@/stores/session'
@@ -96,6 +97,7 @@ const wechatStatusReason = ref('微信登录暂未开通')
 const fromGuard = ref(false)
 const wechatTip = ref('当前支持手机号密码登录，微信登录开通后这里会直接一键进入')
 const publicSafeMode = computed(() => isPublicSafeMode())
+const showWechatEntry = computed(() => !publicSafeMode.value && isWeixinMiniProgramRuntime())
 
 onLoad((options) => {
   if (!publicSafeMode.value && (options?.role === 'user' || options?.role === 'escort')) {
@@ -120,7 +122,9 @@ onLoad((options) => {
     }
     return
   }
-  loadWechatConfigStatus()
+  if (showWechatEntry.value) {
+    loadWechatConfigStatus()
+  }
 })
 
 onUnload(() => {
@@ -195,11 +199,11 @@ const handleLogin = async () => {
 
 const loadWechatConfigStatus = async () => {
   try {
-    const res = await getWechatConfigStatus()
+    const res = await getWechatConfigStatus(currentRole.value)
     wechatEnabled.value = !!res?.data?.enabled
     wechatStatusReason.value = res?.data?.reason || '微信登录暂未开通'
     wechatTip.value = wechatEnabled.value
-      ? '微信登录已可用，点击上方按钮即可一键进入'
+      ? `微信登录已可用，点击上方按钮即可一键进入${currentRole.value === 'escort' ? '陪诊师端' : ''}`
       : `${wechatStatusReason.value}，当前可继续使用手机号密码登录`
   } catch {
     wechatEnabled.value = false
@@ -207,6 +211,12 @@ const loadWechatConfigStatus = async () => {
     wechatTip.value = '当前支持手机号密码登录，微信登录开通后这里会直接一键进入'
   }
 }
+
+watch(currentRole, () => {
+  if (showWechatEntry.value) {
+    loadWechatConfigStatus()
+  }
+})
 
 const showWechatUnavailable = (message = wechatStatusReason.value || '微信登录暂未开通') => {
   uni.showToast({ title: message, icon: 'none' })
@@ -227,10 +237,6 @@ const handleWechatLogin = async () => {
   }
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
-    return
-  }
-  if (currentRole.value !== 'user') {
-    showWechatUnavailable('陪诊师微信登录暂未开通')
     return
   }
   // #ifndef MP-WEIXIN
@@ -264,7 +270,11 @@ const handleWechatLogin = async () => {
     })
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(() => {
-      uni.switchTab({ url: targetUrl })
+      if (currentRole.value === 'escort') {
+        uni.reLaunch({ url: targetUrl })
+      } else {
+        uni.switchTab({ url: targetUrl })
+      }
     }, 400)
   } catch (error) {
     uni.hideLoading()

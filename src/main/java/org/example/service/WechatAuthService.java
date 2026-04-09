@@ -7,7 +7,7 @@ import java.util.Map;
 
 public interface WechatAuthService {
 
-    Map<String, Object> getConfigStatus();
+    Map<String, Object> getConfigStatus(String role);
 
     Map<String, Object> login(WechatLoginRequest request);
 

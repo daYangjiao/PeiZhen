@@ -148,13 +148,15 @@ public class UserController {
     }
 
     @GetMapping("/wechat/config-status")
-    @ApiOperation(value = "获取微信登录配置状态", notes = "前端用于判断微信登录按钮当前是否可真正启用。未配置时只返回未开通状态，不抛服务异常。")
-    public ResponseResult<Map<String, Object>> getWechatConfigStatus() {
-        return ResponseResult.success(wechatAuthService.getConfigStatus());
+    @ApiOperation(value = "获取微信登录配置状态", notes = "前端用于判断微信登录按钮当前是否可真正启用。第一阶段仅小程序开放，支持 user 和 escort。")
+    public ResponseResult<Map<String, Object>> getWechatConfigStatus(
+            @ApiParam(value = "当前登录角色，支持 user 或 escort", example = "user")
+            @RequestParam(value = "role", required = false) String role) {
+        return ResponseResult.success(wechatAuthService.getConfigStatus(role));
     }
 
     @PostMapping("/wechat/login")
-    @ApiOperation(value = "微信小程序登录", notes = "使用 wx.login 返回的 code 发起登录。若用户已绑定 openid 则直接返回 token；否则返回 wechatBindToken 进入手机号绑定。")
+    @ApiOperation(value = "微信小程序登录", notes = "使用 wx.login 返回的 code 发起登录。若用户已绑定 openid 则直接返回 token；否则返回 wechatBindToken 进入手机号绑定。当前支持 user 和 escort。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "调用成功"),
             @ApiResponse(code = 400, message = "微信登录未开通、code 无效或当前角色暂不支持"),
@@ -174,7 +176,7 @@ public class UserController {
     }
 
     @PostMapping("/wechat/bind-phone")
-    @ApiOperation(value = "微信登录绑定手机号", notes = "微信登录未绑定手机号时，使用短期 wechatBindToken 携带 openid 完成手机号绑定，并直接返回登录态。")
+    @ApiOperation(value = "微信登录绑定手机号", notes = "微信登录未绑定手机号时，使用短期 wechatBindToken 携带 openid 完成手机号绑定，并直接返回登录态。当前支持 user 和 escort。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "绑定成功"),
             @ApiResponse(code = 400, message = "参数错误、凭证失效、手机号已绑定其他微信账号或当前角色不支持"),

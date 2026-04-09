@@ -5,10 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.model.Attendant;
 import org.example.dao.UserMapper;
 import org.example.model.User;
 import org.example.model.request.WechatBindPhoneRequest;
 import org.example.model.request.WechatLoginRequest;
+import org.example.service.AttendantService;
 import org.example.service.UserService;
 import org.example.service.WechatAuthService;
 import org.example.unity.JwtUtil;
@@ -27,6 +29,7 @@ import java.util.Map;
 public class WechatAuthServiceImpl implements WechatAuthService {
 
     private static final String USER_ROLE = "user";
+    private static final String ESCORT_ROLE = "escort";
     private static final String WECHAT_BIND_TOKEN_TYPE = "wechat_bind";
 
     private final RestTemplate restTemplate;
@@ -34,6 +37,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     private final JwtUtil jwtUtil;
     private final UserMapper userMapper;
     private final UserService userService;
+    private final AttendantService attendantService;
     @Value("${wechat.mini-app.app-id:}")
     private String miniAppId;
 
@@ -44,12 +48,18 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     private long bindTokenExpirationMs;
 
     @Override
-    public Map<String, Object> getConfigStatus() {
+    public Map<String, Object> getConfigStatus(String role) {
         Map<String, Object> data = new HashMap<>();
+        String normalizedRole = normalizeRole(role);
         boolean enabled = isConfigured();
-        data.put("enabled", enabled);
+        data.put("enabled", enabled && isSupportedRole(normalizedRole));
+        data.put("role", normalizedRole);
+        data.put("miniProgramOnly", true);
+        data.put("supportedRoles", new String[]{USER_ROLE, ESCORT_ROLE});
         if (!enabled) {
             data.put("reason", "微信登录暂未开通");
+        } else if (!isSupportedRole(normalizedRole)) {
+            data.put("reason", "当前角色暂不支持微信登录");
         }
         return data;
     }
@@ -57,7 +67,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     @Override
     public Map<String, Object> login(WechatLoginRequest request) {
         ensureWechatLoginEnabled();
-        ensureUserRole(request.getRole());
+        ensureSupportedRole(request.getRole());
         if (request.getCode() == null || request.getCode().isBlank()) {
             throw new IllegalArgumentException("微信登录 code 不能为空");
         }
@@ -71,8 +81,8 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         User user = userMapper.findByOpenid(openid);
         Map<String, Object> data = new HashMap<>();
         if (user != null) {
-            if (!isSupportedWechatUser(user)) {
-                throw new IllegalArgumentException("当前仅支持普通用户微信登录");
+            if (!isSupportedWechatUser(user, request.getRole())) {
+                throw new IllegalArgumentException(buildRoleMismatchMessage(user, request.getRole()));
             }
             data.put("bindStatus", "BOUND");
             data.put("token", jwtUtil.generateToken(user.getId()));
@@ -93,7 +103,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     @Override
     public Map<String, Object> bindPhone(WechatBindPhoneRequest request) {
         ensureWechatLoginEnabled();
-        ensureUserRole(request.getRole());
+        ensureSupportedRole(request.getRole());
         if (request.getWechatBindToken() == null || request.getWechatBindToken().isBlank()) {
             throw new IllegalArgumentException("微信绑定凭证不能为空");
         }
@@ -111,14 +121,18 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         if (!WECHAT_BIND_TOKEN_TYPE.equals(String.valueOf(claims.get("tokenType")))) {
             throw new IllegalArgumentException("微信绑定凭证无效");
         }
+        String tokenRole = normalizeRole(String.valueOf(claims.get("role")));
+        if (request.getRole() != null && !normalizeRole(request.getRole()).equals(tokenRole)) {
+            throw new IllegalArgumentException("微信绑定角色不一致，请重新发起微信登录");
+        }
         String openid = String.valueOf(claims.get("openid"));
         if (openid == null || openid.isBlank() || "null".equalsIgnoreCase(openid)) {
             throw new IllegalArgumentException("微信身份无效");
         }
         User openidUser = userMapper.findByOpenid(openid);
         if (openidUser != null) {
-            if (!isSupportedWechatUser(openidUser)) {
-                throw new IllegalArgumentException("当前仅支持普通用户微信登录");
+            if (!isSupportedWechatUser(openidUser, tokenRole)) {
+                throw new IllegalArgumentException(buildRoleMismatchMessage(openidUser, tokenRole));
             }
             return buildBoundResult(openidUser);
         }
@@ -126,17 +140,10 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         User existing = userMapper.findByPhone(request.getPhone().trim());
         User targetUser;
         if (existing == null) {
-            User user = new User();
-            user.setPhone(request.getPhone().trim());
-            user.setPassword(request.getPassword().trim());
-            user.setName(request.getName().trim());
-            user.setUserType(0);
-            user.setOpenid(openid);
-            userService.register(user);
-            targetUser = userMapper.findById(user.getId());
+            targetUser = createWechatUser(request, tokenRole, openid);
         } else {
-            if (!isSupportedWechatUser(existing)) {
-                throw new IllegalArgumentException("当前仅支持普通用户微信登录");
+            if (!isSupportedWechatUser(existing, tokenRole)) {
+                throw new IllegalArgumentException(buildRoleMismatchMessage(existing, tokenRole));
             }
             if (existing.getOpenid() != null && !existing.getOpenid().isBlank() && !openid.equals(existing.getOpenid())) {
                 throw new IllegalArgumentException("该手机号已绑定其他微信账号");
@@ -213,9 +220,9 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         }
     }
 
-    private void ensureUserRole(String role) {
-        if (!USER_ROLE.equals(normalizeRole(role))) {
-            throw new IllegalArgumentException("当前仅支持普通用户微信登录");
+    private void ensureSupportedRole(String role) {
+        if (!isSupportedRole(normalizeRole(role))) {
+            throw new IllegalArgumentException("当前角色暂不支持微信登录");
         }
     }
 
@@ -223,8 +230,52 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         return role == null || role.isBlank() ? USER_ROLE : role.trim().toLowerCase();
     }
 
-    private boolean isSupportedWechatUser(User user) {
-        return user != null && Integer.valueOf(0).equals(user.getUserType());
+    private boolean isSupportedRole(String role) {
+        return USER_ROLE.equals(role) || ESCORT_ROLE.equals(role);
+    }
+
+    private boolean isSupportedWechatUser(User user, String role) {
+        if (user == null) return false;
+        Integer expectedUserType = expectedUserType(role);
+        return expectedUserType != null && expectedUserType.equals(user.getUserType());
+    }
+
+    private Integer expectedUserType(String role) {
+        String normalizedRole = normalizeRole(role);
+        if (ESCORT_ROLE.equals(normalizedRole)) return 1;
+        return 0;
+    }
+
+    private String buildRoleMismatchMessage(User user, String role) {
+        String requestedRoleName = ESCORT_ROLE.equals(normalizeRole(role)) ? "陪诊师" : "用户";
+        String actualRoleName = Integer.valueOf(1).equals(user.getUserType()) ? "陪诊师" : "用户";
+        if (actualRoleName.equals(requestedRoleName)) {
+            return "当前角色暂不支持微信登录";
+        }
+        return String.format("当前微信已绑定%s账号，请切换到%s端登录", actualRoleName, actualRoleName);
+    }
+
+    private User createWechatUser(WechatBindPhoneRequest request, String role, String openid) {
+        User user = new User();
+        user.setPhone(request.getPhone().trim());
+        user.setPassword(request.getPassword().trim());
+        user.setName(request.getName().trim());
+        user.setOpenid(openid);
+        if (ESCORT_ROLE.equals(role)) {
+            user.setUserType(1);
+            Attendant attendant = new Attendant();
+            attendant.setStatus(0);
+            attendant.setQualificationFailReason("");
+            attendant.setIntroduction("");
+            attendant.setProfessionalField("");
+            attendant.setExperienceYears(0);
+            attendant.setHospitalName("");
+            attendantService.registerAttendant(user, attendant);
+        } else {
+            user.setUserType(0);
+            userService.register(user);
+        }
+        return userMapper.findById(user.getId());
     }
 
     private String textValue(JsonNode root, String fieldName) {

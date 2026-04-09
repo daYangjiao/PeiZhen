@@ -20,6 +20,6 @@ public class WechatBindPhoneRequest {
     @ApiModelProperty(value = "展示姓名/昵称", required = true, example = "范涵伶")
     private String name;
 
-    @ApiModelProperty(value = "当前登录角色，当前阶段仅支持 user", example = "user")
+    @ApiModelProperty(value = "当前登录角色，支持 user 或 escort", example = "user")
     private String role;
 }
