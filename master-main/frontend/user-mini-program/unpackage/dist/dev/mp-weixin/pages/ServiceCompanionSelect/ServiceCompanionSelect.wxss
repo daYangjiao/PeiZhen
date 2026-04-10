@@ -1,0 +1,383 @@
+
+/* ... (原有样式保持不变) ... */
+.page.data-v-4d871800 {
+  background-color: #f5f5f5;
+  padding: 16px;
+  min-height: 100vh;
+  padding-top: 40px; /* 为返回按钮留出空间 */
+}
+.page-title.data-v-4d871800 {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* 服务类型选择样式 */
+.service-type-section.data-v-4d871800 {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.section-title.data-v-4d871800 {
+  font-size: 14px;
+  color: #333;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 12px;
+}
+.checkbox-group.data-v-4d871800 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+.checkbox-item.data-v-4d871800 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.checkbox-item.checked.data-v-4d871800 {
+  border-color: #007AFF;
+  background-color: #f0f7ff;
+}
+.checkbox.data-v-4d871800 {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.checkbox-item.checked .checkbox.data-v-4d871800 {
+  background-color: #007AFF;
+  border-color: #007AFF;
+}
+.checkmark.data-v-4d871800 {
+  font-size: 10px;
+  color: white;
+  font-weight: bold;
+}
+
+/* 排序样式 */
+.sort-section.data-v-4d871800 {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.sort-label.data-v-4d871800 {
+  font-size: 14px;
+  color: #333;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.sort-tabs.data-v-4d871800 {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tab-item.data-v-4d871800 {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tab-item.active.data-v-4d871800 {
+  background: #007AFF;
+  color: white;
+  border-color: #007AFF;
+}
+.sort-icon.data-v-4d871800 {
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* 陪诊师列表样式 */
+.companion-list.data-v-4d871800 {
+  height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+.companion-card.data-v-4d871800 {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  display: flex;
+  gap: 16px;
+}
+.recommended-tag.data-v-4d871800 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #FF7F00;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 0 0 4px 0;
+  z-index: 10;
+}
+.avatar.data-v-4d871800 {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+}
+.info-area.data-v-4d871800 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.name.data-v-4d871800 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+.rating-section.data-v-4d871800 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #F59500;
+}
+.rating-icon.data-v-4d871800 {
+  font-size: 14px;
+}
+.rating-number.data-v-4d871800 {
+  font-weight: bold;
+}
+.review-count.data-v-4d871800 {
+  color: #666;
+}
+.detail-text.data-v-4d871800 {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+.price-section.data-v-4d871800 {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #007AFF;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column; /* 垂直排列价格和标签 */
+  align-items: flex-start; /* 左对齐 */
+  gap: 2px; /* 间距 */
+}
+.original-price.data-v-4d871800 {
+  font-size: 12px; /* 调整原价字体大小 */
+  color: #999; /* 灰色 */
+  text-decoration: line-through; /* 删除线 */
+}
+
+/* coefficient-tag 样式已移除，因为元素被注释掉了 */
+/* .coefficient-tag {
+  font-size: 12px;
+  color: #FF6B6B;
+  background-color: #FFECEC;
+  padding: 2px 4px;
+  border-radius: 4px;
+  align-self: flex-start;
+} */
+.btn-group.data-v-4d871800 {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn-outline.data-v-4d871800 {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #007AFF;
+  color: #007AFF;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.btn-primary.data-v-4d871800 {
+  flex: 1;
+  padding: 8px;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* 详情弹窗样式 */
+.detail-modal.data-v-4d871800 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-content.data-v-4d871800 {
+  width: 100%;
+  max-width: 400px;
+  background-color: white;
+  border-radius: 16px;
+  padding: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+.close-btn.data-v-4d871800 {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.detail-header.data-v-4d871800 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-top: 10px;
+}
+.detail-avatar.data-v-4d871800 {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.detail-name-section.data-v-4d871800 {
+  flex: 1;
+}
+.detail-name.data-v-4d871800 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 4px;
+}
+.detail-title.data-v-4d871800 {
+  font-size: 14px;
+  color: #666;
+  display: block;
+  margin-bottom: 8px;
+}
+.detail-rating.data-v-4d871800 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #F59500;
+}
+.detail-section.data-v-4d871800 {
+  margin-bottom: 24px;
+}
+.section-heading.data-v-4d871800 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 资质列表 */
+.qualification-list.data-v-4d871800 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qualification-item.data-v-4d871800 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.qualification-icon.data-v-4d871800 {
+  color: #007AFF;
+  font-size: 12px;
+  margin-top: 3px;
+}
+.qualification-text.data-v-4d871800 {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 服务范围 */
+.service-scope.data-v-4d871800 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.service-row.data-v-4d871800 {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.service-item.data-v-4d871800 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #333;
+}
+.service-check.data-v-4d871800 {
+  color: #007AFF;
+  font-size: 16px;
+}
+
+/* 评价区域 */
+.review-box.data-v-4d871800 {
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+}
+.review-text.data-v-4d871800 {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 确认按钮 */
+.confirm-btn.data-v-4d871800 {
+  width: 100%;
+  background-color: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 12px;
+}

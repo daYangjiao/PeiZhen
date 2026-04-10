@@ -1,0 +1,449 @@
+
+/* 保持原有样式不变 */
+.order-confirm-page.data-v-fa941edb {
+  background-color: #f5f5f5;
+  padding: 40rpx;
+  font-size: 28rpx;
+  min-height: 100vh; /* 确保页面至少占满视口高度 */
+}
+.loading-container.data-v-fa941edb {
+  text-align: center;
+  padding: 40rpx;
+  color: #999;
+}
+.back-btn.data-v-fa941edb {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+  color: #333;
+  font-size: 32rpx;
+}
+.step-bar.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding: 0 20rpx;
+  position: relative;
+  align-items: center;
+}
+.step-dot.data-v-fa941edb {
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  border-radius: 50%;
+  color: white;
+  font-size: 24rpx;
+  text-align: center;
+  margin-bottom: 10rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+.step-text.data-v-fa941edb {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 28rpx;
+  color: #333;
+}
+.step-item.data-v-fa941edb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 10%;
+  margin: 0 10px -25px 10px;
+  text-align: center;
+  font-size: 28rpx;
+}
+.step-item.completed .step-dot.data-v-fa941edb {
+  background-color: #4caf50;
+  color: white;
+}
+.step-item.active .step-dot.data-v-fa941edb {
+  background-color: #007aff;
+  color: white;
+}
+.step-item.pending .step-dot.data-v-fa941edb {
+  background-color: #e0e0e0;
+  color: #999;
+}
+.step-item.completed .step-text.data-v-fa941edb {
+  color: #4caf50;
+}
+.step-item.active .step-text.data-v-fa941edb {
+  color: #007aff;
+}
+.step-item.pending .step-text.data-v-fa941edb {
+  color: #999;
+}
+.progress-line.data-v-fa941edb {
+  width: 60rpx;
+  height: 2rpx;
+  background-color: #ddd;
+  margin: 8px 10rpx;
+  flex-shrink: 0;
+}
+.progress-line.green.data-v-fa941edb {
+  background-color: #4caf50;
+}
+.progress-line.gray.data-v-fa941edb {
+  background-color: #ddd;
+}
+.card.data-v-fa941edb {
+  background-color: white;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 40px;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+.title.data-v-fa941edb {
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.title .iconfont.data-v-fa941edb {
+  margin-right: 10rpx;
+  color: #007aff;
+}
+.info-item.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+.info-item.data-v-fa941edb:last-child {
+  border-bottom: none;
+}
+.label.data-v-fa941edb {
+  font-size: 24rpx;
+  color: #666;
+  font-weight: 800;
+}
+.value.data-v-fa941edb {
+  color: #333;
+  font-weight: 500;
+  font-size: 24rpx;
+  text-align: right; /* 右对齐，便于阅读 */
+  max-width: 60%; /* 限制最大宽度，防止过长 */
+  word-break: break-all; /* 允许单词内断行 */
+}
+.edit-btn.data-v-fa941edb {
+  color: #007aff;
+  font-size: 14px;
+  margin-left: 10rpx;
+}
+.companion-card.data-v-fa941edb {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 0;
+}
+.avatar.data-v-fa941edb {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  object-fit: cover;
+}
+.companion-detail.data-v-fa941edb {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 0;
+}
+.info-content.data-v-fa941edb {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.info-right.data-v-fa941edb {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.name.data-v-fa941edb {
+  font-weight: bold;
+  color: #333;
+  font-size: 28rpx;
+}
+.rating.data-v-fa941edb {
+  color: #999;
+  font-size: 12rpx;
+}
+.recommend-tag.data-v-fa941edb {
+  background-color: rgb(231, 249, 249);
+  color: rgb(111, 219, 20);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+
+/* 移除备注输入框样式 */
+.invoice-content.data-v-fa941edb {
+  padding: 16rpx 0;
+  border-top: 1rpx solid #eee;
+}
+.invoice-item.data-v-fa941edb {
+  padding: 8rpx 0;
+  font-size: 14rpx;
+  color: #666;
+}
+.fee-item.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #eee;
+  font-size: 24rpx;
+}
+.price.data-v-fa941edb {
+  color: #333;
+  font-weight: 500;
+}
+.discount.data-v-fa941edb {
+  color: #007aff;
+  font-weight: 500;
+}
+.total.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  font-weight: bold;
+  color: #007aff;
+}
+.total-price.data-v-fa941edb {
+  font-size: 36rpx;
+}
+.payment-option.data-v-fa941edb {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+.pay-icon.data-v-fa941edb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+}
+.pay-icon .iconfont.data-v-fa941edb {
+  margin-right: 10rpx;
+}
+.footer.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  background-color: white;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  margin-top: 20rpx;
+  position: -webkit-sticky;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+.real-price.data-v-fa941edb {
+  font-size: 28rpx;
+  color: #333;
+}
+.price.data-v-fa941edb {
+  color: #007aff;
+  font-weight: bold;
+  font-size: 32rpx;
+}
+.confirm-btn.data-v-fa941edb {
+  width: 200rpx;
+  height: 60rpx;
+  background-color: #007aff;
+  color: white;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  line-height: 60rpx;
+  margin-right: -5px;
+  border: none;
+}
+
+/* --- 新增：按钮禁用状态样式 --- */
+.btn-disabled.data-v-fa941edb {
+  background-color: #cccccc !important;
+  color: #ffffff !important;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- 新增：费用明细卡片内的小字“查看计费规则”按钮 --- */
+.rule-link-button.data-v-fa941edb {
+  /* 设置为行内块元素，使其不脱离文本流 */
+  display: inline-block;
+  /* 为了使按钮在右上角对齐，可以使用绝对定位或 flex */
+  /* 这里采用相对定位 + margin-left 方式，也可以使用 Flex 布局 */
+  margin-left: auto; /* 或者使用 flex 布局 */
+  padding: 0; /* 去掉默认 padding */
+  border: none; /* 去掉默认边框 */
+  background: none; /* 去掉默认背景 */
+  color: #007aff; /* 蓝色文字 */
+  font-size: 24rpx; /* 小字 */
+  text-decoration: underline; /* 下划线 */
+  cursor: pointer;
+  line-height: 1; /* 控制行高 */
+  margin-top: -10rpx; /* 微微向上调整 */
+  margin-right: 10rpx; /* 右侧留白 */
+  /* 可以添加 hover 效果 */
+  /* &:hover {
+    color: #0056b3;
+  } */
+}
+
+/* --- 新增：查看规则按钮容器 (如果需要更精确控制布局) --- */
+/* .fee-detail .title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+} */
+
+
+/* --- 新增：模态框样式 --- */
+.modal-overlay.data-v-fa941edb {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20rpx;
+}
+.modal-content.data-v-fa941edb {
+  background-color: white;
+  border-radius: 16rpx;
+  width: 90%;
+  max-width: 600rpx;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.modal-header.data-v-fa941edb {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  border-bottom: 1rpx solid #eee;
+  background-color: #f8f9fa;
+}
+.modal-title.data-v-fa941edb {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+.close-btn.data-v-fa941edb {
+  font-size: 40rpx;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 10rpx;
+}
+.modal-body.data-v-fa941edb {
+  flex: 1;
+  padding: 20rpx;
+  overflow-y: auto;
+  font-size: 24rpx; /* 调整字体大小以适应屏幕 */
+  line-height: 1.5; /* 增加行间距 */
+  color: #333;
+}
+.rule-text.data-v-fa941edb {
+  white-space: pre-wrap; /* 保留换行符和空格 */
+  word-break: break-word; /* 防止长单词溢出 */
+}
+.modal-footer.data-v-fa941edb {
+  padding: 20rpx;
+  border-top: 1rpx solid #eee;
+  display: flex;
+  justify-content: center;
+}
+.close-modal-btn.data-v-fa941edb {
+  padding: 10rpx 30rpx;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  cursor: pointer;
+}
+
+
+/* --- 新增：支付弹窗样式 --- */
+.payment-modal-overlay.data-v-fa941edb {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20rpx;
+}
+.payment-modal-content.data-v-fa941edb {
+  background-color: white;
+  border-radius: 16rpx;
+  width: 90%;
+  max-width: 500rpx;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.payment-modal-header.data-v-fa941edb {
+  padding: 20rpx;
+  border-bottom: 1rpx solid #eee;
+  background-color: #f8f9fa;
+  text-align: center;
+}
+.payment-modal-title.data-v-fa941edb {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+.payment-modal-body.data-v-fa941edb {
+  padding: 40rpx 20rpx;
+  text-align: center;
+}
+.payment-modal-text.data-v-fa941edb {
+  font-size: 28rpx;
+  color: #333;
+}
+.payment-modal-footer.data-v-fa941edb {
+  display: flex;
+  justify-content: space-around;
+  padding: 20rpx;
+  border-top: 1rpx solid #eee;
+}
+.payment-modal-btn.data-v-fa941edb {
+  padding: 16rpx 30rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  cursor: pointer;
+  border: none;
+  flex: 1;
+  margin: 0 10rpx; /* 按钮间距 */
+}
+.success-btn.data-v-fa941edb {
+  background-color: #4caf50;
+  color: white;
+}
+.fail-btn.data-v-fa941edb {
+  background-color: #ff5252;
+  color: white;
+}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "接单大厅",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "order-card": "../../components/OrderCard"
+  }
+}

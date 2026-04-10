@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.AttendantMapper">
+
+    <resultMap id="AttendantResultMap" type="org.example.model.Attendant">
+        <id column="user_id" property="userId"/>
+        <result column="certificate" property="certificate"/>
+        <result column="status" property="status"/>
+        <result column="introduction" property="introduction"/>
+        <result column="professional_field" property="professionalField"/>
+        <result column="score" property="score"/>
+        <result column="experience_years" property="experienceYears"/>
+        <result column="hospital_name" property="hospitalName"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 插入陪诊师扩展信息 -->
+    <insert id="insert" parameterType="org.example.model.Attendant">
+        INSERT INTO attendant (user_id, certificate, status, introduction, professional_field, score, experience_years, hospital_name)
+        VALUES (#{userId}, #{certificate}, #{status}, #{introduction}, #{professionalField}, #{score}, #{experienceYears}, #{hospitalName})
+    </insert>
+
+    <!-- 根据用户ID查询 -->
+    <select id="findByUserId" parameterType="int" resultMap="AttendantResultMap">
+        SELECT * FROM attendant WHERE user_id = #{userId}
+    </select>
+
+    <!-- 更新陪诊师信息 -->
+    <update id="update" parameterType="org.example.model.Attendant">
+        UPDATE attendant
+        <set>
+            <if test="certificate != null">certificate = #{certificate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="introduction != null">introduction = #{introduction},</if>
+            <if test="professionalField != null">professional_field = #{professionalField},</if>
+            <if test="score != null">score = #{score},</if>
+            <if test="experienceYears != null">experience_years = #{experienceYears},</if>
+            <if test="hospitalName != null">hospital_name = #{hospitalName},</if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 删除陪诊师信息 -->
+    <delete id="delete" parameterType="int">
+        DELETE FROM attendant WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 查询推荐的陪诊师 -->
+    <select id="findRecommended" resultMap="AttendantResultMap">
+        SELECT * FROM attendant WHERE status = 1 ORDER BY score DESC, experience_years DESC LIMIT 10
+    </select>
+
+</mapper>

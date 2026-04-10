@@ -1,0 +1,266 @@
+
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  margin-top: 150rpx;
+  position: relative; /* 为悬浮按钮提供定位上下文 */
+}
+
+/* ========== 新增：悬浮按钮样式 ========== */
+.floating-btn {
+  position: fixed;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+  cursor: grab;
+  -webkit-user-select: none;
+          user-select: none;
+}
+.floating-btn:active {
+  cursor: grabbing;
+}
+.floating-icon {
+  width: 40px;
+  height: 40px;
+  pointer-events: none; /* 防止图标拦截点击 */
+}
+
+/* ========== 以下是你原有的样式（保持不变） ========== */
+/* 顶部区域 */
+.header {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  padding: 20rpx 30rpx 30rpx;
+  color: white;
+}
+.search-box {
+  background-color: #f5f5f5;
+  border-radius: 50rpx;
+  padding: 20rpx 30rpx;
+  display: flex;
+  align-items: center;
+}
+.search-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 20rpx;
+}
+.search-input {
+  color: #333;
+  font-size: 28rpx;
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.search-input::-webkit-input-placeholder {
+  color: #999;
+}
+.search-input::placeholder {
+  color: #999;
+}
+
+/* 轮播图 */
+.banner-section {
+  margin: 30rpx;
+}
+.banner-swiper {
+  height: 300rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.banner-item {
+  position: relative;
+  height: 100%;
+}
+.banner-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.banner-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right, rgba(74, 144, 226, 0.9) 0%, rgba(74, 144, 226, 0.6) 50%, rgba(74, 144, 226, 0.2) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40rpx;
+  color: white;
+}
+.banner-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+.banner-subtitle {
+  font-size: 24rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.9;
+}
+.banner-btn {
+  background-color: white;
+  border-radius: 30rpx;
+  padding: 15rpx 30rpx;
+}
+.btn-text {
+  color: #4a90e2;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+/* 服务分类 */
+.category-section {
+  margin: 30rpx;
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 40rpx 20rpx;
+}
+.category-grid {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+.category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 25%;
+  margin-bottom: 20rpx;
+}
+.category-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-bottom: 15rpx;
+}
+.category-text {
+  font-size: 24rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 服务流程 */
+.service-section {
+  margin: 30rpx;
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 40rpx 20rpx;
+}
+.section-title {
+  margin-bottom: 30rpx;
+}
+.title-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+.service-grid {
+  display: flex;
+  justify-content: space-around;
+}
+.service-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 25%;
+}
+.service-icon {
+  width: 60rpx;
+  height: 60rpx;
+  margin-bottom: 15rpx;
+}
+.service-text {
+  font-size: 22rpx;
+  color: #666;
+  text-align: center;
+}
+
+/* 推荐陪诊员 */
+.companion-section {
+  margin: 30rpx;
+  background-color: white;
+  border-radius: 20rpx;
+  padding: 40rpx 30rpx;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+.companion-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+.companion-list {
+  display: flex;
+  flex-direction: row;
+  padding: 0 10rpx;
+}
+.companion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 280rpx;
+  flex-shrink: 0;
+  padding: 20rpx;
+  margin-right: 20rpx;
+  border: 2rpx solid #f0f0f0;
+  border-radius: 15rpx;
+}
+.companion-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  margin-bottom: 15rpx;
+}
+.companion-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.companion-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+.companion-specialty {
+  font-size: 22rpx;
+  color: #4a90e2;
+  margin-bottom: 5rpx;
+}
+.companion-experience {
+  font-size: 20rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+.rating-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rating {
+  font-size: 20rpx;
+  color: #ff9500;
+  margin-bottom: 3rpx;
+}
+.service-count {
+  font-size: 18rpx;
+  color: #999;
+}

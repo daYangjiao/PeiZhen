@@ -1,0 +1,13 @@
+{
+  "name": "pzuni",
+  "version": "1.0.0",
+  "description": "陪诊服务小程序",
+  "main": "main.js",
+  "scripts": {
+    "dev:mp-weixin": "echo 'Please use HBuilderX or uni-app CLI to run this project'",
+    "build:mp-weixin": "echo 'Please use HBuilderX or uni-app CLI to build this project'"
+  },
+  "dependencies": {
+    "pinia": "^3.0.3"
+  }
+}

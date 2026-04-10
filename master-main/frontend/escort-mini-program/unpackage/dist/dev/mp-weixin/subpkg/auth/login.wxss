@@ -1,0 +1,479 @@
+/**
+ * 这里是uni-app内置的常用样式变量
+ *
+ * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
+ * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
+ *
+ */
+/**
+ * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
+ *
+ * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
+ */
+/* 颜色变量 */
+/* 行为相关颜色 */
+/* 文字基本颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 尺寸变量 */
+/* 文字尺寸 */
+/* 图片尺寸 */
+/* Border Radius */
+/* 水平间距 */
+/* 垂直间距 */
+/* 透明度 */
+/* 文章场景相关 */
+.container.data-v-781fbec3 {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.container.data-v-781fbec3::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  animation: float-781fbec3 6s ease-in-out infinite;
+}
+.container.data-v-781fbec3::after {
+  content: "";
+  position: absolute;
+  bottom: -30%;
+  left: -10%;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  animation: float-781fbec3 8s ease-in-out infinite reverse;
+}
+.logo-section.data-v-781fbec3 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 30px 30px;
+  position: relative;
+  z-index: 1;
+}
+.logo-section .logo.data-v-781fbec3 {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+.logo-section .logo.data-v-781fbec3:active {
+  transform: scale(0.95);
+}
+.logo-section .app-name.data-v-781fbec3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.logo-section .slogan.data-v-781fbec3 {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 250px;
+}
+.login-form.data-v-781fbec3 {
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  padding: 35px 25px 25px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 2;
+  animation: slideUp-781fbec3 0.5s ease-out;
+}
+.login-form .input-group.data-v-781fbec3 {
+  margin-bottom: 24px;
+}
+.login-form .input-group .input-item.data-v-781fbec3 {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  padding: 0 16px;
+  height: 50px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.login-form .input-group .input-item.data-v-781fbec3::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: #4A90E2;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+.login-form .input-group .input-item.data-v-781fbec3:focus-within {
+  border-color: #4A90E2;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+.login-form .input-group .input-item.data-v-781fbec3:focus-within::before {
+  width: 100%;
+}
+.login-form .input-group .input-item .input-icon.data-v-781fbec3 {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+.login-form .input-group .input-item:focus-within .input-icon.data-v-781fbec3 {
+  opacity: 1;
+  color: #4A90E2;
+}
+.login-form .input-group .input-item .input-field.data-v-781fbec3 {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #333333;
+}
+.login-form .input-group .input-item .input-field.data-v-781fbec3::-webkit-input-placeholder {
+  color: #999999;
+}
+.login-form .input-group .input-item .input-field.data-v-781fbec3::placeholder {
+  color: #999999;
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3 {
+  padding: 8px 16px;
+  background: #4A90E2;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  transform: translate(-50%, -50%);
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3:active {
+  background: #357ABD;
+  transform: scale(0.98);
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3:active::before {
+  width: 100px;
+  height: 100px;
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3:disabled {
+  background: #f0f0f0;
+  color: #999999;
+  cursor: not-allowed;
+  transform: none;
+}
+.login-form .input-group .input-item .code-btn.data-v-781fbec3:disabled::before {
+  display: none;
+}
+.login-form .login-btn.data-v-781fbec3 {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(135deg, #4A90E2, #357ABD);
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+.login-form .login-btn.data-v-781fbec3::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  transform: translate(-50%, -50%);
+}
+.login-form .login-btn.data-v-781fbec3:active {
+  background: linear-gradient(135deg, #357ABD, #2c5aa0);
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
+}
+.login-form .login-btn.data-v-781fbec3:active::before {
+  width: 200px;
+  height: 200px;
+}
+.login-form .login-btn.data-v-781fbec3:disabled {
+  background: #f0f0f0;
+  color: #999999;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.login-form .login-btn.data-v-781fbec3:disabled::before {
+  display: none;
+}
+.login-form .agreement.data-v-781fbec3 {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #4A90E2;
+}
+.login-form .agreement .agreement-item.data-v-781fbec3 {
+  display: flex;
+  align-items: flex-start;
+}
+.login-form .agreement .agreement-item checkbox.data-v-781fbec3 {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  margin-top: 2px;
+  accent-color: #4A90E2;
+}
+.login-form .agreement .agreement-item .agreement-text.data-v-781fbec3 {
+  font-size: 14px;
+  color: #666666;
+  margin-left: 8px;
+  line-height: 1.4;
+  flex: 1;
+}
+.login-form .agreement .agreement-item .agreement-text .link.data-v-781fbec3 {
+  color: #4A90E2;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+.login-form .agreement .agreement-item .agreement-text .link.data-v-781fbec3:active {
+  color: #357ABD;
+}
+.other-login.data-v-781fbec3 {
+  padding: 0 25px 30px;
+}
+.other-login .divider.data-v-781fbec3 {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+}
+.other-login .divider.data-v-781fbec3::before, .other-login .divider.data-v-781fbec3::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #f0f0f0;
+}
+.other-login .divider text.data-v-781fbec3 {
+  padding: 0 16px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+.other-login .login-methods.data-v-781fbec3 {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+.other-login .login-methods .method-item.data-v-781fbec3,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+}
+.other-login .login-methods .method-item.data-v-781fbec3::before,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f8f9fa;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.other-login .login-methods .method-item.data-v-781fbec3:active,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3:active {
+  transform: scale(0.95);
+}
+.other-login .login-methods .method-item.data-v-781fbec3:active::before,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3:active::before {
+  opacity: 1;
+}
+.other-login .login-methods .method-item.data-v-781fbec3:disabled,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  transform: none;
+}
+.other-login .login-methods .method-item.data-v-781fbec3:disabled::before,
+.other-login .login-methods .wechat-login-btn.data-v-781fbec3:disabled::before {
+  opacity: 0;
+}
+.other-login .login-methods .method-item .method-icon.data-v-781fbec3,
+.other-login .login-methods .wechat-login-btn .method-icon.data-v-781fbec3 {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+.other-login .login-methods .method-item .method-text.data-v-781fbec3,
+.other-login .login-methods .wechat-login-btn .method-text.data-v-781fbec3 {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+.other-login .login-methods .wechat-tip.data-v-781fbec3 {
+  margin-top: 12px;
+  text-align: center;
+  display: none;
+}
+.other-login .login-methods .wechat-tip text.data-v-781fbec3 {
+  font-size: 12px;
+  color: #ff6b6b;
+  line-height: 1.4;
+}
+.env-tip.data-v-781fbec3 {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  text-align: center;
+}
+.env-tip text.data-v-781fbec3 {
+  font-size: 14px;
+  color: #856404;
+  line-height: 1.4;
+}
+@media (max-width: 375px) {
+.logo-section.data-v-781fbec3 {
+    padding: 40px 16px 30px;
+}
+.logo-section .logo.data-v-781fbec3 {
+    width: 100px;
+    height: 100px;
+}
+.logo-section .app-name.data-v-781fbec3 {
+    font-size: 24px;
+}
+.logo-section .slogan.data-v-781fbec3 {
+    font-size: 14px;
+}
+.login-form.data-v-781fbec3 {
+    padding: 30px 16px 25px;
+}
+.login-form .input-group .input-item.data-v-781fbec3 {
+    height: 45px;
+    padding: 0 12px;
+}
+.login-form .input-group .input-item .input-field.data-v-781fbec3 {
+    font-size: 15px;
+}
+.login-form .login-btn.data-v-781fbec3 {
+    height: 45px;
+    font-size: 16px;
+}
+}
+@keyframes float-781fbec3 {
+0%, 100% {
+    transform: translateY(0) rotate(0deg);
+}
+50% {
+    transform: translateY(-20px) rotate(5deg);
+}
+}
+@keyframes slideUp-781fbec3 {
+from {
+    opacity: 0;
+    transform: translateY(50px);
+}
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
+}
+@keyframes fadeIn-781fbec3 {
+from {
+    opacity: 0;
+    transform: translateY(-30px);
+}
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
+}
+@keyframes slideInLeft-781fbec3 {
+from {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+to {
+    opacity: 1;
+    transform: translateX(0);
+}
+}
+.logo-section.data-v-781fbec3 {
+  animation: fadeIn-781fbec3 0.6s ease-out;
+}
+.login-form .input-group.data-v-781fbec3 {
+  animation: slideInLeft-781fbec3 0.5s ease-out;
+}
+.login-form .input-group.data-v-781fbec3:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.login-form .input-group.data-v-781fbec3:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.login-form .agreement.data-v-781fbec3 {
+  animation: slideInLeft-781fbec3 0.5s ease-out 0.3s both;
+}
+.login-form .login-btn.data-v-781fbec3 {
+  animation: slideInLeft-781fbec3 0.5s ease-out 0.4s both;
+}
+.other-login.data-v-781fbec3 {
+  animation: slideInLeft-781fbec3 0.5s ease-out 0.5s both;
+}

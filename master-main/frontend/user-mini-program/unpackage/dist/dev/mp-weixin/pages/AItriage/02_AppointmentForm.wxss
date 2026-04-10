@@ -1,0 +1,448 @@
+
+/* 原始样式保持不变 */
+.appointment-time-container.data-v-fb9ebbd2 {
+	min-height: 100vh;
+	background-color: #f5f5f5;
+	padding-bottom: 150rpx;
+	padding-top: 30rpx;
+}
+
+/* 状态栏占位 */
+.status-bar.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+}
+
+/* 顶部标题 */
+.header.data-v-fb9ebbd2 {
+	padding: 20rpx;
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #fff;
+}
+.back-btn.data-v-fb9ebbd2 {
+	position: absolute;
+	left: 20rpx;
+	width: 80rpx;
+	height: 80rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.back-icon.data-v-fb9ebbd2 {
+	font-size: 50rpx;
+	color: #666;
+	font-weight: normal;
+}
+.title.data-v-fb9ebbd2 {
+	font-size: 36rpx;
+	font-weight: bold;
+	color: #333;
+}
+
+/* 新增：服务类型卡片区域 (更接近01的长方形卡片样式) */
+.service-type-header.data-v-fb9ebbd2 {
+	background-color: #ffffff; /* 白色背景 */
+	color: #333;
+	padding: 30rpx 30rpx;
+	margin: 0rpx 30rpx;
+	border-radius: 20rpx;
+	text-align: center;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影，提升卡片感 */
+}
+.service-type-title.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	font-weight: bold;
+	display: block;
+	margin-bottom: 20rpx;
+	color: #333;
+}
+.service-type-card-container.data-v-fb9ebbd2 {
+	display: flex;
+	justify-content: center; /* 水平居中 */
+}
+
+/* 新增：长方形服务卡片样式 */
+.service-type-card.data-v-fb9ebbd2 {
+	background-color: #f0f8ff; /* 浅蓝色背景，区分度高 */
+	border-radius: 20rpx; /* 圆角 */
+	padding: 15rpx 40rpx; /* 内边距 */
+	display: flex;
+	align-items: center; /* 垂直居中 */
+	gap: 20rpx; /* 图标和文字之间的间距 */
+	min-width: 450rpx; /* 固定宽度，保证卡片长度 */
+	min-height: 50rpx; /* 固定高度，保证卡片高度 */
+	justify-content: center; /* 水平居中内容 */
+	border: 2rpx solid #4A90E2; /* 边框，突出卡片 */
+}
+.service-icon-large.data-v-fb9ebbd2 {
+	width: 60rpx; /* 调整图标大小 */
+	height: 60rpx;
+}
+.service-type-name.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	font-weight: 600; /* 加粗显示名称 */
+	color: #333;
+	text-align: center; /* 文本居中 */
+}
+
+/* 日期选择区域 */
+.date-section.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	margin: 20rpx 30rpx;
+	border-radius: 20rpx;
+	padding: 40rpx 30rpx;
+	text-align: center;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.date-picker-wrapper.data-v-fb9ebbd2 {
+	display: inline-block;
+	margin-bottom: 30rpx;
+}
+.date-btn.data-v-fb9ebbd2 {
+	background: linear-gradient(135deg, #4A90E2, #357ABD);
+	color: white;
+	padding: 20rpx 60rpx;
+	border-radius: 50rpx;
+	display: inline-block;
+}
+.date-text.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	font-weight: 600;
+}
+.selected-date.data-v-fb9ebbd2 {
+	padding: 10rpx 0;
+}
+.placeholder-text.data-v-fb9ebbd2 {
+	color: #999;
+	font-size: 28rpx;
+}
+.date-value.data-v-fb9ebbd2 {
+	color: #333;
+	font-size: 32rpx;
+	font-weight: 600;
+}
+
+/* 时间选择区域 */
+.time-section.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	margin: 20rpx 30rpx;
+	border-radius: 20rpx;
+	padding: 40rpx 30rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.section-header.data-v-fb9ebbd2 {
+	display: flex;
+	align-items: center;
+	margin-bottom: 30rpx;
+}
+.icon-wrapper.data-v-fb9ebbd2 {
+  width: 60rpx;
+  height: 60rpx;
+  background-color: #E3F2FD; /* 使用与其它区域一致的背景色 */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+.time-icon.data-v-fb9ebbd2, .location-icon.data-v-fb9ebbd2, .symptom-icon.data-v-fb9ebbd2, .requirements-icon.data-v-fb9ebbd2, .contact-icon.data-v-fb9ebbd2 {
+  font-size: 28rpx;
+}
+.section-title.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #333;
+}
+.time-picker-row.data-v-fb9ebbd2 {
+	display: flex;
+	gap: 30rpx;
+}
+.time-picker.data-v-fb9ebbd2 {
+	flex: 1;
+	background-color: #f8f9fa;
+	border-radius: 15rpx;
+	padding: 30rpx 20rpx;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border: 2rpx solid #e9ecef;
+}
+.time-label.data-v-fb9ebbd2 {
+	font-size: 28rpx;
+	color: #666;
+}
+.time-value.data-v-fb9ebbd2 {
+	font-size: 28rpx;
+	color: #333;
+	font-weight: 600;
+}
+.time-placeholder.data-v-fb9ebbd2 {
+	font-size: 28rpx;
+	color: #999;
+}
+.time-arrow.data-v-fb9ebbd2 {
+	font-size: 24rpx;
+	color: #999;
+}
+
+/* 地址输入区域 */
+.location-section.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	margin: 20rpx 30rpx;
+	border-radius: 20rpx;
+	padding: 40rpx 30rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.location-input.data-v-fb9ebbd2 {
+	background-color: #f8f9fa;
+	border-radius: 15rpx;
+	padding: 5rpx 20rpx;
+	border: 2rpx solid #e9ecef;
+}
+.address-input.data-v-fb9ebbd2 {
+	width: 100%;
+	padding: 25rpx 0;
+	font-size: 28rpx;
+	color: #333;
+	background: transparent;
+	border: none;
+	outline: none;
+}
+
+/* --- 新增：症状选择区域样式 --- */
+.symptom-section.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	margin: 20rpx 30rpx;
+	border-radius: 20rpx;
+	padding: 40rpx 30rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.symptom-list.data-v-fb9ebbd2 {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+.symptom-item.data-v-fb9ebbd2 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	border: 1px solid #eee;
+	border-radius: 8px;
+	font-size: 28rpx;
+	cursor: pointer;
+}
+.checkbox.data-v-fb9ebbd2 {
+	transform: scale(0.8);
+}
+.symptom-text.data-v-fb9ebbd2 {
+	color: #333;
+}
+.add-symptom.data-v-fb9ebbd2 {
+	color: #007AFF;
+	font-size: 28rpx;
+	padding: 8px;
+	text-align: center;
+	cursor: pointer;
+}
+
+/* --- 新增：其他需求区域样式 --- */
+.other-requirements-section.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	margin: 20rpx 30rpx;
+	border-radius: 20rpx;
+	padding: 40rpx 30rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.requirements-input.data-v-fb9ebbd2 {
+	background-color: #f8f9fa;
+	border-radius: 15rpx;
+	padding: 5rpx 20rpx;
+	border: 2rpx solid #e9ecef;
+}
+.requirements-textarea.data-v-fb9ebbd2 {
+	width: 100%;
+	min-height: 100rpx; /* 设置最小高度 */
+	padding: 25rpx 0;
+	font-size: 28rpx;
+	color: #333;
+	background: transparent;
+	border: none;
+	outline: none;
+	resize: vertical; /* 允许垂直调整大小 */
+}
+
+/* 联系信息区域 */
+.contact-section.data-v-fb9ebbd2 {
+  background-color: #ffffff;
+  margin: 20rpx 30rpx;
+  border-radius: 20rpx;
+  padding: 40rpx 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加阴影 */
+}
+.input-group.data-v-fb9ebbd2 {
+  background-color: #f8f9fa; /* 与地址输入区域一致的背景色 */
+  border-radius: 15rpx;
+  padding: 5rpx 20rpx; /* 与地址输入区域一致的内边距 */
+  border: 2rpx solid #e9ecef; /* 与地址输入区域一致的边框 */
+  margin-bottom: 20rpx;
+}
+.contact-input.data-v-fb9ebbd2 {
+  width: 100%;
+  padding: 25rpx 0; /* 与地址输入框一致的上下内边距 */
+  font-size: 28rpx;
+  color: #333;
+  background: transparent;
+  border: none;
+  outline: none;
+  /* 如果需要，可以设置字体粗细 */
+  /* font-weight: normal; */
+}
+
+
+/* 错误信息样式 */
+.error-text.data-v-fb9ebbd2 {
+  font-size: 24rpx;
+  color: #ff4757;
+  margin-top: 8rpx;
+  padding-left: 24rpx;
+}
+
+/* 确认按钮 */
+.confirm-section.data-v-fb9ebbd2 {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: #ffffff;
+	padding: 30rpx;
+	border-top: 1rpx solid #eee;
+	box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加底部阴影 */
+}
+.confirm-btn.data-v-fb9ebbd2 {
+	width: 100%;
+	height: 88rpx;
+	background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+	color: white;
+	font-size: 32rpx;
+	font-weight: bold;
+	border-radius: 44rpx;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* 弹窗样式 */
+.modal-overlay.data-v-fb9ebbd2 {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+.date-modal.data-v-fb9ebbd2, .time-modal.data-v-fb9ebbd2, .add-symptom-modal.data-v-fb9ebbd2 {
+	background-color: #ffffff;
+	border-radius: 20rpx;
+	width: 80%;
+	max-height: 80%;
+	overflow: hidden;
+}
+.modal-header.data-v-fb9ebbd2 {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 30rpx;
+	border-bottom: 1rpx solid #eee;
+}
+.modal-title.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #333;
+}
+.close-btn.data-v-fb9ebbd2 {
+	font-size: 32rpx;
+	color: #999;
+}
+.time-list.data-v-fb9ebbd2 {
+	max-height: 400rpx;
+	overflow-y: auto;
+	padding: 20rpx;
+}
+.time-option.data-v-fb9ebbd2 {
+	padding: 25rpx 30rpx;
+	margin: 10rpx 0;
+	border-radius: 15rpx;
+	background-color: #f8f9fa;
+	text-align: center;
+	font-size: 28rpx;
+	color: #333;
+	transition: all 0.3s ease;
+}
+.time-option.selected.data-v-fb9ebbd2 {
+	background: linear-gradient(135deg, #4A90E2, #357ABD);
+	color: white;
+}
+.modal-footer.data-v-fb9ebbd2 {
+	display: flex;
+	padding: 30rpx;
+	gap: 20rpx;
+	border-top: 1rpx solid #eee;
+}
+.cancel-btn.data-v-fb9ebbd2 {
+	flex: 1;
+	background-color: #f8f9fa;
+	color: #666;
+	border: none;
+	border-radius: 25rpx;
+	padding: 25rpx 0;
+	font-size: 28rpx;
+}
+.confirm-time-btn.data-v-fb9ebbd2 {
+	flex: 1;
+	background: linear-gradient(135deg, #4A90E2, #357ABD);
+	color: white;
+	border: none;
+	border-radius: 25rpx;
+	padding: 25rpx 0;
+	font-size: 28rpx;
+	font-weight: 600;
+}
+
+/* --- 新增：添加症状弹窗样式 --- */
+.add-symptom-modal .modal-body.data-v-fb9ebbd2 {
+	padding: 30rpx;
+}
+.add-symptom-modal .input-group.data-v-fb9ebbd2 {
+  background-color: #f8f9fa; /* 与其它输入区域一致的背景色 */
+  border-radius: 15rpx;
+  padding: 5rpx 20rpx; /* 与其它输入区域一致的内边距 */
+  border: 2rpx solid #e9ecef; /* 与其它输入区域一致的边框 */
+  margin-bottom: 20rpx; 
+  width: 90%;
+ 
+  /* 确保输入框填满容器 */
+}
+.add-symptom-modal .contact-input.data-v-fb9ebbd2 {
+  width: 100%;
+  padding: 25rpx ; /* 与其它输入框一致的上下内边距 */
+  font-size: 28rpx;
+  color: #333;
+  background: transparent;
+  border: none;
+  outline: none;
+  
+  /* 如果需要，可以设置字体粗细 */
+  /* font-weight: normal; */
+}
+
+/* --- 结束新增：添加症状弹窗样式 --- */
+
