@@ -6,6 +6,7 @@
         <id column="user_id" property="userId"/>
         <result column="certificate" property="certificate"/>
         <result column="status" property="status"/>
+        <result column="qualification_fail_reason" property="qualificationFailReason"/>
         <result column="introduction" property="introduction"/>
         <result column="professional_field" property="professionalField"/>
         <result column="score" property="score"/>
@@ -13,12 +14,20 @@
         <result column="hospital_name" property="hospitalName"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
+        <result column="service_count" property="serviceCount"/>
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="age" property="age"/>
+        <result column="sex" property="sex"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="user_status" property="userStatus"/>
     </resultMap>
 
     <!-- 插入陪诊师扩展信息 -->
     <insert id="insert" parameterType="org.example.model.Attendant">
-        INSERT INTO attendant (user_id, certificate, status, introduction, professional_field, score, experience_years, hospital_name)
-        VALUES (#{userId}, #{certificate}, #{status}, #{introduction}, #{professionalField}, #{score}, #{experienceYears}, #{hospitalName})
+        INSERT INTO attendant (user_id, certificate, status, qualification_fail_reason, introduction, professional_field, score, experience_years, hospital_name)
+        VALUES (#{userId}, #{certificate}, #{status}, #{qualificationFailReason}, #{introduction}, #{professionalField}, #{score}, #{experienceYears}, #{hospitalName})
     </insert>
 
     <!-- 根据用户ID查询 -->
@@ -32,6 +41,7 @@
         <set>
             <if test="certificate != null">certificate = #{certificate},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="qualificationFailReason != null">qualification_fail_reason = #{qualificationFailReason},</if>
             <if test="introduction != null">introduction = #{introduction},</if>
             <if test="professionalField != null">professional_field = #{professionalField},</if>
             <if test="score != null">score = #{score},</if>
@@ -41,14 +51,73 @@
         WHERE user_id = #{userId}
     </update>
 
-    <!-- 删除陪诊师信息 -->
-    <delete id="delete" parameterType="int">
-        DELETE FROM attendant WHERE user_id = #{userId}
-    </delete>
-
     <!-- 查询推荐的陪诊师 -->
     <select id="findRecommended" resultMap="AttendantResultMap">
-        SELECT * FROM attendant WHERE status = 1 ORDER BY score DESC, experience_years DESC LIMIT 10
+        SELECT
+            a.*,
+            COUNT(CASE WHEN o.order_status = 6 THEN 1 END) AS service_count
+        FROM attendant a
+        LEFT JOIN `order` o ON o.attendant_id = a.user_id
+        WHERE a.status = 1
+        GROUP BY a.user_id
+        ORDER BY service_count DESC, a.score DESC, a.experience_years DESC, a.update_time DESC
+        LIMIT 10
+    </select>
+
+    <select id="countAdminAttendants" resultType="int">
+        SELECT COUNT(*)
+        FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
+        <where>
+            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(u.id AS CHAR) = #{keyword}
+                    OR u.name LIKE CONCAT('%', #{keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.hospital_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.professional_field LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="findAdminAttendants" resultMap="AttendantResultMap">
+        SELECT
+            a.*,
+            u.id,
+            u.name,
+            u.phone,
+            u.age,
+            u.sex,
+            u.avatar AS avatar_url,
+            u.status AS user_status,
+            COUNT(CASE WHEN o.order_status = 6 THEN 1 END) AS service_count
+        FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
+        LEFT JOIN `order` o ON o.attendant_id = a.user_id
+        <where>
+            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(u.id AS CHAR) = #{keyword}
+                    OR u.name LIKE CONCAT('%', #{keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.hospital_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR a.professional_field LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        GROUP BY
+            a.user_id, a.certificate, a.status, a.qualification_fail_reason, a.introduction,
+            a.professional_field, a.score, a.experience_years, a.hospital_name,
+            a.create_time, a.update_time,
+            u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
+        ORDER BY
+            CASE WHEN a.status = 0 THEN 0 ELSE 1 END,
+            a.update_time DESC,
+            a.user_id DESC
+        LIMIT #{offset}, #{limit}
     </select>
 
 </mapper>

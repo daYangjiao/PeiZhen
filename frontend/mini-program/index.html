@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="theme-color" content="#1977f3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="愈安伴陪诊" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=20260326" />
+    <link rel="apple-touch-icon-precomposed" href="/icons/apple-touch-icon.png?v=20260326" />
+    <script>
+      (function () {
+        var ua = navigator.userAgent || ''
+        var platform = navigator.platform || ''
+        var isIOS = /iPhone|iPad|iPod/i.test(ua) || (platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1)
+        var isStandalone =
+          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+          window.navigator.standalone === true
+        var path = window.location.pathname || '/'
+        var search = window.location.search || ''
+        var allowPreview = /(?:\?|&)preview=1(?:&|$)/.test(search)
+        if (isIOS) {
+          document.documentElement.classList.add('platform-ios')
+          if (isStandalone) {
+            document.documentElement.classList.add('display-standalone')
+          } else {
+            document.documentElement.classList.add('display-browser')
+          }
+        }
+        if (isIOS && !isStandalone && !allowPreview && !path.startsWith('/download')) {
+          window.location.replace('/download/')
+        }
+      })()
+    </script>
+    <title>陪诊小程序 - H5 调试</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- 交给 uni-app / Vite 打包入口处理 -->
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

@@ -1,5 +1,8 @@
 package org.example.handler;
 
+import org.example.exception.AppointmentValidationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -10,6 +13,15 @@ import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AppointmentValidationException.class)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> handleAppointmentValidationException(AppointmentValidationException e) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 400);
+        result.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
 
     // 处理Ollama API调用异常
     @ExceptionHandler(RestClientException.class)

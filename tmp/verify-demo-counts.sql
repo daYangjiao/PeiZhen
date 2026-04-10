@@ -1,0 +1,9 @@
+SELECT 'user', COUNT(*) FROM student.user;
+SELECT 'attendant', COUNT(*) FROM student.attendant;
+SELECT 'attendant_qualification', COUNT(*) FROM student.attendant_qualification;
+SELECT 'service_type_mapping', COUNT(*) FROM student.service_type_mapping;
+SELECT 'order', COUNT(*) FROM student.`order`;
+SELECT 'order_evaluation', COUNT(*) FROM student.order_evaluation;
+SELECT 'chat_message', COUNT(*) FROM student.chat_message;
+SELECT 'guide_appointment', COUNT(*) FROM student.guide_appointment;
+SELECT 'ai_medical_qa', COUNT(*) FROM student.ai_medical_qa;

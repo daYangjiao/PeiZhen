@@ -1,0 +1,369 @@
+<template>
+  <view class="page">
+    <view v-if="loading" class="state-card">
+      <text class="state-text">加载中...</text>
+    </view>
+
+    <view v-else-if="loadError" class="state-card">
+      <text class="state-title">消息暂时无法打开</text>
+      <text class="state-text">{{ loadError }}</text>
+      <view class="state-btn" @click="goBack">
+        <text>返回列表</text>
+      </view>
+    </view>
+
+    <template v-else>
+      <view class="detail-card">
+        <view class="detail-header">
+          <text class="detail-title">系统通知</text>
+          <text class="detail-time">{{ formatTime(detail.createTime) }}</text>
+        </view>
+        <text class="detail-content">{{ detail.content || '暂无消息内容' }}</text>
+      </view>
+
+      <view class="detail-card">
+        <view class="section-header">
+          <text class="section-title">关联订单</text>
+          <text class="section-tag" :class="{ disabled: !detail.orderAvailable }">
+            {{ detail.orderAvailable ? '可查看' : '不可查看' }}
+          </text>
+        </view>
+
+        <view v-if="detail.orderAvailable && detail.order" class="order-summary">
+          <view class="summary-row">
+            <text class="label">订单号</text>
+            <text class="value">{{ detail.order.orderNo || '--' }}</text>
+          </view>
+          <view class="summary-row">
+            <text class="label">状态</text>
+            <text class="value">{{ getEscortOrderStatusText(detail.order) }}</text>
+          </view>
+          <view class="summary-row">
+            <text class="label">医院</text>
+            <text class="value">{{ detail.order.hospital || '--' }}</text>
+          </view>
+          <view class="summary-row">
+            <text class="label">就诊人</text>
+            <text class="value">{{ detail.order.patientName || '--' }}</text>
+          </view>
+          <view class="summary-row">
+            <text class="label">服务时间</text>
+            <text class="value">{{ formatServiceTime(detail.order) }}</text>
+          </view>
+
+          <view class="primary-btn" @click="openOrderDetail">
+            <text>查看订单详情</text>
+          </view>
+        </view>
+
+        <view v-else class="order-empty">
+          <text>{{ detail.orderUnavailableReason || '该消息未关联可查看订单' }}</text>
+        </view>
+      </view>
+    </template>
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
+import { get } from '@/utils/api.js'
+import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
+
+const loading = ref(true)
+const loadError = ref('')
+const detail = ref({})
+let currentMessageId = 0
+let socketListener = null
+let socketRefreshTimer = null
+let pageActive = false
+
+const getEscortOrderStatusText = (order = {}) => {
+  const status = Number(order?.orderStatus)
+  const map = {
+    0: '待支付',
+    1: '待接单',
+    2: '待核销',
+    3: '服务中',
+    4: '待患者确认',
+    5: '待补款',
+    6: '已完成',
+    7: '已取消'
+  }
+  return map[status] || order?.orderStatusText || '--'
+}
+
+const formatTime = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hour}:${minute}`
+}
+
+const formatServiceTime = (order = {}) => {
+  const date = order.serviceDate || ''
+  const slot = order.serviceTimeSlot || ''
+  return [date, slot].filter(Boolean).join(' ')
+}
+
+const isOrderRelatedEvent = (type = '') => {
+  const relatedTypes = [
+    'ORDER_STATUS_CHANGED',
+    'SERVICE_STARTED',
+    'SERVICE_COMPLETED',
+    'SERVICE_PROGRESS_UPDATED',
+    'SERVICE_PROGRESS_CHANGED',
+    'ORDER_UPDATED',
+    'ORDER_CANCELLED',
+    'ORDER_FINISHED',
+    'ORDER_RELEASED_BY_ATTENDANT',
+    'TIME_FEE_CONFIRMED',
+    'TIME_FEE_DISPUTED',
+    'BALANCE_PAYMENT_REQUIRED'
+  ]
+  return relatedTypes.includes(String(type).toUpperCase())
+}
+
+const patchLocalOrderStatus = (orderStatus) => {
+  const nextStatus = Number(orderStatus)
+  if (!Number.isFinite(nextStatus) || !detail.value?.order) return
+  detail.value = {
+    ...detail.value,
+    order: {
+      ...detail.value.order,
+      orderStatus: nextStatus
+    }
+  }
+}
+
+const scheduleSilentRefresh = () => {
+  if (!pageActive || !currentMessageId) return
+  if (socketRefreshTimer) clearTimeout(socketRefreshTimer)
+  socketRefreshTimer = setTimeout(() => {
+    loadDetail(currentMessageId, { silent: true })
+  }, 700)
+}
+
+const handleOrderMessage = (message) => {
+  const currentOrder = detail.value?.order
+  if (!pageActive || !currentOrder) return
+  const payload = message?.data && typeof message.data === 'object' ? message.data : {}
+  const type = String(message?.type || message?.eventType || payload?.type || '').toUpperCase()
+  if (!isOrderRelatedEvent(type)) return
+  const currentOrderId = Number(currentOrder.orderId || detail.value.orderId || 0)
+  const currentOrderNo = String(currentOrder.orderNo || '')
+  const payloadOrderId = Number(payload.orderId ?? message?.orderId ?? 0)
+  const payloadOrderNo = String(payload.orderNo ?? message?.orderNo ?? '')
+  const isCurrentOrder =
+    (currentOrderId > 0 && payloadOrderId === currentOrderId) ||
+    (currentOrderNo && payloadOrderNo && payloadOrderNo === currentOrderNo)
+  if (!isCurrentOrder) return
+  patchLocalOrderStatus(payload.orderStatus ?? message?.orderStatus)
+  scheduleSilentRefresh()
+}
+
+const bindOrderListener = () => {
+  connectOrderSocket()
+  if (!socketListener) {
+    socketListener = (message) => handleOrderMessage(message)
+  }
+  removeOrderListener(socketListener)
+  addOrderListener(socketListener)
+}
+
+const unbindOrderListener = () => {
+  if (socketRefreshTimer) {
+    clearTimeout(socketRefreshTimer)
+    socketRefreshTimer = null
+  }
+  if (socketListener) {
+    removeOrderListener(socketListener)
+  }
+}
+
+const goBack = () => {
+  uni.navigateBack()
+}
+
+const openOrderDetail = async () => {
+  const orderId = Number(detail.value.order?.orderId || detail.value.orderId || 0)
+  if (!detail.value.orderAvailable || !orderId) {
+    uni.showToast({ title: detail.value.orderUnavailableReason || '订单暂时无法查看', icon: 'none' })
+    return
+  }
+  try {
+    await get(`/attendant/orders/${orderId}`)
+    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${orderId}` })
+  } catch (error) {
+    uni.showToast({ title: error?.message || '订单暂时无法查看', icon: 'none' })
+  }
+}
+
+const loadDetail = async (messageId, { silent = false } = {}) => {
+  if (!silent) {
+    loading.value = true
+    loadError.value = ''
+  }
+  try {
+    const res = await get(`/api/chat/system/${messageId}`)
+    if (res.code === 200 && res.data) {
+      detail.value = res.data
+      if (res.data.markedRead) {
+        uni.$emit('system-message:read', { messageId })
+      }
+      return
+    }
+    loadError.value = res.message || '消息不存在'
+  } catch (error) {
+    if (!silent) {
+      loadError.value = error?.message || '消息不存在或已删除'
+      if (Number(error?.code || 0) === 401) {
+        loadError.value = '无权限查看这条系统消息'
+      }
+    }
+  } finally {
+    if (!silent) {
+      loading.value = false
+    }
+  }
+}
+
+onLoad((options) => {
+  currentMessageId = Number(options?.messageId || 0)
+  if (!currentMessageId) {
+    loadError.value = '缺少消息ID'
+    loading.value = false
+    return
+  }
+  pageActive = true
+  bindOrderListener()
+  loadDetail(currentMessageId)
+})
+
+onShow(() => {
+  if (!currentMessageId) return
+  pageActive = true
+  bindOrderListener()
+})
+
+onHide(() => {
+  pageActive = false
+  unbindOrderListener()
+})
+
+onUnload(() => {
+  pageActive = false
+  unbindOrderListener()
+})
+</script>
+
+<style lang="scss" scoped>
+@import '@/styles/escort-ui.scss';
+
+.page {
+  @include escort-page;
+  min-height: 100vh;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.detail-card,
+.state-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 12rpx 28rpx rgba(31, 41, 55, 0.06);
+  margin-bottom: 20rpx;
+}
+
+.detail-header,
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 18rpx;
+}
+
+.detail-title,
+.section-title,
+.state-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.detail-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.detail-content,
+.state-text,
+.order-empty {
+  font-size: 27rpx;
+  line-height: 1.8;
+  color: #475569;
+  white-space: pre-wrap;
+}
+
+.section-tag {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.section-tag.disabled {
+  background: rgba(148, 163, 184, 0.14);
+  color: #64748b;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.value {
+  flex: 1;
+  text-align: right;
+  font-size: 26rpx;
+  color: #111827;
+  line-height: 1.6;
+}
+
+.primary-btn,
+.state-btn {
+  margin-top: 28rpx;
+  height: 84rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #1677ff, #0f5fe5);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>

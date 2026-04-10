@@ -24,12 +24,26 @@
         <result column="payment_status" property="paymentStatus"/>
         <result column="payment_time" property="paymentTime"/>
         <result column="order_status" property="orderStatus"/>
+        <result column="cancel_reason" property="cancelReason"/>
+        <result column="cancel_time" property="cancelTime"/>
+        <result column="cancel_by" property="cancelBy"/>
+        <result column="penalty_rate" property="penaltyRate"/>
+        <result column="penalty_amount" property="penaltyAmount"/>
+        <result column="refund_amount" property="refundAmount"/>
         <result column="create_time" property="createTime"/>
         <result column="qr_code_url" property="qrCodeUrl"/>
+        <result column="accept_time" property="acceptTime"/>
         <result column="service_start_time" property="serviceStartTime"/>
         <result column="service_end_time" property="serviceEndTime"/>
+        <result column="service_progress_step" property="serviceProgressStep"/>
+        <result column="estimated_duration" property="estimatedDuration"/>
         <result column="actual_duration" property="actualDuration"/>
         <result column="balance_amount" property="balanceAmount"/>
+        <result column="time_dispute_user_duration" property="timeDisputeUserDuration"/>
+        <result column="time_dispute_reason" property="timeDisputeReason"/>
+        <result column="admin_remark" property="adminRemark"/>
+        <result column="dispute_resolved_by" property="disputeResolvedBy"/>
+        <result column="dispute_resolved_time" property="disputeResolvedTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="org.example.model.Order" useGeneratedKeys="true" keyProperty="orderId">
@@ -56,6 +70,16 @@
         SELECT * FROM `order` WHERE order_no = #{orderNo}
     </select>
 
+    <!-- 系统自动取消：超过支付时限仍未支付（仅待支付状态） -->
+    <select id="findExpiredUnpaidOrders" resultMap="OrderResultMap">
+        SELECT *
+        FROM `order`
+        WHERE payment_status = 0
+          AND order_status = 0
+          AND create_time &lt;= #{deadline}
+        ORDER BY create_time ASC
+    </select>
+
     <update id="updateByPrimaryKeySelective" parameterType="org.example.model.Order">
         UPDATE `order`
         <set>
@@ -79,20 +103,55 @@
             <if test="paymentStatus != null">payment_status = #{paymentStatus},</if>
             <if test="paymentTime != null">payment_time = #{paymentTime},</if>
             <if test="orderStatus != null">order_status = #{orderStatus},</if>
+            <if test="cancelReason != null">cancel_reason = #{cancelReason},</if>
+            <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
+            <if test="cancelBy != null">cancel_by = #{cancelBy},</if>
+            <if test="penaltyRate != null">penalty_rate = #{penaltyRate},</if>
+            <if test="penaltyAmount != null">penalty_amount = #{penaltyAmount},</if>
+            <if test="refundAmount != null">refund_amount = #{refundAmount},</if>
             <if test="qrCodeUrl != null">qr_code_url = #{qrCodeUrl},</if>
+            <if test="acceptTime != null">accept_time = #{acceptTime},</if>
             <if test="serviceStartTime != null">service_start_time = #{serviceStartTime},</if>
             <if test="serviceEndTime != null">service_end_time = #{serviceEndTime},</if>
+            <if test="serviceProgressStep != null">service_progress_step = #{serviceProgressStep},</if>
+            <if test="estimatedDuration != null">estimated_duration = #{estimatedDuration},</if>
             <if test="actualDuration != null">actual_duration = #{actualDuration},</if>
             <if test="balanceAmount != null">balance_amount = #{balanceAmount},</if>
+            <if test="timeDisputeUserDuration != null">time_dispute_user_duration = #{timeDisputeUserDuration},</if>
+            <if test="timeDisputeReason != null">time_dispute_reason = #{timeDisputeReason},</if>
+            <if test="adminRemark != null">admin_remark = #{adminRemark},</if>
+            <if test="disputeResolvedBy != null">dispute_resolved_by = #{disputeResolvedBy},</if>
+            <if test="disputeResolvedTime != null">dispute_resolved_time = #{disputeResolvedTime},</if>
         </set>
         WHERE order_id = #{orderId}
     </update>
+
+    <!-- 预计时长条件：根据 service_time_slot（如 08:00-10:30）计算小时数 -->
+    <sql id="durationCondition">
+        <if test="query != null and query.expectedDurationMinHours != null">
+            AND (TIMESTAMPDIFF(MINUTE,
+                STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))), '%Y-%m-%d %H:%i'),
+                CASE
+                    WHEN STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i')
+                         &lt; STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))), '%Y-%m-%d %H:%i')
+                    THEN DATE_ADD(
+                        STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i'),
+                        INTERVAL 1 DAY
+                    )
+                    ELSE STR_TO_DATE(CONCAT('2000-01-01 ', TRIM(SUBSTRING_INDEX(service_time_slot, '-', -1))), '%Y-%m-%d %H:%i')
+                END
+            ) / 60.0) &gt;= #{query.expectedDurationMinHours}
+        </if>
+    </sql>
 
     <select id="countUserOrders" resultType="int">
         SELECT COUNT(*) FROM `order`
         <where>
             <if test="userId != null">AND user_id = #{userId}</if>
             <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.serviceType != null">AND clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND order_amount &lt;= #{query.orderAmountMax}</if>
+            <include refid="durationCondition"/>
         </where>
     </select>
 
@@ -101,29 +160,128 @@
         <where>
             <if test="userId != null">AND user_id = #{userId}</if>
             <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.serviceType != null">AND clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND order_amount &lt;= #{query.orderAmountMax}</if>
+            <include refid="durationCondition"/>
         </where>
         ORDER BY create_time DESC
         LIMIT #{offset}, #{limit}
     </select>
 
     <select id="countAllOrders" resultType="int">
-        SELECT COUNT(*) FROM `order`
+        SELECT COUNT(*)
+        FROM `order` o
+        LEFT JOIN user u ON u.id = o.user_id
+        LEFT JOIN user au ON au.id = o.attendant_id
         <where>
-            <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.orderStatus != null">AND o.order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.paymentStatus != null">AND o.payment_status = #{query.paymentStatus}</if>
+            <if test="query != null and query.serviceType != null">AND o.clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND o.order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.startDate != null and query.startDate != ''">AND o.create_time &gt;= CONCAT(#{query.startDate}, ' 00:00:00')</if>
+            <if test="query != null and query.endDate != null and query.endDate != ''">AND o.create_time &lt;= CONCAT(#{query.endDate}, ' 23:59:59')</if>
+            <if test="query != null and query.keyword != null and query.keyword != ''">
+                AND (
+                    o.order_no LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.patient_name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_person LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.hospital LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                )
+            </if>
+            <include refid="durationCondition"/>
         </where>
     </select>
 
     <select id="findAllOrdersWithPagination" resultMap="OrderResultMap">
-        SELECT * FROM `order`
+        SELECT o.*
+        FROM `order` o
+        LEFT JOIN user u ON u.id = o.user_id
+        LEFT JOIN user au ON au.id = o.attendant_id
         <where>
-            <if test="query != null and query.orderStatus != null">AND order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.orderStatus != null">AND o.order_status = #{query.orderStatus}</if>
+            <if test="query != null and query.paymentStatus != null">AND o.payment_status = #{query.paymentStatus}</if>
+            <if test="query != null and query.serviceType != null">AND o.clinic_type = #{query.serviceType}</if>
+            <if test="query != null and query.orderAmountMax != null">AND o.order_amount &lt;= #{query.orderAmountMax}</if>
+            <if test="query != null and query.startDate != null and query.startDate != ''">AND o.create_time &gt;= CONCAT(#{query.startDate}, ' 00:00:00')</if>
+            <if test="query != null and query.endDate != null and query.endDate != ''">AND o.create_time &lt;= CONCAT(#{query.endDate}, ' 23:59:59')</if>
+            <if test="query != null and query.keyword != null and query.keyword != ''">
+                AND (
+                    o.order_no LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.patient_name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_person LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.contact_phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR o.hospital LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR u.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.name LIKE CONCAT('%', #{query.keyword}, '%')
+                    OR au.phone LIKE CONCAT('%', #{query.keyword}, '%')
+                )
+            </if>
+            <include refid="durationCondition"/>
         </where>
-        ORDER BY create_time DESC
+        ORDER BY o.create_time DESC
         LIMIT #{offset}, #{limit}
     </select>
 
     <select id="findOrdersByStatus" parameterType="int" resultMap="OrderResultMap">
         SELECT * FROM `order` WHERE order_status = #{status} ORDER BY create_time DESC
+    </select>
+
+    <update id="releaseOrderBackToHall">
+        UPDATE `order` SET
+            order_status = 1,
+            attendant_id = NULL,
+            attendant_name = NULL,
+            qr_code_url = NULL,
+            accept_time = NULL,
+            cancel_reason = #{reason},
+            cancel_time = #{cancelTime},
+            cancel_by = 1,
+            penalty_rate = NULL,
+            penalty_amount = NULL,
+            refund_amount = NULL
+        WHERE order_id = #{orderId}
+    </update>
+
+    <select id="countTodayCompletedService" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+          AND DATE(STR_TO_DATE(service_date, '%Y-%m-%d')) = CURDATE()
+    </select>
+
+    <select id="countMonthCompletedService" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+          AND DATE_FORMAT(STR_TO_DATE(service_date, '%Y-%m-%d'), '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+    </select>
+
+    <select id="sumCompletedIncome" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(order_amount + COALESCE(balance_amount, 0)), 0)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
+    </select>
+
+    <select id="countTotalOrdersByAttendant" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+    </select>
+
+    <select id="countCompletedOrdersByAttendant" resultType="int">
+        SELECT COUNT(1)
+        FROM `order`
+        WHERE attendant_id = #{attendantId}
+          AND order_status = 6
     </select>
 
 </mapper>

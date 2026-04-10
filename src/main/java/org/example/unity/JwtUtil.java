@@ -1,14 +1,16 @@
 package org.example.unity;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,10 +18,21 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
-    
-    // 使用更安全的密钥生成方式
-    private static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private static final long EXPIRATION_TIME = 86400000; // 24小时
+
+    private final SecretKey secretKey;
+    private final long expirationTime;
+
+    public JwtUtil(
+            @Value("${jwt.secret:dev-jwt-secret-change-me-please-1234567890}") String jwtSecret,
+            @Value("${jwt.expiration-ms:86400000}") long expirationTime
+    ) {
+        byte[] secretBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalStateException("JWT_SECRET 长度至少需要 32 个字符");
+        }
+        this.secretKey = Keys.hmacShaKeyFor(secretBytes);
+        this.expirationTime = expirationTime;
+    }
 
     /**
      * 生成JWT Token
@@ -37,8 +50,12 @@ public class JwtUtil {
      * @return JWT Token字符串
      */
     public String generateToken(Integer userId, Map<String, Object> additionalClaims) {
+        return generateToken(userId, additionalClaims, expirationTime);
+    }
+
+    public String generateToken(Integer userId, Map<String, Object> additionalClaims, long customExpirationTime) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
+        Date expiryDate = new Date(now.getTime() + customExpirationTime);
         
         // 构建基础声明
         Map<String, Object> claims = new HashMap<>();
@@ -54,7 +71,7 @@ public class JwtUtil {
                 .setSubject(userId.toString())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SECRET_KEY)
+                .signWith(secretKey)
                 .compact();
         
         logger.debug("为用户 {} 生成Token，过期时间: {}", userId, expiryDate);
@@ -70,21 +87,16 @@ public class JwtUtil {
     public Integer getUserIdFromToken(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(SECRET_KEY)
+                    .setSigningKey(secretKey)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-            
-            // 检查是否过期
-            Date expiration = claims.getExpiration();
-            if (expiration.before(new Date())) {
-                logger.warn("Token已过期");
-                throw new RuntimeException("Token已过期");
-            }
-            
             return Integer.parseInt(claims.getSubject());
+        } catch (ExpiredJwtException e) {
+            logger.warn("Token已过期");
+            throw new RuntimeException("Token已过期");
         } catch (Exception e) {
-            logger.error("Token解析失败: {}", e.getMessage());
+            logger.warn("Token解析失败: {}", e.getMessage());
             throw new RuntimeException("无效的Token");
         }
     }
@@ -110,7 +122,7 @@ public class JwtUtil {
      */
     public Claims getAllClaimsFromToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY)
+                .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

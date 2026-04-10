@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.GuideAttendantMapper">
+
+    <resultMap id="GuideAttendantResultMap" type="org.example.model.Attendant">
+        <id column="user_id" property="userId"/>
+        <result column="user_id" property="id"/>
+        <result column="certificate" property="certificate"/>
+        <result column="status" property="status"/>
+        <result column="qualification_fail_reason" property="qualificationFailReason"/>
+        <result column="introduction" property="introduction"/>
+        <result column="professional_field" property="professionalField"/>
+        <result column="score" property="score"/>
+        <result column="experience_years" property="experienceYears"/>
+        <result column="hospital_name" property="hospitalName"/>
+        <result column="hospital_name" property="hospital"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="age" property="age"/>
+        <result column="sex" property="sex"/>
+        <result column="avatar" property="avatarUrl"/>
+    </resultMap>
+
+    <sql id="guideAttendantBaseSelect">
+        SELECT
+            a.user_id,
+            a.certificate,
+            a.status,
+            a.qualification_fail_reason,
+            a.introduction,
+            a.professional_field,
+            a.score,
+            a.experience_years,
+            a.hospital_name,
+            a.create_time,
+            a.update_time,
+            u.name,
+            u.phone,
+            u.age,
+            u.sex,
+            u.avatar
+        FROM attendant a
+        LEFT JOIN user u ON u.id = a.user_id
+    </sql>
+
+    <select id="selectAvailableAttendants" resultMap="GuideAttendantResultMap">
+        <include refid="guideAttendantBaseSelect"/>
+        <where>
+            a.status = 1
+            <if test="hospitalName != null and hospitalName != ''">
+                AND a.hospital_name LIKE CONCAT('%', #{hospitalName}, '%')
+            </if>
+        </where>
+        ORDER BY a.score DESC, a.experience_years DESC, a.update_time DESC
+    </select>
+
+    <select id="selectAttendantsByTags" resultMap="GuideAttendantResultMap">
+        <include refid="guideAttendantBaseSelect"/>
+        <where>
+            a.status = 1
+            <if test="tags != null and tags.size() > 0">
+                AND (
+                    <foreach collection="tags" item="tag" separator=" OR ">
+                        a.professional_field LIKE CONCAT('%', #{tag}, '%')
+                    </foreach>
+                )
+            </if>
+        </where>
+        ORDER BY a.score DESC, a.experience_years DESC, a.update_time DESC
+    </select>
+
+    <select id="selectById" resultMap="GuideAttendantResultMap">
+        <include refid="guideAttendantBaseSelect"/>
+        WHERE a.user_id = #{id}
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -1,17 +1,23 @@
 package org.example.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Value("${app.upload-dir:${user.dir}/uploads}")
+    private String uploadDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射本地文件系统路径
-        // 注意：file: 后面是绝对路径，确保路径以 / 结尾
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:D:/NSU/lab/houduan2026.02.10/peizhen/src/main/resources/static/uploads/");
+                .addResourceLocations(uploadPath.toUri().toString(), "classpath:/static/uploads/");
     }
 }

@@ -1,6 +1,7 @@
 package org.example.dao;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.example.model.Attendant;
 import java.util.List;
 
@@ -14,4 +15,11 @@ public interface AttendantMapper {
     Attendant findByUserId(Integer userId);
 
     List<Attendant> findRecommended();
+
+    int countAdminAttendants(@Param("keyword") String keyword, @Param("auditStatus") Integer auditStatus);
+
+    List<Attendant> findAdminAttendants(@Param("keyword") String keyword,
+                                        @Param("auditStatus") Integer auditStatus,
+                                        @Param("offset") int offset,
+                                        @Param("limit") int limit);
 }

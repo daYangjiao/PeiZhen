@@ -8,19 +8,22 @@ import java.util.List;
 
 @Mapper
 public interface ChatMessageMapper {
-    
-    // 插入消息
+
     int insert(ChatMessage message);
-    
-    // 查询两个用户之间的聊天记录
+
     List<ChatMessage> findHistory(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
-    
-    // 查询用户的最近联系人列表（包含最后一条消息）
+
+    List<ChatMessage> findSystemMessages(@Param("userId") Integer userId);
+
+    ChatMessage findByIdAndReceiver(@Param("id") Long id, @Param("receiverId") Integer receiverId);
+
     List<ChatMessage> findRecentContacts(@Param("userId") Integer userId);
-    
-    // 将消息标记为已读
+
     int markAsRead(@Param("senderId") Integer senderId, @Param("receiverId") Integer receiverId);
-    
-    // 查询未读消息数
+
+    int markMessageAsRead(@Param("id") Long id, @Param("receiverId") Integer receiverId);
+
+    Long findLatestReadMessageId(@Param("senderId") Integer senderId, @Param("receiverId") Integer receiverId);
+
     int countUnread(@Param("userId") Integer userId);
 }

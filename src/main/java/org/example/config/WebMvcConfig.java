@@ -1,6 +1,7 @@
 package org.example.config;
 
 import org.example.interceptor.AuthInterceptor;
+import org.example.interceptor.AdminAuthInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -12,32 +13,40 @@ public class WebMvcConfig implements WebMvcConfigurer {
     
     @Autowired
     private AuthInterceptor authInterceptor;
+
+    @Autowired
+    private AdminAuthInterceptor adminAuthInterceptor;
     
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置静态资源访问路径
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("classpath:/static/uploads/");
-        
-        // 也可以配置文件系统路径（如果图片存储在本地文件夹）
-        // registry.addResourceHandler("/uploads/**")
-        //         .addResourceLocations("file:D:/范涵伶/Documents/peizhen/src/main/resources/static/uploads/");
+        // /uploads/** 已由 WebConfig 映射到 file:.../static/uploads/，与数据库存的 /uploads/xxx 一致，此处不再重复
     }
     
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/**") // 拦截所有API请求
+                .addPathPatterns("/api/**", "/attendant/**") // 拦截API与陪诊师端请求
                 .excludePathPatterns(
+                    "/api/admin/**",
                     "/api/users/login",
                     "/api/users/register",
                     "/api/users/checkUsername",
+                    "/api/users/wechat/config-status",
+                    "/api/users/wechat/login",
+                    "/api/users/wechat/bind-phone",
+                    "/api/app-upgrade/check",
+                    "/api/common/upload",
+                    "/api/common/upload-image",
                     "/swagger-ui/**",
                     "/v2/api-docs",
                     "/webjars/**",
                     "/swagger-resources/**",
                     "/favicon.ico"
                 );
+
+        registry.addInterceptor(adminAuthInterceptor)
+                .addPathPatterns("/api/admin/**")
+                .excludePathPatterns("/api/admin/auth/login");
         
         // 为AI导诊接口添加白名单（允许未登录用户访问预约流程）
         registry.addInterceptor(authInterceptor)

@@ -1,0 +1,18 @@
+[Unit]
+Description=PZ Spring Boot App
+After=network.target mysql.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=pzapp
+Group=pzapp
+WorkingDirectory=/opt/pz-app/app
+EnvironmentFile=/etc/pz-app/pz-app.env
+ExecStart=/usr/bin/java -jar /opt/pz-app/app/pz-app.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

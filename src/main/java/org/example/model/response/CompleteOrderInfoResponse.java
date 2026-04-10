@@ -31,11 +31,14 @@ public class CompleteOrderInfoResponse {
     
     @ApiModelProperty(value = "支付时间", example = "2024-01-15 10:32:00")
     private String paymentTime;
+
+    @ApiModelProperty(value = "接单时间", example = "2024-01-15 10:50:00")
+    private String acceptTime;
     
     @ApiModelProperty(value = "总价格", example = "80.00")
     private BigDecimal totalPrice;
     
-    @ApiModelProperty(value = "价格计算说明", example = "门诊陪诊 2.0小时＝起步价50元+延长时间费30元")
+    @ApiModelProperty(value = "价格计算说明", example = "普通陪诊 2.0小时＝起步价50元+延长时间费30元")
     private String priceCalculation;
     
     // 医院和时间信息
@@ -51,7 +54,7 @@ public class CompleteOrderInfoResponse {
     @ApiModelProperty(value = "服务类型编号", example = "1")
     private Integer serviceTypeNumber;
     
-    @ApiModelProperty(value = "服务类型名称", example = "门诊陪诊")
+    @ApiModelProperty(value = "服务类型名称", example = "普通陪诊")
     private String serviceTypeName;
     
     // 患者信息
@@ -107,6 +110,10 @@ public class CompleteOrderInfoResponse {
     @ApiModelProperty(value = "实际服务时长")
     private BigDecimal actualDuration;
     
+    // 新增：预估服务时长
+    @ApiModelProperty(value = "预估服务时长")
+    private BigDecimal estimatedDuration;
+    
     // 新增：差价金额
     @ApiModelProperty(value = "差价金额")
     private BigDecimal balanceAmount;
@@ -118,4 +125,27 @@ public class CompleteOrderInfoResponse {
     // 新增：服务结束时间
     @ApiModelProperty(value = "服务结束时间")
     private String serviceEndTime;
+
+    // 服务进度：1=已到院, 2=候诊中, 3=检查中, 4=就诊完成
+    @ApiModelProperty(value = "服务进度：1=已到院, 2=候诊中, 3=检查中, 4=就诊完成")
+    private Integer serviceProgressStep;
+
+    // 取消信息
+    @ApiModelProperty(value = "取消原因")
+    private String cancelReason;
+
+    @ApiModelProperty(value = "取消时间")
+    private String cancelTime;
+
+    @ApiModelProperty(value = "取消方：0用户，1陪诊师")
+    private Integer cancelBy;
+
+    @ApiModelProperty(value = "违约金比例", example = "0.2")
+    private BigDecimal penaltyRate;
+
+    @ApiModelProperty(value = "违约金金额", example = "16.00")
+    private BigDecimal penaltyAmount;
+
+    @ApiModelProperty(value = "退款金额", example = "80.00")
+    private BigDecimal refundAmount;
 }

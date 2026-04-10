@@ -12,27 +12,6 @@ public interface OrderMapper {
     // 插入订单
     int insert(Order order);
 
-    // 根据用户ID查询订单
-    List<Order> findOrdersByUserId(Integer userId);
-
-    // 查询所有订单
-    List<Order> findAllOrders();
-
-    // 删除订单
-    int deleteOrder(Integer orderId);
-
-    // 插入预约订单
-    int insertAppointmentOrder(Order order);
-
-    // 更新订单评价
-    int updateOrderEvaluation(Order order);
-
-    // 更新陪诊师星级
-    int updateAttendantStarRating(Order order);
-
-    // 获取所有就诊类型
-    List<Integer> getAllClinicTypes();
-
     // 选择性更新订单
     int updateByPrimaryKeySelective(Order order);
 
@@ -77,4 +56,39 @@ public interface OrderMapper {
      * 根据状态查询订单
      */
     List<Order> findOrdersByStatus(@Param("status") Integer status);
+
+    /**
+     * 将订单释放回接单大厅：状态改为待接单，清空陪诊师与二维码，记录取消原因与时间（供用户端展示）
+     */
+    int releaseOrderBackToHall(@Param("orderId") Integer orderId, @Param("reason") String reason, @Param("cancelTime") java.util.Date cancelTime);
+
+    /**
+     * 查询超过支付时限仍未支付的订单（用于系统自动取消）
+     */
+    List<Order> findExpiredUnpaidOrders(@Param("deadline") java.util.Date deadline);
+
+    /**
+     * 统计陪诊师今日已完成服务次数（按 service_date）
+     */
+    Integer countTodayCompletedService(@Param("attendantId") Integer attendantId);
+
+    /**
+     * 统计陪诊师本月已完成服务次数（按 service_date）
+     */
+    Integer countMonthCompletedService(@Param("attendantId") Integer attendantId);
+
+    /**
+     * 统计陪诊师累计收入（已完成订单）
+     */
+    java.math.BigDecimal sumCompletedIncome(@Param("attendantId") Integer attendantId);
+
+    /**
+     * 统计陪诊师总订单数（已接单）
+     */
+    Integer countTotalOrdersByAttendant(@Param("attendantId") Integer attendantId);
+
+    /**
+     * 统计陪诊师已完成订单数
+     */
+    Integer countCompletedOrdersByAttendant(@Param("attendantId") Integer attendantId);
 }

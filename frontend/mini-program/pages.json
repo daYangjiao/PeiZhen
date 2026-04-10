@@ -1,0 +1,344 @@
+{
+  "pages": [
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/role-user/order",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/role-user/message",
+      "style": {
+        "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/role-user/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/ai-triage/01-appointment-selection",
+      "style": {
+        "navigationBarTitleText": "预约类型选择"
+      }
+    },
+    {
+      "path": "pages/role-escort/hall",
+      "style": {
+        "navigationBarTitleText": "陪诊接单大厅",
+        "enablePullDownRefresh": false
+      }
+    },
+    {
+      "path": "pages/role-escort/order",
+      "style": {
+        "navigationBarTitleText": "陪诊师订单"
+      }
+    },
+    {
+      "path": "pages/role-escort/message",
+      "style": {
+        "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/role-escort/profile",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/role-user/home",
+      "style": {
+        "navigationBarTitleText": "陪诊服务"
+      }
+    },
+    {
+      "path": "pages/public/index",
+      "style": {
+        "navigationBarTitleText": "愈安陪诊"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "subpkg",
+      "pages": [
+        {
+          "path": "chat/chat",
+          "style": {
+            "navigationBarTitleText": "聊天",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "chat/chat-escort",
+          "style": {
+            "navigationBarTitleText": "聊天",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "system-message/system-message",
+          "style": {
+            "navigationBarTitleText": "系统消息"
+          }
+        },
+        {
+          "path": "system-message/escort-detail",
+          "style": {
+            "navigationBarTitleText": "系统消息详情"
+          }
+        },
+        {
+          "path": "order/order-detail",
+          "style": {
+            "navigationBarTitleText": "订单详情"
+          }
+        },
+        {
+          "path": "order/escort-detail",
+          "style": {
+            "navigationBarTitleText": "订单详情（陪诊师端）"
+          }
+        },
+        {
+          "path": "order/prepare",
+          "style": {
+            "navigationBarTitleText": "服务前准备清单"
+          }
+        },
+        {
+          "path": "order/submit-time-fee",
+          "style": {
+            "navigationBarTitleText": "提交时长与费用"
+          }
+        },
+        {
+          "path": "evaluate/evaluate",
+          "style": {
+            "navigationBarTitleText": "订单评价"
+          }
+        },
+        {
+          "path": "auth/escort-register",
+          "style": {
+            "navigationBarTitleText": "陪诊师入驻"
+          }
+        },
+        {
+          "path": "auth/user-register",
+          "style": {
+            "navigationBarTitleText": "用户注册"
+          }
+        },
+        {
+          "path": "auth/wechat-bind",
+          "style": {
+            "navigationBarTitleText": "绑定手机号"
+          }
+        },
+        {
+          "path": "appointment-flow/01-appointment-selection",
+          "style": {
+            "navigationBarTitleText": "预约类型选择"
+          }
+        },
+        {
+          "path": "appointment-flow/02-appointment-form",
+          "style": {
+            "navigationBarTitleText": "服务预约"
+          }
+        },
+        {
+          "path": "appointment-flow/04-order-confirm-page",
+          "style": {
+            "navigationBarTitleText": "确认订单"
+          }
+        },
+        {
+          "path": "appointment-flow/05-payment-success-page",
+          "style": {
+            "navigationBarTitleText": "支付成功"
+          }
+        },
+        {
+          "path": "appointment-flow/06-payment-failed-page",
+          "style": {
+            "navigationBarTitleText": "支付失败"
+          }
+        },
+        {
+          "path": "ai/ai-ask",
+          "style": {
+            "navigationBarTitleText": "AI助手",
+            "disableScroll": true
+          }
+        },
+        {
+          "path": "profile/edit-profile",
+          "style": {
+            "navigationBarTitleText": "编辑个人资料",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/avatar-crop",
+          "style": {
+            "navigationBarTitleText": "裁剪头像",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa",
+            "disableScroll": true
+          }
+        },
+        {
+          "path": "profile/edit-escort",
+          "style": {
+            "navigationBarTitleText": "编辑资料",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/withdraw-center",
+          "style": {
+            "navigationBarTitleText": "提现中心",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/wallet-detail",
+          "style": {
+            "navigationBarTitleText": "钱包明细",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/qualification",
+          "style": {
+            "navigationBarTitleText": "资质管理",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/qualification-upload",
+          "style": {
+            "navigationBarTitleText": "上传资质",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/reviews",
+          "style": {
+            "navigationBarTitleText": "我的评价",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/service-stats",
+          "style": {
+            "navigationBarTitleText": "服务统计",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/platform-rules",
+          "style": {
+            "navigationBarTitleText": "平台规则",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/service-center",
+          "style": {
+            "navigationBarTitleText": "客服中心",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/help",
+          "style": {
+            "navigationBarTitleText": "帮助中心",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+        },
+        {
+          "path": "profile/settings",
+          "style": {
+            "navigationBarTitleText": "设置",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa"
+          }
+          },
+        {
+          "path": "pages/rules/rules",
+          "style": {
+            "navigationBarTitleText": "平台规则"
+          }
+        }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "陪诊",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f7fa"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#66A6FF",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/role-user/home",
+        "text": "首页",
+        "iconPath": "static/shouye.png",
+        "selectedIconPath": "static/shouye_active.png"
+      },
+      {
+        "pagePath": "pages/role-user/order",
+        "text": "订单",
+        "iconPath": "static/order.png",
+        "selectedIconPath": "static/order_active.png"
+      },
+      {
+        "pagePath": "pages/ai-triage/01-appointment-selection",
+        "text": "预约",
+        "iconPath": "static/yvyue_2.png",
+        "selectedIconPath": "static/yvyue_2_active.png"
+      },
+      {
+        "pagePath": "pages/role-user/message",
+        "text": "消息",
+        "iconPath": "static/xiaoxi_2.png",
+        "selectedIconPath": "static/xiaoxi_2_active.png"
+      },
+      {
+        "pagePath": "pages/role-user/profile",
+        "text": "我的",
+        "iconPath": "static/wode_2.png",
+        "selectedIconPath": "static/wode_2_active.png"
+      }
+    ]
+  }
+}

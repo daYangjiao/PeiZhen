@@ -1,5 +1,7 @@
 package org.example.interceptor;
 
+import org.example.dao.UserMapper;
+import org.example.model.User;
 import org.example.unity.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,9 @@ public class AuthInterceptor implements HandlerInterceptor {
     
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserMapper userMapper;
     
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -60,10 +65,23 @@ public class AuthInterceptor implements HandlerInterceptor {
                 sendUnauthorizedResponse(response, "认证令牌无效");
                 return false;
             }
+
+            User currentUser = userMapper.findById(userId);
+            if (currentUser == null) {
+                logger.warn("Token验证失败，用户不存在: {}", userId);
+                sendUnauthorizedResponse(response, "用户不存在");
+                return false;
+            }
+            if (currentUser.getStatus() != null && currentUser.getStatus() == 0) {
+                logger.warn("已被禁用的用户访问被拒绝: {}", userId);
+                sendUnauthorizedResponse(response, "账号已被禁用");
+                return false;
+            }
             
             // 将用户ID存入请求属性，供后续处理器使用
             request.setAttribute("currentUserId", userId);
             request.setAttribute("currentUserToken", token);
+            request.setAttribute("currentUser", currentUser);
             
             logger.debug("用户 {} 认证成功，访问路径: {}", userId, requestURI);
             return true;
@@ -84,6 +102,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/users/login",
             "/api/users/register",
             "/api/users/checkUsername",
+            "/api/users/wechat/config-status",
+            "/api/users/wechat/login",
+            "/api/users/wechat/bind-phone",
+            "/api/common/upload",
+            "/api/common/upload-image",
+            "/attendant/recommended",  // 获取推荐陪诊师（允许未登录用户访问）
             "/swagger-ui",
             "/v2/api-docs",
             "/webjars",

@@ -3,6 +3,8 @@ package org.example.controller;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.example.dao.AiMedicalQaMapper;
 import org.example.model.AiMedicalQa;
 import org.example.model.MedicalQaRequest;
@@ -20,12 +22,19 @@ public class AiMedicalController {
 
     @Autowired
     private AiMedicalService aiMedicalService;
-    private AiMedicalQaMapper AiMedicalQaMapperi;
+
+    @Autowired
+    private AiMedicalQaMapper aiMedicalQaMapper;
 
     @PostMapping("/qa")
-    @ApiOperation(value = "医疗问题问答", notes = "用户提交医疗问题，获取AI生成的专业回答（包含思考过程推送）")
+    @ApiOperation(value = "医疗问题问答", notes = "提交医疗问题后立即返回问答记录。若前端需要展示模型思考过程，可配合 recordId 轮询查询思考过程接口。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "问答成功，返回 AI 问答记录"),
+            @ApiResponse(code = 400, message = "请求参数不完整或为空"),
+            @ApiResponse(code = 500, message = "AI 服务异常或问答生成失败")
+    })
     public ResponseEntity<AiMedicalQa> medicalQa(
-            @ApiParam(name = "requestBody", value = "包含问题的请求体", required = true)
+            @ApiParam(name = "requestBody", value = "问答请求体，仅需传入 question 字段", required = true)
             @Valid
             @RequestBody MedicalQaRequest request) {
 
@@ -33,13 +42,17 @@ public class AiMedicalController {
         return ResponseEntity.ok(result);
     }
 
-    // 新增：前端轮询获取思考过程的接口
     @GetMapping("/qa/thinking/{recordId}")
-    @ApiOperation(value = "获取思考过程", notes = "轮询该接口获取AI处理中的思考过程")
+    @ApiOperation(value = "获取思考过程", notes = "前端可轮询该接口读取指定问答记录的思考过程与最新回答状态。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功，返回指定问答记录"),
+            @ApiResponse(code = 404, message = "问答记录不存在"),
+            @ApiResponse(code = 500, message = "查询过程发生异常")
+    })
     public ResponseEntity<AiMedicalQa> getThinkingProcess(
-            @ApiParam(name = "recordId", value = "问答记录ID", required = true)
+            @ApiParam(name = "recordId", value = "问答记录ID", required = true, example = "1")
             @PathVariable Long recordId) {
-        AiMedicalQa qaRecord = AiMedicalQaMapperi.selectById(recordId); // 需确保Mapper有该方法
+        AiMedicalQa qaRecord = aiMedicalQaMapper.selectById(recordId);
         return ResponseEntity.ok(qaRecord);
     }
 }

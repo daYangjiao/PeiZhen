@@ -1,0 +1,14 @@
+<view class="tab-bar" wx:if="{{!hidden && tabs.length}}">
+  <block wx:for="{{tabs}}" wx:key="pagePath">
+    <view class="tab-item" data-index="{{index}}" bindtap="onTabTap">
+      <view class="icon-wrap">
+        <image class="icon" src="{{item.iconPath}}" wx:if="{{selectedIndex !== index}}"></image>
+        <image class="icon" src="{{item.selectedIconPath}}" wx:if="{{selectedIndex === index}}"></image>
+        <view class="badge" wx:if="{{item.badge > 0}}">
+          <text>{{item.badge > 99 ? '99+' : item.badge}}</text>
+        </view>
+      </view>
+      <text class="text" wx:class="{{selectedIndex === index ? 'active' : ''}}">{{item.text}}</text>
+    </view>
+  </block>
+</view>

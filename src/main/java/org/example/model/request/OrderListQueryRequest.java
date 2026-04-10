@@ -4,6 +4,8 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 订单列表查询请求参数
  */
@@ -23,7 +25,7 @@ public class OrderListQueryRequest {
     @ApiModelProperty(value = "排序方向（asc, desc）", example = "desc")
     private String sortDirection = "desc";
 
-    @ApiModelProperty(value = "订单状态筛选（0=待接单, 1=已接单, 2=已完成, 3=已取消）", example = "0")
+    @ApiModelProperty(value = "订单状态筛选（0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长, 5=待补款, 6=已完成, 7=已取消）", example = "2")
     private Integer orderStatus;
 
     @ApiModelProperty(value = "支付状态筛选（0=待支付, 1=已支付）", example = "0")
@@ -40,4 +42,10 @@ public class OrderListQueryRequest {
 
     @ApiModelProperty(value = "结束日期（yyyy-MM-dd）", example = "2025-12-31")
     private String endDate;
+
+    @ApiModelProperty(value = "预计时长下限（小时），如2表示大于2小时", example = "2")
+    private Integer expectedDurationMinHours;
+
+    @ApiModelProperty(value = "基础费用上限（元），如80表示小于80元", example = "80")
+    private BigDecimal orderAmountMax;
 }

@@ -3,6 +3,8 @@ package org.example.controller;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
@@ -32,9 +34,15 @@ public class UserAttendantController {
      * 根据陪诊师ID获取详细信息
      */
     @GetMapping("/{attendantId}")
-    @ApiOperation("获取陪诊师详细信息")
+    @ApiOperation(value = "获取陪诊师详细信息", notes = "用户端查看指定陪诊师详情，返回基础用户信息与陪诊师扩展资料。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功"),
+            @ApiResponse(code = 404, message = "陪诊师不存在"),
+            @ApiResponse(code = 500, message = "查询失败")
+    })
     public ResponseResult<Map<String, Object>> getAttendantDetail(
-            @ApiParam("陪诊师ID") @PathVariable Integer attendantId) {
+            @ApiParam(value = "陪诊师ID", required = true, example = "21")
+            @PathVariable Integer attendantId) {
         
         try {
             // 1. 获取基础用户信息
