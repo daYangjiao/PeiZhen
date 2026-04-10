@@ -61,11 +61,19 @@
 						<text class="item-title">消息中心</text>
 						<text class="item-arrow">〉</text>
 					</view>
+          <view class="menu-item" @click="goToRules">
+            <view class="item-icon">
+              <image src="/static/settings.png" mode="aspectFit"></image>
+            </view>
+            <text class="item-title">平台规则</text>
+            <text class="item-arrow">〉</text>
+          </view>
+
 				</view>
 			</view>
 			
 			<view class="menu-group">
-				<text class="group-title">设置</text>
+				<text class="group-title">更多功能</text>
 				<view class="menu-list">
 					<view class="menu-item" @click="goToSettings">
 						<view class="item-icon">
@@ -145,6 +153,13 @@ const goToMessages = () => {
 	uni.switchTab({
 		url: '/pages/message/message'
 	});
+}
+//跳转到平台规则
+// 跳转到平台规则页面
+const goToRules = () => {
+  uni.navigateTo({
+    url: '/pages/rules/rules'
+  });
 }
 
 // 跳转到设置页面

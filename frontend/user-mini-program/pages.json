@@ -78,6 +78,14 @@
 			"style": {
 				"navigationBarTitleText": "支付成功"
 			}
+			},
+		{
+			"path": "pages/rules/rules",
+			"style": {
+				"navigationBarTitleText": "平台规则",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
 		},
 		{
 			"path": "pages/test/test-login",
