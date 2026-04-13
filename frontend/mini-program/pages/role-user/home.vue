@@ -1,18 +1,5 @@
 <template>
   <view class="container">
-    <view class="header">
-      <view class="search-box">
-        <image class="search-icon" src="/static/sous.png"></image>
-        <input
-          class="search-input"
-          placeholder="搜索医院、科室或疾病"
-          v-model="searchKeyword"
-          @confirm="handleSearch"
-          confirm-type="search"
-        />
-      </view>
-    </view>
-
     <view class="banner-section">
       <swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="3000" duration="500">
         <swiper-item>
@@ -149,7 +136,6 @@ import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
-const searchKeyword = ref('')
 const publicSafeMode = isPublicSafeMode()
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
 const assistantEntryIcon = brandLogo
@@ -420,14 +406,6 @@ const runCompanionAvatarDiagnostics = async (companion) => {
   }
 }
 
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    uni.showToast({ title: `搜索"${searchKeyword.value}"`, icon: 'none' })
-  } else {
-    uni.showToast({ title: '请输入搜索内容', icon: 'none' })
-  }
-}
-
 const decorateCompanion = async (companion = {}) => {
   const normalized = {
     ...companion,
@@ -527,30 +505,6 @@ if (typeof uni.onWindowResize === 'function') {
 .floating-icon {
   width: 40px;
   height: 40px;
-}
-.header {
-  background: #ffffff;
-  padding: 0 30rpx 30rpx;
-}
-.search-box {
-  background-color: #f3f8fe;
-  border-radius: 50rpx;
-  padding: 20rpx 30rpx;
-  display: flex;
-  align-items: center;
-  border: 1rpx solid rgba(76, 145, 214, 0.12);
-  box-shadow: 0 6rpx 18rpx rgba(32, 90, 148, 0.05);
-}
-.search-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 20rpx;
-  opacity: 0.68;
-}
-.search-input {
-  color: #33516f;
-  font-size: 28rpx;
-  flex: 1;
 }
 .banner-section {
   margin: 30rpx;

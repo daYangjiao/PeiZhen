@@ -39,9 +39,9 @@
 				<text class="section-title">选择服务时段</text>
 			</view>
 			
-			<view class="time-picker-row">
-				<view class="time-picker" @click="showStartTimePicker">
-					<text class="time-label">开始时间</text>
+		<view class="time-picker-row">
+			<view class="time-picker" @click="showStartTimePicker">
+				<text class="time-label">开始时间</text>
 					<text class="time-value" v-if="startTime">{{ startTime }}</text>
 					<text class="time-placeholder" v-else>请选择</text>
 					<text class="time-arrow">▼</text>
@@ -53,6 +53,7 @@
 					<text class="time-arrow">▼</text>
 				</view>
 			</view>
+			<text class="time-inline-tip">今天的开始时间会随当前时间变化，请尽快确认预约</text>
 		</view>
 
 		<!-- 输入地址或选择医院 -->
@@ -520,10 +521,19 @@ const TIME_GROUP_DEFINITIONS = [
 	{ key: 'evening', label: '晚上', rangeLabel: '18:00 - 23:30', start: 1080, end: 1439 }
 ]
 
-const getTodayBufferMinutes = () => {
+const getTodayEarliestStartMinutes = () => {
 	const now = new Date()
-	return now.getHours() * 60 + now.getMinutes() + 30
+	const currentMinutes = now.getHours() * 60 + now.getMinutes()
+	const currentSlotStartMinutes = Math.floor(currentMinutes / 30) * 30
+	const minutesAfterSlotStart = currentMinutes - currentSlotStartMinutes
+	if (minutesAfterSlotStart <= 5) {
+		return currentSlotStartMinutes
+	}
+	return currentSlotStartMinutes + 30
 }
+
+const getExpiredStartTimeMessage = (minAllowedStartMinutes) =>
+	`您选择的开始时间已超过可预约时限，请重新选择 ${formatMinutesToTime(minAllowedStartMinutes)} 及之后的开始时间`
 
 const isTodayDate = (dateValue) => {
 	if (!dateValue) return false
@@ -585,7 +595,7 @@ const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 			const timeMinutes = parseTimeToMinutes(timeStr)
-			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
+			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayEarliestStartMinutes()) {
 				continue
 			}
 			options.push(createTimeOption(timeStr))
@@ -930,13 +940,18 @@ const validateAppointmentDateTime = () => {
 	}
 
 	if (appointmentDate.getTime() === today.getTime()) {
-		const minAllowedStartMinutes = now.getHours() * 60 + now.getMinutes() + 30
+		const minAllowedStartMinutes = getTodayEarliestStartMinutes()
 		if (startMinutes < minAllowedStartMinutes) {
-			return { valid: false, message: '今日预约需至少提前30分钟' }
+			return {
+				valid: false,
+				message: getExpiredStartTimeMessage(minAllowedStartMinutes),
+				expiredStartTime: true,
+				minAllowedStartMinutes
+			}
 		}
 	}
 
-	return { valid: true, message: '' }
+	return { valid: true, message: '', expiredStartTime: false, minAllowedStartMinutes: null }
 }
 
 const validatePhone = () => {
@@ -1096,6 +1111,11 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 
 	const appointmentTimeValidation = validateAppointmentDateTime()
 	if (!appointmentTimeValidation.valid) {
+		if (appointmentTimeValidation.expiredStartTime) {
+			startTime.value = ''
+			endTime.value = ''
+			selectedTime.value = ''
+		}
 		uni.showToast({
 			title: appointmentTimeValidation.message,
 			icon: 'none'
@@ -1451,6 +1471,15 @@ onMounted(async () => {
 .time-picker-row {
 	display: flex;
 	gap: 30rpx;
+	flex-wrap: wrap;
+}
+
+.time-inline-tip {
+	width: 100%;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #6b7c93;
+	margin-top: 6rpx;
 }
 
 .time-picker {

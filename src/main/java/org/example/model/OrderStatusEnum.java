@@ -13,8 +13,8 @@ import lombok.Getter;
 @Getter
 public enum OrderStatusEnum {
     
-    @ApiModelProperty(value = "待支付定金", example = "0")
-    PENDING_DEPOSIT(0, "待支付定金"),
+    @ApiModelProperty(value = "待支付预付款", example = "0")
+    PENDING_DEPOSIT(0, "待支付预付款"),
     
     @ApiModelProperty(value = "待接单", example = "1")
     WAITING_ACCEPT(1, "待接单"),

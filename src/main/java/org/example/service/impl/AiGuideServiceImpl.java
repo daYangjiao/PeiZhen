@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -255,6 +256,7 @@ public class AiGuideServiceImpl implements AiGuideService {
     @Transactional
     public AppointmentResponse submitDemand(GuideAppointmentRequest request) {
         validateAppointmentSchedule(request);
+        request.setHospital(request.getHospital() == null ? null : request.getHospital().trim());
 
         String appointmentNo = "APP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6);
         GuideAppointment appointment = new GuideAppointment();
@@ -322,11 +324,26 @@ public class AiGuideServiceImpl implements AiGuideService {
         }
 
         if (appointmentDate.isEqual(today)) {
-            LocalTime minAllowedStartTime = LocalTime.now().plusMinutes(30);
+            LocalTime minAllowedStartTime = getTodayEarliestStartTime();
             if (appointmentStartTime.isBefore(minAllowedStartTime)) {
-                throw new AppointmentValidationException("今日预约需至少提前30分钟");
+                throw new AppointmentValidationException(buildExpiredStartTimeMessage(minAllowedStartTime));
             }
         }
+    }
+
+    private LocalTime getTodayEarliestStartTime() {
+        LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+        int currentMinutes = now.getHour() * 60 + now.getMinute();
+        int currentSlotStartMinutes = (currentMinutes / 30) * 30;
+        int minutesAfterSlotStart = currentMinutes - currentSlotStartMinutes;
+        int earliestMinutes = minutesAfterSlotStart <= 5 ? currentSlotStartMinutes : currentSlotStartMinutes + 30;
+        earliestMinutes = earliestMinutes % (24 * 60);
+        return LocalTime.of(earliestMinutes / 60, earliestMinutes % 60);
+    }
+
+    private String buildExpiredStartTimeMessage(LocalTime minAllowedStartTime) {
+        return String.format("您选择的开始时间已超过可预约时限，请重新选择 %s 及之后的开始时间",
+                minAllowedStartTime.format(DateTimeFormatter.ofPattern("HH:mm")));
     }
 
     private LocalTime parseStartTime(String timeValue) {

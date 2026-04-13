@@ -8,7 +8,7 @@ ENV_FILE="${ENV_FILE:-/etc/pz-app/pz-app.env}"
 RELEASE_META_DIR="${RELEASE_META_DIR:-/var/lib/pz-deploy/releases}"
 RELEASE_META_FILE="${RELEASE_META_DIR}/backend-release.env"
 
-mvn -DskipTests package
+mvn -DskipTests clean package
 
 JAR_FILE="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
 if [[ -z "${JAR_FILE}" ]]; then

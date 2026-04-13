@@ -14,7 +14,6 @@ import org.example.model.response.SimpleOrderDetailResponse;
 import org.example.model.response.CompleteOrderInfoResponse;
 import org.example.service.AiGuideService;
 import org.example.util.AuthUtil;
-import org.example.util.HospitalOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,9 +54,7 @@ public class AiGuideController {
             String errorMsg = bindingResult.getFieldError().getDefaultMessage();
             throw new RuntimeException("参数错误：" + errorMsg);
         }
-        if (!HospitalOptions.isAllowedHospital(request.getHospital())) {
-            throw new RuntimeException("请选择指定医院");
-        }
+        request.setHospital(request.getHospital() == null ? null : request.getHospital().trim());
 
         Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
         request.setUserId(currentUserId);

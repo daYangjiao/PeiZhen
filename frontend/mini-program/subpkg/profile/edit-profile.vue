@@ -325,6 +325,9 @@ const saveProfile = async () => {
                 ...userStore.value.userInfo,
                 ...updatedFields
             }
+            if (updatedFields.name) {
+                updatedUserInfo.nickName = updatedFields.name
+            }
             userStore.value.setUserInfo(updatedUserInfo)
             
             // 更新成功后，更新原始数据
