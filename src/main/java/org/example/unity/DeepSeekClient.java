@@ -1,8 +1,8 @@
 package org.example.unity;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
-import org.apache.http.HttpEntity;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -11,102 +11,90 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class DeepSeekClient {
-    // 本地Ollama部署的DeepSeek地址（默认端口11434）
-    @Value("${deepseek.base-url:http://localhost:11434/api/generate}")
+
+    private final ObjectMapper objectMapper;
+
+    @Value("${deepseek.base-url:https://api.deepseek.com}")
     private String baseUrl;
 
-    @Value("${deepseek.model-name:deepseek-r1:14b}")
-    private String modelName;
+    @Value("${deepseek.api-key:}")
+    private String apiKey;
 
-    /**
-     * 医疗问答：单轮对话获取AI回答（原有功能）
-     */
-    public String getSingleResponse(String prompt) {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost(baseUrl);
+    @Value("${deepseek.model:deepseek-reasoner}")
+    private String model;
 
-        // 设置请求头（Ollama不需要Authorization）
-        httpPost.setHeader("Content-Type", "application/json");
+    public DeepSeekClient(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
-        // 构建Ollama请求参数（stream=false关闭流模式）
-        Map<String, Object> requestMap = new HashMap<>();
-        requestMap.put("model", modelName);
-        requestMap.put("prompt", prompt);
-        requestMap.put("stream", false);
-        requestMap.put("temperature", 0.3); // 降低随机性
+    public String chatCompletion(List<Map<String, String>> messages) {
+        if (!StringUtils.hasText(apiKey)) {
+            throw new IllegalStateException("DeepSeek API Key 未配置");
+        }
 
-        try {
-            StringEntity entity = new StringEntity(JSON.toJSONString(requestMap), StandardCharsets.UTF_8);
-            httpPost.setEntity(entity);
-            CloseableHttpResponse response = httpClient.execute(httpPost);
+        String endpoint = resolveEndpoint();
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(10000)
+                .setConnectionRequestTimeout(10000)
+                .setSocketTimeout(60000)
+                .build();
 
-            // 解析Ollama响应
-            HttpEntity responseEntity = response.getEntity();
-            String responseStr = EntityUtils.toString(responseEntity, StandardCharsets.UTF_8);
-            JSONObject responseJson = JSON.parseObject(responseStr);
-            return responseJson.getString("response");
-        } catch (Exception e) {
-            throw new RuntimeException("DeepSeek医疗问答调用失败：" + e.getMessage(), e);
-        } finally {
-            try {
-                httpClient.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+        try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
+            HttpPost httpPost = new HttpPost(endpoint);
+            httpPost.setHeader("Content-Type", "application/json");
+            httpPost.setHeader("Authorization", "Bearer " + apiKey.trim());
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("model", model);
+            payload.put("messages", messages);
+            payload.put("temperature", 0.2);
+            payload.put("max_tokens", 1200);
+
+            httpPost.setEntity(new StringEntity(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8));
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+                if (statusCode < 200 || statusCode >= 300) {
+                    throw new IllegalStateException("DeepSeek API 调用失败，状态码=" + statusCode);
+                }
+
+                JsonNode root = objectMapper.readTree(responseBody);
+                JsonNode messageNode = root.path("choices").path(0).path("message");
+                String content = messageNode.path("content").asText("");
+                if (StringUtils.hasText(content)) {
+                    return content.trim();
+                }
+
+                String reasoningContent = messageNode.path("reasoning_content").asText("");
+                if (StringUtils.hasText(reasoningContent)) {
+                    return reasoningContent.trim();
+                }
+
+                throw new IllegalStateException("DeepSeek 返回内容为空");
             }
+        } catch (Exception e) {
+            throw new IllegalStateException("DeepSeek 调用失败：" + e.getMessage(), e);
         }
     }
 
-    /**
-     * AI匹配陪诊师：生成专业领域标签（核心方法）
-     */
-    public List<String> getAttendantTags(String symptoms, String surgeryName, String emergencyLevel) {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost(baseUrl);
-        httpPost.setHeader("Content-Type", "application/json");
-
-        // 构建标签生成提示词
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("请生成3-5个医疗陪诊师专业领域标签，用于筛选陪诊师：\n");
-        prompt.append("用户症状：").append(symptoms).append("\n");
-        if (surgeryName != null && !surgeryName.isEmpty()) {
-            prompt.append("手术名称：").append(surgeryName).append("\n");
+    private String resolveEndpoint() {
+        String normalized = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "https://api.deepseek.com";
+        if (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
         }
-        prompt.append("紧急程度：").append(emergencyLevel).append("\n");
-        prompt.append("要求：标签具体（如神经内科陪诊、术后护理），仅返回JSON数组，无其他内容");
-
-        // 构建Ollama请求
-        Map<String, Object> requestMap = new HashMap<>();
-        requestMap.put("model", modelName);
-        requestMap.put("prompt", prompt.toString());
-        requestMap.put("stream", false);
-        requestMap.put("temperature", 0.2);
-
-        try {
-            StringEntity entity = new StringEntity(JSON.toJSONString(requestMap), StandardCharsets.UTF_8);
-            httpPost.setEntity(entity);
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-
-            // 解析标签数组
-            String responseStr = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-            JSONObject responseJson = JSON.parseObject(responseStr);
-            String tagsStr = responseJson.getString("response");
-            return JSON.parseArray(tagsStr, String.class);
-        } catch (Exception e) {
-            throw new RuntimeException("DeepSeek标签生成失败：" + e.getMessage(), e);
-        } finally {
-            try {
-                httpClient.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (normalized.endsWith("/chat/completions")) {
+            return normalized;
         }
+        return normalized + "/chat/completions";
     }
 }

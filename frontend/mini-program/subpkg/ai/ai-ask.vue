@@ -5,13 +5,13 @@
         <image class="hero-icon" :src="AIAvatar" mode="aspectFill" />
       </view>
       <view class="hero-texts">
-        <text class="hero-title">智能医疗助手</text>
-        <text class="hero-subtitle">仅提供健康科普参考，不能替代医生诊疗</text>
+        <text class="hero-title">AI 导诊助手</text>
+        <text class="hero-subtitle">帮您梳理症状方向与就诊科室，仅供参考</text>
       </view>
     </view>
 
     <view class="disclaimer-bar">
-      <text class="disclaimer-text">免责声明：AI 回复仅供参考，不构成诊断、治疗或用药建议；如有不适请及时就医。</text>
+      <text class="disclaimer-text">免责声明：AI 回复仅供参考，不构成诊断、治疗或用药建议；如有不适请及时前往正规医疗机构就诊。</text>
     </view>
 
     <scroll-view
@@ -23,7 +23,7 @@
       <view class="chat-list">
         <view
           v-for="(msg, index) in messages"
-          :key="index"
+          :key="msg.key"
           class="message-row"
           :class="msg.type === 'user' ? 'row-user' : 'row-ai'"
           :id="`msg-${index}`"
@@ -36,17 +36,28 @@
           />
 
           <view class="bubble" :class="msg.type === 'user' ? 'bubble-user' : 'bubble-ai'">
-            <text v-if="msg.type === 'ai'" class="bubble-name">医疗助手</text>
-            <view class="bubble-content" :class="{ loading: msg.loading }">
+            <template v-if="msg.type === 'ai'">
+              <view class="bubble-head">
+                <text class="bubble-name">AI 导诊助手</text>
+                <view v-if="msg.processingPhase && msg.processingPhase !== 'completed'" class="phase-badge" :class="`phase-${msg.processingPhase}`">
+                  <text>{{ getPhaseLabel(msg.processingPhase) }}</text>
+                </view>
+              </view>
+              <view v-if="msg.processingPhase && msg.processingPhase !== 'completed'" class="phase-text">
+                <text>{{ msg.thinkingProcess || getPhaseLabel(msg.processingPhase) }}</text>
+              </view>
+            </template>
+
+            <view class="bubble-content" :class="{ loading: msg.type === 'ai' && msg.processingPhase && msg.processingPhase !== 'completed' }">
               <text>{{ msg.text }}</text>
             </view>
           </view>
 
           <image
-              v-if="msg.type === 'user'"
-              class="avatar"
-              :src="getUserAvatar()"
-              mode="aspectFill"
+            v-if="msg.type === 'user'"
+            class="avatar"
+            :src="getUserAvatar()"
+            mode="aspectFill"
           />
         </view>
       </view>
@@ -54,7 +65,7 @@
 
     <view class="composer" :style="{ paddingBottom: composerPaddingBottom + 'px' }">
       <view class="term-card">
-        <text class="term-title">医疗术语联想</text>
+        <text class="term-title">导诊快捷提问</text>
         <scroll-view class="term-chips" scroll-x :show-scrollbar="false" enable-flex>
           <view class="term-chip-list">
             <view
@@ -74,13 +85,13 @@
         <input
           v-model="userInput"
           class="input-box"
-          placeholder="请输入您的健康问题..."
+          placeholder="请输入症状、持续时间或就诊疑问..."
           confirm-type="send"
           @confirm="sendMessage"
           :disabled="sending"
         />
         <button class="send-btn" :disabled="sending || !userInput.trim()" @click="sendMessage">
-          {{ sending ? '发送中' : '发送' }}
+          {{ sending ? '处理中' : '发送' }}
         </button>
       </view>
     </view>
@@ -88,45 +99,47 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
-import { askMedicalQuestion } from './api.js'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
-
-const userStore = useUserStore()
-
-// 获取当前用户头像（优先使用 userStore，与 profile 页面保持一致）
-const getUserAvatar = () => {
-  const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
-  return resolveAvatarUrl(avatar, userPlaceholder)
-}
+import { getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
 
 const AIAvatar = brandAiAvatar
+const userStore = useUserStore()
+const STORAGE_KEY = 'ai_medical_current_conversation_id'
+const POLL_INTERVAL = 1500
 
 const messages = ref([
   {
+    key: 'welcome-ai',
     type: 'ai',
-    text: '您好，我是智能医疗助手。您可以描述症状或检查结果，我会提供科普参考信息，不能替代医生面诊。'
+    text: '您好，我是 AI 导诊助手。您可以描述当前症状、持续时间、年龄或担心的问题，我会帮您梳理可能的就诊科室与注意事项。',
+    processingPhase: 'completed',
+    thinkingProcess: ''
   }
 ])
-
 const userInput = ref('')
 const selectedTag = ref('')
 const sending = ref(false)
 const scrollIntoView = ref('')
 const composerPaddingBottom = ref(8)
+const currentConversationId = ref('')
+const pollTimers = new Map()
 
 const suggestions = [
-  '紧张性头痛',
-  '过敏性咳嗽',
-  '上呼吸道感染',
-  '支气管炎',
-  '胃炎',
-  '鼻炎',
-  '咽炎',
-  '结膜炎'
+  '反复胃痛挂什么科',
+  '孩子发烧三天怎么办',
+  '胸闷气短要不要急诊',
+  '头晕恶心应该看哪个科',
+  '老人腿脚无力怎么检查',
+  '咳嗽两周还没好怎么办'
 ]
+
+const getUserAvatar = () => {
+  const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
+  return resolveAvatarUrl(avatar, userPlaceholder)
+}
 
 const refreshSafeBottom = () => {
   try {
@@ -145,9 +158,139 @@ const scrollToBottom = () => {
   })
 }
 
+const getPhaseLabel = (phase = '') => {
+  if (phase === 'thinking') return '思考中'
+  if (phase === 'answering') return '回答中'
+  if (phase === 'failed') return '失败'
+  return '已完成'
+}
+
 const selectTag = (tag) => {
   selectedTag.value = tag
   userInput.value = tag
+}
+
+const upsertAiMessage = (record) => {
+  const key = `a-${record.recordId}`
+  const targetIndex = messages.value.findIndex((item) => item.key === key)
+  const nextMessage = {
+    key,
+    type: 'ai',
+    text: record.processingPhase === 'completed'
+      ? (record.answer || '暂无回答')
+      : (record.answer || ''),
+    processingPhase: record.processingPhase || 'thinking',
+    thinkingProcess: record.thinkingProcess || '',
+    recordId: record.recordId
+  }
+
+  if (targetIndex >= 0) {
+    messages.value.splice(targetIndex, 1, nextMessage)
+  } else {
+    messages.value.push(nextMessage)
+  }
+}
+
+const appendConversationMessages = (records = []) => {
+  const restored = [
+    {
+      key: 'welcome-ai',
+      type: 'ai',
+      text: '您好，我是 AI 导诊助手。您可以描述当前症状、持续时间、年龄或担心的问题，我会帮您梳理可能的就诊科室与注意事项。',
+      processingPhase: 'completed',
+      thinkingProcess: ''
+    }
+  ]
+
+  records.forEach((record) => {
+    restored.push({
+      key: `q-${record.recordId}`,
+      type: 'user',
+      text: record.question || ''
+    })
+    restored.push({
+      key: `a-${record.recordId}`,
+      type: 'ai',
+      text: record.processingPhase === 'completed'
+        ? (record.answer || '暂无回答')
+        : (record.answer || ''),
+      processingPhase: record.processingPhase || 'thinking',
+      thinkingProcess: record.thinkingProcess || '',
+      recordId: record.recordId
+    })
+  })
+
+  messages.value = restored
+}
+
+const stopPolling = (recordId) => {
+  const timer = pollTimers.get(recordId)
+  if (timer) {
+    clearTimeout(timer)
+    pollTimers.delete(recordId)
+  }
+}
+
+const pollRecord = async (recordId) => {
+  stopPolling(recordId)
+  try {
+    const record = await getMedicalQaRecord(recordId)
+    if (!record) {
+      throw new Error('问答记录不存在')
+    }
+
+    upsertAiMessage(record)
+    scrollToBottom()
+
+    if (record.processingPhase === 'completed' || record.processingPhase === 'failed') {
+      stopPolling(recordId)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      pollRecord(recordId)
+    }, POLL_INTERVAL)
+    pollTimers.set(recordId, timer)
+  } catch (error) {
+    console.error('轮询 AI 问答状态失败:', error)
+    upsertAiMessage({
+      recordId,
+      processingPhase: 'failed',
+      thinkingProcess: '服务暂不可用，请稍后重试',
+      answer: '抱歉，当前 AI 导诊服务暂不可用，请稍后重试。'
+    })
+    scrollToBottom()
+  }
+}
+
+const restoreConversation = async () => {
+  const savedConversationId = uni.getStorageSync(STORAGE_KEY) || ''
+  if (!savedConversationId) {
+    scrollToBottom()
+    return
+  }
+
+  currentConversationId.value = savedConversationId
+  try {
+    const records = await getMedicalConversation(savedConversationId)
+    if (!records.length) {
+      uni.removeStorageSync(STORAGE_KEY)
+      currentConversationId.value = ''
+      scrollToBottom()
+      return
+    }
+
+    appendConversationMessages(records)
+    records.forEach((record) => {
+      if (record.processingPhase === 'thinking' || record.processingPhase === 'answering') {
+        pollRecord(record.recordId)
+      }
+    })
+    scrollToBottom()
+  } catch (error) {
+    console.error('恢复 AI 会话失败:', error)
+    scrollToBottom()
+  }
 }
 
 const sendMessage = async () => {
@@ -155,30 +298,52 @@ const sendMessage = async () => {
   if (!question || sending.value) return
 
   sending.value = true
-  messages.value.push({ type: 'user', text: question })
+  selectedTag.value = ''
+
+  messages.value.push({
+    key: `q-temp-${Date.now()}`,
+    type: 'user',
+    text: question
+  })
   userInput.value = ''
   scrollToBottom()
 
-  const loadingIndex = messages.value.length
-  messages.value.push({ type: 'ai', text: '正在分析您的问题，请稍候...', loading: true })
-  scrollToBottom()
-
   try {
-    const result = await askMedicalQuestion(question)
-    const answer = result?.answer || '抱歉，当前无法回答您的问题，请稍后重试。'
-    messages.value.splice(loadingIndex, 1, { type: 'ai', text: answer })
+    const record = await submitMedicalQuestion(question, currentConversationId.value)
+    if (!record?.recordId) {
+      throw new Error('提交 AI 导诊问题失败')
+    }
+
+    currentConversationId.value = record.conversationId || currentConversationId.value
+    if (currentConversationId.value) {
+      uni.setStorageSync(STORAGE_KEY, currentConversationId.value)
+    }
+
+    upsertAiMessage(record)
+    scrollToBottom()
+    pollRecord(record.recordId)
   } catch (error) {
-    console.error('AI 回答失败:', error)
-    messages.value.splice(loadingIndex, 1, { type: 'ai', text: '抱歉，当前无法回答您的问题，请稍后重试。' })
+    console.error('AI 导诊请求失败:', error)
+    messages.value.push({
+      key: `a-fail-${Date.now()}`,
+      type: 'ai',
+      text: '抱歉，当前 AI 导诊服务暂不可用，请稍后重试。',
+      processingPhase: 'failed',
+      thinkingProcess: '服务暂不可用，请稍后重试'
+    })
+    scrollToBottom()
   } finally {
     sending.value = false
-    scrollToBottom()
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   refreshSafeBottom()
-  scrollToBottom()
+  await restoreConversation()
+})
+
+onUnmounted(() => {
+  Array.from(pollTimers.keys()).forEach((recordId) => stopPolling(recordId))
 })
 </script>
 
@@ -204,7 +369,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  background: linear-gradient(135deg, #007AFF, #2563EB);
+  background: linear-gradient(135deg, #007aff, #2563eb);
   box-shadow: 0 12rpx 28rpx rgba(79, 149, 240, 0.28);
 }
 
@@ -308,14 +473,51 @@ onMounted(() => {
 }
 
 .bubble-user {
-  background: linear-gradient(135deg, #007AFF, #2563EB);
+  background: linear-gradient(135deg, #007aff, #2563eb);
   color: #fff;
+}
+
+.bubble-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 8rpx;
 }
 
 .bubble-name {
   font-size: 22rpx;
   color: #6a778b;
-  margin-bottom: 6rpx;
+}
+
+.phase-badge {
+  min-height: 38rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phase-thinking {
+  background: #e9f2ff;
+  color: #2563eb;
+}
+
+.phase-answering {
+  background: #eef8ea;
+  color: #2f8f47;
+}
+
+.phase-failed {
+  background: #fff0f0;
+  color: #d14343;
+}
+
+.phase-text {
+  margin-bottom: 8rpx;
+  font-size: 22rpx;
+  color: #6a778b;
 }
 
 .bubble-content.loading {
@@ -368,7 +570,7 @@ onMounted(() => {
   border-radius: 999rpx;
   border: 1rpx solid #b8d2ff;
   background: #fff;
-  color: #2563EB;
+  color: #2563eb;
   font-size: 24rpx;
   display: flex;
   align-items: center;
@@ -386,8 +588,8 @@ onMounted(() => {
 }
 
 .term-chip.selected {
-  background: #007AFF;
-  border-color: #007AFF;
+  background: #007aff;
+  border-color: #007aff;
   color: #fff;
 }
 
@@ -418,7 +620,7 @@ onMounted(() => {
   font-size: 28rpx;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #007AFF, #2563EB);
+  background: linear-gradient(135deg, #007aff, #2563eb);
   border: none;
   padding: 0 22rpx;
   box-shadow: 0 8rpx 18rpx rgba(79, 149, 240, 0.28);

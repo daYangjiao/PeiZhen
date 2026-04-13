@@ -1,9 +1,14 @@
 package org.example.service;
 
-import org.example.model.AiMedicalQa;
 import org.example.model.MedicalQaRequest;
+import org.example.model.MedicalQaResponse;
+
+import java.util.List;
 
 public interface AiMedicalService {
-    // 只保留这一个方法
-    AiMedicalQa getMedicalAnswer(MedicalQaRequest request);
+    MedicalQaResponse submitQuestion(MedicalQaRequest request);
+
+    MedicalQaResponse getRecord(Long recordId);
+
+    List<MedicalQaResponse> getConversation(String conversationId);
 }
