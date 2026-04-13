@@ -48,7 +48,7 @@
 				</view>
 				<view class="time-picker" @click="showEndTimePicker">
 					<text class="time-label">结束时间</text>
-					<text class="time-value" v-if="endTime">{{ formatSelectedEndTimeDisplay() }}</text>
+					<text :class="['time-value', { 'time-value-compact': isNextDaySelectedEndTime() }]" v-if="endTime">{{ formatSelectedEndTimeDisplay() }}</text>
 					<text class="time-placeholder" v-else>请选择</text>
 					<text class="time-arrow">▼</text>
 				</view>
@@ -825,8 +825,15 @@ const formatSelectedEndTimeDisplay = () => {
 		return endTime.value
 	}
 	return parseTimeToMinutes(endTime.value) < parseTimeToMinutes(startTime.value)
-		? `次日 ${endTime.value}`
+		? `次日${endTime.value}`
 		: endTime.value
+}
+
+const isNextDaySelectedEndTime = () => {
+	if (!startTime.value || !endTime.value) return false
+	const durationMinutes = calculateSlotDurationMinutes(startTime.value, endTime.value)
+	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) return false
+	return parseTimeToMinutes(endTime.value) < parseTimeToMinutes(startTime.value)
 }
 
 const toggleTimeGroup = (groupKey) => {
@@ -1486,40 +1493,43 @@ onMounted(async () => {
 	flex: 1;
 	background-color: #f8f9fa;
 	border-radius: 15rpx;
-	padding: 30rpx 20rpx;
+	padding: 26rpx 16rpx;
 	display: flex;
 	align-items: center;
-	gap: 16rpx;
+	gap: 10rpx;
 	border: 2rpx solid #e9ecef;
 }
 
 .time-label {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #666;
 	flex-shrink: 0;
 }
 
 .time-value {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #333;
 	font-weight: 600;
 	flex: 1;
 	min-width: 0;
 	text-align: right;
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	line-height: 1.2;
+}
+
+.time-value-compact {
+	font-size: 22rpx;
+	letter-spacing: -0.5rpx;
 }
 
 .time-placeholder {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #999;
 	flex: 1;
 	min-width: 0;
 	text-align: right;
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	line-height: 1.2;
 }
 
 .time-arrow {
