@@ -35,16 +35,19 @@ public class AiMedicalServiceImpl implements AiMedicalService {
 
     private static final String THINKING_MESSAGE = "正在分析症状与就诊方向...";
     private static final String ANSWERING_MESSAGE = "正在生成导诊建议...";
+    private static final int MAX_HISTORY_ROUNDS = 2;
 
     private static final String SYSTEM_PROMPT = """
             你现在是愈安伴平台的 AI 导诊助手。
-            你的职责是根据用户描述的症状，提供就诊方向参考。
+            你的职责是根据用户描述的症状，帮用户梳理症状方向和可能的就诊科室，仅供参考。
             回答要求：
-            1. 语气温和、清晰、专业，不要使用 Markdown 标题和代码块。
-            2. 优先给出可能的就诊科室；若症状存在急性风险，要明确提示及时线下就医或急诊。
-            3. 给出基础注意事项，但不要给出具体处方或替代医生面诊的结论。
-            4. 回答必须包含明确免责声明：仅供参考，不能替代专业医生面诊。
-            5. 尽量按短段落输出，适合手机端阅读。
+            1. 用简短自然语言回答，适合手机端阅读，不要使用 Markdown 标题、编号或代码块。
+            2. 优先包含三类信息：症状方向判断、建议就诊科室、是否需要尽快线下就医或急诊。
+            3. 可补充 1 到 2 条基础注意事项，但不要展开长篇病因分析，不要重复用户原话。
+            4. 若出现胸痛、呼吸困难、持续高热、意识异常、明显出血等风险信号，要直接建议尽快急诊。
+            5. 不要给出处方、药量、检查结果结论，不能替代医生面诊。
+            6. 总长度尽量控制在 2 到 3 小段，保持简洁。
+            7. 结尾必须保留一句简短免责声明：仅供参考，不能替代医生面诊。
             """;
 
     private final AiMedicalQaMapper aiMedicalQaMapper;
@@ -129,7 +132,15 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", SYSTEM_PROMPT));
 
-        for (AiMedicalQa item : conversationRecords) {
+        List<AiMedicalQa> recentHistory = conversationRecords.stream()
+                .filter(item -> item != null && item.getId() != null && !item.getId().equals(currentRecord.getId()))
+                .filter(item -> StringUtils.hasText(item.getQuestion()))
+                .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        int historyStart = Math.max(0, recentHistory.size() - MAX_HISTORY_ROUNDS);
+        for (AiMedicalQa item : recentHistory.subList(historyStart, recentHistory.size())) {
             if (item == null || item.getId() == null || item.getId().equals(currentRecord.getId())) {
                 continue;
             }
@@ -208,11 +219,22 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         answer = answer
                 .replaceAll("\\*{1,2}", "")
                 .replaceAll("#{1,6}", "")
+                .replaceAll("`{1,3}", "")
                 .replaceAll("\\n{3,}", "\n\n")
                 .trim();
 
-        if (!answer.contains("仅供参考") && !answer.contains("不能替代专业医生面诊")) {
-            answer = answer + "\n\n温馨提示：以上建议仅供参考，不能替代专业医生面诊。";
+        answer = answer
+                .replace("不能替代专业医生面诊", "不能替代医生面诊")
+                .replace("不能替代专业医生的面诊", "不能替代医生面诊")
+                .replace("不能替代专业医师面诊", "不能替代医生面诊");
+
+        String[] paragraphs = answer.split("\\n\\n+");
+        if (paragraphs.length > 3) {
+            answer = String.join("\n\n", List.of(paragraphs).subList(0, 3)).trim();
+        }
+
+        if (!answer.contains("仅供参考") && !answer.contains("不能替代医生面诊")) {
+            answer = answer + "\n\n仅供参考，不能替代医生面诊。";
         }
         return answer;
     }

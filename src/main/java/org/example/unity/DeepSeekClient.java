@@ -32,6 +32,9 @@ public class DeepSeekClient {
     @Value("${deepseek.model:deepseek-reasoner}")
     private String model;
 
+    @Value("${deepseek.max-tokens:1200}")
+    private Integer maxTokens;
+
     public DeepSeekClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
@@ -57,7 +60,7 @@ public class DeepSeekClient {
             payload.put("model", model);
             payload.put("messages", messages);
             payload.put("temperature", 0.2);
-            payload.put("max_tokens", 1200);
+            payload.put("max_tokens", maxTokens == null || maxTokens <= 0 ? 1200 : maxTokens);
 
             httpPost.setEntity(new StringEntity(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8));
 
