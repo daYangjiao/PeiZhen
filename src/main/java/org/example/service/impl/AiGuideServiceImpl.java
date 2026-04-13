@@ -242,10 +242,19 @@ public class AiGuideServiceImpl implements AiGuideService {
             // 回传陪诊师ID，便于用户端跳转在线聊天
             response.setAttendantId(String.valueOf(order.getAttendantId()));
             User attendantUser = userMapper.findById(order.getAttendantId());
+            Attendant attendant = attendantService.findByUserId(order.getAttendantId());
             if (attendantUser != null) {
                 response.setAttendantName(attendantUser.getName());
                 response.setAttendantPhone(attendantUser.getPhone());
                 response.setAttendantAvatar(attendantUser.getAvatar());
+            }
+            if (attendant != null) {
+                response.setAttendantIntroduction(attendant.getIntroduction());
+                if (attendant.getScore() != null) {
+                    response.setAttendantScore(BigDecimal.valueOf(attendant.getScore()));
+                }
+                response.setProfessionalField(attendant.getProfessionalField());
+                response.setExperienceYears(attendant.getExperienceYears());
             }
         }
 

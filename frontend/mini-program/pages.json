@@ -119,7 +119,8 @@
         {
           "path": "order/submit-time-fee",
           "style": {
-            "navigationBarTitleText": "提交时长与费用"
+            "navigationBarTitleText": "提交时长与费用",
+            "navigationStyle": "custom"
           }
         },
         {
