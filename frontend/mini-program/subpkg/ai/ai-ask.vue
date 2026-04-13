@@ -1,5 +1,13 @@
 <template>
   <view class="ai-page">
+    <view class="topbar">
+      <view class="topbar-left" @click="goBack">
+        <text class="topbar-back">‹</text>
+      </view>
+      <text class="topbar-title">AI 导诊助手</text>
+      <view class="topbar-right"></view>
+    </view>
+
     <view class="hero-card">
       <view class="hero-icon-wrap">
         <image class="hero-icon" :src="AIAvatar" mode="aspectFill" />
@@ -168,6 +176,17 @@ const getPhaseLabel = (phase = '') => {
 const selectTag = (tag) => {
   selectedTag.value = tag
   userInput.value = tag
+}
+
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (Array.isArray(pages) && pages.length > 1) {
+    uni.navigateBack()
+    return
+  }
+  uni.switchTab({
+    url: '/pages/role-user/home'
+  })
 }
 
 const upsertAiMessage = (record) => {
@@ -352,14 +371,51 @@ onUnmounted(() => {
 
 .ai-page {
   min-height: 100vh;
-  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
-  height: calc(100dvh - var(--window-top, 0px) - var(--window-bottom, 0px));
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
   background: linear-gradient(180deg, #edf4ff 0%, #f4f7fb 180rpx, #f5f7fa 100%);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+.topbar {
+  min-height: 88rpx;
+  padding: env(safe-area-inset-top) 24rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.topbar-left,
+.topbar-right {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topbar-back {
+  font-size: 48rpx;
+  line-height: 1;
+  color: #1f2937;
+  transform: translateY(-2rpx);
+}
+
+.topbar-title {
+  flex: 1;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 .hero-card {
@@ -641,7 +697,7 @@ onUnmounted(() => {
 
 /* #ifdef H5 */
 .ai-page {
-  max-height: calc(100dvh - var(--window-top, 0px) - var(--window-bottom, 0px));
+  max-height: 100dvh;
 }
 
 .composer {

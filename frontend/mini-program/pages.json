@@ -179,7 +179,10 @@
         {
           "path": "ai/ai-ask",
           "style": {
+            "navigationStyle": "custom",
             "navigationBarTitleText": "AI助手",
+            "navigationBarBackgroundColor": "#edf4ff",
+            "backgroundColor": "#edf4ff",
             "disableScroll": true
           }
         },
