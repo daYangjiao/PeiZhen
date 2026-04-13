@@ -1489,29 +1489,43 @@ onMounted(async () => {
 	padding: 30rpx 20rpx;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	gap: 16rpx;
 	border: 2rpx solid #e9ecef;
 }
 
 .time-label {
 	font-size: 28rpx;
 	color: #666;
+	flex-shrink: 0;
 }
 
 .time-value {
 	font-size: 28rpx;
 	color: #333;
 	font-weight: 600;
+	flex: 1;
+	min-width: 0;
+	text-align: right;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .time-placeholder {
 	font-size: 28rpx;
 	color: #999;
+	flex: 1;
+	min-width: 0;
+	text-align: right;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .time-arrow {
 	font-size: 24rpx;
 	color: #999;
+	flex-shrink: 0;
 }
 
 /* 地址输入区域 */
