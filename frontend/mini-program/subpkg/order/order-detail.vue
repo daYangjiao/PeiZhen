@@ -102,7 +102,7 @@
     </view>
 
     <!-- 陪诊师信息 -->
-    <view class="companion-info" v-if="order.attendantName && order.attendantName !== '待分配陪诊师'">
+    <view class="companion-info companion-info-clickable" v-if="order.attendantName && order.attendantName !== '待分配陪诊师'" @click="openAttendantDetail">
       <image
         :src="orderAttendantAvatar"
         class="avatar"
@@ -120,6 +120,7 @@
           <text class="score">{{ order.attendantScore || 5 }}</text>
         </view>
       </view>
+      <text class="companion-entry-arrow">›</text>
     </view>
     <view class="companion-info" v-else-if="(order.orderStatus === 0 || order.orderStatus === 1) && order.paymentStatus === 1">
       <view class="companion-details">
@@ -492,6 +493,7 @@ import { get, post, put, config } from '@/utils/api.js';
 import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js';
 import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
+import { navigateToAttendantDetail } from '@/utils/attendant-detail.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
@@ -984,6 +986,10 @@ const callCompanion = () => {
   }
 
   showContactModal.value = true;
+};
+
+const openAttendantDetail = () => {
+  navigateToAttendantDetail(order.value);
 };
 
 // 处理联系陪诊师方式选择
@@ -2156,6 +2162,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 20rpx;
 }
+.companion-info-clickable {
+  cursor: pointer;
+}
 
 .avatar {
   width: 80rpx;
@@ -2180,6 +2189,12 @@ onUnmounted(() => {
 
 .companion-details {
   flex: 1;
+}
+
+.companion-entry-arrow {
+  font-size: 38rpx;
+  color: #b8c4d3;
+  line-height: 1;
 }
 
 .name {

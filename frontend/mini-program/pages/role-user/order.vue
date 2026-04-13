@@ -67,9 +67,10 @@
               <view class="divider"></view>
 
               <view class="doctor-info">
-                <view class="attendant-wrapper" v-if="order.attendantName">
+                <view class="attendant-wrapper clickable" v-if="order.attendantName" @click.stop="openAttendantDetail(order)">
                   <image class="doctor-avatar" :src="order.displayAttendantAvatar" mode="aspectFill"></image>
                   <text class="doctor-name">{{ order.attendantName }}</text>
+                  <text class="attendant-arrow">›</text>
                 </view>
                 <view class="attendant-wrapper" v-else>
                   <image class="doctor-avatar" src="/static/default-avatar.jpg" mode="aspectFill"></image>
@@ -109,6 +110,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js'
 import { defaultAvatar } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
@@ -302,6 +304,10 @@ const handleOrderClick = (order) => {
 
 const handleDetailClick = (order) => {
   handleOrderClick(order)
+}
+
+const openAttendantDetail = (order) => {
+  navigateToAttendantDetail(order)
 }
 
 const handlePay = (order) => {
@@ -567,6 +573,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 16rpx;
 }
+.attendant-wrapper.clickable {
+  cursor: pointer;
+}
 .doctor-avatar {
   width: 64rpx;
   height: 64rpx;
@@ -577,6 +586,11 @@ onUnmounted(() => {
   font-size: 28rpx;
   color: #333;
   font-weight: 500;
+}
+.attendant-arrow {
+  font-size: 34rpx;
+  color: #b8c4d3;
+  line-height: 1;
 }
 .text-gray {
   color: #999;

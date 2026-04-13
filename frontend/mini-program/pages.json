@@ -184,6 +184,14 @@
           }
         },
         {
+          "path": "profile/attendant-detail",
+          "style": {
+            "navigationBarTitleText": "陪诊师主页",
+            "navigationBarBackgroundColor": "#f6f9ff",
+            "backgroundColor": "#f6f9ff"
+          }
+        },
+        {
           "path": "profile/edit-profile",
           "style": {
             "navigationBarTitleText": "编辑个人资料",

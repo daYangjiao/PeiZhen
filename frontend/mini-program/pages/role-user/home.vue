@@ -133,6 +133,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
+import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
@@ -305,12 +306,12 @@ const navigateToCategory = (item) => {
   })
 }
 
-const navigateToCompanion = () => {
+const navigateToCompanion = (companion) => {
   if (publicSafeMode) {
     showPublicSafeNotice('当前页面展示陪诊经验人物信息')
     return
   }
-  uni.showToast({ title: '陪诊师详情功能暂未开放', icon: 'none' })
+  navigateToAttendantDetail(companion)
 }
 
 const toggleAvatarDiagnostics = () => {

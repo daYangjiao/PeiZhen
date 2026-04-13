@@ -18,6 +18,7 @@ import org.example.model.request.AttendantProfileUpdateRequest;
 import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.AttendantAvatarUploadResponse;
 import org.example.model.response.AttendantProfileResponse;
+import org.example.model.response.AttendantPublicReviewResponse;
 import org.example.model.response.OrderAcceptResponse;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
@@ -35,9 +36,12 @@ import springfox.documentation.annotations.ApiIgnore;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -79,6 +83,37 @@ public class AttendantController {
         } catch (Exception e) {
             log.error("获取陪诊师资料失败", e);
             return ResponseResult.error("获取资料失败");
+        }
+    }
+
+    @GetMapping("/profile/{userId}/reviews")
+    @ApiOperation(value = "获取陪诊师公开评价摘要", notes = "用户端详情页读取指定陪诊师最近的公开评价摘要，仅返回脱敏后的昵称与评价内容。")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "查询成功"),
+            @ApiResponse(code = 500, message = "获取评价摘要失败")
+    })
+    public ResponseResult<List<AttendantPublicReviewResponse>> getPublicReviews(
+            @ApiParam(value = "陪诊师用户ID", required = true, example = "21")
+            @PathVariable Integer userId,
+            @ApiParam(value = "返回条数上限", example = "6")
+            @RequestParam(defaultValue = "6") Integer limit) {
+        try {
+            int safeLimit = Math.max(1, Math.min(limit == null ? 6 : limit, 12));
+            List<AttendantPublicReviewResponse> reviews = orderService.findAllOrders().stream()
+                    .filter(order -> order.getAttendantId() != null && order.getAttendantId().equals(userId))
+                    .filter(order -> Integer.valueOf(6).equals(order.getOrderStatus()))
+                    .map(this::buildPublicReviewResponse)
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(
+                            AttendantPublicReviewResponse::getCreateTime,
+                            Comparator.nullsLast(Date::compareTo)
+                    ).reversed())
+                    .limit(safeLimit)
+                    .collect(Collectors.toList());
+            return ResponseResult.success(reviews);
+        } catch (Exception e) {
+            log.error("获取陪诊师公开评价摘要失败，userId={}", userId, e);
+            return ResponseResult.error("获取评价摘要失败");
         }
     }
 
@@ -731,5 +766,42 @@ public class AttendantController {
             log.error("获取推荐陪诊师失败", e);
             return ResponseResult.error("获取推荐失败");
         }
+    }
+
+    private AttendantPublicReviewResponse buildPublicReviewResponse(Order order) {
+        if (order == null || order.getOrderId() == null) {
+            return null;
+        }
+        OrderEvaluation evaluation = evaluationService.getByOrderId(order.getOrderId());
+        if (evaluation == null) {
+            return null;
+        }
+
+        AttendantPublicReviewResponse response = new AttendantPublicReviewResponse();
+        response.setOrderId(order.getOrderId());
+        response.setOrderNo(order.getOrderNo());
+        response.setRating(evaluation.getRating());
+        response.setContent(evaluation.getContent());
+        response.setTags(evaluation.getTags());
+        response.setAttendantReply(evaluation.getAttendantReply());
+        response.setCreateTime(evaluation.getCreateTime());
+        response.setServiceDate(order.getServiceDate());
+        response.setServiceTypeName(order.getServiceContent());
+
+        User reviewer = evaluation.getUserId() == null ? null : userService.findById(evaluation.getUserId());
+        String displayName = reviewer != null ? reviewer.getName() : order.getPatientName();
+        response.setReviewerName(maskDisplayName(displayName));
+        return response;
+    }
+
+    private String maskDisplayName(String rawName) {
+        if (rawName == null || rawName.trim().isEmpty()) {
+            return "用户**";
+        }
+        String name = rawName.trim();
+        if (name.length() == 1) {
+            return name + "*";
+        }
+        return name.substring(0, 1) + "**";
     }
 }

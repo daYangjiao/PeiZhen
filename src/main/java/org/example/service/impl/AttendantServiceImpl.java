@@ -179,6 +179,7 @@ public class AttendantServiceImpl implements AttendantService {
         response.setMonthService(monthService == null ? 0 : monthService);
         response.setTotalIncome(normalizedIncome);
         response.setPraiseRate(praiseRate);
+        response.setEvaluationCount(totalEvalCount == null ? 0 : totalEvalCount);
 
         // 当前无提现流水表，余额按“已完成订单收入（含差价结算）”口径返回。
         response.setBalance(normalizedIncome);
