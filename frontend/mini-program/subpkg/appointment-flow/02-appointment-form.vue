@@ -158,7 +158,7 @@
 					v-model="otherRequirements" 
 					placeholder="如：希望陪诊师有经验、会英语等" 
 					class="requirements-textarea"
-					:autosize="{ minHeight: 100 }" 
+					auto-height
 				/>
 			</view>
 		</view>
@@ -1633,10 +1633,17 @@ onMounted(async () => {
 	border-radius: 15rpx;
 	padding: 5rpx 20rpx;
 	border: 2rpx solid #e9ecef;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 .requirements-textarea {
+	display: block;
 	width: 100%;
+	max-width: 100%;
+	min-width: 0;
 	min-height: 100rpx; /* 设置最小高度 */
 	padding: 25rpx 0;
 	font-size: 28rpx;
@@ -1644,6 +1651,10 @@ onMounted(async () => {
 	background: transparent;
 	border: none;
 	outline: none;
+	box-sizing: border-box;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	word-break: break-all;
 	resize: vertical; /* 允许垂直调整大小 */
 }
 
