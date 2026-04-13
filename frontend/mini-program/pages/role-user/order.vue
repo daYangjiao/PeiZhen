@@ -306,8 +306,24 @@ const handleDetailClick = (order) => {
   handleOrderClick(order)
 }
 
-const openAttendantDetail = (order) => {
-  navigateToAttendantDetail(order)
+const openAttendantDetail = async (order) => {
+  if (navigateToAttendantDetail(order)) return
+
+  if (!order?.orderNo) {
+    uni.showToast({ title: '陪诊师资料暂不可用', icon: 'none' })
+    return
+  }
+
+  try {
+    const response = await get(`/api/orders/${order.orderNo}`)
+    const detail = response?.code === 200 ? response.data : null
+    if (!navigateToAttendantDetail(detail || {})) {
+      uni.showToast({ title: '陪诊师资料暂不可用', icon: 'none' })
+    }
+  } catch (error) {
+    console.error('获取陪诊师详情入口失败:', error)
+    uni.showToast({ title: '陪诊师资料暂不可用', icon: 'none' })
+  }
 }
 
 const handlePay = (order) => {
