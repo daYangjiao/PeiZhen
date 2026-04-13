@@ -90,7 +90,6 @@ import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import {
   escortRules,
   escortServiceCenter,
-  escortStats,
   escortWallet,
   help,
   order,
@@ -161,12 +160,6 @@ const menuGroups = computed(() => [
       route: '/pages/role-escort/order',
       mode: 'relaunch'
     },
-    {
-      key: 'serviceStats',
-      title: '服务统计',
-      icon: escortStats,
-      route: '/subpkg/profile/service-stats'
-    }
   ],
   [
     {
@@ -244,7 +237,13 @@ const tapCard = (card) => {
     onMenuTap({ title: '我的评价', route: '/subpkg/profile/reviews' })
     return
   }
-  onMenuTap({ title: '服务统计', route: '/subpkg/profile/service-stats' })
+  if (card.key === 'todayService') {
+    onMenuTap({ title: '今日服务', route: '/subpkg/profile/service-stats?range=today' })
+    return
+  }
+  if (card.key === 'monthService') {
+    onMenuTap({ title: '本月服务', route: '/subpkg/profile/service-stats?range=month' })
+  }
 }
 
 const onMenuTap = (item) => {

@@ -84,13 +84,13 @@
 			</view>
 			
 			<view class="menu-group">
-				<text class="group-title">设置</text>
+				<text class="group-title">更多功能</text>
 				<view class="menu-list">
 					<view class="menu-item" @click="goToSettings">
 						<view class="item-icon">
 							<image src="/static/settings.png" mode="aspectFit"></image>
 						</view>
-						<text class="item-title">设置</text>
+						<text class="item-title">更多功能</text>
 						<text class="item-arrow">〉</text>
 					</view>
 					<view class="menu-item" @click="goToHelp">

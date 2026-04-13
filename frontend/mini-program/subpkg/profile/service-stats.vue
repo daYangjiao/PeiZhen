@@ -5,32 +5,47 @@
         <image class="hero-icon" src="/static/escort-stats.svg" mode="aspectFit"></image>
         <view>
           <text class="hero-title">服务统计</text>
-          <text class="hero-desc">数据看板帮助你快速了解服务表现</text>
+          <text class="hero-desc">按今日、本月或全部日期查看服务完成情况</text>
         </view>
+      </view>
+    </view>
+
+    <view class="filter-bar slide-up delay-1">
+      <view
+        v-for="item in rangeOptions"
+        :key="item.value"
+        class="filter-chip"
+        :class="{ active: activeRange === item.value }"
+        @click="changeRange(item.value)"
+      >
+        <text>{{ item.label }}</text>
       </view>
     </view>
 
     <view class="grid slide-up delay-1">
       <view class="card"><text class="k">今日服务</text><text class="v">{{ todayService }}</text></view>
       <view class="card"><text class="k">本月服务</text><text class="v">{{ monthService }}</text></view>
-      <view class="card"><text class="k">累计收入</text><text class="v">¥{{ formatMoney(totalIncome) }}</text></view>
+      <view class="card"><text class="k">累计收入</text><text class="v">{{ formatMoney(totalIncome) }}</text></view>
       <view class="card"><text class="k">好评率</text><text class="v">{{ praiseRate }}%</text></view>
     </view>
 
     <view class="panel slide-up delay-2">
       <view class="panel-head">
-        <text class="title">近7日服务趋势</text>
+        <text class="title">{{ selectedRangeLabel }}趋势</text>
         <text class="refresh" @click="loadStats">刷新</text>
       </view>
-      <view class="trend-wrap" v-if="trend.length">
-        <view class="bar-col" v-for="item in trend" :key="item.date">
-          <view class="bar-bg">
-            <view class="bar" :style="{ height: item.height + '%' }"></view>
+      <text class="panel-meta">共 {{ filteredRows.length }} 单服务记录</text>
+      <scroll-view class="trend-scroll" scroll-x :show-scrollbar="false" v-if="trend.length">
+        <view class="trend-wrap" :style="trendWrapStyle">
+          <view class="bar-col" v-for="item in trend" :key="item.date">
+            <view class="bar-bg">
+              <view class="bar" :style="{ height: item.height + '%' }"></view>
+            </view>
+            <text class="count">{{ item.count }}</text>
+            <text class="date">{{ formatDateShort(item.date) }}</text>
           </view>
-          <text class="count">{{ item.count }}</text>
-          <text class="date">{{ item.date.slice(5) }}</text>
         </view>
-      </view>
+      </scroll-view>
       <view class="empty" v-else><text>暂无服务数据</text></view>
     </view>
 
@@ -47,11 +62,26 @@
         </view>
       </view>
     </view>
+
+    <view class="panel slide-up delay-3">
+      <view class="panel-head">
+        <text class="title">按日期查看</text>
+        <text class="panel-meta">{{ selectedRangeLabel }}</text>
+      </view>
+      <view v-if="dateStats.length === 0" class="empty"><text>暂无数据</text></view>
+      <view v-else class="date-list">
+        <view class="date-row" v-for="item in dateStats" :key="item.date">
+          <text class="date-label">{{ formatDateLabel(item.date) }}</text>
+          <text class="date-num">{{ item.count }} 单</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { get } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
@@ -59,12 +89,143 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const { todayService, monthService, totalIncome, praiseRate } = storeToRefs(userStore)
 
-const trend = ref([])
-const typeStats = ref([])
+const rawRows = ref([])
+const activeRange = ref('all')
+const rangeOptions = [
+  { label: '今日服务', value: 'today' },
+  { label: '本月服务', value: 'month' },
+  { label: '全部日期', value: 'all' }
+]
 
 const formatMoney = (value) => {
   const num = Number(value || 0)
   return Number.isFinite(num) ? num.toFixed(2) : '0.00'
+}
+
+const pad = (value) => String(value).padStart(2, '0')
+
+const normalizeDate = (value) => {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const parsed = new Date(typeof value === 'string' ? value.replace(/-/g, '/') : value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`
+}
+
+const getCurrentMonthKey = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`
+}
+
+const filteredRows = computed(() => {
+  if (activeRange.value === 'today') {
+    const today = normalizeDate(new Date())
+    return rawRows.value.filter((row) => normalizeDate(row.serviceDate) === today)
+  }
+
+  if (activeRange.value === 'month') {
+    const currentMonthKey = getCurrentMonthKey()
+    return rawRows.value.filter((row) => normalizeDate(row.serviceDate).startsWith(currentMonthKey))
+  }
+
+  return rawRows.value
+})
+
+const selectedRangeLabel = computed(() => {
+  const current = rangeOptions.find((item) => item.value === activeRange.value)
+  return current?.label || '全部日期'
+})
+
+const buildTrend = (rows) => {
+  const map = {}
+
+  rows.forEach((row) => {
+    const serviceDate = normalizeDate(row.serviceDate)
+    if (serviceDate) {
+      map[serviceDate] = (map[serviceDate] || 0) + 1
+    }
+  })
+
+  if (activeRange.value === 'today') {
+    const today = normalizeDate(new Date())
+    if (!(today in map)) {
+      map[today] = 0
+    }
+  }
+
+  if (activeRange.value === 'month') {
+    const now = new Date()
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    for (let day = 1; day <= lastDay; day += 1) {
+      const key = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(day)}`
+      if (!(key in map)) {
+        map[key] = 0
+      }
+    }
+  }
+
+  const dates = Object.keys(map).sort((a, b) => a.localeCompare(b))
+  if (dates.length === 0) return []
+
+  const max = Math.max(...dates.map((date) => map[date]), 1)
+  return dates.map((date) => ({
+    date,
+    count: map[date],
+    height: Math.max(map[date] > 0 ? Math.round((map[date] / max) * 100) : 6, 6)
+  }))
+}
+
+const buildTypeStats = (rows) => {
+  const map = {}
+
+  rows.forEach((row) => {
+    const key = row.serviceTypeName || row.serviceContent || '其他服务'
+    map[key] = (map[key] || 0) + 1
+  })
+
+  const list = Object.keys(map)
+    .map((name) => ({ name, count: map[name] }))
+    .sort((a, b) => b.count - a.count)
+
+  const max = list.length ? list[0].count : 1
+  return list.map((item) => ({
+    name: item.name,
+    count: item.count,
+    percent: Math.max(8, Math.round((item.count / max) * 100))
+  }))
+}
+
+const buildDateStats = (rows) => {
+  const map = {}
+
+  rows.forEach((row) => {
+    const serviceDate = normalizeDate(row.serviceDate)
+    if (serviceDate) {
+      map[serviceDate] = (map[serviceDate] || 0) + 1
+    }
+  })
+
+  return Object.keys(map)
+    .sort((a, b) => b.localeCompare(a))
+    .map((date) => ({ date, count: map[date] }))
+}
+
+const trend = computed(() => buildTrend(filteredRows.value))
+const typeStats = computed(() => buildTypeStats(filteredRows.value))
+const dateStats = computed(() => buildDateStats(filteredRows.value))
+const trendWrapStyle = computed(() => ({
+  minWidth: `${Math.max(trend.value.length, 1) * 110}rpx`
+}))
+
+const formatDateShort = (value) => value.slice(5)
+
+const formatDateLabel = (value) => {
+  const [year = '', month = '', day = ''] = String(value).split('-')
+  return `${year}-${month}-${day}`
+}
+
+const changeRange = (range) => {
+  activeRange.value = range
 }
 
 const loadStats = async () => {
@@ -81,64 +242,20 @@ const loadStats = async () => {
       size: 300
     })
 
-    const rows = res.code === 200 && res.data && Array.isArray(res.data.content)
+    rawRows.value = res.code === 200 && res.data && Array.isArray(res.data.content)
       ? res.data.content
       : []
-
-    buildTrend(rows)
-    buildTypeStats(rows)
   } catch (error) {
     console.error('加载服务统计失败:', error)
-    trend.value = []
-    typeStats.value = []
+    rawRows.value = []
   }
 }
 
-const buildTrend = (rows) => {
-  const days = []
-  const map = {}
-  const now = new Date()
-
-  for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date(now)
-    d.setDate(now.getDate() - i)
-    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
-    days.push(key)
-    map[key] = 0
+onLoad((options) => {
+  if (['today', 'month', 'all'].includes(options?.range)) {
+    activeRange.value = options.range
   }
-
-  rows.forEach((row) => {
-    const serviceDate = row.serviceDate
-    if (serviceDate && map[serviceDate] !== undefined) {
-      map[serviceDate] += 1
-    }
-  })
-
-  const max = Math.max(...days.map((d) => map[d]), 1)
-  trend.value = days.map((d) => ({
-    date: d,
-    count: map[d],
-    height: Math.round((map[d] / max) * 100)
-  }))
-}
-
-const buildTypeStats = (rows) => {
-  const map = {}
-  rows.forEach((row) => {
-    const key = row.serviceTypeName || row.serviceContent || '其他服务'
-    map[key] = (map[key] || 0) + 1
-  })
-
-  const list = Object.keys(map).map((name) => ({ name, count: map[name] }))
-  list.sort((a, b) => b.count - a.count)
-  const max = list.length ? list[0].count : 1
-
-  typeStats.value = list.map((item) => ({
-    name: item.name,
-    count: item.count,
-    percent: Math.max(8, Math.round((item.count / max) * 100))
-  }))
-}
+})
 
 onMounted(() => {
   loadStats()
@@ -147,6 +264,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @import '@/styles/escort-ui.scss';
+
 .page {
   @include escort-page;
   min-height: 100vh;
@@ -184,6 +302,40 @@ onMounted(() => {
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #6b7280;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.filter-chip {
+  flex: 1;
+  min-width: 0;
+  height: 72rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #d9e5f4;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text {
+    font-size: 25rpx;
+    color: #5b6678;
+    font-weight: 600;
+  }
+}
+
+.filter-chip.active {
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
+  border-color: transparent;
+  box-shadow: $escort-shadow-primary;
+
+  text {
+    color: #ffffff;
+  }
 }
 
 .grid {
@@ -226,6 +378,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12rpx;
 }
 
 .title {
@@ -239,16 +392,28 @@ onMounted(() => {
   color: $escort-color-primary;
 }
 
+.panel-meta {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #8a94a6;
+}
+
+.trend-scroll {
+  margin-top: 16rpx;
+  white-space: nowrap;
+}
+
 .trend-wrap {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  margin-top: 16rpx;
+  gap: 16rpx;
 }
 
 .bar-col {
-  width: 13%;
+  width: 94rpx;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .bar-bg {
@@ -257,11 +422,12 @@ onMounted(() => {
   background: #f1f5f9;
   display: flex;
   align-items: flex-end;
+  overflow: hidden;
 }
 
 .bar {
   width: 100%;
-  background: linear-gradient(180deg, #69B2FF, $escort-color-primary-deep);
+  background: linear-gradient(180deg, #69b2ff, $escort-color-primary-deep);
   border-radius: 10rpx;
 }
 
@@ -308,7 +474,35 @@ onMounted(() => {
 
 .line {
   height: 100%;
-  background: linear-gradient(90deg, #007AFF, #007AFF);
+  background: linear-gradient(90deg, #007aff, #007aff);
+}
+
+.date-list {
+  margin-top: 16rpx;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
+.date-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.date-label {
+  font-size: 26rpx;
+  color: #334155;
+}
+
+.date-num {
+  font-size: 24rpx;
+  color: $escort-color-primary;
+  font-weight: 600;
 }
 
 .empty {
@@ -346,6 +540,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20rpx);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
