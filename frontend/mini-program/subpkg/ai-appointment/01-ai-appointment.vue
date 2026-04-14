@@ -85,27 +85,36 @@
           />
         </view>
 
-        <view v-if="showTimeProposalCard" id="time-proposal-card" class="inline-card proposal-card">
+        <view v-if="showInlineConfirmCard" id="confirm-card" class="inline-card confirm-card">
           <view class="inline-card-head">
             <view>
-              <text class="inline-card-title">时间待确认</text>
-              <text class="inline-card-subtitle">{{ currentTimeProposal.proposalText || 'AI 给出了一个建议时段，您确认后我再继续。' }}</text>
+              <text class="inline-card-title">确认预约信息</text>
+              <text class="inline-card-subtitle">根据您的要求，我先整理出这些预约信息，您看是否正确。</text>
             </view>
             <view class="summary-badge">
               <text>待确认</text>
             </view>
           </view>
 
-          <view class="proposal-time-pill">
-            <text>{{ proposedTimeLabel }}</text>
+          <view class="summary-grid">
+            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
+              <text class="summary-label">{{ item.label }}</text>
+              <text class="summary-value">{{ item.value || item.placeholder }}</text>
+            </view>
+          </view>
+
+          <view v-if="summaryTags.length" class="summary-tags">
+            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
+              <text>{{ tag }}</text>
+            </view>
           </view>
 
           <view class="inline-card-actions">
-            <button class="summary-secondary-btn" :disabled="sending || navigatingToResult" @click="openStructuredPicker('timePeriod')">
-              重新选择时间
+            <button class="summary-secondary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="continueEditing">
+              继续修改
             </button>
-            <button class="summary-primary-btn" :disabled="sending || navigatingToResult" @click="acceptTimeProposal">
-              这个时间可以
+            <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
+              确认并开始匹配
             </button>
           </view>
         </view>
@@ -179,45 +188,6 @@
         <button class="send-btn" :disabled="sending || matchingInProgress || navigatingToResult || !userInput.trim()" @click="sendMessage">
           {{ sending ? '处理中' : '发送' }}
         </button>
-      </view>
-    </view>
-
-    <view v-if="showConfirmSheet" class="sheet-overlay" @click="closeConfirmSheet">
-      <view class="sheet-panel" @click.stop>
-        <view class="sheet-handle"></view>
-        <view class="sheet-head">
-          <view>
-            <text class="sheet-title">确认预约信息</text>
-            <text class="sheet-subtitle">确认无误后，我就开始智能匹配陪诊师</text>
-          </view>
-          <view class="summary-badge">
-            <text>待确认</text>
-          </view>
-        </view>
-
-        <scroll-view class="sheet-scroll" scroll-y>
-          <view class="summary-grid">
-            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
-              <text class="summary-label">{{ item.label }}</text>
-              <text class="summary-value">{{ item.value || item.placeholder }}</text>
-            </view>
-          </view>
-
-          <view v-if="summaryTags.length" class="summary-tags">
-            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
-              <text>{{ tag }}</text>
-            </view>
-          </view>
-        </scroll-view>
-
-        <view class="sheet-actions">
-          <button class="summary-secondary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="continueEditing">
-            继续修改
-          </button>
-          <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
-            确认并开始匹配
-          </button>
-        </view>
       </view>
     </view>
 
@@ -303,7 +273,6 @@ const activeAssistantKey = ref('')
 const matchDeadlineTimer = ref(null)
 const structuredDemand = ref(createEmptyStructuredDemand())
 const readyToMatch = ref(false)
-const showConfirmSheet = ref(false)
 const introExpanded = ref(true)
 const showTimePickerSheet = ref(false)
 const pickerStartTime = ref('')
@@ -356,7 +325,6 @@ function createEmptyStructuredDemand() {
     patientName: getCurrentUserName(),
     patientProfile: '',
     hospital: '',
-    department: '',
     serviceDate: '',
     serviceStartTime: '',
     serviceEndTime: '',
@@ -574,7 +542,6 @@ const extractPreferenceTags = (text = '') => {
 function classifyDemandText(text = '') {
   const rawDemandText = normalizeString(text)
   const hospital = extractHospital(rawDemandText)
-  const department = extractDepartment(rawDemandText)
   const date = extractServiceDate(rawDemandText)
   const { serviceStartTime, serviceEndTime } = extractTimeWindow(rawDemandText)
   const patientProfile = extractPatientProfile(rawDemandText)
@@ -583,7 +550,6 @@ function classifyDemandText(text = '') {
   const symptomTags = uniqueList(
     symptomClauses
       .flatMap((clause) => SYMPTOM_KEYWORDS.filter((keyword) => clause.includes(keyword)))
-      .concat(department ? [department] : [])
   )
   const preferenceTags = uniqueList(extractPreferenceTags(rawDemandText))
 
@@ -591,7 +557,7 @@ function classifyDemandText(text = '') {
   if (!symptomDescription) {
     const scene = EXPLICIT_MEDICAL_SCENE_KEYWORDS.find((keyword) => rawDemandText.includes(keyword))
     if (scene) {
-      symptomDescription = department ? `${department}${scene}` : scene
+      symptomDescription = scene
     }
   }
 
@@ -604,7 +570,6 @@ function classifyDemandText(text = '') {
     patientName: getCurrentUserName(),
     patientProfile,
     hospital,
-    department,
     serviceDate: date,
     serviceStartTime,
     serviceEndTime,
@@ -622,7 +587,6 @@ function sanitizeStructuredDemand(payload = {}) {
     patientName: normalizeString(payload.patientName) || getCurrentUserName(),
     patientProfile: normalizeString(payload.patientProfile),
     hospital: normalizeString(payload.hospital),
-    department: normalizeString(payload.department),
     serviceDate: normalizeString(payload.serviceDate),
     serviceStartTime: normalizeFlexibleClockToken(payload.serviceStartTime),
     serviceEndTime: normalizeFlexibleClockToken(payload.serviceEndTime),
@@ -724,12 +688,6 @@ const summaryItems = computed(() => ([
     placeholder: '等待补充医院'
   },
   {
-    key: 'department',
-    label: '就诊科室',
-    value: structuredDemand.value.department,
-    placeholder: '未指定科室'
-  },
-  {
     key: 'time',
     label: '就诊时间',
     value: [formatDateDisplay(structuredDemand.value.serviceDate), formatTimeDisplay(structuredDemand.value.serviceStartTime, structuredDemand.value.serviceEndTime)].filter(Boolean).join(' '),
@@ -757,7 +715,6 @@ const summaryItems = computed(() => ([
 
 const summaryTags = computed(() => {
   const tags = []
-  if (structuredDemand.value.department) tags.push(structuredDemand.value.department)
   tags.push(...uniqueList(structuredDemand.value.symptomTags))
   tags.push(...uniqueList(structuredDemand.value.preferenceTags))
   return uniqueList(tags)
@@ -767,19 +724,7 @@ const hasStartedConversation = computed(() => messages.value.some((item) => item
 const showIntroCards = computed(() => !hasStartedConversation.value || introExpanded.value)
 const showMatchingInfoCard = computed(() => matchingInProgress.value)
 const canSubmitPickedTime = computed(() => !!structuredDemand.value.serviceDate && !!pickerStartTime.value && !!pickerEndTime.value)
-const showTimePickerSheetVisible = computed(() => showTimePickerSheet.value && !!structuredDemand.value.serviceDate && !matchingInProgress.value)
-const showTimeProposalCard = computed(() => {
-  return !!currentTimeProposal.value
-    && activeFollowUpType.value === 'time_picker'
-    && !matchingInProgress.value
-    && !readyToMatch.value
-})
-const proposedTimeLabel = computed(() => {
-  if (!currentTimeProposal.value) return ''
-  const start = normalizeFlexibleClockToken(currentTimeProposal.value.proposedStartTime)
-  const end = normalizeFlexibleClockToken(currentTimeProposal.value.proposedEndTime)
-  return start && end ? `${start}-${end}` : ''
-})
+const showInlineConfirmCard = computed(() => readyToMatch.value && !matchingInProgress.value && !navigatingToResult.value)
 const MATCHING_STAGE_COPY = [
   '正在整理就诊信息',
   '正在筛选可接单陪诊师',
@@ -893,7 +838,6 @@ const schedulePoll = (delay = POLL_INTERVAL) => {
 const showMatchingBubble = () => {
   matchingInProgress.value = true
   readyToMatch.value = false
-  showConfirmSheet.value = false
   showTimePickerSheet.value = false
   currentTimeProposal.value = null
   startMatchingStageRotation()
@@ -966,22 +910,17 @@ const startMatchFlow = async () => {
 
 const confirmAndStartMatch = async () => {
   if (!readyToMatch.value || matchingInProgress.value || navigatingToResult.value) return
-  showConfirmSheet.value = false
   await startMatchFlow()
 }
 
 const continueEditing = () => {
-  showConfirmSheet.value = false
+  readyToMatch.value = false
   upsertAssistantMessage({
     message: '好的，您可以继续补充或修改需求，确认后我再开始智能匹配。',
     processingPhase: 'completed',
     thinkingProcess: ''
   })
   scrollToBottom()
-}
-
-const closeConfirmSheet = () => {
-  showConfirmSheet.value = false
 }
 
 const toggleIntroCards = () => {
@@ -1010,17 +949,6 @@ const submitPickedTimeRange = async () => {
   await submitStructuredSelection('timeRangeConfirmed', exactRange, displayText)
 }
 
-const acceptTimeProposal = async () => {
-  if (!currentTimeProposal.value) return
-  const start = normalizeFlexibleClockToken(currentTimeProposal.value.proposedStartTime)
-  const end = normalizeFlexibleClockToken(currentTimeProposal.value.proposedEndTime)
-  if (!start || !end) {
-    openStructuredPicker('timePeriod')
-    return
-  }
-  await submitStructuredSelection('timeRangeConfirmed', `${start}-${end}`, currentTimeProposal.value.proposalText || `${start}-${end}`)
-}
-
 const applySessionStructuredDemand = (state = {}) => {
   const source = state.structuredDemand || state.demandData || state.appointmentData || {}
   const next = sanitizeStructuredDemand({
@@ -1029,7 +957,6 @@ const applySessionStructuredDemand = (state = {}) => {
     patientName: state.patientName || source.patientName || structuredDemand.value.patientName || getCurrentUserName(),
     patientProfile: state.patientProfile || source.patientProfile || structuredDemand.value.patientProfile,
     hospital: state.hospital || source.hospital || structuredDemand.value.hospital,
-    department: state.department || source.department || structuredDemand.value.department,
     serviceDate: state.serviceDate || source.serviceDate || structuredDemand.value.serviceDate,
     serviceStartTime: state.serviceStartTime || source.serviceStartTime || structuredDemand.value.serviceStartTime,
     serviceEndTime: state.serviceEndTime || source.serviceEndTime || structuredDemand.value.serviceEndTime,
@@ -1062,7 +989,7 @@ const applySessionState = async (state) => {
   activeFollowUpType.value = state.followUpType || ''
   activeOptions.value = Array.isArray(state.options) ? state.options : []
   followUpRound.value = Number(state.followUpRound || 0)
-  currentTimeProposal.value = state.timeProposal || null
+  currentTimeProposal.value = null
   scrollToBottom()
 
   if (state.processingPhase === 'completed') {
@@ -1075,26 +1002,20 @@ const applySessionState = async (state) => {
       readyToMatch.value = true
       showTimePickerSheet.value = false
       currentTimeProposal.value = null
-      showConfirmSheet.value = true
+      scrollToAnchor('confirm-card')
     } else if (state.needMoreInfo && activeFollowUpType.value === 'time_picker' && !!structuredDemand.value.serviceDate) {
       readyToMatch.value = false
       resetTimePicker()
-      showConfirmSheet.value = false
-      if (!currentTimeProposal.value) {
-        showTimePickerSheet.value = true
-      }
+      showTimePickerSheet.value = false
     } else if (state.needMoreInfo && activeFollowUpType.value === 'date_picker') {
       readyToMatch.value = false
-      showConfirmSheet.value = false
       showTimePickerSheet.value = false
       resetTimePicker()
-      openStructuredPicker('serviceDate')
     } else if (matchingInProgress.value) {
       schedulePoll()
     } else {
       readyToMatch.value = false
-      showConfirmSheet.value = false
-      showTimePickerSheet.value = activeFollowUpType.value === 'time_picker' && !!structuredDemand.value.serviceDate && !currentTimeProposal.value
+      showTimePickerSheet.value = false
     }
     return
   }
@@ -1103,7 +1024,6 @@ const applySessionState = async (state) => {
     sending.value = false
     matchingInProgress.value = false
     readyToMatch.value = false
-    showConfirmSheet.value = false
     showTimePickerSheet.value = false
     currentTimeProposal.value = null
     stopMatchDeadline()
@@ -1145,7 +1065,6 @@ const sendMessage = async () => {
   if (!content || sending.value || navigatingToResult.value) return
 
   readyToMatch.value = false
-  showConfirmSheet.value = false
   showTimePickerSheet.value = false
   currentTimeProposal.value = null
   resetTimePicker()
@@ -1190,7 +1109,6 @@ const sendMessage = async () => {
 const submitStructuredSelection = async (fieldKey, selectedValue, displayText = selectedValue) => {
   if (!sessionId.value || !fieldKey || !selectedValue) return
   readyToMatch.value = false
-  showConfirmSheet.value = false
   currentTimeProposal.value = null
   if (fieldKey === 'timePeriod' || fieldKey === 'timeRangeConfirmed') {
     showTimePickerSheet.value = false

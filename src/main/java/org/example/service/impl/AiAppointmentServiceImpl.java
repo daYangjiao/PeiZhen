@@ -120,7 +120,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             3. JSON 顶层格式固定为：
                {"matchedList":[{"attendantId":101,"matchScore":98,"reason":"..."}]}
             4. matchScore 范围 0-100，reason 必须简洁明确，控制在 40 字以内。
-            5. reason 必须结合用户的就诊时间、患者情况、医院/科室、性别偏好或技能偏好，不要写空泛结论。
+            5. reason 必须结合用户的就诊时间、患者情况、医院、症状情况、性别偏好或技能偏好，不要写空泛结论。
             6. 优先推荐真正契合老人陪护、轮椅协助、急救经验、护士背景、医院熟悉度等具体需求的人选。
             """;
 
@@ -131,19 +131,20 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             系统约束：
             1. patientName 由系统提供，不要向用户追问姓名。
             2. 所有字段必须基于用户已明确表达的信息，不能猜测结束时间、医院、症状或其他需求。
-            3. 如果用户只说了一个时间点，例如“八点”，不能自动补成 08:00-10:00，必须继续追问结束时间。
+            3. 如果用户只说了一个时间点，例如“八点”或“早上九点”，绝不能自动补成 08:00-10:00 或 09:00-10:00，必须继续追问结束时间。
             4. 如果用户说的是“八点到十点”这类完整时段，可以提取为 serviceStartTime=08:00、serviceEndTime=10:00。
-            5. hospital 只能保留医院本体，不要带“明天去”“想去”之类前缀。
-            6. symptomDescription 只放医疗场景、症状、复诊、检查、取药、术后等信息。
-            7. otherRequirement 只放陪护偏好和附加诉求，例如 推轮椅、男陪诊师、懂急救、熟悉医院。绝不能等于整段原始输入。
-            8. symptomDescription 与 otherRequirement 必须分离。
-            9. 一次最多只追问一个关键问题，问题要自然，不要机械列清单。
-            10. 当信息已经足够确认时，assistantReply 应是确认口吻，并返回 readyForConfirm=true 与 followUpType=confirm_sheet。
-            11. 当你只是建议一个时间段时，只能写入 timeProposal，不能直接把建议时间写进 fieldPatch，除非用户已经明确确认。
+            5. 如果时间仍不完整，优先继续自然追问；只有在需要用户自己点击选择时，才返回 followUpType=time_picker。
+            6. hospital 只能保留医院本体，不要带“明天去”“想去”之类前缀。
+            7. 本链路没有“就诊科室”字段，不要生成 department，也不要向用户追问科室。
+            8. symptomDescription 只放医疗场景、症状、复诊、检查、取药、术后等信息。
+            9. otherRequirement 只放陪护偏好和附加诉求，例如 推轮椅、男陪诊师、懂急救、熟悉医院。绝不能等于整段原始输入。
+            10. symptomDescription 与 otherRequirement 必须分离。
+            11. 每一轮都必须给用户一句自然回复，像真实助理一样回应当前信息，再只追问一个最关键问题。
+            12. 当信息已经足够确认时，assistantReply 应明确说“我已根据您的要求整理出以下预约信息，您看是否正确”，并返回 readyForConfirm=true。
+            13. 不要主动创建 timeProposal；只有当用户明确要求你给一个候选时间并且起止时间都清楚时，才可返回 timeProposal。
 
             目标字段：
             - hospital
-            - department
             - patientProfile
             - serviceDate（YYYY-MM-DD）
             - serviceStartTime（HH:mm）
@@ -157,7 +158,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             assistantIntent 仅允许：
             - collect：继续自然收集
             - clarify：某个字段不清楚，需要追问
-            - propose_time：基于上下文给出一个待确认的时间建议
             - ready_confirm：字段已足够，提示用户确认
             - acknowledge：用户刚确认了一个选择，先回应再继续
 
@@ -166,7 +166,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             - date_picker
             - time_picker
             - hospital_input
-            - confirm_sheet
 
             输出 JSON 格式固定为：
             {
@@ -176,7 +175,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
               "missingFields": [],
               "fieldPatch": {
                 "hospital": "",
-                "department": "",
                 "patientProfile": "",
                 "serviceDate": "",
                 "serviceStartTime": "",
@@ -679,9 +677,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                     all.add(item.trim());
                 }
             }
-        }
-        if (StringUtils.hasText(demand.getDepartment())) {
-            all.add(demand.getDepartment().trim());
         }
         return new ArrayList<>(all);
     }
@@ -1379,7 +1374,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 "date_picker",
                 "time_picker",
                 "hospital_input",
-                "confirm_sheet"
+                "inline_confirm"
         ));
 
         List<Map<String, String>> messages = new ArrayList<>();
@@ -1479,8 +1474,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                                          AiAppointmentStructuredDemand demand,
                                          String assistantIntent,
                                          boolean readyForConfirm) {
-        if (readyForConfirm || "ready_confirm".equals(assistantIntent) || "confirm_sheet".equals(aiSuggestedType)) {
-            return "confirm_sheet";
+        if (readyForConfirm || "ready_confirm".equals(assistantIntent)) {
+            return "free_text";
         }
         if ("time_picker".equals(aiSuggestedType) || "date_picker".equals(aiSuggestedType)
                 || "hospital_input".equals(aiSuggestedType) || "free_text".equals(aiSuggestedType)) {
@@ -1510,10 +1505,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             return candidate;
         }
         if (readyForConfirm) {
-            return "我已经把预约信息整理好了。您确认后，我就开始为您智能匹配陪诊师。";
-        }
-        if (envelope != null && envelope.timeProposal != null && StringUtils.hasText(envelope.timeProposal.getProposalText())) {
-            return envelope.timeProposal.getProposalText();
+            return "我已根据您的要求整理出以下预约信息，您看是否正确。确认后，我就开始为您匹配更合适的陪诊师。";
         }
         if (StringUtils.hasText(questionType)) {
             return buildFollowUpQuestion(questionType, state.followUpRound, state.structuredDemand);
@@ -1533,7 +1525,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private Map<String, Object> buildConfirmSummary(AiAppointmentStructuredDemand demand) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("hospital", defaultString(demand.getHospital()));
-        summary.put("department", defaultString(demand.getDepartment()));
         summary.put("patientName", defaultString(demand.getPatientName()));
         summary.put("patientProfile", defaultString(demand.getPatientProfile()));
         summary.put("serviceDate", defaultString(demand.getServiceDate()));
@@ -1610,9 +1601,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
         if (StringUtils.hasText(incoming.getHospital())) {
             target.setHospital(cleanupHospitalCandidate(incoming.getHospital().trim()));
-        }
-        if (StringUtils.hasText(incoming.getDepartment())) {
-            target.setDepartment(incoming.getDepartment().trim());
         }
         if (StringUtils.hasText(incoming.getSymptomDescription())) {
             target.setSymptomDescription(incoming.getSymptomDescription().trim());
@@ -1991,7 +1979,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         summary.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
         summary.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
         summary.put("hospital", defaultString(demand.getHospital()));
-        summary.put("department", defaultString(demand.getDepartment()));
         summary.put("symptomDescription", defaultString(demand.getSymptomDescription()));
         summary.put("otherRequirement", defaultString(demand.getOtherRequirement()));
         summary.put("attendantGender", defaultString(demand.getAttendantGender()));
@@ -2008,7 +1995,6 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         payload.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
         payload.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
         payload.put("hospital", defaultString(demand.getHospital()));
-        payload.put("department", defaultString(demand.getDepartment()));
         payload.put("symptomDescription", defaultString(demand.getSymptomDescription()));
         payload.put("otherRequirement", defaultString(demand.getOtherRequirement()));
         payload.put("attendantGender", defaultString(demand.getAttendantGender()));
@@ -2040,7 +2026,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         demand.setServiceStartTime(normalized.getServiceStartTime());
         demand.setServiceEndTime(normalized.getServiceEndTime());
         demand.setHospital(normalized.getHospital());
-        demand.setDepartment(normalized.getDepartment());
+        demand.setDepartment("");
         demand.setSymptomDescription(normalized.getSymptomDescription());
         demand.setSymptomTags(normalized.getSymptomTags());
         demand.setOtherRequirement(normalized.getOtherRequirement());
@@ -2069,7 +2055,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         String start = parseFlexibleTimeToken(proposal.getProposedStartTime());
         String end = parseFlexibleTimeToken(proposal.getProposedEndTime());
         String text = normalize(proposal.getProposalText());
-        if (!StringUtils.hasText(start) && !StringUtils.hasText(end) && !StringUtils.hasText(text)) {
+        if (!StringUtils.hasText(start) || !StringUtils.hasText(end) || !StringUtils.hasText(text)) {
             return null;
         }
         AiAppointmentTimeProposal sanitized = new AiAppointmentTimeProposal();

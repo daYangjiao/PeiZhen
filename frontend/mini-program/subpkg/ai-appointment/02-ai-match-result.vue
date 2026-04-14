@@ -122,7 +122,6 @@ function createEmptyStructuredDemand() {
     patientName: getCurrentUserName(),
     patientProfile: '',
     hospital: '',
-    department: '',
     serviceDate: '',
     serviceStartTime: '',
     serviceEndTime: '',
@@ -172,7 +171,6 @@ const sanitizeStructuredDemand = (payload = {}) => ({
   patientName: normalizeString(payload.patientName) || getCurrentUserName(),
   patientProfile: normalizeString(payload.patientProfile),
   hospital: normalizeString(payload.hospital),
-  department: normalizeString(payload.department),
   serviceDate: normalizeString(payload.serviceDate),
   serviceStartTime: normalizeTimeValue(payload.serviceStartTime),
   serviceEndTime: normalizeTimeValue(payload.serviceEndTime),
@@ -202,7 +200,6 @@ const mergeStructuredDemand = (state = {}) => {
     patientName: state.patientName || source.patientName || structuredDemand.value.patientName || getCurrentUserName(),
     patientProfile: state.patientProfile || source.patientProfile || structuredDemand.value.patientProfile,
     hospital: state.hospital || source.hospital || structuredDemand.value.hospital,
-    department: state.department || source.department || structuredDemand.value.department,
     serviceDate: state.serviceDate || source.serviceDate || structuredDemand.value.serviceDate,
     serviceStartTime: state.serviceStartTime || source.serviceStartTime || structuredDemand.value.serviceStartTime,
     serviceEndTime: state.serviceEndTime || source.serviceEndTime || structuredDemand.value.serviceEndTime,
@@ -244,12 +241,6 @@ const summaryItems = computed(() => ([
     placeholder: '等待补充医院'
   },
   {
-    key: 'department',
-    label: '就诊科室',
-    value: structuredDemand.value.department,
-    placeholder: '未指定科室'
-  },
-  {
     key: 'time',
     label: '就诊时间',
     value: [formatDateLabel(structuredDemand.value.serviceDate), formatTimeRange(structuredDemand.value.serviceStartTime, structuredDemand.value.serviceEndTime)].filter(Boolean).join(' '),
@@ -277,7 +268,6 @@ const summaryItems = computed(() => ([
 
 const summaryTags = computed(() => {
   const tags = []
-  if (structuredDemand.value.department) tags.push(structuredDemand.value.department)
   tags.push(...uniqueList(structuredDemand.value.symptomTags))
   tags.push(...uniqueList(structuredDemand.value.preferenceTags))
   return uniqueList(tags)
