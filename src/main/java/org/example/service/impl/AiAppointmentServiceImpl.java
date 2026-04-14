@@ -20,6 +20,7 @@ import org.example.service.AiAppointmentService;
 import org.example.service.AttendantService;
 import org.example.service.OrderService;
 import org.example.unity.DeepSeekClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -100,6 +101,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private final OrderService orderService;
     private final org.example.dao.UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final String appointmentModel;
 
     private final ConcurrentMap<String, SessionState> sessions = new ConcurrentHashMap<>();
 
@@ -111,13 +113,15 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                                     AttendantService attendantService,
                                     OrderService orderService,
                                     org.example.dao.UserMapper userMapper,
-                                    ObjectMapper objectMapper) {
+                                    ObjectMapper objectMapper,
+                                    @Value("${deepseek.appointment-model:deepseek-reasoner}") String appointmentModel) {
         this.deepSeekClient = deepSeekClient;
         this.guideAppointmentMapper = guideAppointmentMapper;
         this.attendantService = attendantService;
         this.orderService = orderService;
         this.userMapper = userMapper;
         this.objectMapper = objectMapper;
+        this.appointmentModel = appointmentModel;
     }
 
     @Override
@@ -314,7 +318,10 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         messages.add(message("system", MATCH_SYSTEM_PROMPT));
         messages.add(message("user", objectMapper.writeValueAsString(promptPayload)));
 
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> deepSeekClient.chatCompletion(messages), MATCH_EXECUTOR);
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(
+                () -> deepSeekClient.chatCompletion(messages, appointmentModel),
+                MATCH_EXECUTOR
+        );
         String raw = future.get(MATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         JsonNode root = objectMapper.readTree(extractJson(raw));
         JsonNode listNode = root.path("matchedList");

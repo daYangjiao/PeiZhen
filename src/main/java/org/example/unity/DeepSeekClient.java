@@ -40,6 +40,10 @@ public class DeepSeekClient {
     }
 
     public String chatCompletion(List<Map<String, String>> messages) {
+        return chatCompletion(messages, null);
+    }
+
+    public String chatCompletion(List<Map<String, String>> messages, String modelOverride) {
         if (!StringUtils.hasText(apiKey)) {
             throw new IllegalStateException("DeepSeek API Key 未配置");
         }
@@ -57,7 +61,7 @@ public class DeepSeekClient {
             httpPost.setHeader("Authorization", "Bearer " + apiKey.trim());
 
             Map<String, Object> payload = new HashMap<>();
-            payload.put("model", model);
+            payload.put("model", resolveModel(modelOverride));
             payload.put("messages", messages);
             payload.put("temperature", 0.2);
             payload.put("max_tokens", maxTokens == null || maxTokens <= 0 ? 1200 : maxTokens);
@@ -88,6 +92,13 @@ public class DeepSeekClient {
         } catch (Exception e) {
             throw new IllegalStateException("DeepSeek 调用失败：" + e.getMessage(), e);
         }
+    }
+
+    private String resolveModel(String modelOverride) {
+        if (StringUtils.hasText(modelOverride)) {
+            return modelOverride.trim();
+        }
+        return StringUtils.hasText(model) ? model.trim() : "deepseek-chat";
     }
 
     private String resolveEndpoint() {
