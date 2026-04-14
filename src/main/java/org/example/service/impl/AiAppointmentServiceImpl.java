@@ -86,6 +86,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             "复诊", "检查", "术后", "发烧", "发热", "胸闷", "胸痛", "头晕", "头痛",
             "胃痛", "腹痛", "咳嗽", "恶心", "呕吐", "呼吸困难", "疼", "痛", "不适", "过敏"
     );
+    private static final List<String> EXPLICIT_MEDICAL_SCENE_KEYWORDS = List.of(
+            "复诊", "复查", "检查", "取药", "拿药", "拿结果", "取结果", "体检", "开药", "问诊", "术后", "换药"
+    );
     private static final List<String> REQUIREMENT_SEGMENT_KEYWORDS = List.of(
             "轮椅", "男陪诊", "女陪诊", "急救", "护士", "熟悉医院", "熟悉流程", "耐心",
             "力气大", "跑腿", "陪老人", "陪护", "上门", "帮忙", "取号", "取药", "陪同"
@@ -828,7 +831,11 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
         demand.setPreferenceTags(new ArrayList<>(preferenceTags));
         demand.setSymptomTags(new ArrayList<>(symptomTags));
-        demand.setSymptomDescription(joinSegments(symptomSegments));
+        String symptomDescription = joinSegments(symptomSegments);
+        if (!StringUtils.hasText(symptomDescription)) {
+            symptomDescription = inferMedicalSceneDescription(demand, source);
+        }
+        demand.setSymptomDescription(symptomDescription);
         demand.setOtherRequirement(joinSegments(mergeRequirements(requirementSegments, preferenceTags, demand.getAttendantGender())));
     }
 
@@ -898,6 +905,40 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 || segment.contains("最好")
                 || segment.contains("陪诊师")
                 || containsAny(segment, REQUIREMENT_SEGMENT_KEYWORDS);
+    }
+
+    private boolean hasEnoughMedicalIntent(AiAppointmentStructuredDemand demand) {
+        if (demand == null) {
+            return false;
+        }
+        if (StringUtils.hasText(demand.getSymptomDescription())) {
+            return true;
+        }
+        if (demand.getSymptomTags() != null && !demand.getSymptomTags().isEmpty()) {
+            return true;
+        }
+        String rawDemandText = defaultString(demand.getRawDemandText());
+        for (String keyword : EXPLICIT_MEDICAL_SCENE_KEYWORDS) {
+            if (rawDemandText.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String inferMedicalSceneDescription(AiAppointmentStructuredDemand demand, String source) {
+        if (!StringUtils.hasText(source)) {
+            return "";
+        }
+        for (String keyword : EXPLICIT_MEDICAL_SCENE_KEYWORDS) {
+            if (source.contains(keyword)) {
+                if (StringUtils.hasText(demand.getDepartment())) {
+                    return demand.getDepartment().trim() + keyword;
+                }
+                return keyword;
+            }
+        }
+        return "";
     }
 
     private boolean containsAny(String text, List<String> keywords) {
@@ -971,6 +1012,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         if (!StringUtils.hasText(demand.getHospital())) {
             missing.add("hospital");
         }
+        if (!hasEnoughMedicalIntent(demand)) {
+            missing.add("symptomDescription");
+        }
         return missing;
     }
 
@@ -987,16 +1031,21 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 return "就诊时段已确认，我可以继续为您匹配。";
             }
             if (hasQuickTime) {
-                return "您已经选了" + demand.getTimePeriod() + "，还需要补充完整开始-结束时间，例如 09:30-11:30。";
+                return "您已经选了" + demand.getTimePeriod() + "，我还需要确认具体开始和结束时间，您可以直接去选时间。";
             }
             return round != null && round >= 2
-                    ? "还缺少完整就诊时段，请直接输入开始-结束时间，例如 09:30-11:30。"
-                    : "我还需要确认就诊时段，您可以先选上午、下午、晚上，或者直接输入完整时间段，例如 09:30-11:30。";
+                    ? "还缺少完整就诊时段，请直接选择开始和结束时间。"
+                    : "我还需要确认就诊时段，您可以先告诉我是上午、下午还是晚上，也可以直接去选择具体时间。";
         }
         if ("hospital".equals(questionType)) {
             return round != null && round >= 2
                     ? "还缺少就诊医院，您可以直接输入医院名称或在弹出的输入框里补充。"
                     : "我还需要确认就诊医院，是哪家医院呢？";
+        }
+        if ("symptomDescription".equals(questionType)) {
+            return round != null && round >= 2
+                    ? "还需要补充这次就诊的主要情况，您可以告诉我是复诊、检查、拿药，还是有具体不适症状。"
+                    : "这次主要是复诊、检查、拿药，还是有具体不适症状？您简单说一句就可以。";
         }
         return "为了更准确匹配，请再补充一点信息。";
     }
@@ -1016,9 +1065,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 return List.of();
             }
             if (hasQuickTime || (round != null && round >= 2)) {
-                return List.of("具体时间");
+                return List.of("选择时间");
             }
-            return List.of("上午", "下午", "晚上", "具体时间");
+            return List.of("上午", "下午", "晚上", "选择时间");
+        }
+        if ("symptomDescription".equals(questionType)) {
+            return List.of("复诊", "检查", "取药", "有症状不适");
         }
         return Collections.emptyList();
     }
@@ -1045,6 +1097,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                     state.structuredDemand.setTimePeriod(selectedValue);
                 }
             }
+            case "symptomDescription" -> state.structuredDemand.setSymptomDescription(selectedValue);
             case "attendantGender" -> state.structuredDemand.setAttendantGender(selectedValue);
             default -> {
             }

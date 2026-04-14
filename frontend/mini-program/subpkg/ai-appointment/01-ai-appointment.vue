@@ -8,59 +8,26 @@
       <view class="topbar-right"></view>
     </view>
 
-    <view class="hero-card">
-      <view class="hero-icon-wrap">
-        <image class="hero-icon" :src="AIAvatar" mode="aspectFill" />
+    <view v-if="showIntroCards" class="intro-stack">
+      <view class="hero-card" :class="{ compact: hasStartedConversation }">
+        <view class="hero-icon-wrap">
+          <image class="hero-icon" :src="AIAvatar" mode="aspectFill" />
+        </view>
+        <view class="hero-texts">
+          <text class="hero-title">智能匹配最懂您的陪诊师</text>
+          <text class="hero-subtitle">先说需求，AI 会追问关键细节，再为您推荐更合适的人选</text>
+        </view>
       </view>
-      <view class="hero-texts">
-        <text class="hero-title">智能匹配最懂您的陪诊师</text>
-        <text class="hero-subtitle">先说需求，AI 会追问关键细节，再为您推荐更合适的人选</text>
+
+      <view class="tip-card">
+        <text class="tip-title">示例</text>
+        <text class="tip-text">下周三上午，带80岁的爷爷去华西医院心内科复诊，需要一位有力气推轮椅、懂点急救知识的男陪诊师。</text>
       </view>
     </view>
 
-    <view class="tip-card">
-      <text class="tip-title">示例</text>
-      <text class="tip-text">下周三上午，带80岁的爷爷去华西医院心内科复诊，需要一位有力气推轮椅、懂点急救知识的男陪诊师。</text>
-    </view>
-
-    <view v-if="summaryVisible" class="summary-card" :class="{ matching: matchingInProgress }">
-      <view class="summary-head">
-        <view class="summary-head-copy">
-          <text class="summary-title">已整理的预约信息</text>
-          <text class="summary-subtitle">{{ summaryStatusText }}</text>
-        </view>
-        <view class="summary-badge" :class="{ active: matchingInProgress }">
-          <text>{{ matchingInProgress ? '等待 AI 返回' : '已确认' }}</text>
-        </view>
-      </view>
-
-      <view class="summary-grid">
-        <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
-          <text class="summary-label">{{ item.label }}</text>
-          <text class="summary-value">{{ item.value || item.placeholder }}</text>
-        </view>
-      </view>
-
-      <view v-if="summaryTags.length" class="summary-tags">
-        <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
-          <text>{{ tag }}</text>
-        </view>
-      </view>
-
-      <view v-if="showSummaryAction" class="summary-actions">
-        <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
-          确认信息并开始匹配
-        </button>
-      </view>
-
-      <view v-if="matchingInProgress" class="summary-loading">
-        <view class="matching-dots">
-          <text class="matching-dot"></text>
-          <text class="matching-dot"></text>
-          <text class="matching-dot"></text>
-        </view>
-        <text class="summary-loading-text">正在为您匹配合适的陪诊师</text>
-      </view>
+    <view v-else class="intro-hint" @click="toggleIntroCards">
+      <text class="intro-hint-text">继续补充需求，或点我查看示例</text>
+      <text class="intro-hint-arrow">{{ showIntroCards ? '⌃' : '⌄' }}</text>
     </view>
 
     <scroll-view
@@ -117,6 +84,98 @@
             mode="aspectFill"
           />
         </view>
+
+        <view v-if="showInlineConfirmCard" id="inline-confirm-card" class="inline-card confirm-card">
+          <view class="inline-card-head">
+            <view>
+              <text class="inline-card-title">确认预约信息</text>
+              <text class="inline-card-subtitle">确认后我就开始智能匹配陪诊师</text>
+            </view>
+            <view class="summary-badge">
+              <text>待确认</text>
+            </view>
+          </view>
+
+          <view class="summary-grid">
+            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
+              <text class="summary-label">{{ item.label }}</text>
+              <text class="summary-value">{{ item.value || item.placeholder }}</text>
+            </view>
+          </view>
+
+          <view v-if="summaryTags.length" class="summary-tags">
+            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
+              <text>{{ tag }}</text>
+            </view>
+          </view>
+
+          <view class="inline-card-actions">
+            <button class="summary-secondary-btn" :disabled="sending || navigatingToResult" @click="continueEditing">
+              继续修改
+            </button>
+            <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
+              开始匹配
+            </button>
+          </view>
+        </view>
+
+        <view v-if="showTimePickerCard" id="time-picker-card" class="inline-card picker-card">
+          <view class="inline-card-head">
+            <view>
+              <text class="inline-card-title">补充就诊时间</text>
+              <text class="inline-card-subtitle">请选择和普通预约一致的开始、结束时间</text>
+            </view>
+          </view>
+          <appointment-time-range-picker
+            v-model:start-time="pickerStartTime"
+            v-model:end-time="pickerEndTime"
+            :selected-date="structuredDemand.serviceDate"
+            compact
+            hide-header
+          />
+          <view class="inline-card-actions">
+            <button class="summary-secondary-btn" :disabled="sending" @click="cancelTimePicker">
+              稍后再选
+            </button>
+            <button class="summary-primary-btn" :disabled="!canSubmitPickedTime || sending" @click="submitPickedTimeRange">
+              确认这个时间段
+            </button>
+          </view>
+        </view>
+
+        <view v-if="showMatchingInfoCard" id="matching-info-card" class="inline-card matching-card">
+          <view class="inline-card-head">
+            <view>
+              <text class="inline-card-title">已确认的信息</text>
+              <text class="inline-card-subtitle">{{ matchingStageText }}</text>
+            </view>
+            <view class="summary-badge active">
+              <text>匹配中</text>
+            </view>
+          </view>
+
+          <view class="summary-grid">
+            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
+              <text class="summary-label">{{ item.label }}</text>
+              <text class="summary-value">{{ item.value || item.placeholder }}</text>
+            </view>
+          </view>
+
+          <view v-if="summaryTags.length" class="summary-tags">
+            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
+              <text>{{ tag }}</text>
+            </view>
+          </view>
+
+          <view class="summary-loading">
+            <view class="matching-dots">
+              <text class="matching-dot"></text>
+              <text class="matching-dot"></text>
+              <text class="matching-dot"></text>
+            </view>
+            <text class="summary-loading-text">{{ matchingStageText }}</text>
+          </view>
+        </view>
       </view>
     </scroll-view>
 
@@ -159,11 +218,12 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
 import { post as apiPost } from '@/utils/api.js'
+import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 import {
   getAiAppointmentSession,
 } from './api.js'
@@ -203,10 +263,15 @@ const navigatingToResult = ref(false)
 const activeAssistantKey = ref('')
 const matchDeadlineTimer = ref(null)
 const structuredDemand = ref(createEmptyStructuredDemand())
-const showSummaryCard = ref(false)
 const readyToMatch = ref(false)
-const matchConfirmationOpened = ref(false)
+const confirmCardDismissed = ref(false)
+const introExpanded = ref(true)
+const showInlineTimePicker = ref(false)
+const pickerStartTime = ref('')
+const pickerEndTime = ref('')
+const matchingStageIndex = ref(0)
 let pollTimer = null
+let matchingStageTimer = null
 
 const getUserAvatar = () => {
   const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
@@ -226,6 +291,12 @@ const refreshSafeBottom = () => {
 const scrollToBottom = () => {
   nextTick(() => {
     scrollIntoView.value = `msg-${messages.value.length - 1}`
+  })
+}
+
+const scrollToAnchor = (anchorId) => {
+  nextTick(() => {
+    scrollIntoView.value = anchorId
   })
 }
 
@@ -427,6 +498,7 @@ const PREFERENCE_KEYWORDS = [
   '护士经验', '护士', '熟悉医院', '熟悉流程', '熟悉', '耐心', '会沟通', '沟通好', '会英语', '老人陪护',
   '照顾老人', '陪老人', '跑腿快', '细心', '经验丰富', '熟路', '会开车'
 ]
+const EXPLICIT_MEDICAL_SCENE_KEYWORDS = ['复诊', '复查', '检查', '取药', '拿药', '拿结果', '取结果', '体检', '开药', '问诊', '术后', '换药']
 
 const extractDepartment = (text = '') => {
   const normalized = normalizeString(text)
@@ -476,16 +548,11 @@ function classifyDemandText(text = '') {
   const preferenceTags = uniqueList(extractPreferenceTags(rawDemandText))
 
   let symptomDescription = symptomClauses.join('，')
-  if (!symptomDescription && department) {
-    symptomDescription = `${department}相关需求`
-  }
-  if (!symptomDescription && rawDemandText) {
-    symptomDescription = rawDemandText
-      .replace(hospital, '')
-      .replace(date, '')
-      .replace(serviceStartTime, '')
-      .replace(serviceEndTime, '')
-      .trim()
+  if (!symptomDescription) {
+    const scene = EXPLICIT_MEDICAL_SCENE_KEYWORDS.find((keyword) => rawDemandText.includes(keyword))
+    if (scene) {
+      symptomDescription = department ? `${department}${scene}` : scene
+    }
   }
 
   let otherRequirement = preferenceTags.join('、')
@@ -569,10 +636,14 @@ const applyStructuredSelectionPatch = (fieldKey, selectedValue, displayText = se
 
   if (fieldKey === 'timePeriod') {
     const exact = normalizeExactTimePeriod(normalizedValue)
-    if (!exact) return false
-    const [startTime, endTime] = exact.split('-')
-    patch.serviceStartTime = startTime
-    patch.serviceEndTime = endTime
+    if (exact) {
+      const [startTime, endTime] = exact.split('-')
+      patch.serviceStartTime = startTime
+      patch.serviceEndTime = endTime
+      patch.timePeriod = normalizedValue
+    } else {
+      patch.timePeriod = normalizedValue
+    }
   } else if (fieldKey === 'serviceDate') {
     patch.serviceDate = normalizedValue
   } else if (fieldKey === 'hospital') {
@@ -646,16 +717,24 @@ const summaryTags = computed(() => {
   return uniqueList(tags)
 })
 
-const summaryVisible = computed(() => showSummaryCard.value || matchingInProgress.value)
-
-const showSummaryAction = computed(() => showSummaryCard.value && readyToMatch.value && !matchingInProgress.value)
-
-const summaryStatusText = computed(() => {
-  if (matchingInProgress.value) return '正在梳理医院、时间、症状与陪护偏好'
-  if (readyToMatch.value) return '信息已整理完成，请确认后开始智能匹配'
-  if (currentQuestionType.value) return `正在补齐${getQuestionLabel(currentQuestionType.value)}`
-  return 'AI 已帮您整理出可用于匹配的关键信息'
+const hasStartedConversation = computed(() => messages.value.some((item) => item.type === 'user'))
+const showIntroCards = computed(() => !hasStartedConversation.value || introExpanded.value)
+const showInlineConfirmCard = computed(() => readyToMatch.value && !confirmCardDismissed.value && !matchingInProgress.value)
+const showMatchingInfoCard = computed(() => matchingInProgress.value)
+const canSubmitPickedTime = computed(() => !!structuredDemand.value.serviceDate && !!pickerStartTime.value && !!pickerEndTime.value)
+const showTimePickerCard = computed(() => {
+  return showInlineTimePicker.value
+    && currentQuestionType.value === 'timePeriod'
+    && !matchingInProgress.value
+    && !readyToMatch.value
+    && !!structuredDemand.value.serviceDate
 })
+const MATCHING_STAGE_COPY = [
+  '正在整理就诊信息',
+  '正在筛选可接单陪诊师',
+  '正在生成推荐理由'
+]
+const matchingStageText = computed(() => MATCHING_STAGE_COPY[matchingStageIndex.value] || MATCHING_STAGE_COPY[0])
 
 const getStructuredDemandStorageKey = (id = '') => {
   return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
@@ -665,11 +744,14 @@ const getQuestionLabel = (field) => {
   if (field === 'serviceDate') return '日期'
   if (field === 'timePeriod') return '时段'
   if (field === 'hospital') return '医院'
+  if (field === 'symptomDescription') return '就诊情况'
   return '信息'
 }
 
 const shouldShowStructuredAction = computed(() => {
-  return !!currentQuestionType.value && followUpRound.value >= 2
+  if (!currentQuestionType.value) return false
+  if (currentQuestionType.value === 'timePeriod') return !!structuredDemand.value.serviceDate
+  return followUpRound.value >= 2
 })
 
 const appendUserMessage = (text) => {
@@ -724,6 +806,31 @@ const stopMatchDeadline = () => {
   }
 }
 
+const stopMatchingStageRotation = () => {
+  if (matchingStageTimer) {
+    clearInterval(matchingStageTimer)
+    matchingStageTimer = null
+  }
+}
+
+const startMatchingStageRotation = () => {
+  stopMatchingStageRotation()
+  matchingStageIndex.value = 0
+  matchingStageTimer = setInterval(() => {
+    matchingStageIndex.value = (matchingStageIndex.value + 1) % MATCHING_STAGE_COPY.length
+  }, 1800)
+}
+
+watch(matchingStageIndex, () => {
+  if (!matchingInProgress.value) return
+  upsertAssistantMessage({
+    message: '正在为您匹配合适的陪诊师',
+    processingPhase: 'answering',
+    thinkingProcess: matchingStageText.value,
+    waitingMatch: true
+  })
+})
+
 const schedulePoll = (delay = POLL_INTERVAL) => {
   stopPolling()
   pollTimer = setTimeout(() => {
@@ -734,14 +841,16 @@ const schedulePoll = (delay = POLL_INTERVAL) => {
 const showMatchingBubble = () => {
   matchingInProgress.value = true
   readyToMatch.value = false
-  showSummaryCard.value = true
+  confirmCardDismissed.value = false
+  showInlineTimePicker.value = false
+  startMatchingStageRotation()
   upsertAssistantMessage({
     message: '正在为您匹配合适的陪诊师',
     processingPhase: 'answering',
-    thinkingProcess: '正在综合医院、时间与陪护偏好',
+    thinkingProcess: matchingStageText.value,
     waitingMatch: true
   })
-  scrollToBottom()
+  scrollToAnchor('matching-info-card')
 }
 
 const navigateToResultPage = async () => {
@@ -749,6 +858,7 @@ const navigateToResultPage = async () => {
   navigatingToResult.value = true
   stopPolling()
   stopMatchDeadline()
+  stopMatchingStageRotation()
   matchingInProgress.value = false
   try {
     await uni.navigateTo({
@@ -788,6 +898,7 @@ const startMatchFlow = async () => {
     return
   } catch (error) {
     stopMatchDeadline()
+    stopMatchingStageRotation()
     matchingInProgress.value = false
     sending.value = false
     upsertAssistantMessage({
@@ -800,43 +911,45 @@ const startMatchFlow = async () => {
   }
 }
 
-const buildSummaryConfirmText = () => {
-  return summaryItems.value
-    .map((item) => `${item.label}：${item.value || item.placeholder}`)
-    .join('\n')
-}
-
-const promptMatchConfirmation = () => {
-  if (matchConfirmationOpened.value || matchingInProgress.value || navigatingToResult.value) return
-  matchConfirmationOpened.value = true
-  showSummaryCard.value = true
-  uni.showModal({
-    title: '确认预约信息',
-    content: `${buildSummaryConfirmText()}\n\n确认无误后开始 AI 智能匹配陪诊师。`,
-    confirmText: '开始匹配',
-    cancelText: '继续修改',
-    success: async ({ confirm }) => {
-      matchConfirmationOpened.value = false
-      if (confirm) {
-        await confirmAndStartMatch()
-        return
-      }
-      upsertAssistantMessage({
-        message: '好的，您可以继续补充或修改需求，确认后再开始智能匹配。',
-        processingPhase: 'completed',
-        thinkingProcess: ''
-      })
-      scrollToBottom()
-    },
-    fail: () => {
-      matchConfirmationOpened.value = false
-    }
-  })
-}
-
 const confirmAndStartMatch = async () => {
   if (!readyToMatch.value || matchingInProgress.value || navigatingToResult.value) return
   await startMatchFlow()
+}
+
+const continueEditing = () => {
+  confirmCardDismissed.value = true
+  upsertAssistantMessage({
+    message: '好的，您可以继续补充或修改需求，确认后我再开始智能匹配。',
+    processingPhase: 'completed',
+    thinkingProcess: ''
+  })
+  scrollToBottom()
+}
+
+const toggleIntroCards = () => {
+  if (!hasStartedConversation.value) return
+  introExpanded.value = !introExpanded.value
+}
+
+const resetTimePicker = () => {
+  pickerStartTime.value = ''
+  pickerEndTime.value = ''
+}
+
+const cancelTimePicker = () => {
+  showInlineTimePicker.value = false
+  resetTimePicker()
+}
+
+const submitPickedTimeRange = async () => {
+  if (!canSubmitPickedTime.value) return
+  const exactRange = `${pickerStartTime.value}-${pickerEndTime.value}`
+  const displayText = structuredDemand.value.timePeriod
+    ? `${structuredDemand.value.timePeriod}，${exactRange}`
+    : exactRange
+  showInlineTimePicker.value = false
+  resetTimePicker()
+  await submitStructuredSelection('timePeriod', exactRange, displayText)
 }
 
 const applySessionStructuredDemand = (state = {}) => {
@@ -865,43 +978,54 @@ const applySessionStructuredDemand = (state = {}) => {
 const applySessionState = async (state) => {
   if (!state) return
   applySessionStructuredDemand(state)
+  if (hasStartedConversation.value) {
+    introExpanded.value = false
+  }
   upsertAssistantMessage({
     message: state.message || '',
     processingPhase: state.processingPhase,
-    thinkingProcess: state.thinkingProcess,
+    thinkingProcess: matchingInProgress.value ? matchingStageText.value : state.thinkingProcess,
     waitingMatch: matchingInProgress.value
   })
   currentQuestionType.value = state.questionType || ''
   activeOptions.value = Array.isArray(state.options) ? state.options : []
   followUpRound.value = Number(state.followUpRound || 0)
+  showInlineTimePicker.value = currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate && !matchingInProgress.value && !readyToMatch.value
   scrollToBottom()
 
   if (state.processingPhase === 'completed') {
     sending.value = false
     if (Array.isArray(state.matchedList) && state.matchedList.length) {
       stopMatchDeadline()
+      stopMatchingStageRotation()
       await navigateToResultPage()
     } else if (state.canMatch && !state.needMoreInfo && !matchingInProgress.value) {
       readyToMatch.value = true
-      showSummaryCard.value = true
-      if (!matchConfirmationOpened.value) {
+      showInlineTimePicker.value = false
+      if (confirmCardDismissed.value) {
+        scrollToBottom()
+      } else {
         upsertAssistantMessage({
           message: '我已经帮您整理好预约信息。您确认后，我就开始智能匹配陪诊师。',
           processingPhase: 'completed',
           thinkingProcess: ''
         })
-        scrollToBottom()
-        promptMatchConfirmation()
+        scrollToAnchor('inline-confirm-card')
       }
+    } else if (state.needMoreInfo && currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate) {
+      readyToMatch.value = false
+      resetTimePicker()
+      scrollToAnchor('time-picker-card')
     } else if (state.needMoreInfo && followUpRound.value >= 2) {
       readyToMatch.value = false
-      showSummaryCard.value = false
+      showInlineTimePicker.value = false
+      resetTimePicker()
       openStructuredPicker(currentQuestionType.value)
     } else if (matchingInProgress.value) {
       schedulePoll()
     } else {
       readyToMatch.value = false
-      showSummaryCard.value = false
+      showInlineTimePicker.value = currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate
     }
     return
   }
@@ -910,7 +1034,9 @@ const applySessionState = async (state) => {
     sending.value = false
     matchingInProgress.value = false
     readyToMatch.value = false
+    showInlineTimePicker.value = false
     stopMatchDeadline()
+    stopMatchingStageRotation()
     return
   }
 
@@ -928,7 +1054,7 @@ const pollSession = async () => {
       upsertAssistantMessage({
         message: '正在为您匹配合适的陪诊师',
         processingPhase: 'answering',
-        thinkingProcess: '网络波动中，正在继续为您匹配',
+        thinkingProcess: matchingStageText.value,
         waitingMatch: true
       })
       schedulePoll(2000)
@@ -947,9 +1073,11 @@ const sendMessage = async () => {
   const content = userInput.value.trim()
   if (!content || sending.value || navigatingToResult.value) return
 
-  showSummaryCard.value = false
   readyToMatch.value = false
-  matchConfirmationOpened.value = false
+  confirmCardDismissed.value = false
+  showInlineTimePicker.value = false
+  resetTimePicker()
+  introExpanded.value = false
   refreshStructuredDemandFromText(content)
   appendUserMessage(content)
   appendAssistantPlaceholder()
@@ -989,9 +1117,12 @@ const sendMessage = async () => {
 
 const submitStructuredSelection = async (fieldKey, selectedValue, displayText = selectedValue) => {
   if (!sessionId.value || !fieldKey || !selectedValue) return
-  showSummaryCard.value = false
   readyToMatch.value = false
-  matchConfirmationOpened.value = false
+  confirmCardDismissed.value = false
+  if (fieldKey === 'timePeriod') {
+    showInlineTimePicker.value = false
+    resetTimePicker()
+  }
   appendUserMessage(displayText)
   appendAssistantPlaceholder()
   sending.value = true
@@ -1021,25 +1152,12 @@ const submitStructuredSelection = async (fieldKey, selectedValue, displayText = 
 
 const handleChipClick = (tag) => {
   if (activeOptions.value.length && currentQuestionType.value) {
-    if (currentQuestionType.value === 'timePeriod' && ['上午', '下午', '晚上', '具体时间'].includes(tag)) {
-      const periodHint = tag === '具体时间' ? '' : tag
-      const modalTitle = periodHint ? `补充具体时间段（${periodHint}）` : '请输入具体时间段'
-      uni.showModal({
-        title: modalTitle,
-        editable: true,
-        placeholderText: '例如 9:00-11:00、9.00-11.00、9点到11点',
-        confirmText: '确认',
-        success: ({ confirm, content }) => {
-          const exactTime = normalizeExactTimePeriod(content || '')
-          if (!confirm) return
-          if (!exactTime) {
-            uni.showToast({ title: '请输入完整时间段，例如 9:00-11:00', icon: 'none' })
-            return
-          }
-          const displayText = periodHint ? `${periodHint}，${exactTime}` : exactTime
-          submitStructuredSelection('timePeriod', exactTime, displayText)
-        }
-      })
+    if (currentQuestionType.value === 'timePeriod' && ['上午', '下午', '晚上', '选择时间', '具体时间'].includes(tag)) {
+      if (tag === '选择时间' || tag === '具体时间') {
+        openStructuredPicker('timePeriod')
+        return
+      }
+      submitStructuredSelection('timePeriod', tag, tag)
       return
     }
     submitStructuredSelection(currentQuestionType.value, tag, tag)
@@ -1050,6 +1168,16 @@ const handleChipClick = (tag) => {
 
 const openStructuredPicker = (fieldKey) => {
   if (!fieldKey) return
+  if (fieldKey === 'timePeriod') {
+    if (!structuredDemand.value.serviceDate) {
+      uni.showToast({ title: '请先确认就诊日期', icon: 'none' })
+      return
+    }
+    showInlineTimePicker.value = true
+    resetTimePicker()
+    scrollToAnchor('time-picker-card')
+    return
+  }
   if (fieldKey === 'hospital') {
     uni.showModal({
       title: '补充就诊医院',
@@ -1064,7 +1192,7 @@ const openStructuredPicker = (fieldKey) => {
     return
   }
 
-  const itemList = activeOptions.value.length ? activeOptions.value : (fieldKey === 'timePeriod' ? ['上午', '下午', '晚上', '具体时间'] : [])
+  const itemList = activeOptions.value.length ? activeOptions.value : []
   if (!itemList.length) return
   uni.showActionSheet({
     itemList,
@@ -1094,6 +1222,7 @@ onMounted(() => {
 onUnmounted(() => {
   stopPolling()
   stopMatchDeadline()
+  stopMatchingStageRotation()
 })
 </script>
 
@@ -1132,6 +1261,11 @@ onUnmounted(() => {
   color: #22324f;
 }
 
+.intro-stack {
+  display: flex;
+  flex-direction: column;
+}
+
 .hero-card,
 .tip-card {
   margin: 0 24rpx 20rpx;
@@ -1144,6 +1278,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 28rpx;
+}
+
+.hero-card.compact {
+  margin-bottom: 14rpx;
+  padding: 24rpx;
 }
 
 .hero-icon-wrap {
@@ -1191,6 +1330,25 @@ onUnmounted(() => {
   font-size: 24rpx;
   font-weight: 700;
   color: #4c6aa3;
+}
+
+.intro-hint {
+  margin: 0 24rpx 18rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14rpx 30rpx rgba(48, 79, 143, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.intro-hint-text,
+.intro-hint-arrow {
+  font-size: 24rpx;
+  color: #5672a5;
+  font-weight: 600;
 }
 
 .summary-card {
@@ -1245,6 +1403,44 @@ onUnmounted(() => {
 .summary-badge.active {
   background: linear-gradient(135deg, #d8e9ff 0%, #edf5ff 100%);
   color: #335aa4;
+}
+
+.inline-card {
+  margin: 0 0 20rpx;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20rpx 46rpx rgba(48, 79, 143, 0.08);
+}
+
+.inline-card.confirm-card {
+  border: 2rpx solid rgba(80, 121, 205, 0.12);
+}
+
+.inline-card.matching-card {
+  background: linear-gradient(180deg, rgba(245, 249, 255, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%);
+}
+
+.inline-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.inline-card-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #23344f;
+}
+
+.inline-card-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #6a7a94;
 }
 
 .summary-grid {
@@ -1313,7 +1509,7 @@ onUnmounted(() => {
 }
 
 .chat-list {
-  padding-bottom: 24rpx;
+  padding-bottom: 40rpx;
 }
 
 .message-row {
@@ -1453,7 +1649,12 @@ onUnmounted(() => {
 }
 
 .composer {
-  padding: 0 24rpx 12rpx;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  flex-shrink: 0;
+  padding: 16rpx 24rpx 12rpx;
+  background: linear-gradient(180deg, rgba(246, 248, 252, 0) 0%, rgba(246, 248, 252, 0.92) 18%, rgba(246, 248, 252, 1) 100%);
 }
 
 .term-card {
@@ -1506,6 +1707,12 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+.inline-card-actions {
+  margin-top: 18rpx;
+  display: flex;
+  gap: 16rpx;
+}
+
 .input-bar {
   margin-top: 18rpx;
   display: flex;
@@ -1539,6 +1746,35 @@ onUnmounted(() => {
 }
 
 .send-btn[disabled] {
+  opacity: 0.56;
+}
+
+.summary-secondary-btn,
+.summary-primary-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 24rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-secondary-btn {
+  background: #eef4ff;
+  color: #4263a1;
+  border: none;
+}
+
+.summary-primary-btn {
+  background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
+  color: #ffffff;
+  border: none;
+}
+
+.summary-secondary-btn[disabled],
+.summary-primary-btn[disabled] {
   opacity: 0.56;
 }
 

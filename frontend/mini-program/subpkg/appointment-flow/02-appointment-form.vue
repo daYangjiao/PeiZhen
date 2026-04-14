@@ -30,31 +30,11 @@
 			</view>
 		</view>
 
-		<!-- 选择服务时段 -->
-		<view class="time-section">
-			<view class="section-header">
-				<view class="icon-wrapper">
-					<text class="time-icon">🕐</text>
-				</view>
-				<text class="section-title">选择服务时段</text>
-			</view>
-			
-		<view class="time-picker-row">
-			<view class="time-picker" @click="showStartTimePicker">
-				<text class="time-label">开始时间</text>
-					<text class="time-value" v-if="startTime">{{ startTime }}</text>
-					<text class="time-placeholder" v-else>请选择</text>
-					<text class="time-arrow">▼</text>
-				</view>
-				<view class="time-picker" @click="showEndTimePicker">
-					<text class="time-label">结束时间</text>
-					<text :class="['time-value', { 'time-value-compact': isNextDaySelectedEndTime() }]" v-if="endTime">{{ formatSelectedEndTimeDisplay() }}</text>
-					<text class="time-placeholder" v-else>请选择</text>
-					<text class="time-arrow">▼</text>
-				</view>
-			</view>
-			<text class="time-inline-tip">今天的开始时间会随当前时间变化，请尽快确认预约</text>
-		</view>
+		<appointment-time-range-picker
+			v-model:start-time="startTime"
+			v-model:end-time="endTime"
+			:selected-date="selectedDate"
+		/>
 
 		<!-- 输入地址或选择医院 -->
 		<view class="location-section">
@@ -169,75 +149,6 @@
 			<button class="confirm-btn" :class="{ disabled: !isFormComplete }" @click="confirmAppointment">
 				确认预约
 			</button>
-		</view>
-
-		<!-- 时间选择器弹窗 -->
-		<view class="modal-overlay" v-if="showTimeModal" @click="hideTimePicker">
-			<view class="time-modal" @click.stop>
-				<view class="time-modal-header">
-					<view>
-						<text class="time-modal-title">{{ timePickerTitle }}</text>
-						<text class="time-modal-subtitle">24小时可预约，结束时间可跨至次日</text>
-					</view>
-					<text class="close-btn" @click="hideTimePicker">✕</text>
-				</view>
-				
-				<scroll-view
-					class="time-list"
-					scroll-y
-					:scroll-into-view="timeScrollTarget"
-					scroll-with-animation
-				>
-					<view v-if="timeOptions.length === 0" class="time-empty-state">
-						<text class="time-empty-text">当前日期已无可预约时段，请选择其他日期</text>
-					</view>
-					<template v-if="timePickerType === 'start'">
-						<view
-							v-for="group in timeGroups"
-							:key="group.key"
-							:id="group.anchorId"
-							class="time-group"
-						>
-							<view class="time-group-header" @click="toggleTimeGroup(group.key)">
-								<view class="time-group-copy">
-									<text class="time-group-title">{{ group.label }}</text>
-									<text class="time-group-meta">{{ group.rangeLabel }}</text>
-								</view>
-								<view class="time-group-badge">
-									<text class="time-group-count">{{ group.options.length }}</text>
-								</view>
-								<text class="time-group-arrow" :class="{ expanded: isTimeGroupExpanded(group.key) }">⌄</text>
-							</view>
-
-							<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
-								<view
-									v-for="option in group.options"
-									:key="`${group.key}-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
-									:class="['time-option', { 'selected': isSelectedTimeOption(option) }]"
-									@click="selectTime(option)"
-								>
-									<text class="time-option-text">{{ option.displayLabel }}</text>
-								</view>
-							</view>
-						</view>
-					</template>
-					<view v-else class="time-sequence-grid">
-						<view
-							v-for="option in timeOptions"
-							:key="`end-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
-							:class="['time-option', 'sequence-option', { 'selected': isSelectedTimeOption(option) }]"
-							@click="selectTime(option)"
-						>
-							<text class="time-option-text">{{ option.displayLabel }}</text>
-						</view>
-					</view>
-				</scroll-view>
-				
-				<view class="time-footer">
-					<button class="cancel-btn" @click="hideTimePicker">取消</button>
-					<button class="confirm-time-btn" @click="confirmTime">确定</button>
-				</view>
-			</view>
 		</view>
 
 		<!-- 日期选择弹窗 -->
@@ -394,6 +305,7 @@ import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 g
 import { appointmentServiceLogos } from '@/utils/assets.js'
 import { HOSPITAL_OPTIONS } from '@/utils/hospital-options.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 
 // --- 接收页面参数 ---
 // 使用 onLoad 钩子接收从上一个页面传递的参数
