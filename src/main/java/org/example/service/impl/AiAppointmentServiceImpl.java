@@ -1836,13 +1836,13 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
     private String writeJson(Object value) {
         if (value == null) {
-            return "";
+            return null;
         }
         try {
             return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
             log.warn("序列化 JSON 失败: {}", summarizeException(e));
-            return "";
+            return null;
         }
     }
 
