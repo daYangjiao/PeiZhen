@@ -47,6 +47,12 @@
         </view>
       </view>
 
+      <view v-if="showSummaryAction" class="summary-actions">
+        <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
+          确认信息并开始匹配
+        </button>
+      </view>
+
       <view v-if="matchingInProgress" class="summary-loading">
         <view class="matching-dots">
           <text class="matching-dot"></text>
@@ -197,6 +203,9 @@ const navigatingToResult = ref(false)
 const activeAssistantKey = ref('')
 const matchDeadlineTimer = ref(null)
 const structuredDemand = ref(createEmptyStructuredDemand())
+const showSummaryCard = ref(false)
+const readyToMatch = ref(false)
+const matchConfirmationOpened = ref(false)
 let pollTimer = null
 
 const getUserAvatar = () => {
@@ -637,14 +646,15 @@ const summaryTags = computed(() => {
   return uniqueList(tags)
 })
 
-const summaryVisible = computed(() => {
-  return summaryItems.value.some((item) => !!item.value) || matchingInProgress.value || !!sessionId.value
-})
+const summaryVisible = computed(() => showSummaryCard.value || matchingInProgress.value)
+
+const showSummaryAction = computed(() => showSummaryCard.value && readyToMatch.value && !matchingInProgress.value)
 
 const summaryStatusText = computed(() => {
   if (matchingInProgress.value) return '正在梳理医院、时间、症状与陪护偏好'
+  if (readyToMatch.value) return '信息已整理完成，请确认后开始智能匹配'
   if (currentQuestionType.value) return `正在补齐${getQuestionLabel(currentQuestionType.value)}`
-  return '系统已为您整理出可用于匹配的关键信息'
+  return 'AI 已帮您整理出可用于匹配的关键信息'
 })
 
 const getStructuredDemandStorageKey = (id = '') => {
@@ -723,6 +733,8 @@ const schedulePoll = (delay = POLL_INTERVAL) => {
 
 const showMatchingBubble = () => {
   matchingInProgress.value = true
+  readyToMatch.value = false
+  showSummaryCard.value = true
   upsertAssistantMessage({
     message: '正在为您匹配合适的陪诊师',
     processingPhase: 'answering',
@@ -788,6 +800,45 @@ const startMatchFlow = async () => {
   }
 }
 
+const buildSummaryConfirmText = () => {
+  return summaryItems.value
+    .map((item) => `${item.label}：${item.value || item.placeholder}`)
+    .join('\n')
+}
+
+const promptMatchConfirmation = () => {
+  if (matchConfirmationOpened.value || matchingInProgress.value || navigatingToResult.value) return
+  matchConfirmationOpened.value = true
+  showSummaryCard.value = true
+  uni.showModal({
+    title: '确认预约信息',
+    content: `${buildSummaryConfirmText()}\n\n确认无误后开始 AI 智能匹配陪诊师。`,
+    confirmText: '开始匹配',
+    cancelText: '继续修改',
+    success: async ({ confirm }) => {
+      matchConfirmationOpened.value = false
+      if (confirm) {
+        await confirmAndStartMatch()
+        return
+      }
+      upsertAssistantMessage({
+        message: '好的，您可以继续补充或修改需求，确认后再开始智能匹配。',
+        processingPhase: 'completed',
+        thinkingProcess: ''
+      })
+      scrollToBottom()
+    },
+    fail: () => {
+      matchConfirmationOpened.value = false
+    }
+  })
+}
+
+const confirmAndStartMatch = async () => {
+  if (!readyToMatch.value || matchingInProgress.value || navigatingToResult.value) return
+  await startMatchFlow()
+}
+
 const applySessionStructuredDemand = (state = {}) => {
   const source = state.structuredDemand || state.demandData || state.appointmentData || {}
   const next = sanitizeStructuredDemand({
@@ -831,11 +882,26 @@ const applySessionState = async (state) => {
       stopMatchDeadline()
       await navigateToResultPage()
     } else if (state.canMatch && !state.needMoreInfo && !matchingInProgress.value) {
-      await startMatchFlow()
+      readyToMatch.value = true
+      showSummaryCard.value = true
+      if (!matchConfirmationOpened.value) {
+        upsertAssistantMessage({
+          message: '我已经帮您整理好预约信息。您确认后，我就开始智能匹配陪诊师。',
+          processingPhase: 'completed',
+          thinkingProcess: ''
+        })
+        scrollToBottom()
+        promptMatchConfirmation()
+      }
     } else if (state.needMoreInfo && followUpRound.value >= 2) {
+      readyToMatch.value = false
+      showSummaryCard.value = false
       openStructuredPicker(currentQuestionType.value)
     } else if (matchingInProgress.value) {
       schedulePoll()
+    } else {
+      readyToMatch.value = false
+      showSummaryCard.value = false
     }
     return
   }
@@ -843,6 +909,7 @@ const applySessionState = async (state) => {
   if (state.processingPhase === 'failed') {
     sending.value = false
     matchingInProgress.value = false
+    readyToMatch.value = false
     stopMatchDeadline()
     return
   }
@@ -880,6 +947,9 @@ const sendMessage = async () => {
   const content = userInput.value.trim()
   if (!content || sending.value || navigatingToResult.value) return
 
+  showSummaryCard.value = false
+  readyToMatch.value = false
+  matchConfirmationOpened.value = false
   refreshStructuredDemandFromText(content)
   appendUserMessage(content)
   appendAssistantPlaceholder()
@@ -919,6 +989,9 @@ const sendMessage = async () => {
 
 const submitStructuredSelection = async (fieldKey, selectedValue, displayText = selectedValue) => {
   if (!sessionId.value || !fieldKey || !selectedValue) return
+  showSummaryCard.value = false
+  readyToMatch.value = false
+  matchConfirmationOpened.value = false
   appendUserMessage(displayText)
   appendAssistantPlaceholder()
   sending.value = true
