@@ -22,6 +22,16 @@
 				<text class="overview-order-no">订单号：{{ orderInfo.orderNo }}</text>
 			</view>
 
+			<view v-if="orderInfo.status === 'assigned_waiting'" class="status-card assigned-countdown-card">
+				<view class="progress-title-row">
+					<text class="progress-title">专属派单待确认</text>
+					<text class="progress-step-text">剩余 {{ assignedCountdown }}</text>
+				</view>
+				<view class="assigned-countdown-desc">
+					<text>请尽快确认接单，超时后订单将自动释放到公共派单池。</text>
+				</view>
+			</view>
+
 			<!-- 顶部：订单整体状态进度条（待核销 / 服务中 / 待患者确认） -->
 			<view class="status-card top-progress-card" v-if="['accepted','in_progress','waiting_confirm'].includes(orderInfo.status)">
 				<view class="progress-title-row">
@@ -575,17 +585,42 @@ function buildEscortServiceRecords(order, status) {
 	if (Number(order.paymentStatus) === 1) {
 		pushRecord(order.paymentTime, '用户已支付订单')
 	}
-	if (Number(order.orderStatus) >= 2) {
-		pushRecord(order.acceptTime || order.paymentTime || order.createTime, '陪诊师已接单')
-	}
-	if (Number(order.orderStatus) >= 3) {
-		pushRecord(order.serviceStartTime, '扫码核销，开始服务')
-	}
-	if (Number(order.orderStatus) >= 4) {
-		pushRecord(order.serviceEndTime || order.updateTime, '已提交服务时长与费用')
-	}
-	if (status === 'completed') {
-		pushRecord(order.updateTime || order.serviceEndTime, '订单已完成')
+	const orderStatus = Number(order.orderStatus)
+	const acceptTime = order.acceptTime || order.paymentTime || order.createTime
+	const startTime = order.serviceStartTime || order.acceptTime || order.paymentTime || order.createTime
+	const endTime = order.serviceEndTime || order.updateTime || order.serviceStartTime
+
+	switch (status) {
+		case 'pending':
+			break
+		case 'assigned_waiting':
+			pushRecord(acceptTime, '专属派单待确认')
+			break
+		case 'accepted':
+		case 'in_progress':
+		case 'waiting_confirm':
+		case 'disputed':
+		case 'completed':
+			if (orderStatus >= 2) {
+				pushRecord(acceptTime, '陪诊师已接单')
+			}
+			if (orderStatus >= 3) {
+				pushRecord(startTime, '扫码核销，开始服务')
+			}
+			if (orderStatus >= 4) {
+				pushRecord(endTime, '已提交服务时长与费用')
+			}
+			if (status === 'disputed') {
+				pushRecord(order.updateTime || endTime, '待补款')
+			}
+			if (status === 'completed') {
+				pushRecord(order.updateTime || order.serviceEndTime, '订单已完成')
+			}
+			break
+		case 'cancelled':
+			break
+		default:
+			break
 	}
 	if (status === 'cancelled') {
 		pushRecord(order.cancelTime, '订单已取消')
@@ -603,6 +638,7 @@ export default {
 			showEndServiceModal: false,
 			showPrepareModal: false,
 			showContactPatientModal: false,
+			assignedCountdownTimer: null,
 			simulateQrContent: '',
 			pendingQrContent: '',
 			verifySubmitting: false,
@@ -620,6 +656,8 @@ export default {
 				id: '',
 				orderNo: '',
 				status: 'accepted',
+				paymentStatus: 0,
+				paymentTime: '',
 				patientAvatar: '',
 				patientName: '',
 				patientAge: 0,
@@ -643,6 +681,7 @@ export default {
 				refundAmount: 0,
 				serviceRecords: []
 			},
+			assignedCountdown: '00:00',
 			serviceFlowSteps: [
 				{ key: 'arrived', label: '已到院' },
 				{ key: 'waiting', label: '候诊中' },
@@ -670,6 +709,7 @@ export default {
 		statusText() {
 			const texts = {
 				pending: '待接单',
+				assigned_waiting: '专属派单待确认',
 				accepted: '待服务',
 				in_progress: '服务中',
 				waiting_confirm: '待患者确认',
@@ -682,6 +722,7 @@ export default {
 		statusDesc() {
 			const descs = {
 				pending: '等待陪诊师接单',
+				assigned_waiting: '已指定您作为陪诊师，等待您确认接单',
 				accepted: '请按时到达指定地点',
 				in_progress: '正在为患者提供陪诊服务',
 				waiting_confirm: '已提交时长费用，待用户确认',
@@ -711,6 +752,9 @@ export default {
 		},
 		overviewHintText() {
 			const status = this.orderInfo.status
+			if (status === 'assigned_waiting') {
+				return `剩余确认时间：${this.assignedCountdown}`
+			}
 			if (status === 'accepted') {
 				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
 			}
@@ -771,12 +815,50 @@ export default {
 		if (this.socketListener) {
 			removeOrderListener(this.socketListener)
 		}
+		this.clearAssignedCountdown()
 	},
 	
 	methods: {
 		refreshPreparedState() {
 			if (!this.orderInfo.id) return
 			this.isPrepared = uni.getStorageSync(`order_prepared_${this.orderInfo.id}`) === '1'
+		},
+		clearAssignedCountdown() {
+			if (this.assignedCountdownTimer) {
+				clearInterval(this.assignedCountdownTimer)
+				this.assignedCountdownTimer = null
+			}
+		},
+		setupAssignedCountdown() {
+			this.clearAssignedCountdown()
+			if (this.orderInfo.status !== 'assigned_waiting' || Number(this.orderInfo.paymentStatus) !== 1) {
+				this.assignedCountdown = '00:00'
+				return
+			}
+			const paymentTime = this.orderInfo.paymentTime || this.orderInfo.createTime
+			if (!paymentTime) {
+				this.assignedCountdown = '00:00'
+				return
+			}
+			const baseTime = Date.parse(String(paymentTime).replace(/-/g, '/'))
+			if (Number.isNaN(baseTime)) {
+				this.assignedCountdown = '00:00'
+				return
+			}
+			const deadline = baseTime + 15 * 60 * 1000
+			const tick = () => {
+				const diff = deadline - Date.now()
+				if (diff <= 0) {
+					this.assignedCountdown = '00:00'
+					this.clearAssignedCountdown()
+					return
+				}
+				const minutes = Math.floor(diff / 60000)
+				const seconds = Math.floor((diff % 60000) / 1000)
+				this.assignedCountdown = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+			}
+			tick()
+			this.assignedCountdownTimer = setInterval(tick, 1000)
 		},
 		async loadEvaluation(orderId) {
 			if (!orderId) return
@@ -858,6 +940,7 @@ export default {
 					else if (order.orderStatus === 3) status = 'in_progress'
 					else if (order.orderStatus === 4) status = 'waiting_confirm'
 					else if (order.orderStatus === 5) status = 'disputed'
+					else if (order.orderStatus === 8) status = 'assigned_waiting'
 					else if (order.orderStatus === 6) status = 'completed'
 					else if (order.orderStatus === 7) status = 'cancelled'
 
@@ -868,6 +951,8 @@ export default {
 						orderNo: order.orderNo,
 						userId: order.userId,
 						status: status,
+						paymentStatus: order.paymentStatus,
+						paymentTime: order.paymentTime || '',
 						patientName: order.contactPerson || order.patientName || order.userName || '患者',
 						patientAge: order.patientAge || '--',
 						patientGender: order.patientSex || '未知',
@@ -893,6 +978,7 @@ export default {
 						balanceAmount: order.balanceAmount,
 						serviceRecords: buildEscortServiceRecords(order, status)
 					}
+					this.setupAssignedCountdown()
 					const stored = uni.getStorageSync(`order_flow_step_${order.orderId}`)
 					if (stored) {
 						this.currentFlowStep = Number(stored) || 1
@@ -1233,11 +1319,13 @@ export default {
 			if (!isCurrentOrder || !relatedTypes.includes(type)) return
 			const nextStatus = Number(payload.orderStatus ?? message.orderStatus)
 			if (Number.isFinite(nextStatus)) {
-				if (nextStatus === 3) this.orderInfo.status = 'in_progress'
+				if (nextStatus === 8) this.orderInfo.status = 'assigned_waiting'
+				else if (nextStatus === 3) this.orderInfo.status = 'in_progress'
 				else if (nextStatus === 4) this.orderInfo.status = 'waiting_confirm'
 				else if (nextStatus === 5) this.orderInfo.status = 'disputed'
 				else if (nextStatus === 6) this.orderInfo.status = 'completed'
 				else if (nextStatus === 7) this.orderInfo.status = 'cancelled'
+				this.setupAssignedCountdown()
 			}
 			const nextStep = Number(payload.step ?? message.step)
 			if (Number.isFinite(nextStep) && nextStep >= 1 && nextStep <= 4) {
@@ -1468,6 +1556,20 @@ export default {
 			border-radius: 999rpx;
 			padding: 6rpx 14rpx;
 		}
+	}
+}
+
+.assigned-countdown-card {
+	.assigned-countdown-desc {
+		margin-top: 14rpx;
+		font-size: 24rpx;
+		color: var(--text-sub);
+		line-height: 1.7;
+	}
+
+	.progress-step-text {
+		background: #eef5ff;
+		color: var(--primary);
 	}
 }
 

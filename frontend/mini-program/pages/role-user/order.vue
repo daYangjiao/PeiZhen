@@ -57,9 +57,14 @@
               </view>
 
               <view class="order-meta">
-                <view class="time-row">
-                  <image src="/static/time.png" class="meta-icon"></image>
-                  <text class="service-time">{{ order.displayServiceTime }}</text>
+                <view class="time-column">
+                  <view class="time-row">
+                    <image src="/static/time.png" class="meta-icon"></image>
+                    <text class="service-time">{{ order.displayServiceTime }}</text>
+                  </view>
+                  <text v-if="isAssignedWaiting(order)" class="assigned-countdown">
+                    剩余 {{ getAssignedCountdown(order) }}
+                  </text>
                 </view>
                 <text class="price">¥{{ order.orderAmount.toFixed(2) }}</text>
               </view>
@@ -116,6 +121,7 @@ import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
+const clockNow = ref(Date.now())
 
 const statusTabs = ref([
   { name: '全部', value: null },
@@ -138,6 +144,7 @@ const userStore = useUserStore()
 let pollTimer = null
 let socketListener = null
 let socketRefreshTimer = null
+let clockTimer = null
 let pageActive = false
 let queuedReload = false
 let queuedReloadSilent = true
@@ -184,6 +191,7 @@ onShow(() => {
   userStore.restoreFromStorage()
   connectOrderSocket()
   setupWebSocketListener()
+  startClockTicker()
   loadOrders({ silent: orders.value.length > 0 })
   startPolling()
 })
@@ -191,6 +199,7 @@ onShow(() => {
 onHide(() => {
   pageActive = false
   stopPolling()
+  stopClockTicker()
   if (socketRefreshTimer) {
     clearTimeout(socketRefreshTimer)
     socketRefreshTimer = null
@@ -208,6 +217,46 @@ const switchTab = (status) => {
 }
 
 const isOrderListLoading = () => initialLoading.value || isRefreshing.value
+
+const startClockTicker = () => {
+  stopClockTicker()
+  clockNow.value = Date.now()
+  clockTimer = setInterval(() => {
+    clockNow.value = Date.now()
+  }, 1000)
+}
+
+const stopClockTicker = () => {
+  if (clockTimer) {
+    clearInterval(clockTimer)
+    clockTimer = null
+  }
+}
+
+const parseOrderTime = (value) => {
+  if (!value) return null
+  const normalized = String(value).replace(/-/g, '/')
+  const time = Date.parse(normalized)
+  return Number.isNaN(time) ? null : time
+}
+
+const formatCountdown = (remainingMs) => {
+  const safe = Math.max(0, Number(remainingMs) || 0)
+  const totalSeconds = Math.floor(safe / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+const isAssignedWaiting = (order) => Number(order?.paymentStatus) === 1 && Number(order?.orderStatus) === 8
+
+const getAssignedCountdown = (order) => {
+  if (!isAssignedWaiting(order)) return '00:00'
+  const baseTime = parseOrderTime(order?.paymentTime)
+  if (baseTime == null) return '00:00'
+  const remainingMs = 15 * 60 * 1000 - (clockNow.value - baseTime)
+  return formatCountdown(remainingMs)
+}
 
 const loadOrders = async ({ silent = false } = {}) => {
   if (!userStore.isLoggedIn) {
@@ -352,7 +401,7 @@ const startPolling = () => {
     if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
     const shouldPoll = orders.value.some(order =>
       (order.paymentStatus === 0 && order.orderStatus !== 7) ||
-      [1, 2, 3, 4, 5].includes(order.orderStatus)
+      [1, 2, 3, 4, 5, 8].includes(order.orderStatus)
     )
     if (shouldPoll) loadOrders({ silent: true })
   }, ORDER_LIST_POLL_INTERVAL)
@@ -419,6 +468,7 @@ const teardownWebSocketListener = () => {
 
 const cleanupRealtime = () => {
   stopPolling()
+  stopClockTicker()
   if (socketRefreshTimer) {
     clearTimeout(socketRefreshTimer)
     socketRefreshTimer = null
@@ -558,6 +608,13 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: 24rpx;
 }
+.time-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
+  min-width: 0;
+}
 .time-row {
   display: flex;
   align-items: center;
@@ -571,6 +628,14 @@ onUnmounted(() => {
 .service-time {
   font-size: 26rpx;
   color: #666;
+}
+.assigned-countdown {
+  font-size: 22rpx;
+  color: #007AFF;
+  background: #eef5ff;
+  border-radius: 999rpx;
+  padding: 4rpx 12rpx;
+  line-height: 1.4;
 }
 .price {
   font-size: 32rpx;

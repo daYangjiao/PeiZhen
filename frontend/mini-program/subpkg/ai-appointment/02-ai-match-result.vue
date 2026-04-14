@@ -80,19 +80,20 @@ const degraded = ref(false)
 const errorText = ref('')
 const phaseLabel = ref('AI 正在为您寻优匹配中...')
 const phaseText = ref('请稍候，系统正在结合需求与可用陪诊师做筛选')
-let pollTimer = null
+let hydrateTimer = null
+const MAX_HYDRATE_RETRY = 3
 
 const stopPolling = () => {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
+  if (hydrateTimer) {
+    clearTimeout(hydrateTimer)
+    hydrateTimer = null
   }
 }
 
 const resolveAvatar = (url) => resolveAvatarUrl(url, defaultAvatar)
 const formatScore = (score) => Number(score || 5).toFixed(1)
 
-const pollSession = async () => {
+const hydrateSession = async (attempt = 0) => {
   stopPolling()
   if (!sessionId.value) return
   try {
@@ -116,9 +117,22 @@ const pollSession = async () => {
       errorText.value = state.message || '推荐失败，请稍后重试'
       return
     }
+    if (attempt < MAX_HYDRATE_RETRY - 1) {
+      hydrateTimer = setTimeout(() => {
+        hydrateSession(attempt + 1)
+      }, 800)
+      return
+    }
 
-    pollTimer = setTimeout(pollSession, 1500)
+    loading.value = false
+    errorText.value = '结果仍在生成中，请返回上一页稍后重试'
   } catch (error) {
+    if (attempt < MAX_HYDRATE_RETRY - 1) {
+      hydrateTimer = setTimeout(() => {
+        hydrateSession(attempt + 1)
+      }, 800)
+      return
+    }
     loading.value = false
     errorText.value = '获取推荐结果失败，请稍后重试'
   }
@@ -148,9 +162,12 @@ const goToNormalFlow = () => {
 }
 
 const retryPoll = () => {
-  loading.value = true
+  matchedList.value = []
+  appointmentNo.value = ''
+  degraded.value = false
   errorText.value = ''
-  pollSession()
+  loading.value = true
+  hydrateSession(0)
 }
 
 onLoad((options) => {
@@ -160,7 +177,7 @@ onLoad((options) => {
     errorText.value = '缺少匹配会话，请重新发起 AI 预约'
     return
   }
-  pollSession()
+  hydrateSession(0)
 })
 
 onUnload(() => {

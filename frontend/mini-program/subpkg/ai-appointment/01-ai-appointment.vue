@@ -55,6 +55,14 @@
               <view v-if="msg.processingPhase && msg.processingPhase !== 'completed'" class="phase-text">
                 <text>{{ msg.thinkingProcess || getPhaseLabel(msg.processingPhase) }}</text>
               </view>
+              <view v-if="msg.waitingMatch" class="matching-indicator">
+                <view class="matching-dots">
+                  <text class="matching-dot"></text>
+                  <text class="matching-dot"></text>
+                  <text class="matching-dot"></text>
+                </view>
+                <text class="matching-caption">正在梳理需求并筛选可接单陪诊师</text>
+              </view>
             </template>
 
             <view class="bubble-content" :class="{ loading: msg.type === 'ai' && msg.processingPhase && msg.processingPhase !== 'completed' }">
@@ -100,9 +108,9 @@
           placeholder="告诉 AI 您的预约需求..."
           confirm-type="send"
           @confirm="sendMessage"
-          :disabled="sending || navigatingToResult"
+          :disabled="sending || matchingInProgress || navigatingToResult"
         />
-        <button class="send-btn" :disabled="sending || navigatingToResult || !userInput.trim()" @click="sendMessage">
+        <button class="send-btn" :disabled="sending || matchingInProgress || navigatingToResult || !userInput.trim()" @click="sendMessage">
           {{ sending ? '处理中' : '发送' }}
         </button>
       </view>
@@ -125,6 +133,7 @@ import {
 const AIAvatar = brandAiAvatar
 const userStore = useUserStore()
 const POLL_INTERVAL = 1500
+const MATCH_WAIT_LIMIT = 30000
 
 const suggestions = [
   '明天下午去华西医院，需要推轮椅',
@@ -144,6 +153,7 @@ const messages = ref([
 ])
 const userInput = ref('')
 const sending = ref(false)
+const matchingInProgress = ref(false)
 const scrollIntoView = ref('')
 const composerPaddingBottom = ref(8)
 const sessionId = ref('')
@@ -152,6 +162,7 @@ const activeOptions = ref([])
 const followUpRound = ref(0)
 const navigatingToResult = ref(false)
 const activeAssistantKey = ref('')
+const matchDeadlineTimer = ref(null)
 let pollTimer = null
 
 const getUserAvatar = () => {
@@ -182,6 +193,30 @@ const getPhaseLabel = (phase = '') => {
   return '已完成'
 }
 
+const normalizeTimeChunk = (value = '') => {
+  const text = String(value).trim()
+  if (!text) return ''
+  const [hours = '', minutes = ''] = text.split(':')
+  if (!hours || !minutes) return ''
+  const h = String(Number(hours))
+  const m = String(Number(minutes))
+  if (!Number.isFinite(Number(h)) || !Number.isFinite(Number(m))) return ''
+  return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`
+}
+
+const normalizeExactTimePeriod = (value = '') => {
+  const cleaned = String(value)
+    .trim()
+    .replace(/[～~至到]/g, '-')
+    .replace(/\s+/g, '')
+  const match = cleaned.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
+  if (!match) return ''
+  const start = normalizeTimeChunk(match[1])
+  const end = normalizeTimeChunk(match[2])
+  if (!start || !end) return ''
+  return `${start}-${end}`
+}
+
 const getQuestionLabel = (field) => {
   if (field === 'serviceDate') return '日期'
   if (field === 'timePeriod') return '时段'
@@ -209,7 +244,8 @@ const appendAssistantPlaceholder = (text = '') => {
     type: 'ai',
     text,
     processingPhase: 'thinking',
-    thinkingProcess: '正在理解您的预约需求...'
+    thinkingProcess: '正在理解您的预约需求...',
+    waitingMatch: false
   })
 }
 
@@ -219,7 +255,8 @@ const upsertAssistantMessage = (payload = {}) => {
     type: 'ai',
     text: payload.message || '',
     processingPhase: payload.processingPhase || 'completed',
-    thinkingProcess: payload.thinkingProcess || ''
+    thinkingProcess: payload.thinkingProcess || '',
+    waitingMatch: !!payload.waitingMatch
   }
   const index = messages.value.findIndex((item) => item.key === next.key)
   if (index >= 0) {
@@ -236,12 +273,89 @@ const stopPolling = () => {
   }
 }
 
+const stopMatchDeadline = () => {
+  if (matchDeadlineTimer.value) {
+    clearTimeout(matchDeadlineTimer.value)
+    matchDeadlineTimer.value = null
+  }
+}
+
+const schedulePoll = (delay = POLL_INTERVAL) => {
+  stopPolling()
+  pollTimer = setTimeout(() => {
+    pollSession()
+  }, delay)
+}
+
+const showMatchingBubble = () => {
+  matchingInProgress.value = true
+  upsertAssistantMessage({
+    message: '正在为您匹配合适的陪诊师',
+    processingPhase: 'answering',
+    thinkingProcess: '正在综合医院、时间与陪护偏好',
+    waitingMatch: true
+  })
+  scrollToBottom()
+}
+
+const navigateToResultPage = async () => {
+  if (navigatingToResult.value) return
+  navigatingToResult.value = true
+  stopPolling()
+  stopMatchDeadline()
+  matchingInProgress.value = false
+  try {
+    await uni.navigateTo({
+      url: `/subpkg/ai-appointment/02-ai-match-result?sessionId=${encodeURIComponent(sessionId.value)}`
+    })
+  } catch (error) {
+    navigatingToResult.value = false
+    uni.showToast({ title: '跳转结果页失败，请稍后重试', icon: 'none' })
+  }
+}
+
+const startMatchFlow = async () => {
+  if (matchingInProgress.value || navigatingToResult.value || !sessionId.value) return
+  showMatchingBubble()
+  stopMatchDeadline()
+  matchDeadlineTimer.value = setTimeout(async () => {
+    try {
+      const state = await getAiAppointmentSession(sessionId.value)
+      if (state && Array.isArray(state.matchedList) && state.matchedList.length) {
+        await applySessionState(state)
+        return
+      }
+    } catch (error) {
+      console.warn('匹配超时前最后一次拉取失败:', error)
+    }
+    await navigateToResultPage()
+  }, MATCH_WAIT_LIMIT)
+
+  try {
+    await startAiAppointmentMatch(sessionId.value)
+  } catch (error) {
+    stopMatchDeadline()
+    matchingInProgress.value = false
+    sending.value = false
+    upsertAssistantMessage({
+      message: '启动匹配失败，请稍后重试。',
+      processingPhase: 'failed',
+      thinkingProcess: '服务暂不可用，请稍后重试'
+    })
+    uni.showToast({ title: '启动匹配失败，请稍后重试', icon: 'none' })
+    return
+  }
+
+  schedulePoll(800)
+}
+
 const applySessionState = async (state) => {
   if (!state) return
   upsertAssistantMessage({
     message: state.message || '',
     processingPhase: state.processingPhase,
-    thinkingProcess: state.thinkingProcess
+    thinkingProcess: state.thinkingProcess,
+    waitingMatch: matchingInProgress.value
   })
   currentQuestionType.value = state.questionType || ''
   activeOptions.value = Array.isArray(state.options) ? state.options : []
@@ -250,29 +364,27 @@ const applySessionState = async (state) => {
 
   if (state.processingPhase === 'completed') {
     sending.value = false
-    if (state.canMatch && !state.needMoreInfo && !navigatingToResult.value) {
-      navigatingToResult.value = true
-      try {
-        await startAiAppointmentMatch(sessionId.value)
-        uni.navigateTo({
-          url: `/subpkg/ai-appointment/02-ai-match-result?sessionId=${encodeURIComponent(sessionId.value)}`
-        })
-      } catch (error) {
-        navigatingToResult.value = false
-        uni.showToast({ title: '启动匹配失败，请稍后重试', icon: 'none' })
-      }
+    if (Array.isArray(state.matchedList) && state.matchedList.length) {
+      stopMatchDeadline()
+      await navigateToResultPage()
+    } else if (state.canMatch && !state.needMoreInfo && !matchingInProgress.value) {
+      await startMatchFlow()
     } else if (state.needMoreInfo && followUpRound.value >= 2) {
       openStructuredPicker(currentQuestionType.value)
+    } else if (matchingInProgress.value) {
+      schedulePoll()
     }
     return
   }
 
   if (state.processingPhase === 'failed') {
     sending.value = false
+    matchingInProgress.value = false
+    stopMatchDeadline()
     return
   }
 
-  pollTimer = setTimeout(pollSession, POLL_INTERVAL)
+  schedulePoll()
 }
 
 const pollSession = async () => {
@@ -282,6 +394,16 @@ const pollSession = async () => {
     const state = await getAiAppointmentSession(sessionId.value)
     await applySessionState(state)
   } catch (error) {
+    if (matchingInProgress.value) {
+      upsertAssistantMessage({
+        message: '正在为您匹配合适的陪诊师',
+        processingPhase: 'answering',
+        thinkingProcess: '网络波动中，正在继续为您匹配',
+        waitingMatch: true
+      })
+      schedulePoll(2000)
+      return
+    }
     sending.value = false
     upsertAssistantMessage({
       message: '抱歉，当前 AI 预约服务暂不可用，请稍后重试。',
@@ -340,6 +462,7 @@ const submitStructuredSelection = async (fieldKey, selectedValue, displayText = 
     await applySessionState(response)
   } catch (error) {
     sending.value = false
+    matchingInProgress.value = false
     upsertAssistantMessage({
       message: '补充信息失败，请稍后重试。',
       processingPhase: 'failed',
@@ -350,16 +473,23 @@ const submitStructuredSelection = async (fieldKey, selectedValue, displayText = 
 
 const handleChipClick = (tag) => {
   if (activeOptions.value.length && currentQuestionType.value) {
-    if (tag === '具体时间') {
-      userInput.value = ''
+    if (currentQuestionType.value === 'timePeriod' && ['上午', '下午', '晚上', '具体时间'].includes(tag)) {
+      const periodHint = tag === '具体时间' ? '' : tag
+      const modalTitle = periodHint ? `补充具体时间段（${periodHint}）` : '请输入具体时间段'
       uni.showModal({
-        title: '请输入具体时间',
+        title: modalTitle,
         editable: true,
         placeholderText: '例如 09:30-11:30',
+        confirmText: '确认',
         success: ({ confirm, content }) => {
-          if (confirm && content) {
-            submitStructuredSelection('timePeriod', content.trim(), content.trim())
+          const exactTime = normalizeExactTimePeriod(content || '')
+          if (!confirm) return
+          if (!exactTime) {
+            uni.showToast({ title: '请输入完整时间段，例如 09:30-11:30', icon: 'none' })
+            return
           }
+          const displayText = periodHint ? `${periodHint}，${exactTime}` : exactTime
+          submitStructuredSelection('timePeriod', exactTime, displayText)
         }
       })
       return
@@ -414,6 +544,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopPolling()
+  stopMatchDeadline()
 })
 </script>
 
@@ -625,6 +756,40 @@ onUnmounted(() => {
   min-height: 44rpx;
 }
 
+.matching-indicator {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.matching-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.matching-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #4b7fff;
+  animation: aiAppointmentDot 1.1s infinite ease-in-out;
+}
+
+.matching-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.matching-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.matching-caption {
+  font-size: 22rpx;
+  color: #5e7398;
+}
+
 .composer {
   padding: 0 24rpx 12rpx;
 }
@@ -713,5 +878,16 @@ onUnmounted(() => {
 
 .send-btn[disabled] {
   opacity: 0.56;
+}
+
+@keyframes aiAppointmentDot {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-6rpx);
+    opacity: 1;
+  }
 }
 </style>
