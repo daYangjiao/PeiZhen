@@ -261,7 +261,12 @@ public class AiGuideServiceImpl implements AiGuideService {
         response.setPatientPhone(order.getContactPhone());
 
         if (order.getSpecialRequirements() != null && !order.getSpecialRequirements().isEmpty()) {
-            response.setSymptoms(Arrays.asList(order.getSpecialRequirements().split(",")));
+            List<String> symptoms = Arrays.stream(order.getSpecialRequirements().split(","))
+                    .map(String::trim)
+                    .filter(item -> !item.isEmpty())
+                    .toList();
+            response.setSymptoms(symptoms);
+            response.setSymptomDescription(symptoms.isEmpty() ? "" : String.join("，", symptoms));
         }
 
         String customReq = order.getCustomRequirement();

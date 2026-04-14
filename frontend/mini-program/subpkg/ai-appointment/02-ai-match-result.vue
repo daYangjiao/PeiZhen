@@ -5,6 +5,31 @@
       <text class="hero-subtitle">根据您的需求，优先推荐更匹配的陪诊师</text>
     </view>
 
+    <view v-if="summaryVisible" class="summary-card">
+      <view class="summary-head">
+        <view class="summary-head-copy">
+          <text class="summary-title">已整理的预约信息</text>
+          <text class="summary-subtitle">{{ summaryStatusText }}</text>
+        </view>
+        <view class="summary-badge">
+          <text>与等待页一致</text>
+        </view>
+      </view>
+
+      <view class="summary-grid">
+        <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
+          <text class="summary-label">{{ item.label }}</text>
+          <text class="summary-value">{{ item.value || item.placeholder }}</text>
+        </view>
+      </view>
+
+      <view v-if="summaryTags.length" class="summary-tags">
+        <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
+          <text>{{ tag }}</text>
+        </view>
+      </view>
+    </view>
+
     <view v-if="loading" class="state-card loading-card">
       <text class="loading-title">{{ phaseLabel }}</text>
       <text class="loading-desc">{{ phaseText }}</text>
@@ -65,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { defaultAvatar } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
@@ -80,8 +105,185 @@ const degraded = ref(false)
 const errorText = ref('')
 const phaseLabel = ref('AI 正在为您寻优匹配中...')
 const phaseText = ref('请稍候，系统正在结合需求与可用陪诊师做筛选')
+const structuredDemand = ref(createEmptyStructuredDemand())
+const AI_APPOINTMENT_DRAFT_KEY = 'ai_appointment_draft_pending'
 let hydrateTimer = null
 const MAX_HYDRATE_RETRY = 3
+
+const normalizeString = (value = '') => String(value || '').trim()
+
+function getCurrentUserName() {
+  const userInfo = uni.getStorageSync('userInfo') || {}
+  return userInfo.nickName || userInfo.name || userInfo.phone || '本人'
+}
+
+function createEmptyStructuredDemand() {
+  return {
+    patientName: getCurrentUserName(),
+    patientProfile: '',
+    hospital: '',
+    department: '',
+    serviceDate: '',
+    serviceStartTime: '',
+    serviceEndTime: '',
+    symptomDescription: '',
+    symptomTags: [],
+    otherRequirement: '',
+    preferenceTags: [],
+    attendantGender: '',
+    rawDemandText: ''
+  }
+}
+
+const uniqueList = (items = []) => Array.from(new Set((Array.isArray(items) ? items : [items]).map((item) => normalizeString(item)).filter(Boolean)))
+
+const formatDateLabel = (dateKey = '') => {
+  if (!dateKey) return ''
+  const safe = String(dateKey).trim().replace(/\//g, '-')
+  const match = safe.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (!match) return safe
+  return `${Number(match[1])}年${Number(match[2])}月${Number(match[3])}日`
+}
+
+const normalizeTimeValue = (value = '') => {
+  const text = normalizeString(value)
+    .replace(/[～~至到—]/g, '-')
+    .replace(/\s+/g, '')
+    .replace(/：/g, ':')
+    .replace(/时/g, '点')
+  if (!text) return ''
+  if (/^\d{1,2}$/.test(text)) return `${text.padStart(2, '0')}:00`
+  let match = text.match(/^(\d{1,2})[:.](\d{1,2})$/)
+  if (match) {
+    const hour = Number(match[1])
+    const minute = Number(match[2])
+    if (Number.isFinite(hour) && Number.isFinite(minute) && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    }
+  }
+  match = text.match(/^(\d{1,2})点半$/)
+  if (match) return `${String(Number(match[1])).padStart(2, '0')}:30`
+  match = text.match(/^(\d{1,2})点(?:(\d{1,2})分?)?$/)
+  if (match) return `${String(Number(match[1])).padStart(2, '0')}:${String(Number(match[2] || 0)).padStart(2, '0')}`
+  return ''
+}
+
+const sanitizeStructuredDemand = (payload = {}) => ({
+  patientName: normalizeString(payload.patientName) || getCurrentUserName(),
+  patientProfile: normalizeString(payload.patientProfile),
+  hospital: normalizeString(payload.hospital),
+  department: normalizeString(payload.department),
+  serviceDate: normalizeString(payload.serviceDate),
+  serviceStartTime: normalizeTimeValue(payload.serviceStartTime),
+  serviceEndTime: normalizeTimeValue(payload.serviceEndTime),
+  symptomDescription: normalizeString(payload.symptomDescription),
+  symptomTags: uniqueList(payload.symptomTags),
+  otherRequirement: normalizeString(payload.otherRequirement),
+  preferenceTags: uniqueList(payload.preferenceTags),
+  attendantGender: normalizeString(payload.attendantGender),
+  rawDemandText: normalizeString(payload.rawDemandText)
+})
+
+const getStructuredDemandStorageKey = (id = '') => {
+  return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
+}
+
+const formatTimeRange = (startTime = '', endTime = '') => {
+  if (!startTime && !endTime) return ''
+  if (startTime && endTime) return `${startTime}-${endTime}`
+  return startTime || endTime || ''
+}
+
+const mergeStructuredDemand = (state = {}) => {
+  const source = state.structuredDemand || state.demandData || state.appointmentData || {}
+  structuredDemand.value = sanitizeStructuredDemand({
+    ...structuredDemand.value,
+    ...source,
+    patientName: state.patientName || source.patientName || structuredDemand.value.patientName || getCurrentUserName(),
+    patientProfile: state.patientProfile || source.patientProfile || structuredDemand.value.patientProfile,
+    hospital: state.hospital || source.hospital || structuredDemand.value.hospital,
+    department: state.department || source.department || structuredDemand.value.department,
+    serviceDate: state.serviceDate || source.serviceDate || structuredDemand.value.serviceDate,
+    serviceStartTime: state.serviceStartTime || source.serviceStartTime || structuredDemand.value.serviceStartTime,
+    serviceEndTime: state.serviceEndTime || source.serviceEndTime || structuredDemand.value.serviceEndTime,
+    symptomDescription: state.symptomDescription || source.symptomDescription || structuredDemand.value.symptomDescription,
+    symptomTags: state.symptomTags || source.symptomTags || structuredDemand.value.symptomTags,
+    otherRequirement: state.otherRequirement || source.otherRequirement || structuredDemand.value.otherRequirement,
+    preferenceTags: state.preferenceTags || source.preferenceTags || structuredDemand.value.preferenceTags,
+    attendantGender: state.attendantGender || source.attendantGender || structuredDemand.value.attendantGender,
+    rawDemandText: state.rawDemandText || source.rawDemandText || structuredDemand.value.rawDemandText
+  })
+}
+
+const persistStructuredDemand = () => {
+  try {
+    uni.setStorageSync(AI_APPOINTMENT_DRAFT_KEY, structuredDemand.value)
+  } catch (error) {
+    console.warn('保存 AI 预约草稿失败:', error)
+  }
+}
+
+const restoreStructuredDemand = () => {
+  try {
+    const cached = sessionId.value
+      ? uni.getStorageSync(getStructuredDemandStorageKey(sessionId.value))
+      : uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    if (cached && typeof cached === 'object') {
+      structuredDemand.value = sanitizeStructuredDemand({ ...createEmptyStructuredDemand(), ...cached })
+    }
+  } catch (error) {
+    console.warn('恢复 AI 预约草稿失败:', error)
+  }
+}
+
+const summaryItems = computed(() => ([
+  {
+    key: 'hospital',
+    label: '就诊医院',
+    value: structuredDemand.value.hospital,
+    placeholder: '等待补充医院'
+  },
+  {
+    key: 'time',
+    label: '就诊时间',
+    value: [formatDateLabel(structuredDemand.value.serviceDate), formatTimeRange(structuredDemand.value.serviceStartTime, structuredDemand.value.serviceEndTime)].filter(Boolean).join(' '),
+    placeholder: '等待补充时间'
+  },
+  {
+    key: 'patient',
+    label: '就诊人',
+    value: structuredDemand.value.patientName ? `${structuredDemand.value.patientName}${structuredDemand.value.patientProfile ? `（${structuredDemand.value.patientProfile}）` : ''}` : '',
+    placeholder: '等待补充就诊人'
+  },
+  {
+    key: 'symptom',
+    label: '症状描述',
+    value: structuredDemand.value.symptomDescription || uniqueList(structuredDemand.value.symptomTags).join('、'),
+    placeholder: '等待补充症状'
+  },
+  {
+    key: 'other',
+    label: '其他需求',
+    value: structuredDemand.value.otherRequirement || uniqueList(structuredDemand.value.preferenceTags).join('、'),
+    placeholder: '等待补充其他需求'
+  }
+]))
+
+const summaryTags = computed(() => {
+  const tags = []
+  if (structuredDemand.value.department) tags.push(structuredDemand.value.department)
+  tags.push(...uniqueList(structuredDemand.value.symptomTags))
+  tags.push(...uniqueList(structuredDemand.value.preferenceTags))
+  return uniqueList(tags)
+})
+
+const summaryVisible = computed(() => summaryItems.value.some((item) => !!item.value) || !!sessionId.value || degraded.value || matchedList.value.length > 0)
+
+const summaryStatusText = computed(() => {
+  if (loading.value) return '等待 AI 匹配完成，您可以先查看已整理的信息'
+  if (degraded.value) return '已先返回高分优质陪诊师'
+  return '这份信息会和等待页保持一致'
+})
 
 const stopPolling = () => {
   if (hydrateTimer) {
@@ -103,6 +305,8 @@ const hydrateSession = async (attempt = 0) => {
     }
     phaseLabel.value = state.processingPhase === 'answering' ? 'AI 正在输出推荐结果...' : 'AI 正在为您寻优匹配中...'
     phaseText.value = state.thinkingProcess || phaseText.value
+    mergeStructuredDemand(state)
+    persistStructuredDemand()
 
     if (Array.isArray(state.matchedList) && state.matchedList.length) {
       matchedList.value = state.matchedList
@@ -172,6 +376,7 @@ const retryPoll = () => {
 
 onLoad((options) => {
   sessionId.value = options?.sessionId || ''
+  restoreStructuredDemand()
   if (!sessionId.value) {
     loading.value = false
     errorText.value = '缺少匹配会话，请重新发起 AI 预约'
@@ -218,6 +423,98 @@ onUnload(() => {
   margin-top: 12rpx;
   font-size: 24rpx;
   color: #6b7a96;
+}
+
+.summary-card {
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 28rpx;
+  box-shadow: 0 18rpx 44rpx rgba(48, 79, 143, 0.08);
+}
+
+.summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.summary-head-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #23344f;
+}
+
+.summary-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #6a7c9a;
+}
+
+.summary-badge {
+  flex-shrink: 0;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: #edf4ff;
+  color: #4a6ba3;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.summary-grid {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.summary-item {
+  padding: 16rpx 18rpx;
+  border-radius: 20rpx;
+  background: #f7faff;
+}
+
+.summary-item.empty {
+  background: #f5f7fb;
+}
+
+.summary-label {
+  display: block;
+  font-size: 22rpx;
+  color: #6a7c9a;
+}
+
+.summary-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: #22324f;
+  word-break: break-word;
+}
+
+.summary-tags {
+  margin-top: 16rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.summary-tag {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #eef4ff;
+  color: #49679d;
+  font-size: 22rpx;
 }
 
 .state-card,

@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -75,12 +76,29 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private static final int MATCH_TIMEOUT_SECONDS = 30;
     private static final Set<Integer> OCCUPIED_ORDER_STATUS = Set.of(2, 3, 4, 5, 8);
 
-    private static final Pattern HOSPITAL_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5A-Za-z0-9（）()·]+医院)");
+    private static final Pattern HOSPITAL_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5A-Za-z0-9（）()·]{2,30}?医院(?:[\\u4e00-\\u9fa5A-Za-z0-9（）()·]{0,10}院区)?)");
     private static final Pattern DEPARTMENT_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5]{1,12}(?:科|门诊))");
     private static final Pattern EXACT_DATE_PATTERN = Pattern.compile("(20\\d{2})[-/.年](\\d{1,2})[-/.月](\\d{1,2})");
     private static final Pattern MONTH_DAY_PATTERN = Pattern.compile("(\\d{1,2})[-/.月](\\d{1,2})(?:日)?");
-    private static final Pattern TIME_RANGE_PATTERN = Pattern.compile("(\\d{1,2}:\\d{2})\\s*[-到至]\\s*(\\d{1,2}:\\d{2})");
-    private static final Pattern SINGLE_TIME_PATTERN = Pattern.compile("(\\d{1,2}:\\d{2})");
+    private static final Pattern FLEXIBLE_TIME_RANGE_PATTERN = Pattern.compile("([0-2]?\\d(?:[:：.]\\d{1,2})?|[0-2]?\\d点半?|[0-2]?\\d点\\d{1,2}分?)\\s*(?:-|到|至|~|～|—|－)\\s*([0-2]?\\d(?:[:：.]\\d{1,2})?|[0-2]?\\d点半?|[0-2]?\\d点\\d{1,2}分?)");
+
+    private static final List<String> SYMPTOM_SEGMENT_KEYWORDS = List.of(
+            "复诊", "检查", "术后", "发烧", "发热", "胸闷", "胸痛", "头晕", "头痛",
+            "胃痛", "腹痛", "咳嗽", "恶心", "呕吐", "呼吸困难", "疼", "痛", "不适", "过敏"
+    );
+    private static final List<String> REQUIREMENT_SEGMENT_KEYWORDS = List.of(
+            "轮椅", "男陪诊", "女陪诊", "急救", "护士", "熟悉医院", "熟悉流程", "耐心",
+            "力气大", "跑腿", "陪老人", "陪护", "上门", "帮忙", "取号", "取药", "陪同"
+    );
+    private static final List<String> PREFERENCE_KEYWORDS = List.of(
+            "轮椅", "急救", "护士", "老人陪护", "术后护理", "跑腿", "熟悉医院", "耐心", "力气大", "陪同挂号", "取药"
+    );
+    private static final List<String> PATIENT_PROFILE_KEYWORDS = List.of("爷爷", "奶奶", "老人", "老爷子", "孩子", "宝宝", "小朋友", "本人");
+    private static final List<String> HOSPITAL_PREFIXES = List.of(
+            "今天", "明天", "后天", "本周", "下周", "周一", "周二", "周三", "周四", "周五", "周六", "周日", "周天",
+            "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日", "星期天",
+            "上午", "下午", "晚上", "中午", "凌晨", "早上", "傍晚", "去", "到", "在", "陪", "带", "帮", "给", "和", "要去", "想去"
+    );
 
     private static final String MATCH_SYSTEM_PROMPT = """
             你是一个专业的医疗陪诊派单专家。
@@ -90,8 +108,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             2. 输出必须是严格 JSON，不要输出解释性文字、不要加 markdown 代码块。
             3. JSON 顶层格式固定为：
                {"matchedList":[{"attendantId":101,"matchScore":98,"reason":"..."}]}
-            4. matchScore 范围 0-100，reason 必须简洁明确，突出为什么适合当前用户。
-            5. reason 必须尽量结合用户的就诊时间、患者情况、医院/科室、性别偏好或技能偏好，不要写空泛结论。
+            4. matchScore 范围 0-100，reason 必须简洁明确，控制在 40 字以内。
+            5. reason 必须结合用户的就诊时间、患者情况、医院/科室、性别偏好或技能偏好，不要写空泛结论。
             6. 优先推荐真正契合老人陪护、轮椅协助、急救经验、护士背景、医院熟悉度等具体需求的人选。
             """;
 
@@ -114,7 +132,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                                     OrderService orderService,
                                     org.example.dao.UserMapper userMapper,
                                     ObjectMapper objectMapper,
-                                    @Value("${deepseek.appointment-model:deepseek-reasoner}") String appointmentModel) {
+                                    @Value("${deepseek.appointment-model:deepseek-chat}") String appointmentModel) {
         this.deepSeekClient = deepSeekClient;
         this.guideAppointmentMapper = guideAppointmentMapper;
         this.attendantService = attendantService;
@@ -139,6 +157,11 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         state.followUpRound = 0;
         state.structuredDemand = new AiAppointmentStructuredDemand();
         state.structuredDemand.setRawDemandText(state.rawDemandText);
+        mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
+        if (userId != null) {
+            User currentUser = userMapper.findById(userId);
+            state.structuredDemand.setPatientName(resolvePatientName(currentUser));
+        }
         sessions.put(state.sessionId, state);
         log.info("AI预约会话创建 sessionId={}, userId={}, demand={}",
                 state.sessionId, state.userId, buildDemandSummary(state.structuredDemand));
@@ -158,6 +181,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         SessionState state = requireSession(sessionId);
         String replyText = request == null ? "" : normalize(request.getReplyText());
         synchronized (state) {
+            mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
             mergeStructuredReply(state, request);
             if (StringUtils.hasText(replyText)) {
                 state.rawDemandText = mergeDemandText(state.rawDemandText, replyText);
@@ -284,7 +308,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 state.appointmentNo = bundle.appointmentNo;
                 state.degraded = bundle.degraded;
                 state.message = bundle.degraded
-                        ? "已为您生成快速推荐结果，可先选择合适的陪诊师。"
+                        ? "AI超时，已先为您返回高分推荐，可先选择合适的陪诊师。"
                         : "已为您匹配到更合适的陪诊师，请查看推荐结果。";
             }
         } catch (Exception e) {
@@ -344,18 +368,24 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
         Map<String, Object> promptPayload = new LinkedHashMap<>();
         promptPayload.put("rawDemandText", defaultString(demand.getRawDemandText()));
-        promptPayload.put("structuredDemand", demand);
+        promptPayload.put("structuredDemand", buildStructuredPromptPayload(demand));
         promptPayload.put("candidates", shortlist.stream().map(this::buildCandidatePayload).collect(Collectors.toList()));
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", MATCH_SYSTEM_PROMPT));
         messages.add(message("user", objectMapper.writeValueAsString(promptPayload)));
 
+        long startedAt = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(
                 () -> deepSeekClient.chatCompletion(messages, appointmentModel),
                 MATCH_EXECUTOR
         );
         String raw = future.get(MATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long elapsed = System.currentTimeMillis() - startedAt;
+        log.info("AI预约模型返回 model={}, elapsedMs={}, rawPreview={}",
+                appointmentModel,
+                elapsed,
+                abbreviate(raw, 240));
         JsonNode root = objectMapper.readTree(extractJson(raw));
         JsonNode listNode = root.path("matchedList");
         if (!listNode.isArray()) {
@@ -459,7 +489,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         GuideAppointment appointment = new GuideAppointment();
         appointment.setAppointmentNo("APP" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6));
         appointment.setUserId(userId);
-        appointment.setPatientName(resolvePatientName(user));
+        appointment.setPatientName(StringUtils.hasText(demand.getPatientName()) ? demand.getPatientName().trim() : resolvePatientName(user));
         appointment.setPatientPhone(resolvePatientPhone(user));
         appointment.setSymptoms(toSymptoms(demand));
         appointment.setHospitalName(defaultString(demand.getHospital()));
@@ -467,7 +497,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         appointment.setServiceDate(defaultString(demand.getServiceDate()));
         appointment.setServiceStartTime(defaultString(demand.getServiceStartTime()));
         appointment.setServiceEndTime(defaultString(demand.getServiceEndTime()));
-        appointment.setOtherRequirement(defaultString(demand.getRawDemandText()));
+        appointment.setOtherRequirement(StringUtils.hasText(demand.getOtherRequirement()) ? demand.getOtherRequirement().trim() : "无");
         appointment.setCreateTime(new Date());
         guideAppointmentMapper.insertGuideAppointment(appointment);
         return appointment.getAppointmentNo();
@@ -494,6 +524,13 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         LinkedHashSet<String> all = new LinkedHashSet<>();
         if (demand.getSymptomTags() != null) {
             all.addAll(demand.getSymptomTags().stream().filter(StringUtils::hasText).map(String::trim).collect(Collectors.toList()));
+        }
+        if (StringUtils.hasText(demand.getSymptomDescription())) {
+            for (String item : splitFreeText(demand.getSymptomDescription())) {
+                if (StringUtils.hasText(item)) {
+                    all.add(item.trim());
+                }
+            }
         }
         if (StringUtils.hasText(demand.getDepartment())) {
             all.add(demand.getDepartment().trim());
@@ -549,11 +586,14 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
         String source = text.trim();
         demand.setRawDemandText(source);
+        if (!StringUtils.hasText(demand.getPatientName())) {
+            demand.setPatientName("就诊人");
+        }
 
         if (!StringUtils.hasText(demand.getHospital())) {
-            Matcher hospitalMatcher = HOSPITAL_PATTERN.matcher(source);
-            if (hospitalMatcher.find()) {
-                demand.setHospital(hospitalMatcher.group(1));
+            String hospital = extractHospitalName(source);
+            if (StringUtils.hasText(hospital)) {
+                demand.setHospital(hospital);
             }
         }
 
@@ -611,28 +651,10 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
 
         if (!StringUtils.hasText(demand.getPatientProfile())) {
-            if (source.contains("爷爷") || source.contains("奶奶") || source.contains("老人") || source.contains("老爷子")) {
-                demand.setPatientProfile("老人就诊");
-            } else if (source.contains("孩子") || source.contains("宝宝") || source.contains("小朋友")) {
-                demand.setPatientProfile("儿童就诊");
-            }
+            demand.setPatientProfile(extractPatientProfile(source));
         }
 
-        Set<String> preferenceTags = new LinkedHashSet<>(demand.getPreferenceTags());
-        for (String keyword : List.of("轮椅", "急救", "护士", "老人陪护", "术后护理", "跑腿", "熟悉医院", "耐心", "力气大")) {
-            if (source.contains(keyword.replace("陪护", "")) || source.contains(keyword)) {
-                preferenceTags.add(keyword);
-            }
-        }
-        demand.setPreferenceTags(new ArrayList<>(preferenceTags));
-
-        Set<String> symptoms = new LinkedHashSet<>(demand.getSymptomTags());
-        for (String keyword : List.of("复诊", "发烧", "胸闷", "头晕", "胃痛", "咳嗽", "术后", "检查")) {
-            if (source.contains(keyword)) {
-                symptoms.add(keyword);
-            }
-        }
-        demand.setSymptomTags(new ArrayList<>(symptoms));
+        classifyDemandDetails(demand, source);
     }
 
     private String extractDate(String text) {
@@ -694,9 +716,13 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     }
 
     private TimeWindow extractExactTimeWindow(String text) {
-        Matcher rangeMatcher = TIME_RANGE_PATTERN.matcher(text);
+        Matcher rangeMatcher = FLEXIBLE_TIME_RANGE_PATTERN.matcher(text);
         if (rangeMatcher.find()) {
-            return new TimeWindow(rangeMatcher.group(1), rangeMatcher.group(2), "具体时间");
+            String start = parseFlexibleTimeToken(rangeMatcher.group(1));
+            String end = parseFlexibleTimeToken(rangeMatcher.group(2));
+            if (StringUtils.hasText(start) && StringUtils.hasText(end)) {
+                return new TimeWindow(start, end, "具体时间");
+            }
         }
         return null;
     }
@@ -710,6 +736,228 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         if (text.contains("晚上")) return "晚上";
         if (text.contains("中午")) return "中午";
         return "";
+    }
+
+    private String extractHospitalName(String text) {
+        Matcher hospitalMatcher = HOSPITAL_PATTERN.matcher(text);
+        while (hospitalMatcher.find()) {
+            String candidate = cleanupHospitalCandidate(hospitalMatcher.group(1));
+            if (StringUtils.hasText(candidate) && candidate.endsWith("医院")) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+
+    private String cleanupHospitalCandidate(String candidate) {
+        String cleaned = normalize(candidate);
+        boolean changed = true;
+        while (changed && StringUtils.hasText(cleaned)) {
+            changed = false;
+            for (String prefix : HOSPITAL_PREFIXES) {
+                if (cleaned.startsWith(prefix)) {
+                    cleaned = cleaned.substring(prefix.length()).trim();
+                    changed = true;
+                }
+            }
+        }
+        return cleaned;
+    }
+
+    private String extractPatientProfile(String source) {
+        String age = "";
+        Matcher ageMatcher = Pattern.compile("(\\d{1,3})岁").matcher(source);
+        if (ageMatcher.find()) {
+            age = ageMatcher.group(1) + "岁";
+        }
+        if (source.contains("爷爷") || source.contains("奶奶") || source.contains("老人") || source.contains("老爷子")) {
+            return age + "老人就诊";
+        }
+        if (source.contains("孩子") || source.contains("宝宝") || source.contains("小朋友")) {
+            return age + "儿童就诊";
+        }
+        if (source.contains("本人")) {
+            return age + "本人就诊";
+        }
+        return age;
+    }
+
+    private void classifyDemandDetails(AiAppointmentStructuredDemand demand, String source) {
+        LinkedHashSet<String> preferenceTags = new LinkedHashSet<>(safeList(demand.getPreferenceTags()));
+        LinkedHashSet<String> symptomTags = new LinkedHashSet<>(safeList(demand.getSymptomTags()));
+        LinkedHashSet<String> symptomSegments = new LinkedHashSet<>(splitFreeText(demand.getSymptomDescription()));
+        LinkedHashSet<String> requirementSegments = new LinkedHashSet<>(splitFreeText(demand.getOtherRequirement()));
+
+        for (String keyword : PREFERENCE_KEYWORDS) {
+            if (source.contains(keyword.replace("陪护", "")) || source.contains(keyword)) {
+                preferenceTags.add(keyword);
+            }
+        }
+
+        for (String segment : splitDemandSegments(source)) {
+            String cleaned = stripStructuredTokens(segment, demand);
+            if (!StringUtils.hasText(cleaned)) {
+                continue;
+            }
+            if (looksLikeSymptomSegment(cleaned)) {
+                symptomSegments.add(cleaned);
+            }
+            if (looksLikeRequirementSegment(cleaned)) {
+                requirementSegments.add(cleaned);
+            }
+        }
+
+        for (String segment : symptomSegments) {
+            for (String keyword : SYMPTOM_SEGMENT_KEYWORDS) {
+                if (segment.contains(keyword)) {
+                    symptomTags.add(keyword);
+                }
+            }
+            if (StringUtils.hasText(demand.getDepartment()) && segment.contains(demand.getDepartment())) {
+                symptomTags.add(demand.getDepartment().trim());
+            }
+        }
+
+        for (String segment : requirementSegments) {
+            for (String keyword : REQUIREMENT_SEGMENT_KEYWORDS) {
+                if (segment.contains(keyword)) {
+                    preferenceTags.add(keyword);
+                }
+            }
+        }
+
+        demand.setPreferenceTags(new ArrayList<>(preferenceTags));
+        demand.setSymptomTags(new ArrayList<>(symptomTags));
+        demand.setSymptomDescription(joinSegments(symptomSegments));
+        demand.setOtherRequirement(joinSegments(mergeRequirements(requirementSegments, preferenceTags, demand.getAttendantGender())));
+    }
+
+    private List<String> mergeRequirements(Set<String> requirementSegments, Set<String> preferenceTags, String attendantGender) {
+        LinkedHashSet<String> merged = new LinkedHashSet<>(requirementSegments);
+        merged.addAll(preferenceTags);
+        if (StringUtils.hasText(attendantGender)) {
+            merged.add(attendantGender.trim() + "陪诊师");
+        }
+        return new ArrayList<>(merged);
+    }
+
+    private List<String> splitDemandSegments(String source) {
+        return Arrays.stream(source.split("[，,。；;、\\n]|(?=需要)|(?=希望)|(?=优先)|(?=最好)"))
+                .map(this::normalize)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> splitFreeText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return List.of();
+        }
+        return Arrays.stream(value.split("[，,。；;、\\n]"))
+                .map(this::normalize)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+    }
+
+    private String stripStructuredTokens(String segment, AiAppointmentStructuredDemand demand) {
+        String cleaned = normalize(segment)
+                .replaceAll("\\s+", "")
+                .replaceAll("(今天|明天|后天|本周[一二三四五六日天]?|下周[一二三四五六日天]?|周[一二三四五六日天]|星期[一二三四五六日天]|上午|下午|晚上|中午|凌晨|早上|傍晚)", "")
+                .replaceAll("\\d{1,3}岁", "")
+                .replaceAll("(\\d{1,2}(?:[:：.]\\d{1,2})?|\\d{1,2}点半?|\\d{1,2}点\\d{1,2}分?)\\s*(?:-|到|至|~|～|—|－)\\s*(\\d{1,2}(?:[:：.]\\d{1,2})?|\\d{1,2}点半?|\\d{1,2}点\\d{1,2}分?)", "")
+                .replaceAll("(\\d{1,2}(?:[:：.]\\d{1,2})?|\\d{1,2}点半?|\\d{1,2}点\\d{1,2}分?)", "")
+                .replaceAll("^(去|到|在|陪|带|帮|给|想|需要|希望|安排)+", "");
+        if (StringUtils.hasText(demand.getHospital())) {
+            cleaned = cleaned.replace(demand.getHospital(), "");
+        }
+        if (StringUtils.hasText(demand.getDepartment())) {
+            cleaned = cleaned.replace(demand.getDepartment(), "");
+        }
+        for (String keyword : PATIENT_PROFILE_KEYWORDS) {
+            cleaned = cleaned.replace(keyword, "");
+        }
+        return normalize(cleaned);
+    }
+
+    private boolean looksLikeSymptomSegment(String segment) {
+        if (!StringUtils.hasText(segment)) {
+            return false;
+        }
+        return segment.contains("复诊")
+                || segment.contains("检查")
+                || segment.contains("术后")
+                || containsAny(segment, SYMPTOM_SEGMENT_KEYWORDS);
+    }
+
+    private boolean looksLikeRequirementSegment(String segment) {
+        if (!StringUtils.hasText(segment)) {
+            return false;
+        }
+        return segment.contains("需要")
+                || segment.contains("希望")
+                || segment.contains("优先")
+                || segment.contains("最好")
+                || segment.contains("陪诊师")
+                || containsAny(segment, REQUIREMENT_SEGMENT_KEYWORDS);
+    }
+
+    private boolean containsAny(String text, List<String> keywords) {
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String joinSegments(Iterable<String> segments) {
+        LinkedHashSet<String> cleaned = new LinkedHashSet<>();
+        for (String segment : segments) {
+            if (StringUtils.hasText(segment)) {
+                cleaned.add(segment.trim());
+            }
+        }
+        return cleaned.isEmpty() ? "" : String.join("，", cleaned);
+    }
+
+    private List<String> safeList(List<String> source) {
+        return source == null ? List.of() : source.stream()
+                .map(this::normalize)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+    }
+
+    private String parseFlexibleTimeToken(String token) {
+        String cleaned = normalize(token)
+                .replace('：', ':')
+                .replace('．', '.')
+                .replace('。', '.');
+        if (!StringUtils.hasText(cleaned)) {
+            return "";
+        }
+        Matcher halfMatcher = Pattern.compile("^(\\d{1,2})点半$").matcher(cleaned);
+        if (halfMatcher.find()) {
+            return formatTime(Integer.parseInt(halfMatcher.group(1)), 30);
+        }
+        Matcher minuteMatcher = Pattern.compile("^(\\d{1,2})点(\\d{1,2})分?$").matcher(cleaned);
+        if (minuteMatcher.find()) {
+            return formatTime(Integer.parseInt(minuteMatcher.group(1)), Integer.parseInt(minuteMatcher.group(2)));
+        }
+        Matcher hourMatcher = Pattern.compile("^(\\d{1,2})点$").matcher(cleaned);
+        if (hourMatcher.find()) {
+            return formatTime(Integer.parseInt(hourMatcher.group(1)), 0);
+        }
+        Matcher separatedMatcher = Pattern.compile("^(\\d{1,2})[:.](\\d{1,2})$").matcher(cleaned);
+        if (separatedMatcher.find()) {
+            return formatTime(Integer.parseInt(separatedMatcher.group(1)), Integer.parseInt(separatedMatcher.group(2)));
+        }
+        return "";
+    }
+
+    private String formatTime(int hour, int minute) {
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            return "";
+        }
+        return String.format(Locale.ROOT, "%02d:%02d", hour, minute);
     }
 
     private List<String> collectMissingFields(AiAppointmentStructuredDemand demand) {
@@ -800,6 +1048,57 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             case "attendantGender" -> state.structuredDemand.setAttendantGender(selectedValue);
             default -> {
             }
+        }
+    }
+
+    private void mergeStructuredDemand(AiAppointmentStructuredDemand target, AiAppointmentStructuredDemand incoming) {
+        if (target == null || incoming == null) {
+            return;
+        }
+        if (StringUtils.hasText(incoming.getPatientName())) {
+            target.setPatientName(incoming.getPatientName().trim());
+        }
+        if (StringUtils.hasText(incoming.getPatientProfile())) {
+            target.setPatientProfile(incoming.getPatientProfile().trim());
+        }
+        if (StringUtils.hasText(incoming.getServiceDate())) {
+            target.setServiceDate(incoming.getServiceDate().trim());
+        }
+        if (StringUtils.hasText(incoming.getTimePeriod())) {
+            target.setTimePeriod(incoming.getTimePeriod().trim());
+        }
+        if (StringUtils.hasText(incoming.getServiceStartTime())) {
+            target.setServiceStartTime(parseFlexibleTimeToken(incoming.getServiceStartTime()));
+        }
+        if (StringUtils.hasText(incoming.getServiceEndTime())) {
+            target.setServiceEndTime(parseFlexibleTimeToken(incoming.getServiceEndTime()));
+        }
+        if (StringUtils.hasText(incoming.getHospital())) {
+            target.setHospital(incoming.getHospital().trim());
+        }
+        if (StringUtils.hasText(incoming.getDepartment())) {
+            target.setDepartment(incoming.getDepartment().trim());
+        }
+        if (StringUtils.hasText(incoming.getSymptomDescription())) {
+            target.setSymptomDescription(incoming.getSymptomDescription().trim());
+        }
+        if (incoming.getSymptomTags() != null && !incoming.getSymptomTags().isEmpty()) {
+            target.setSymptomTags(new ArrayList<>(safeList(incoming.getSymptomTags())));
+        }
+        if (StringUtils.hasText(incoming.getOtherRequirement())) {
+            target.setOtherRequirement(incoming.getOtherRequirement().trim());
+        }
+        if (incoming.getPreferenceTags() != null && !incoming.getPreferenceTags().isEmpty()) {
+            target.setPreferenceTags(new ArrayList<>(safeList(incoming.getPreferenceTags())));
+        }
+        if (StringUtils.hasText(incoming.getAttendantGender())) {
+            target.setAttendantGender(incoming.getAttendantGender().trim());
+        }
+        if (incoming.getServiceTypeNumber() != null) {
+            target.setServiceTypeNumber(incoming.getServiceTypeNumber());
+        }
+        if (StringUtils.hasText(incoming.getRawDemandText())) {
+            target.setRawDemandText(incoming.getRawDemandText().trim());
         }
     }
 
@@ -949,15 +1248,42 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("rawDemandText", defaultString(demand.getRawDemandText()));
+        summary.put("patientName", defaultString(demand.getPatientName()));
+        summary.put("patientProfile", defaultString(demand.getPatientProfile()));
         summary.put("serviceDate", defaultString(demand.getServiceDate()));
         summary.put("timePeriod", defaultString(demand.getTimePeriod()));
         summary.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
         summary.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
         summary.put("hospital", defaultString(demand.getHospital()));
         summary.put("department", defaultString(demand.getDepartment()));
+        summary.put("symptomDescription", defaultString(demand.getSymptomDescription()));
+        summary.put("otherRequirement", defaultString(demand.getOtherRequirement()));
         summary.put("attendantGender", defaultString(demand.getAttendantGender()));
         summary.put("serviceTypeNumber", demand.getServiceTypeNumber());
         return summary.toString();
+    }
+
+    private Map<String, Object> buildStructuredPromptPayload(AiAppointmentStructuredDemand demand) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("patientProfile", defaultString(demand.getPatientProfile()));
+        payload.put("serviceDate", defaultString(demand.getServiceDate()));
+        payload.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
+        payload.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
+        payload.put("hospital", defaultString(demand.getHospital()));
+        payload.put("department", defaultString(demand.getDepartment()));
+        payload.put("symptomDescription", defaultString(demand.getSymptomDescription()));
+        payload.put("otherRequirement", defaultString(demand.getOtherRequirement()));
+        payload.put("attendantGender", defaultString(demand.getAttendantGender()));
+        payload.put("preferenceTags", safeList(demand.getPreferenceTags()));
+        payload.put("symptomTags", safeList(demand.getSymptomTags()));
+        return payload;
+    }
+
+    private String abbreviate(String value, int maxLength) {
+        if (!StringUtils.hasText(value) || value.length() <= maxLength) {
+            return defaultString(value);
+        }
+        return value.substring(0, Math.max(0, maxLength)) + "...";
     }
 
     private String summarizeException(Throwable throwable) {

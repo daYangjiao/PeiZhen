@@ -14,6 +14,9 @@ public class AiAppointmentStructuredDemand {
     @ApiModelProperty(value = "原始需求文本")
     private String rawDemandText;
 
+    @ApiModelProperty(value = "就诊人姓名", example = "张三")
+    private String patientName;
+
     @ApiModelProperty(value = "服务日期", example = "2026-04-16")
     private String serviceDate;
 
@@ -46,4 +49,10 @@ public class AiAppointmentStructuredDemand {
 
     @ApiModelProperty(value = "症状关键词")
     private List<String> symptomTags = new ArrayList<>();
+
+    @ApiModelProperty(value = "症状描述", example = "心内科复诊，近期胸闷头晕")
+    private String symptomDescription;
+
+    @ApiModelProperty(value = "其他需求", example = "需要轮椅协助，优先男陪诊师")
+    private String otherRequirement;
 }

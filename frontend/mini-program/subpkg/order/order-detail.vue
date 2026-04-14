@@ -1352,13 +1352,17 @@ const payBalance = async () => {
  * 获取症状描述文本
  */
 const getSymptomDescription = () => {
+  const preferred = String(order.value.symptomDescription || '').trim();
+  if (preferred && preferred !== '无' && preferred !== 'null') {
+    return preferred;
+  }
   const { symptoms } = order.value;
   if (!symptoms) {
     return '无';
   }
   if (Array.isArray(symptoms)) {
     const validSymptoms = symptoms.filter(s => s && s.trim() && s !== '无' && s !== 'null');
-    return validSymptoms.length > 0 ? validSymptoms.join(', ') : '无';
+    return validSymptoms.length > 0 ? validSymptoms.join('，') : '无';
   }
   return symptoms;
 };

@@ -3,6 +3,7 @@ package org.example.model.request;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import org.example.model.AiAppointmentStructuredDemand;
 
 @Data
 @ApiModel(description = "AI预约补充回复请求")
@@ -16,4 +17,7 @@ public class AiAppointmentReplyRequest {
 
     @ApiModelProperty(value = "结构化选择值", example = "2026-04-16")
     private String selectedValue;
+
+    @ApiModelProperty(value = "前端已整理的结构化需求")
+    private AiAppointmentStructuredDemand structuredDemand;
 }
