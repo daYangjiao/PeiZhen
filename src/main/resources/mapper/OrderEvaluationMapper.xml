@@ -60,4 +60,10 @@
           AND rating &gt;= #{minRating}
     </select>
 
+    <select id="averageRatingByAttendantId" resultType="java.math.BigDecimal">
+        SELECT ROUND(AVG(rating), 1)
+        FROM order_evaluation
+        WHERE attendant_id = #{attendantId}
+    </select>
+
 </mapper>

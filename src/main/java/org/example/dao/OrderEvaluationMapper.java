@@ -4,6 +4,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.example.model.OrderEvaluation;
 
+import java.math.BigDecimal;
+
 @Mapper
 public interface OrderEvaluationMapper {
 
@@ -22,4 +24,6 @@ public interface OrderEvaluationMapper {
      * 统计陪诊师好评数（rating >= minRating）
      */
     Integer countGoodByAttendantId(@Param("attendantId") Integer attendantId, @Param("minRating") Integer minRating);
+
+    BigDecimal averageRatingByAttendantId(@Param("attendantId") Integer attendantId);
 }
