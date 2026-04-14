@@ -502,12 +502,16 @@ if (typeof uni.onWindowResize === 'function') {
   background:
     linear-gradient(180deg, #f6f9ff 0%, #f2f7fd 100%);
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 .floating-area {
   position: fixed;
   left: 0;
+  right: 0;
   top: 0;
-  width: 100vw;
   height: 100vh;
   z-index: 9999;
   pointer-events: none;

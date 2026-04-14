@@ -197,6 +197,54 @@ CREATE TABLE `ai_medical_qa` (
   KEY `idx_ai_medical_qa_conversation_id` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `ai_appointment_session` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(64) NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `status` varchar(32) NOT NULL,
+  `processing_phase` varchar(32) NOT NULL,
+  `thinking_process` varchar(255) DEFAULT NULL,
+  `assistant_reply` text,
+  `assistant_intent` varchar(32) DEFAULT NULL,
+  `need_more_info` tinyint(1) NOT NULL DEFAULT 1,
+  `missing_fields_json` json DEFAULT NULL,
+  `question_type` varchar(64) DEFAULT NULL,
+  `question_key` varchar(64) DEFAULT NULL,
+  `follow_up_type` varchar(64) DEFAULT NULL,
+  `time_proposal_json` json DEFAULT NULL,
+  `options_json` json DEFAULT NULL,
+  `can_match` tinyint(1) NOT NULL DEFAULT 0,
+  `ready_for_confirm` tinyint(1) NOT NULL DEFAULT 0,
+  `follow_up_round` int NOT NULL DEFAULT 0,
+  `raw_demand_text` text,
+  `structured_demand_json` json DEFAULT NULL,
+  `field_patch_json` json DEFAULT NULL,
+  `confirm_summary_json` json DEFAULT NULL,
+  `matched_list_json` json DEFAULT NULL,
+  `appointment_no` varchar(64) DEFAULT NULL,
+  `degraded` tinyint(1) NOT NULL DEFAULT 0,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_appointment_session_id` (`session_id`),
+  KEY `idx_ai_appointment_session_user` (`user_id`),
+  KEY `idx_ai_appointment_session_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `ai_appointment_message` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(64) NOT NULL,
+  `role` varchar(16) NOT NULL,
+  `content` text NOT NULL,
+  `field_patch_json` json DEFAULT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_appointment_message_session` (`session_id`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `user_type`, `status`, `openid`, `create_time`) VALUES
   (1, 'admin123', 'Admin', '13800000000', 'male', 30, '/static/uploads/user-avatar.jpg', 2, 1, NULL, NOW()),
   (2, '123456', 'Test User', '13800000001', 'female', 26, '/static/uploads/user-avatar.jpg', 0, 1, NULL, NOW()),

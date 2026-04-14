@@ -435,6 +435,9 @@ const getDisplayServiceTime = () => {
   @include user-page;
   min-height: 100vh;
   padding: 28rpx 24rpx 24rpx;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -1036,7 +1039,7 @@ const getDisplayServiceTime = () => {
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  padding: 24rpx;
+  padding: 24rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -1044,10 +1047,13 @@ const getDisplayServiceTime = () => {
   width: 100%;
   max-width: 700rpx;
   min-height: 396rpx;
+  max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
   background: #ffffff;
   border-radius: 36rpx;
   overflow: hidden;
   box-shadow: 0 28rpx 56rpx rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
 }
 
 .payment-modal-header {
@@ -1063,6 +1069,8 @@ const getDisplayServiceTime = () => {
 
 .payment-modal-body {
   padding: 20rpx 40rpx 42rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .payment-modal-text {
@@ -1076,8 +1084,9 @@ const getDisplayServiceTime = () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20rpx;
-  padding: 0 40rpx 40rpx;
+  padding: 0 40rpx calc(40rpx + env(safe-area-inset-bottom));
   align-items: stretch;
+  flex-shrink: 0;
 }
 
 .payment-modal-btn {

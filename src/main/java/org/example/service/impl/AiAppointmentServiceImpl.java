@@ -4,8 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dao.AiAppointmentMessageMapper;
+import org.example.dao.AiAppointmentSessionMapper;
 import org.example.dao.GuideAppointmentMapper;
+import org.example.model.AiAppointmentMessageRecord;
+import org.example.model.AiAppointmentSessionRecord;
 import org.example.model.AiAppointmentStructuredDemand;
+import org.example.model.AiAppointmentTimeProposal;
 import org.example.model.Attendant;
 import org.example.model.GuideAppointment;
 import org.example.model.MatchedAttendantVO;
@@ -71,9 +76,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private static final String COLLECTING_MESSAGE = "正在理解您的预约需求...";
     private static final String MATCHING_MESSAGE = "AI 正在为您寻优匹配中...";
     private static final String DEGRADE_REASON = "基于您的需求，系统为您推荐当前高分优质陪诊师。";
+    private static final String CONVERSATION_FALLBACK_REPLY = "我先记下这些信息，继续把日期、时间、医院和就诊情况补齐后，就能开始帮您匹配。";
     private static final int MAX_CANDIDATES = 10;
     private static final int MAX_MATCHED = 3;
+    private static final int CONVERSATION_TIMEOUT_SECONDS = 18;
     private static final int MATCH_TIMEOUT_SECONDS = 30;
+    private static final int MAX_CONVERSATION_HISTORY = 12;
     private static final Set<Integer> OCCUPIED_ORDER_STATUS = Set.of(2, 3, 4, 5, 8);
 
     private static final Pattern HOSPITAL_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5A-Za-z0-9（）()·]{2,30}?医院(?:[\\u4e00-\\u9fa5A-Za-z0-9（）()·]{0,10}院区)?)");
@@ -116,7 +124,83 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             6. 优先推荐真正契合老人陪护、轮椅协助、急救经验、护士背景、医院熟悉度等具体需求的人选。
             """;
 
+    private static final String CONVERSATION_SYSTEM_PROMPT = """
+            你是愈安伴平台的商用 AI 预约助理。
+            你的任务是像真实助理一样继续对话、逐步补齐预约字段，但你的输出必须是严格 JSON，不能输出 markdown、不能输出多余解释。
+
+            系统约束：
+            1. patientName 由系统提供，不要向用户追问姓名。
+            2. 所有字段必须基于用户已明确表达的信息，不能猜测结束时间、医院、症状或其他需求。
+            3. 如果用户只说了一个时间点，例如“八点”，不能自动补成 08:00-10:00，必须继续追问结束时间。
+            4. 如果用户说的是“八点到十点”这类完整时段，可以提取为 serviceStartTime=08:00、serviceEndTime=10:00。
+            5. hospital 只能保留医院本体，不要带“明天去”“想去”之类前缀。
+            6. symptomDescription 只放医疗场景、症状、复诊、检查、取药、术后等信息。
+            7. otherRequirement 只放陪护偏好和附加诉求，例如 推轮椅、男陪诊师、懂急救、熟悉医院。绝不能等于整段原始输入。
+            8. symptomDescription 与 otherRequirement 必须分离。
+            9. 一次最多只追问一个关键问题，问题要自然，不要机械列清单。
+            10. 当信息已经足够确认时，assistantReply 应是确认口吻，并返回 readyForConfirm=true 与 followUpType=confirm_sheet。
+            11. 当你只是建议一个时间段时，只能写入 timeProposal，不能直接把建议时间写进 fieldPatch，除非用户已经明确确认。
+
+            目标字段：
+            - hospital
+            - department
+            - patientProfile
+            - serviceDate（YYYY-MM-DD）
+            - serviceStartTime（HH:mm）
+            - serviceEndTime（HH:mm）
+            - symptomDescription
+            - otherRequirement
+            - attendantGender
+            - preferenceTags（数组）
+            - symptomTags（数组）
+
+            assistantIntent 仅允许：
+            - collect：继续自然收集
+            - clarify：某个字段不清楚，需要追问
+            - propose_time：基于上下文给出一个待确认的时间建议
+            - ready_confirm：字段已足够，提示用户确认
+            - acknowledge：用户刚确认了一个选择，先回应再继续
+
+            followUpType 仅允许：
+            - free_text
+            - date_picker
+            - time_picker
+            - hospital_input
+            - confirm_sheet
+
+            输出 JSON 格式固定为：
+            {
+              "assistantReply": "当前要对用户说的话",
+              "assistantIntent": "collect",
+              "questionKey": "",
+              "missingFields": [],
+              "fieldPatch": {
+                "hospital": "",
+                "department": "",
+                "patientProfile": "",
+                "serviceDate": "",
+                "serviceStartTime": "",
+                "serviceEndTime": "",
+                "symptomDescription": "",
+                "otherRequirement": "",
+                "attendantGender": "",
+                "preferenceTags": [],
+                "symptomTags": []
+              },
+              "followUpType": "free_text",
+              "timeProposal": {
+                "proposedStartTime": "",
+                "proposedEndTime": "",
+                "proposalText": ""
+              },
+              "readyForConfirm": false,
+              "confirmSummary": {}
+            }
+            """;
+
     private final DeepSeekClient deepSeekClient;
+    private final AiAppointmentSessionMapper aiAppointmentSessionMapper;
+    private final AiAppointmentMessageMapper aiAppointmentMessageMapper;
     private final GuideAppointmentMapper guideAppointmentMapper;
     private final AttendantService attendantService;
     private final OrderService orderService;
@@ -127,9 +211,13 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private final ConcurrentMap<String, SessionState> sessions = new ConcurrentHashMap<>();
 
     private static final ExecutorService SESSION_EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final ExecutorService CONVERSATION_AI_EXECUTOR = Executors.newFixedThreadPool(2);
     private static final ExecutorService MATCH_EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final ExecutorService MATCH_AI_EXECUTOR = Executors.newFixedThreadPool(2);
 
     public AiAppointmentServiceImpl(DeepSeekClient deepSeekClient,
+                                    AiAppointmentSessionMapper aiAppointmentSessionMapper,
+                                    AiAppointmentMessageMapper aiAppointmentMessageMapper,
                                     GuideAppointmentMapper guideAppointmentMapper,
                                     AttendantService attendantService,
                                     OrderService orderService,
@@ -137,6 +225,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                                     ObjectMapper objectMapper,
                                     @Value("${deepseek.appointment-model:deepseek-chat}") String appointmentModel) {
         this.deepSeekClient = deepSeekClient;
+        this.aiAppointmentSessionMapper = aiAppointmentSessionMapper;
+        this.aiAppointmentMessageMapper = aiAppointmentMessageMapper;
         this.guideAppointmentMapper = guideAppointmentMapper;
         this.attendantService = attendantService;
         this.orderService = orderService;
@@ -157,6 +247,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         state.message = "";
         state.needMoreInfo = Boolean.TRUE;
         state.canMatch = Boolean.FALSE;
+        state.readyForConfirm = Boolean.FALSE;
         state.followUpRound = 0;
         state.structuredDemand = new AiAppointmentStructuredDemand();
         state.structuredDemand.setRawDemandText(state.rawDemandText);
@@ -165,7 +256,11 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             User currentUser = userMapper.findById(userId);
             state.structuredDemand.setPatientName(resolvePatientName(currentUser));
         }
+        normalizeStructuredDemandFields(state.structuredDemand);
+        appendHistory(state.history, "user", state.rawDemandText);
         sessions.put(state.sessionId, state);
+        saveSession(state);
+        persistMessage(state.sessionId, "user", state.rawDemandText, null);
         log.info("AI预约会话创建 sessionId={}, userId={}, demand={}",
                 state.sessionId, state.userId, buildDemandSummary(state.structuredDemand));
 
@@ -176,6 +271,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     @Override
     public AiAppointmentSessionResponse getSession(String sessionId) {
         SessionState state = sessions.get(sessionId);
+        if (state == null) {
+            state = loadSessionFromDb(sessionId);
+            if (state != null) {
+                sessions.put(sessionId, state);
+            }
+        }
         return state == null ? null : toResponse(state);
     }
 
@@ -183,16 +284,24 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     public AiAppointmentSessionResponse replySession(String sessionId, AiAppointmentReplyRequest request) {
         SessionState state = requireSession(sessionId);
         String replyText = request == null ? "" : normalize(request.getReplyText());
+        String syntheticReply = buildSyntheticReplyText(request);
+        String mergedReplyText = StringUtils.hasText(replyText) ? replyText : syntheticReply;
         synchronized (state) {
             mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
             mergeStructuredReply(state, request);
-            if (StringUtils.hasText(replyText)) {
-                state.rawDemandText = mergeDemandText(state.rawDemandText, replyText);
+            normalizeStructuredDemandFields(state.structuredDemand);
+            if (StringUtils.hasText(mergedReplyText)) {
+                state.rawDemandText = mergeDemandText(state.rawDemandText, mergedReplyText);
                 state.structuredDemand.setRawDemandText(state.rawDemandText);
+                appendHistory(state.history, "user", mergedReplyText);
+                persistMessage(state.sessionId, "user", mergedReplyText, null);
             }
             state.processingPhase = PHASE_THINKING;
             state.thinkingProcess = COLLECTING_MESSAGE;
             state.message = "";
+            state.assistantReply = "";
+            state.readyForConfirm = Boolean.FALSE;
+            saveSession(state);
         }
         log.info("AI预约补充回复 sessionId={}, userId={}, fieldKey={}, selectedValue={}, demand={}",
                 state.sessionId,
@@ -213,8 +322,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             state.processingPhase = PHASE_THINKING;
             state.thinkingProcess = "正在分析需求重点...";
             state.message = "";
+            state.assistantReply = "";
             state.matchedList = new ArrayList<>();
             state.degraded = Boolean.FALSE;
+            state.readyForConfirm = Boolean.FALSE;
+            state.followUpType = "";
+            saveSession(state);
         }
         log.info("AI预约开始匹配 sessionId={}, userId={}, demand={}",
                 state.sessionId, state.userId, buildDemandSummary(state.structuredDemand));
@@ -230,7 +343,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         if (StringUtils.hasText(request.getDemandText()) && !StringUtils.hasText(demand.getRawDemandText())) {
             demand.setRawDemandText(request.getDemandText().trim());
         }
-        parseDemandTextInto(demand, demand.getRawDemandText());
+        normalizeStructuredDemandFields(demand);
         ensureReadyForMatch(demand);
         MatchBundle bundle;
         try {
@@ -254,37 +367,62 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 state.processingPhase = PHASE_THINKING;
                 state.thinkingProcess = COLLECTING_MESSAGE;
             }
-            parseDemandTextInto(state.structuredDemand, state.rawDemandText);
-            List<String> missingFields = collectMissingFields(state.structuredDemand);
+            normalizeStructuredDemandFields(state.structuredDemand);
+
+            ConversationEnvelope envelope = null;
+            try {
+                envelope = runConversationCollection(state);
+            } catch (Exception aiError) {
+                log.warn("AI预约对话降级为本地追问 sessionId={}, userId={}, cause={}",
+                        state.sessionId, state.userId, summarizeException(aiError), aiError);
+            }
 
             synchronized (state) {
-                state.missingFields = missingFields;
-                if (!missingFields.isEmpty()) {
-                    state.status = STATUS_COLLECTING;
-                    state.processingPhase = PHASE_COMPLETED;
-                    state.needMoreInfo = Boolean.TRUE;
-                    state.canMatch = Boolean.FALSE;
-                    state.followUpRound = (state.followUpRound == null ? 0 : state.followUpRound) + 1;
-                    String questionType = missingFields.get(0);
-                    state.questionType = questionType;
-                    state.options = buildOptions(questionType, state.structuredDemand, state.followUpRound);
-                    state.thinkingProcess = "已完成";
-                    state.message = buildFollowUpQuestion(questionType, state.followUpRound, state.structuredDemand);
-                    log.info("AI预约需求分析待补充 sessionId={}, userId={}, missingFields={}, demand={}",
-                            state.sessionId, state.userId, missingFields, buildDemandSummary(state.structuredDemand));
-                    return;
+                if (envelope != null && envelope.fieldPatch != null) {
+                    mergeStructuredDemand(state.structuredDemand, envelope.fieldPatch);
                 }
+                normalizeStructuredDemandFields(state.structuredDemand);
 
-                state.status = STATUS_READY;
+                List<String> missingFields = collectMissingFields(state.structuredDemand);
+                String questionType = resolveQuestionKey(envelope, missingFields);
+                String followUpType = determineFollowUpType(
+                        envelope == null ? "" : envelope.followUpType,
+                        questionType,
+                        state.structuredDemand,
+                        envelope == null ? "" : envelope.assistantIntent,
+                        missingFields.isEmpty()
+                );
+                boolean readyForConfirm = missingFields.isEmpty();
+                String assistantReply = buildAssistantReply(state, envelope, questionType, readyForConfirm);
+
+                state.missingFields = missingFields;
+                state.status = readyForConfirm ? STATUS_READY : STATUS_COLLECTING;
                 state.processingPhase = PHASE_COMPLETED;
+                state.needMoreInfo = !readyForConfirm;
+                state.canMatch = readyForConfirm;
+                state.readyForConfirm = readyForConfirm;
+                state.followUpRound = readyForConfirm ? state.followUpRound : (state.followUpRound == null ? 0 : state.followUpRound) + 1;
+                state.questionType = questionType;
+                state.questionKey = questionType;
+                state.followUpType = followUpType;
+                state.options = envelope != null && envelope.options != null && !envelope.options.isEmpty()
+                        ? new ArrayList<>(envelope.options)
+                        : buildOptions(questionType, state.structuredDemand, state.followUpRound);
                 state.thinkingProcess = "已完成";
-                state.needMoreInfo = Boolean.FALSE;
-                state.canMatch = Boolean.TRUE;
-                state.questionType = "";
-                state.options = List.of();
-                state.message = "信息已确认，正在为您匹配合适的陪诊师。";
-                log.info("AI预约需求分析完成 sessionId={}, userId={}, missingFields={}, canMatch={}, demand={}",
-                        state.sessionId, state.userId, missingFields, state.canMatch, buildDemandSummary(state.structuredDemand));
+                state.assistantReply = assistantReply;
+                state.assistantIntent = envelope == null ? (readyForConfirm ? "ready_confirm" : "collect") : defaultString(envelope.assistantIntent);
+                state.message = assistantReply;
+                state.fieldPatch = envelope == null ? null : sanitizeFieldPatch(envelope.fieldPatch);
+                state.timeProposal = sanitizeTimeProposal(envelope == null ? null : envelope.timeProposal);
+                state.confirmSummary = envelope != null && envelope.confirmSummary != null && !envelope.confirmSummary.isEmpty()
+                        ? new LinkedHashMap<>(envelope.confirmSummary)
+                        : buildConfirmSummary(state.structuredDemand);
+                appendHistory(state.history, "assistant", assistantReply);
+                persistMessage(state.sessionId, "assistant", assistantReply, state.fieldPatch);
+                saveSession(state);
+
+                log.info("AI预约需求分析完成 sessionId={}, userId={}, readyForConfirm={}, assistantIntent={}, followUpType={}, missingFields={}, demand={}",
+                        state.sessionId, state.userId, readyForConfirm, state.assistantIntent, followUpType, missingFields, buildDemandSummary(state.structuredDemand));
             }
         } catch (Exception e) {
             log.error("分析 AI 预约需求失败 sessionId={}, userId={}, cause={}",
@@ -313,6 +451,13 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 state.message = bundle.degraded
                         ? "AI超时，已先为您返回高分推荐，可先选择合适的陪诊师。"
                         : "已为您匹配到更合适的陪诊师，请查看推荐结果。";
+                state.assistantReply = state.message;
+                state.assistantIntent = "acknowledge";
+                state.questionKey = "";
+                state.timeProposal = null;
+                appendHistory(state.history, "assistant", state.assistantReply);
+                persistMessage(state.sessionId, "assistant", state.assistantReply, null);
+                saveSession(state);
             }
         } catch (Exception e) {
             log.error("AI 预约匹配失败 sessionId={}, userId={}, cause={}",
@@ -381,7 +526,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         long startedAt = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(
                 () -> deepSeekClient.chatCompletion(messages, appointmentModel),
-                MATCH_EXECUTOR
+                MATCH_AI_EXECUTOR
         );
         String raw = future.get(MATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         long elapsed = System.currentTimeMillis() - startedAt;
@@ -719,10 +864,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     }
 
     private TimeWindow extractExactTimeWindow(String text) {
-        Matcher rangeMatcher = FLEXIBLE_TIME_RANGE_PATTERN.matcher(text);
+        String normalizedText = normalizeChineseTimeExpression(text);
+        Matcher rangeMatcher = FLEXIBLE_TIME_RANGE_PATTERN.matcher(normalizedText);
         if (rangeMatcher.find()) {
-            String start = parseFlexibleTimeToken(rangeMatcher.group(1));
-            String end = parseFlexibleTimeToken(rangeMatcher.group(2));
+            String periodHint = resolvePeriodHint(normalizedText, rangeMatcher.start());
+            String start = parseFlexibleTimeToken(rangeMatcher.group(1), periodHint);
+            String end = parseFlexibleTimeToken(rangeMatcher.group(2), periodHint);
             if (StringUtils.hasText(start) && StringUtils.hasText(end)) {
                 return new TimeWindow(start, end, "具体时间");
             }
@@ -968,30 +1115,172 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     }
 
     private String parseFlexibleTimeToken(String token) {
-        String cleaned = normalize(token)
+        return parseFlexibleTimeToken(token, "");
+    }
+
+    private String parseFlexibleTimeToken(String token, String periodHint) {
+        String cleaned = normalizeChineseTimeExpression(token)
                 .replace('：', ':')
                 .replace('．', '.')
                 .replace('。', '.');
         if (!StringUtils.hasText(cleaned)) {
             return "";
         }
+        String finalPeriodHint = StringUtils.hasText(periodHint) ? periodHint : resolvePeriodHint(cleaned, 0);
+        cleaned = cleaned.replace("上午", "")
+                .replace("下午", "")
+                .replace("晚上", "")
+                .replace("傍晚", "")
+                .replace("中午", "")
+                .replace("凌晨", "")
+                .replace("早上", "");
+
+        int hour = -1;
+        int minute = 0;
         Matcher halfMatcher = Pattern.compile("^(\\d{1,2})点半$").matcher(cleaned);
         if (halfMatcher.find()) {
-            return formatTime(Integer.parseInt(halfMatcher.group(1)), 30);
+            hour = Integer.parseInt(halfMatcher.group(1));
+            minute = 30;
+            return formatTime(applyPeriodHint(hour, finalPeriodHint), minute);
         }
         Matcher minuteMatcher = Pattern.compile("^(\\d{1,2})点(\\d{1,2})分?$").matcher(cleaned);
         if (minuteMatcher.find()) {
-            return formatTime(Integer.parseInt(minuteMatcher.group(1)), Integer.parseInt(minuteMatcher.group(2)));
+            hour = Integer.parseInt(minuteMatcher.group(1));
+            minute = Integer.parseInt(minuteMatcher.group(2));
+            return formatTime(applyPeriodHint(hour, finalPeriodHint), minute);
         }
         Matcher hourMatcher = Pattern.compile("^(\\d{1,2})点$").matcher(cleaned);
         if (hourMatcher.find()) {
-            return formatTime(Integer.parseInt(hourMatcher.group(1)), 0);
+            hour = Integer.parseInt(hourMatcher.group(1));
+            return formatTime(applyPeriodHint(hour, finalPeriodHint), 0);
         }
         Matcher separatedMatcher = Pattern.compile("^(\\d{1,2})[:.](\\d{1,2})$").matcher(cleaned);
         if (separatedMatcher.find()) {
-            return formatTime(Integer.parseInt(separatedMatcher.group(1)), Integer.parseInt(separatedMatcher.group(2)));
+            hour = Integer.parseInt(separatedMatcher.group(1));
+            minute = Integer.parseInt(separatedMatcher.group(2));
+            return formatTime(applyPeriodHint(hour, finalPeriodHint), minute);
         }
         return "";
+    }
+
+    private String normalizeChineseTimeExpression(String text) {
+        String normalized = normalize(text)
+                .replace('：', ':')
+                .replace('．', '.')
+                .replace('。', '.')
+                .replace("两", "二");
+        StringBuilder builder = new StringBuilder();
+        int index = 0;
+        while (index < normalized.length()) {
+            char current = normalized.charAt(index);
+            if (isChineseDigitChar(current)) {
+                int end = index;
+                while (end < normalized.length() && isChineseDigitChar(normalized.charAt(end))) {
+                    end++;
+                }
+                String token = normalized.substring(index, end);
+                Integer numeric = parseChineseNumber(token);
+                if (numeric != null) {
+                    builder.append(numeric);
+                } else {
+                    builder.append(token);
+                }
+                index = end;
+                continue;
+            }
+            builder.append(current);
+            index++;
+        }
+        return builder.toString();
+    }
+
+    private boolean isChineseDigitChar(char value) {
+        return "零一二三四五六七八九十".indexOf(value) >= 0;
+    }
+
+    private Integer parseChineseNumber(String token) {
+        if (!StringUtils.hasText(token)) {
+            return null;
+        }
+        if ("十".equals(token)) {
+            return 10;
+        }
+        int tenIndex = token.indexOf('十');
+        if (tenIndex >= 0) {
+            String left = token.substring(0, tenIndex);
+            String right = token.substring(tenIndex + 1);
+            int tens = StringUtils.hasText(left) ? chineseDigitValue(left.charAt(0)) : 1;
+            int units = StringUtils.hasText(right) ? chineseDigitValue(right.charAt(0)) : 0;
+            if (tens < 0 || units < 0) {
+                return null;
+            }
+            return tens * 10 + units;
+        }
+        if (token.length() == 1) {
+            int value = chineseDigitValue(token.charAt(0));
+            return value >= 0 ? value : null;
+        }
+        return null;
+    }
+
+    private int chineseDigitValue(char value) {
+        return switch (value) {
+            case '零' -> 0;
+            case '一' -> 1;
+            case '二' -> 2;
+            case '三' -> 3;
+            case '四' -> 4;
+            case '五' -> 5;
+            case '六' -> 6;
+            case '七' -> 7;
+            case '八' -> 8;
+            case '九' -> 9;
+            default -> -1;
+        };
+    }
+
+    private String resolvePeriodHint(String text, int anchorIndex) {
+        if (!StringUtils.hasText(text)) {
+            return "";
+        }
+        int start = Math.max(0, anchorIndex - 8);
+        int end = Math.min(text.length(), anchorIndex + 8);
+        String scope = text.substring(start, end);
+        if (scope.contains("晚上") || scope.contains("傍晚")) {
+            return "晚上";
+        }
+        if (scope.contains("下午")) {
+            return "下午";
+        }
+        if (scope.contains("中午")) {
+            return "中午";
+        }
+        if (scope.contains("凌晨")) {
+            return "凌晨";
+        }
+        if (scope.contains("早上") || scope.contains("上午")) {
+            return "上午";
+        }
+        return "";
+    }
+
+    private int applyPeriodHint(int hour, String periodHint) {
+        if (hour < 0 || hour > 23) {
+            return hour;
+        }
+        if (!StringUtils.hasText(periodHint)) {
+            return hour;
+        }
+        if (("下午".equals(periodHint) || "晚上".equals(periodHint) || "傍晚".equals(periodHint)) && hour < 12) {
+            return hour + 12;
+        }
+        if ("中午".equals(periodHint) && hour < 11) {
+            return hour + 12;
+        }
+        if ("凌晨".equals(periodHint) && hour == 12) {
+            return 0;
+        }
+        return hour;
     }
 
     private String formatTime(int hour, int minute) {
@@ -1003,6 +1292,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
     private List<String> collectMissingFields(AiAppointmentStructuredDemand demand) {
         List<String> missing = new ArrayList<>();
+        if (!StringUtils.hasText(demand.getPatientName())) {
+            missing.add("patientName");
+        }
         if (!StringUtils.hasText(demand.getServiceDate())) {
             missing.add("serviceDate");
         }
@@ -1075,6 +1367,186 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         return Collections.emptyList();
     }
 
+    private ConversationEnvelope runConversationCollection(SessionState state) throws Exception {
+        Map<String, Object> contextPayload = new LinkedHashMap<>();
+        contextPayload.put("today", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+        contextPayload.put("patientName", defaultString(state.structuredDemand.getPatientName()));
+        contextPayload.put("currentStructuredDemand", buildStructuredPromptPayload(state.structuredDemand));
+        contextPayload.put("requiredFields", List.of("hospital", "serviceDate", "serviceStartTime", "serviceEndTime", "patientName", "symptomDescriptionOrScene"));
+        contextPayload.put("currentMissingFields", collectMissingFields(state.structuredDemand));
+        contextPayload.put("uiCapabilities", List.of(
+                "free_text",
+                "date_picker",
+                "time_picker",
+                "hospital_input",
+                "confirm_sheet"
+        ));
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(message("system", CONVERSATION_SYSTEM_PROMPT));
+        messages.add(message("user", objectMapper.writeValueAsString(contextPayload)));
+
+        List<Map<String, String>> history = state.history == null ? List.of() : state.history;
+        int startIndex = Math.max(0, history.size() - MAX_CONVERSATION_HISTORY);
+        messages.addAll(history.subList(startIndex, history.size()));
+
+        long startedAt = System.currentTimeMillis();
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(
+                () -> deepSeekClient.chatCompletion(messages, appointmentModel),
+                CONVERSATION_AI_EXECUTOR
+        );
+        String raw = future.get(CONVERSATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long elapsed = System.currentTimeMillis() - startedAt;
+        log.info("AI预约对话返回 sessionId={}, userId={}, model={}, elapsedMs={}, rawPreview={}",
+                state.sessionId,
+                state.userId,
+                appointmentModel,
+                elapsed,
+                abbreviate(raw, 360));
+
+        JsonNode root = objectMapper.readTree(extractJson(raw));
+        ConversationEnvelope envelope = new ConversationEnvelope();
+        envelope.assistantReply = normalize(root.path("assistantReply").asText(""));
+        envelope.assistantIntent = normalize(root.path("assistantIntent").asText(""));
+        envelope.questionKey = normalize(root.path("questionKey").asText(""));
+        envelope.followUpType = normalize(root.path("followUpType").asText(""));
+        envelope.readyForConfirm = root.path("readyForConfirm").isBoolean() && root.path("readyForConfirm").asBoolean();
+        JsonNode missingNode = root.path("missingFields");
+        if (missingNode.isArray()) {
+            envelope.missingFields = new ArrayList<>();
+            for (JsonNode item : missingNode) {
+                String value = normalize(item.asText(""));
+                if (StringUtils.hasText(value)) {
+                    envelope.missingFields.add(value);
+                }
+            }
+        }
+        JsonNode patchNode = root.path("fieldPatch");
+        if (patchNode.isObject()) {
+            envelope.fieldPatch = sanitizeFieldPatch(objectMapper.treeToValue(patchNode, AiAppointmentStructuredDemand.class));
+        }
+        JsonNode optionsNode = root.path("options");
+        if (optionsNode.isArray()) {
+            envelope.options = new ArrayList<>();
+            for (JsonNode item : optionsNode) {
+                String value = normalize(item.asText(""));
+                if (StringUtils.hasText(value)) {
+                    envelope.options.add(value);
+                }
+            }
+        }
+        JsonNode summaryNode = root.path("confirmSummary");
+        if (summaryNode.isObject()) {
+            envelope.confirmSummary = readMap(summaryNode.toString());
+        }
+        JsonNode timeProposalNode = root.path("timeProposal");
+        if (timeProposalNode.isObject()) {
+            envelope.timeProposal = sanitizeTimeProposal(objectMapper.treeToValue(timeProposalNode, AiAppointmentTimeProposal.class));
+        }
+        return envelope;
+    }
+
+    private String buildSyntheticReplyText(AiAppointmentReplyRequest request) {
+        if (request == null) {
+            return "";
+        }
+        String selectedValue = normalize(request.getSelectedValue());
+        String fieldKey = normalize(request.getFieldKey());
+        if (!StringUtils.hasText(selectedValue)) {
+            return "";
+        }
+        return switch (fieldKey) {
+            case "serviceDate" -> "我选择的就诊日期是" + selectedValue;
+            case "timePeriod" -> "我选择的就诊时间是" + selectedValue;
+            case "timeRange", "timeRangeConfirmed" -> "我确认就诊时间是" + selectedValue;
+            case "hospital" -> "我选择的就诊医院是" + selectedValue;
+            case "symptomDescription" -> "这次就诊情况是" + selectedValue;
+            case "otherRequirement" -> "我的额外需求是" + selectedValue;
+            case "attendantGender" -> "我偏好" + selectedValue + "陪诊师";
+            default -> selectedValue;
+        };
+    }
+
+    private void appendHistory(List<Map<String, String>> history, String role, String content) {
+        if (history == null || !StringUtils.hasText(content)) {
+            return;
+        }
+        history.add(message(role, content));
+    }
+
+    private String determineFollowUpType(String aiSuggestedType,
+                                         String questionType,
+                                         AiAppointmentStructuredDemand demand,
+                                         String assistantIntent,
+                                         boolean readyForConfirm) {
+        if (readyForConfirm || "ready_confirm".equals(assistantIntent) || "confirm_sheet".equals(aiSuggestedType)) {
+            return "confirm_sheet";
+        }
+        if ("time_picker".equals(aiSuggestedType) || "date_picker".equals(aiSuggestedType)
+                || "hospital_input".equals(aiSuggestedType) || "free_text".equals(aiSuggestedType)) {
+            return aiSuggestedType;
+        }
+        if (!StringUtils.hasText(questionType)) {
+            return "free_text";
+        }
+        if ("serviceDate".equals(questionType)) {
+            return "date_picker";
+        }
+        if ("timePeriod".equals(questionType)) {
+            return StringUtils.hasText(demand.getServiceDate()) ? "time_picker" : "free_text";
+        }
+        if ("hospital".equals(questionType)) {
+            return "hospital_input";
+        }
+        return "free_text";
+    }
+
+    private String buildAssistantReply(SessionState state,
+                                       ConversationEnvelope envelope,
+                                       String questionType,
+                                       boolean readyForConfirm) {
+        String candidate = envelope == null ? "" : normalize(envelope.assistantReply);
+        if (StringUtils.hasText(candidate)) {
+            return candidate;
+        }
+        if (readyForConfirm) {
+            return "我已经把预约信息整理好了。您确认后，我就开始为您智能匹配陪诊师。";
+        }
+        if (envelope != null && envelope.timeProposal != null && StringUtils.hasText(envelope.timeProposal.getProposalText())) {
+            return envelope.timeProposal.getProposalText();
+        }
+        if (StringUtils.hasText(questionType)) {
+            return buildFollowUpQuestion(questionType, state.followUpRound, state.structuredDemand);
+        }
+        return CONVERSATION_FALLBACK_REPLY;
+    }
+
+    private AiAppointmentStructuredDemand sanitizeFieldPatch(AiAppointmentStructuredDemand patch) {
+        if (patch == null) {
+            return null;
+        }
+        AiAppointmentStructuredDemand sanitized = new AiAppointmentStructuredDemand();
+        mergeStructuredDemand(sanitized, patch);
+        return sanitized;
+    }
+
+    private Map<String, Object> buildConfirmSummary(AiAppointmentStructuredDemand demand) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("hospital", defaultString(demand.getHospital()));
+        summary.put("department", defaultString(demand.getDepartment()));
+        summary.put("patientName", defaultString(demand.getPatientName()));
+        summary.put("patientProfile", defaultString(demand.getPatientProfile()));
+        summary.put("serviceDate", defaultString(demand.getServiceDate()));
+        summary.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
+        summary.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
+        summary.put("symptomDescription", defaultString(demand.getSymptomDescription()));
+        summary.put("otherRequirement", defaultString(demand.getOtherRequirement()));
+        summary.put("attendantGender", defaultString(demand.getAttendantGender()));
+        summary.put("preferenceTags", safeList(demand.getPreferenceTags()));
+        summary.put("symptomTags", safeList(demand.getSymptomTags()));
+        return summary;
+    }
+
     private void mergeStructuredReply(SessionState state, AiAppointmentReplyRequest request) {
         if (request == null || state.structuredDemand == null) {
             return;
@@ -1087,6 +1559,16 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         switch (fieldKey) {
             case "serviceDate" -> state.structuredDemand.setServiceDate(selectedValue);
             case "hospital" -> state.structuredDemand.setHospital(selectedValue);
+            case "serviceStartTime" -> state.structuredDemand.setServiceStartTime(parseFlexibleTimeToken(selectedValue));
+            case "serviceEndTime" -> state.structuredDemand.setServiceEndTime(parseFlexibleTimeToken(selectedValue));
+            case "timeRange", "timeRangeConfirmed" -> {
+                TimeWindow exactWindow = extractExactTimeWindow(selectedValue);
+                if (exactWindow != null) {
+                    state.structuredDemand.setTimePeriod(exactWindow.label);
+                    state.structuredDemand.setServiceStartTime(exactWindow.start);
+                    state.structuredDemand.setServiceEndTime(exactWindow.end);
+                }
+            }
             case "timePeriod" -> {
                 TimeWindow exactWindow = extractExactTimeWindow(selectedValue);
                 if (exactWindow != null) {
@@ -1127,7 +1609,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             target.setServiceEndTime(parseFlexibleTimeToken(incoming.getServiceEndTime()));
         }
         if (StringUtils.hasText(incoming.getHospital())) {
-            target.setHospital(incoming.getHospital().trim());
+            target.setHospital(cleanupHospitalCandidate(incoming.getHospital().trim()));
         }
         if (StringUtils.hasText(incoming.getDepartment())) {
             target.setDepartment(incoming.getDepartment().trim());
@@ -1175,6 +1657,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private SessionState requireSession(String sessionId) {
         SessionState state = sessions.get(sessionId);
         if (state == null) {
+            state = loadSessionFromDb(sessionId);
+            if (state != null) {
+                sessions.put(sessionId, state);
+            }
+        }
+        if (state == null) {
             throw new IllegalArgumentException("AI预约会话不存在");
         }
         return state;
@@ -1186,8 +1674,25 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             state.processingPhase = PHASE_FAILED;
             state.thinkingProcess = message;
             state.message = message;
+            state.assistantReply = message;
+            state.assistantIntent = "acknowledge";
             state.needMoreInfo = Boolean.FALSE;
             state.canMatch = Boolean.FALSE;
+            state.readyForConfirm = Boolean.FALSE;
+            state.followUpType = "";
+            state.questionKey = "";
+            state.timeProposal = null;
+            appendHistory(state.history, "assistant", message);
+            try {
+                persistMessage(state.sessionId, "assistant", message, null);
+            } catch (Exception ignore) {
+                log.warn("AI预约失败消息落库失败 sessionId={}", state.sessionId);
+            }
+            try {
+                saveSession(state);
+            } catch (Exception ignore) {
+                log.warn("AI预约失败状态落库失败 sessionId={}", state.sessionId);
+            }
         }
     }
 
@@ -1198,17 +1703,195 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         response.setProcessingPhase(state.processingPhase);
         response.setThinkingProcess(state.thinkingProcess);
         response.setMessage(state.message);
+        response.setAssistantReply(defaultString(state.assistantReply));
+        response.setAssistantIntent(defaultString(state.assistantIntent));
         response.setNeedMoreInfo(Boolean.TRUE.equals(state.needMoreInfo));
         response.setMissingFields(state.missingFields == null ? List.of() : new ArrayList<>(state.missingFields));
         response.setQuestionType(defaultString(state.questionType));
+        response.setQuestionKey(defaultString(state.questionKey));
         response.setOptions(state.options == null ? List.of() : new ArrayList<>(state.options));
         response.setCanMatch(Boolean.TRUE.equals(state.canMatch));
+        response.setReadyForConfirm(Boolean.TRUE.equals(state.readyForConfirm));
+        response.setFollowUpType(defaultString(state.followUpType));
+        response.setTimeProposal(state.timeProposal);
         response.setFollowUpRound(state.followUpRound == null ? 0 : state.followUpRound);
         response.setStructuredDemand(state.structuredDemand);
+        response.setFieldPatch(state.fieldPatch);
+        response.setConfirmSummary(state.confirmSummary == null ? Map.of() : new LinkedHashMap<>(state.confirmSummary));
         response.setMatchedList(state.matchedList == null ? List.of() : new ArrayList<>(state.matchedList));
         response.setAppointmentNo(state.appointmentNo);
         response.setDegraded(Boolean.TRUE.equals(state.degraded));
         return response;
+    }
+
+    private void saveSession(SessionState state) {
+        try {
+            AiAppointmentSessionRecord record = toSessionRecord(state);
+            AiAppointmentSessionRecord existing = aiAppointmentSessionMapper.selectBySessionId(state.sessionId);
+            if (existing == null) {
+                aiAppointmentSessionMapper.insert(record);
+            } else {
+                aiAppointmentSessionMapper.updateBySessionId(record);
+            }
+        } catch (Exception e) {
+            log.error("保存 AI预约会话失败 sessionId={}, cause={}", state.sessionId, summarizeException(e), e);
+            throw new IllegalStateException("AI预约会话保存失败", e);
+        }
+    }
+
+    private void persistMessage(String sessionId, String role, String content, AiAppointmentStructuredDemand fieldPatch) {
+        if (!StringUtils.hasText(sessionId) || !StringUtils.hasText(content)) {
+            return;
+        }
+        try {
+            AiAppointmentMessageRecord record = new AiAppointmentMessageRecord();
+            record.setSessionId(sessionId);
+            record.setRole(role);
+            record.setContent(content);
+            record.setFieldPatchJson(writeJson(fieldPatch));
+            aiAppointmentMessageMapper.insert(record);
+        } catch (Exception e) {
+            log.error("保存 AI预约消息失败 sessionId={}, role={}, cause={}", sessionId, role, summarizeException(e), e);
+            throw new IllegalStateException("AI预约消息保存失败", e);
+        }
+    }
+
+    private SessionState loadSessionFromDb(String sessionId) {
+        try {
+            AiAppointmentSessionRecord record = aiAppointmentSessionMapper.selectBySessionId(sessionId);
+            if (record == null) {
+                return null;
+            }
+            SessionState state = fromSessionRecord(record);
+            List<AiAppointmentMessageRecord> messages = aiAppointmentMessageMapper.selectBySessionId(sessionId);
+            state.history = messages.stream()
+                    .filter(item -> StringUtils.hasText(item.getRole()) && StringUtils.hasText(item.getContent()))
+                    .map(item -> message(item.getRole(), item.getContent()))
+                    .collect(Collectors.toCollection(ArrayList::new));
+            return state;
+        } catch (Exception e) {
+            log.error("加载 AI预约会话失败 sessionId={}, cause={}", sessionId, summarizeException(e), e);
+            return null;
+        }
+    }
+
+    private AiAppointmentSessionRecord toSessionRecord(SessionState state) {
+        AiAppointmentSessionRecord record = new AiAppointmentSessionRecord();
+        record.setSessionId(state.sessionId);
+        record.setUserId(state.userId);
+        record.setStatus(state.status);
+        record.setProcessingPhase(state.processingPhase);
+        record.setThinkingProcess(state.thinkingProcess);
+        record.setAssistantReply(state.assistantReply);
+        record.setAssistantIntent(state.assistantIntent);
+        record.setNeedMoreInfo(Boolean.TRUE.equals(state.needMoreInfo) ? 1 : 0);
+        record.setMissingFieldsJson(writeJson(state.missingFields));
+        record.setQuestionType(state.questionType);
+        record.setQuestionKey(state.questionKey);
+        record.setFollowUpType(state.followUpType);
+        record.setTimeProposalJson(writeJson(state.timeProposal));
+        record.setOptionsJson(writeJson(state.options));
+        record.setCanMatch(Boolean.TRUE.equals(state.canMatch) ? 1 : 0);
+        record.setReadyForConfirm(Boolean.TRUE.equals(state.readyForConfirm) ? 1 : 0);
+        record.setFollowUpRound(state.followUpRound == null ? 0 : state.followUpRound);
+        record.setRawDemandText(state.rawDemandText);
+        record.setStructuredDemandJson(writeJson(state.structuredDemand));
+        record.setFieldPatchJson(writeJson(state.fieldPatch));
+        record.setConfirmSummaryJson(writeJson(state.confirmSummary));
+        record.setMatchedListJson(writeJson(state.matchedList));
+        record.setAppointmentNo(state.appointmentNo);
+        record.setDegraded(Boolean.TRUE.equals(state.degraded) ? 1 : 0);
+        return record;
+    }
+
+    private SessionState fromSessionRecord(AiAppointmentSessionRecord record) {
+        SessionState state = new SessionState();
+        state.sessionId = record.getSessionId();
+        state.userId = record.getUserId();
+        state.status = defaultString(record.getStatus());
+        state.processingPhase = defaultString(record.getProcessingPhase());
+        state.thinkingProcess = defaultString(record.getThinkingProcess());
+        state.message = defaultString(record.getAssistantReply());
+        state.assistantReply = defaultString(record.getAssistantReply());
+        state.assistantIntent = defaultString(record.getAssistantIntent());
+        state.needMoreInfo = record.getNeedMoreInfo() != null && record.getNeedMoreInfo() == 1;
+        state.missingFields = readStringList(record.getMissingFieldsJson());
+        state.questionType = defaultString(record.getQuestionType());
+        state.questionKey = StringUtils.hasText(record.getQuestionKey()) ? record.getQuestionKey() : defaultString(record.getQuestionType());
+        state.followUpType = defaultString(record.getFollowUpType());
+        state.timeProposal = readObject(record.getTimeProposalJson(), AiAppointmentTimeProposal.class, null);
+        state.options = readStringList(record.getOptionsJson());
+        state.canMatch = record.getCanMatch() != null && record.getCanMatch() == 1;
+        state.readyForConfirm = record.getReadyForConfirm() != null && record.getReadyForConfirm() == 1;
+        state.followUpRound = record.getFollowUpRound() == null ? 0 : record.getFollowUpRound();
+        state.rawDemandText = defaultString(record.getRawDemandText());
+        state.structuredDemand = readObject(record.getStructuredDemandJson(), AiAppointmentStructuredDemand.class, new AiAppointmentStructuredDemand());
+        state.fieldPatch = readObject(record.getFieldPatchJson(), AiAppointmentStructuredDemand.class, null);
+        state.confirmSummary = readMap(record.getConfirmSummaryJson());
+        state.matchedList = readMatchedList(record.getMatchedListJson());
+        state.appointmentNo = defaultString(record.getAppointmentNo());
+        state.degraded = record.getDegraded() != null && record.getDegraded() == 1;
+        return state;
+    }
+
+    private String writeJson(Object value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("序列化 JSON 失败: {}", summarizeException(e));
+            return "";
+        }
+    }
+
+    private List<String> readStringList(String json) {
+        if (!StringUtils.hasText(json)) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            log.warn("解析字符串列表失败: {}", summarizeException(e));
+            return new ArrayList<>();
+        }
+    }
+
+    private Map<String, Object> readMap(String json) {
+        if (!StringUtils.hasText(json)) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<LinkedHashMap<String, Object>>() {});
+        } catch (Exception e) {
+            log.warn("解析映射失败: {}", summarizeException(e));
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private List<MatchedAttendantVO> readMatchedList(String json) {
+        if (!StringUtils.hasText(json)) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<MatchedAttendantVO>>() {});
+        } catch (Exception e) {
+            log.warn("解析匹配列表失败: {}", summarizeException(e));
+            return new ArrayList<>();
+        }
+    }
+
+    private <T> T readObject(String json, Class<T> type, T defaultValue) {
+        if (!StringUtils.hasText(json)) {
+            return defaultValue;
+        }
+        try {
+            return objectMapper.readValue(json, type);
+        } catch (Exception e) {
+            log.warn("解析对象失败 type={}, cause={}", type.getSimpleName(), summarizeException(e));
+            return defaultValue;
+        }
     }
 
     private Map<String, String> message(String role, String content) {
@@ -1318,7 +2001,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
     private Map<String, Object> buildStructuredPromptPayload(AiAppointmentStructuredDemand demand) {
         Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("patientName", defaultString(demand.getPatientName()));
         payload.put("patientProfile", defaultString(demand.getPatientProfile()));
+        payload.put("timePeriod", defaultString(demand.getTimePeriod()));
         payload.put("serviceDate", defaultString(demand.getServiceDate()));
         payload.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
         payload.put("serviceEndTime", defaultString(demand.getServiceEndTime()));
@@ -1330,6 +2015,68 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         payload.put("preferenceTags", safeList(demand.getPreferenceTags()));
         payload.put("symptomTags", safeList(demand.getSymptomTags()));
         return payload;
+    }
+
+    private void normalizeStructuredDemandFields(AiAppointmentStructuredDemand demand) {
+        if (demand == null) {
+            return;
+        }
+        AiAppointmentStructuredDemand normalized = new AiAppointmentStructuredDemand();
+        mergeStructuredDemand(normalized, demand);
+        normalized.setRawDemandText(defaultString(demand.getRawDemandText()));
+        normalized.setPatientName(StringUtils.hasText(normalized.getPatientName()) ? normalized.getPatientName() : demand.getPatientName());
+        if (!StringUtils.hasText(normalized.getHospital()) && StringUtils.hasText(demand.getHospital())) {
+            normalized.setHospital(cleanupHospitalCandidate(demand.getHospital()));
+        }
+        if (!StringUtils.hasText(normalized.getTimePeriod())
+                && StringUtils.hasText(normalized.getServiceStartTime())
+                && StringUtils.hasText(normalized.getServiceEndTime())) {
+            normalized.setTimePeriod("具体时间");
+        }
+        demand.setPatientName(normalized.getPatientName());
+        demand.setPatientProfile(normalized.getPatientProfile());
+        demand.setServiceDate(normalized.getServiceDate());
+        demand.setTimePeriod(normalized.getTimePeriod());
+        demand.setServiceStartTime(normalized.getServiceStartTime());
+        demand.setServiceEndTime(normalized.getServiceEndTime());
+        demand.setHospital(normalized.getHospital());
+        demand.setDepartment(normalized.getDepartment());
+        demand.setSymptomDescription(normalized.getSymptomDescription());
+        demand.setSymptomTags(normalized.getSymptomTags());
+        demand.setOtherRequirement(normalized.getOtherRequirement());
+        demand.setPreferenceTags(normalized.getPreferenceTags());
+        demand.setAttendantGender(normalized.getAttendantGender());
+        demand.setServiceTypeNumber(normalized.getServiceTypeNumber());
+    }
+
+    private String resolveQuestionKey(ConversationEnvelope envelope, List<String> missingFields) {
+        String fromAi = envelope == null ? "" : normalize(envelope.questionKey);
+        if (StringUtils.hasText(fromAi)) {
+            if ("serviceStartTime".equals(fromAi) || "serviceEndTime".equals(fromAi) || "timeRange".equals(fromAi)) {
+                return "timePeriod";
+            }
+            if (missingFields.contains(fromAi) || (!missingFields.isEmpty() && "symptomDescription".equals(fromAi))) {
+                return fromAi;
+            }
+        }
+        return missingFields.isEmpty() ? "" : missingFields.get(0);
+    }
+
+    private AiAppointmentTimeProposal sanitizeTimeProposal(AiAppointmentTimeProposal proposal) {
+        if (proposal == null) {
+            return null;
+        }
+        String start = parseFlexibleTimeToken(proposal.getProposedStartTime());
+        String end = parseFlexibleTimeToken(proposal.getProposedEndTime());
+        String text = normalize(proposal.getProposalText());
+        if (!StringUtils.hasText(start) && !StringUtils.hasText(end) && !StringUtils.hasText(text)) {
+            return null;
+        }
+        AiAppointmentTimeProposal sanitized = new AiAppointmentTimeProposal();
+        sanitized.setProposedStartTime(start);
+        sanitized.setProposedEndTime(end);
+        sanitized.setProposalText(text);
+        return sanitized;
     }
 
     private String abbreviate(String value, int maxLength) {
@@ -1399,6 +2146,19 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         private Boolean degraded = Boolean.FALSE;
     }
 
+    private static class ConversationEnvelope {
+        private String assistantReply;
+        private String assistantIntent;
+        private String questionKey;
+        private List<String> missingFields = new ArrayList<>();
+        private AiAppointmentStructuredDemand fieldPatch;
+        private String followUpType;
+        private List<String> options = new ArrayList<>();
+        private Map<String, Object> confirmSummary = new LinkedHashMap<>();
+        private AiAppointmentTimeProposal timeProposal;
+        private Boolean readyForConfirm;
+    }
+
     private static class SessionState {
         private String sessionId;
         private Integer userId;
@@ -1406,14 +2166,23 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         private String processingPhase;
         private String thinkingProcess;
         private String message;
+        private String assistantReply;
+        private String assistantIntent;
         private Boolean needMoreInfo;
         private List<String> missingFields = new ArrayList<>();
         private String questionType;
+        private String questionKey;
+        private String followUpType;
+        private AiAppointmentTimeProposal timeProposal;
         private List<String> options = new ArrayList<>();
         private Boolean canMatch;
+        private Boolean readyForConfirm;
         private Integer followUpRound;
         private String rawDemandText;
         private AiAppointmentStructuredDemand structuredDemand;
+        private AiAppointmentStructuredDemand fieldPatch;
+        private Map<String, Object> confirmSummary = new LinkedHashMap<>();
+        private List<Map<String, String>> history = new ArrayList<>();
         private List<MatchedAttendantVO> matchedList = new ArrayList<>();
         private String appointmentNo;
         private Boolean degraded = Boolean.FALSE;

@@ -64,6 +64,28 @@ export default {
 /* 全局样式占位 */
 
 /* #ifdef H5 */
+html,
+body,
+#app,
+uni-app,
+uni-page,
+uni-page-wrapper,
+uni-page-body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+uni-page-body {
+  position: relative;
+}
+
 html.platform-ios {
   --ios-tabbar-base-height: 50px;
   --ios-tabbar-safe-bottom: max(env(safe-area-inset-bottom), 16px);

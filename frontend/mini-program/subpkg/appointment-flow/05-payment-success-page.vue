@@ -241,6 +241,9 @@ const goToOrderDetail = () => {
   @include user-page;
   min-height: 100vh;
   padding: 24rpx 24rpx calc(44rpx + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 

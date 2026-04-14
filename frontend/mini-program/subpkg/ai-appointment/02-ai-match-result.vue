@@ -12,7 +12,7 @@
           <text class="summary-subtitle">{{ summaryStatusText }}</text>
         </view>
         <view class="summary-badge">
-          <text>与等待页一致</text>
+          <text>已确认</text>
         </view>
       </view>
 
@@ -244,6 +244,12 @@ const summaryItems = computed(() => ([
     placeholder: '等待补充医院'
   },
   {
+    key: 'department',
+    label: '就诊科室',
+    value: structuredDemand.value.department,
+    placeholder: '未指定科室'
+  },
+  {
     key: 'time',
     label: '就诊时间',
     value: [formatDateLabel(structuredDemand.value.serviceDate), formatTimeRange(structuredDemand.value.serviceStartTime, structuredDemand.value.serviceEndTime)].filter(Boolean).join(' '),
@@ -282,7 +288,7 @@ const summaryVisible = computed(() => summaryItems.value.some((item) => !!item.v
 const summaryStatusText = computed(() => {
   if (loading.value) return '等待 AI 匹配完成，您可以先查看已整理的信息'
   if (degraded.value) return '已先返回高分优质陪诊师'
-  return '这份信息会和等待页保持一致'
+  return '系统将基于这份信息为您继续下单'
 })
 
 const stopPolling = () => {
@@ -395,6 +401,10 @@ onUnload(() => {
   min-height: 100vh;
   background: linear-gradient(180deg, #eef5ff 0%, #f7f9fd 100%);
   padding: 24rpx 24rpx 40rpx;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 
 .hero-card,

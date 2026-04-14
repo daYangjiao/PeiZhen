@@ -25,6 +25,7 @@
 
 		<view class="modal-overlay" v-if="showTimeModal" @click="hideTimePicker">
 			<view class="time-modal" @click.stop>
+				<view class="time-modal-handle"></view>
 				<view class="time-modal-header">
 					<view>
 						<text class="time-modal-title">{{ timePickerTitle }}</text>
@@ -458,6 +459,9 @@ const createSafeDate = (dateStr) => {
 	border-radius: 20rpx;
 	padding: 40rpx 30rpx;
 	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow: visible;
 }
 
 .time-section.compact {
@@ -498,6 +502,8 @@ const createSafeDate = (dateStr) => {
 	display: flex;
 	gap: 30rpx;
 	flex-wrap: wrap;
+	width: 100%;
+	max-width: 100%;
 }
 
 .time-inline-tip {
@@ -510,6 +516,7 @@ const createSafeDate = (dateStr) => {
 
 .time-picker {
 	flex: 1;
+	min-width: 0;
 	background-color: #f8f9fa;
 	border-radius: 15rpx;
 	padding: 26rpx 16rpx;
@@ -559,23 +566,36 @@ const createSafeDate = (dateStr) => {
 
 .modal-overlay {
 	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	inset: 0;
 	background-color: rgba(0, 0, 0, 0.5);
 	display: flex;
-	align-items: center;
+	align-items: flex-end;
 	justify-content: center;
-	z-index: 1000;
+	z-index: 99999;
+	padding: 24rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
 }
 
 .time-modal {
 	background-color: #ffffff;
-	border-radius: 20rpx;
-	width: 86%;
-	max-height: 82%;
+	border-radius: 36rpx 36rpx 28rpx 28rpx;
+	width: 100%;
+	max-width: 720rpx;
+	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
 	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	box-shadow: 0 -12rpx 40rpx rgba(15, 23, 42, 0.12), 0 16rpx 48rpx rgba(15, 23, 42, 0.18);
+}
+
+.time-modal-handle {
+	width: 88rpx;
+	height: 10rpx;
+	border-radius: 999rpx;
+	background: rgba(148, 163, 184, 0.35);
+	margin: 16rpx auto 0;
+	flex-shrink: 0;
 }
 
 .time-modal-header {
@@ -607,7 +627,8 @@ const createSafeDate = (dateStr) => {
 }
 
 .time-list {
-	max-height: 620rpx;
+	flex: 1;
+	min-height: 0;
 	padding: 22rpx 24rpx 16rpx;
 	box-sizing: border-box;
 }
@@ -737,9 +758,11 @@ const createSafeDate = (dateStr) => {
 
 .time-footer {
 	display: flex;
-	padding: 24rpx 30rpx 30rpx;
+	padding: 24rpx 30rpx calc(30rpx + env(safe-area-inset-bottom));
 	gap: 20rpx;
 	border-top: 1rpx solid #eef3f8;
+	flex-shrink: 0;
+	background: rgba(255, 255, 255, 0.96);
 }
 
 .cancel-btn {

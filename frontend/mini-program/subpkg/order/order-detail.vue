@@ -1823,11 +1823,13 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding-top: 80rpx;
+  padding: 80rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 .duration-modal {
-  width: 90%;
+  width: 100%;
   max-width: 640rpx;
+  max-height: calc(100dvh - 80rpx - env(safe-area-inset-bottom));
   transform: translateY(0);
   animation: modalIn 180ms ease-out;
 }
@@ -1842,6 +1844,9 @@ onUnmounted(() => {
   border-radius: 24rpx;
   padding: 36rpx;
   box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.18);
+  max-height: calc(100dvh - 80rpx - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 .confirm-title {
   font-size: 32rpx;
@@ -2135,6 +2140,9 @@ onUnmounted(() => {
   padding: 20rpx 32rpx 160rpx;
   background-color: #f5f7fa;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -2615,7 +2623,9 @@ onUnmounted(() => {
   height: 120rpx;
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
   z-index: 999;
-  padding: 0 32rpx;
+  padding: 0 32rpx calc(env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  width: auto;
 }
 
 .bottom-left {
@@ -2698,27 +2708,27 @@ onUnmounted(() => {
 /* 补付结果弹窗（沿用下单页样式） */
 .payment-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1100;
   padding: 20rpx;
+  box-sizing: border-box;
 }
 
 .payment-modal-content {
   background-color: white;
   border-radius: 16rpx;
-  width: 90%;
+  width: 100%;
   max-width: 500rpx;
+  max-height: calc(100dvh - 40rpx - env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .payment-modal-header {
@@ -2736,6 +2746,8 @@ onUnmounted(() => {
 
 .payment-modal-body {
   padding: 30rpx 24rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .payment-modal-text {
@@ -2780,19 +2792,21 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   z-index: 1100;
-  padding-top: 120rpx;
-  padding-left: 20rpx;
-  padding-right: 20rpx;
+  padding: 120rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .contact-modal {
-  width: 90%;
+  width: 100%;
   max-width: 640rpx;
+  max-height: calc(100dvh - 120rpx - env(safe-area-inset-bottom));
   background: #fff;
   border-radius: 24rpx;
   box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.18);
   overflow: hidden;
   animation: contactIn 180ms ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes contactIn {
@@ -2835,6 +2849,8 @@ onUnmounted(() => {
 
 .contact-options {
   padding: 10rpx 18rpx 6rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .contact-option {

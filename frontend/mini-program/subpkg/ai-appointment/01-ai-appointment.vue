@@ -85,60 +85,27 @@
           />
         </view>
 
-        <view v-if="showInlineConfirmCard" id="inline-confirm-card" class="inline-card confirm-card">
+        <view v-if="showTimeProposalCard" id="time-proposal-card" class="inline-card proposal-card">
           <view class="inline-card-head">
             <view>
-              <text class="inline-card-title">确认预约信息</text>
-              <text class="inline-card-subtitle">确认后我就开始智能匹配陪诊师</text>
+              <text class="inline-card-title">时间待确认</text>
+              <text class="inline-card-subtitle">{{ currentTimeProposal.proposalText || 'AI 给出了一个建议时段，您确认后我再继续。' }}</text>
             </view>
             <view class="summary-badge">
               <text>待确认</text>
             </view>
           </view>
 
-          <view class="summary-grid">
-            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
-              <text class="summary-label">{{ item.label }}</text>
-              <text class="summary-value">{{ item.value || item.placeholder }}</text>
-            </view>
-          </view>
-
-          <view v-if="summaryTags.length" class="summary-tags">
-            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
-              <text>{{ tag }}</text>
-            </view>
+          <view class="proposal-time-pill">
+            <text>{{ proposedTimeLabel }}</text>
           </view>
 
           <view class="inline-card-actions">
-            <button class="summary-secondary-btn" :disabled="sending || navigatingToResult" @click="continueEditing">
-              继续修改
+            <button class="summary-secondary-btn" :disabled="sending || navigatingToResult" @click="openStructuredPicker('timePeriod')">
+              重新选择时间
             </button>
-            <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
-              开始匹配
-            </button>
-          </view>
-        </view>
-
-        <view v-if="showTimePickerCard" id="time-picker-card" class="inline-card picker-card">
-          <view class="inline-card-head">
-            <view>
-              <text class="inline-card-title">补充就诊时间</text>
-              <text class="inline-card-subtitle">请选择和普通预约一致的开始、结束时间</text>
-            </view>
-          </view>
-          <appointment-time-range-picker
-            v-model:start-time="pickerStartTime"
-            v-model:end-time="pickerEndTime"
-            :selected-date="structuredDemand.serviceDate"
-            compact
-            hide-header
-          />
-          <view class="inline-card-actions">
-            <button class="summary-secondary-btn" :disabled="sending" @click="cancelTimePicker">
-              稍后再选
-            </button>
-            <button class="summary-primary-btn" :disabled="!canSubmitPickedTime || sending" @click="submitPickedTimeRange">
-              确认这个时间段
+            <button class="summary-primary-btn" :disabled="sending || navigatingToResult" @click="acceptTimeProposal">
+              这个时间可以
             </button>
           </view>
         </view>
@@ -214,6 +181,76 @@
         </button>
       </view>
     </view>
+
+    <view v-if="showConfirmSheet" class="sheet-overlay" @click="closeConfirmSheet">
+      <view class="sheet-panel" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="sheet-head">
+          <view>
+            <text class="sheet-title">确认预约信息</text>
+            <text class="sheet-subtitle">确认无误后，我就开始智能匹配陪诊师</text>
+          </view>
+          <view class="summary-badge">
+            <text>待确认</text>
+          </view>
+        </view>
+
+        <scroll-view class="sheet-scroll" scroll-y>
+          <view class="summary-grid">
+            <view v-for="item in summaryItems" :key="item.key" class="summary-item" :class="{ empty: !item.value }">
+              <text class="summary-label">{{ item.label }}</text>
+              <text class="summary-value">{{ item.value || item.placeholder }}</text>
+            </view>
+          </view>
+
+          <view v-if="summaryTags.length" class="summary-tags">
+            <view v-for="tag in summaryTags" :key="tag" class="summary-tag">
+              <text>{{ tag }}</text>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view class="sheet-actions">
+          <button class="summary-secondary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="continueEditing">
+            继续修改
+          </button>
+          <button class="summary-primary-btn" :disabled="sending || matchingInProgress || navigatingToResult" @click="confirmAndStartMatch">
+            确认并开始匹配
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="showTimePickerSheet" class="sheet-overlay" @click="cancelTimePicker">
+      <view class="sheet-panel time-sheet-panel" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="sheet-head">
+          <view>
+            <text class="sheet-title">补充就诊时间</text>
+            <text class="sheet-subtitle">请选择和普通预约一致的开始、结束时间</text>
+          </view>
+        </view>
+
+        <scroll-view class="sheet-scroll" scroll-y>
+          <appointment-time-range-picker
+            v-model:start-time="pickerStartTime"
+            v-model:end-time="pickerEndTime"
+            :selected-date="structuredDemand.serviceDate"
+            compact
+            hide-header
+          />
+        </scroll-view>
+
+        <view class="sheet-actions">
+          <button class="summary-secondary-btn" :disabled="sending" @click="cancelTimePicker">
+            稍后再选
+          </button>
+          <button class="summary-primary-btn" :disabled="!canSubmitPickedTime || sending" @click="submitPickedTimeRange">
+            确认这个时间段
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -257,18 +294,21 @@ const scrollIntoView = ref('')
 const composerPaddingBottom = ref(8)
 const sessionId = ref('')
 const currentQuestionType = ref('')
+const currentAssistantIntent = ref('')
 const activeOptions = ref([])
 const followUpRound = ref(0)
+const activeFollowUpType = ref('')
 const navigatingToResult = ref(false)
 const activeAssistantKey = ref('')
 const matchDeadlineTimer = ref(null)
 const structuredDemand = ref(createEmptyStructuredDemand())
 const readyToMatch = ref(false)
-const confirmCardDismissed = ref(false)
+const showConfirmSheet = ref(false)
 const introExpanded = ref(true)
-const showInlineTimePicker = ref(false)
+const showTimePickerSheet = ref(false)
 const pickerStartTime = ref('')
 const pickerEndTime = ref('')
+const currentTimeProposal = ref(null)
 const matchingStageIndex = ref(0)
 let pollTimer = null
 let matchingStageTimer = null
@@ -634,13 +674,13 @@ const applyStructuredSelectionPatch = (fieldKey, selectedValue, displayText = se
   const normalizedValue = normalizeString(selectedValue)
   if (!normalizedValue) return false
 
-  if (fieldKey === 'timePeriod') {
+  if (fieldKey === 'timePeriod' || fieldKey === 'timeRange' || fieldKey === 'timeRangeConfirmed') {
     const exact = normalizeExactTimePeriod(normalizedValue)
     if (exact) {
       const [startTime, endTime] = exact.split('-')
       patch.serviceStartTime = startTime
       patch.serviceEndTime = endTime
-      patch.timePeriod = normalizedValue
+      patch.timePeriod = '具体时间'
     } else {
       patch.timePeriod = normalizedValue
     }
@@ -684,6 +724,12 @@ const summaryItems = computed(() => ([
     placeholder: '等待补充医院'
   },
   {
+    key: 'department',
+    label: '就诊科室',
+    value: structuredDemand.value.department,
+    placeholder: '未指定科室'
+  },
+  {
     key: 'time',
     label: '就诊时间',
     value: [formatDateDisplay(structuredDemand.value.serviceDate), formatTimeDisplay(structuredDemand.value.serviceStartTime, structuredDemand.value.serviceEndTime)].filter(Boolean).join(' '),
@@ -719,15 +765,20 @@ const summaryTags = computed(() => {
 
 const hasStartedConversation = computed(() => messages.value.some((item) => item.type === 'user'))
 const showIntroCards = computed(() => !hasStartedConversation.value || introExpanded.value)
-const showInlineConfirmCard = computed(() => readyToMatch.value && !confirmCardDismissed.value && !matchingInProgress.value)
 const showMatchingInfoCard = computed(() => matchingInProgress.value)
 const canSubmitPickedTime = computed(() => !!structuredDemand.value.serviceDate && !!pickerStartTime.value && !!pickerEndTime.value)
-const showTimePickerCard = computed(() => {
-  return showInlineTimePicker.value
-    && currentQuestionType.value === 'timePeriod'
+const showTimePickerSheetVisible = computed(() => showTimePickerSheet.value && !!structuredDemand.value.serviceDate && !matchingInProgress.value)
+const showTimeProposalCard = computed(() => {
+  return !!currentTimeProposal.value
+    && activeFollowUpType.value === 'time_picker'
     && !matchingInProgress.value
     && !readyToMatch.value
-    && !!structuredDemand.value.serviceDate
+})
+const proposedTimeLabel = computed(() => {
+  if (!currentTimeProposal.value) return ''
+  const start = normalizeFlexibleClockToken(currentTimeProposal.value.proposedStartTime)
+  const end = normalizeFlexibleClockToken(currentTimeProposal.value.proposedEndTime)
+  return start && end ? `${start}-${end}` : ''
 })
 const MATCHING_STAGE_COPY = [
   '正在整理就诊信息',
@@ -749,9 +800,10 @@ const getQuestionLabel = (field) => {
 }
 
 const shouldShowStructuredAction = computed(() => {
-  if (!currentQuestionType.value) return false
-  if (currentQuestionType.value === 'timePeriod') return !!structuredDemand.value.serviceDate
-  return followUpRound.value >= 2
+  if (!activeFollowUpType.value) return false
+  if (activeFollowUpType.value === 'time_picker') return !!structuredDemand.value.serviceDate
+  if (activeFollowUpType.value === 'date_picker') return true
+  return false
 })
 
 const appendUserMessage = (text) => {
@@ -841,8 +893,9 @@ const schedulePoll = (delay = POLL_INTERVAL) => {
 const showMatchingBubble = () => {
   matchingInProgress.value = true
   readyToMatch.value = false
-  confirmCardDismissed.value = false
-  showInlineTimePicker.value = false
+  showConfirmSheet.value = false
+  showTimePickerSheet.value = false
+  currentTimeProposal.value = null
   startMatchingStageRotation()
   upsertAssistantMessage({
     message: '正在为您匹配合适的陪诊师',
@@ -913,17 +966,22 @@ const startMatchFlow = async () => {
 
 const confirmAndStartMatch = async () => {
   if (!readyToMatch.value || matchingInProgress.value || navigatingToResult.value) return
+  showConfirmSheet.value = false
   await startMatchFlow()
 }
 
 const continueEditing = () => {
-  confirmCardDismissed.value = true
+  showConfirmSheet.value = false
   upsertAssistantMessage({
     message: '好的，您可以继续补充或修改需求，确认后我再开始智能匹配。',
     processingPhase: 'completed',
     thinkingProcess: ''
   })
   scrollToBottom()
+}
+
+const closeConfirmSheet = () => {
+  showConfirmSheet.value = false
 }
 
 const toggleIntroCards = () => {
@@ -937,7 +995,7 @@ const resetTimePicker = () => {
 }
 
 const cancelTimePicker = () => {
-  showInlineTimePicker.value = false
+  showTimePickerSheet.value = false
   resetTimePicker()
 }
 
@@ -947,9 +1005,20 @@ const submitPickedTimeRange = async () => {
   const displayText = structuredDemand.value.timePeriod
     ? `${structuredDemand.value.timePeriod}，${exactRange}`
     : exactRange
-  showInlineTimePicker.value = false
+  showTimePickerSheet.value = false
   resetTimePicker()
-  await submitStructuredSelection('timePeriod', exactRange, displayText)
+  await submitStructuredSelection('timeRangeConfirmed', exactRange, displayText)
+}
+
+const acceptTimeProposal = async () => {
+  if (!currentTimeProposal.value) return
+  const start = normalizeFlexibleClockToken(currentTimeProposal.value.proposedStartTime)
+  const end = normalizeFlexibleClockToken(currentTimeProposal.value.proposedEndTime)
+  if (!start || !end) {
+    openStructuredPicker('timePeriod')
+    return
+  }
+  await submitStructuredSelection('timeRangeConfirmed', `${start}-${end}`, currentTimeProposal.value.proposalText || `${start}-${end}`)
 }
 
 const applySessionStructuredDemand = (state = {}) => {
@@ -981,16 +1050,19 @@ const applySessionState = async (state) => {
   if (hasStartedConversation.value) {
     introExpanded.value = false
   }
+  const assistantReply = state.assistantReply || state.message || ''
   upsertAssistantMessage({
-    message: state.message || '',
+    message: assistantReply,
     processingPhase: state.processingPhase,
     thinkingProcess: matchingInProgress.value ? matchingStageText.value : state.thinkingProcess,
     waitingMatch: matchingInProgress.value
   })
-  currentQuestionType.value = state.questionType || ''
+  currentAssistantIntent.value = state.assistantIntent || ''
+  currentQuestionType.value = state.questionKey || state.questionType || ''
+  activeFollowUpType.value = state.followUpType || ''
   activeOptions.value = Array.isArray(state.options) ? state.options : []
   followUpRound.value = Number(state.followUpRound || 0)
-  showInlineTimePicker.value = currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate && !matchingInProgress.value && !readyToMatch.value
+  currentTimeProposal.value = state.timeProposal || null
   scrollToBottom()
 
   if (state.processingPhase === 'completed') {
@@ -999,33 +1071,30 @@ const applySessionState = async (state) => {
       stopMatchDeadline()
       stopMatchingStageRotation()
       await navigateToResultPage()
-    } else if (state.canMatch && !state.needMoreInfo && !matchingInProgress.value) {
+    } else if ((state.readyForConfirm || (state.canMatch && !state.needMoreInfo)) && !matchingInProgress.value) {
       readyToMatch.value = true
-      showInlineTimePicker.value = false
-      if (confirmCardDismissed.value) {
-        scrollToBottom()
-      } else {
-        upsertAssistantMessage({
-          message: '我已经帮您整理好预约信息。您确认后，我就开始智能匹配陪诊师。',
-          processingPhase: 'completed',
-          thinkingProcess: ''
-        })
-        scrollToAnchor('inline-confirm-card')
+      showTimePickerSheet.value = false
+      currentTimeProposal.value = null
+      showConfirmSheet.value = true
+    } else if (state.needMoreInfo && activeFollowUpType.value === 'time_picker' && !!structuredDemand.value.serviceDate) {
+      readyToMatch.value = false
+      resetTimePicker()
+      showConfirmSheet.value = false
+      if (!currentTimeProposal.value) {
+        showTimePickerSheet.value = true
       }
-    } else if (state.needMoreInfo && currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate) {
+    } else if (state.needMoreInfo && activeFollowUpType.value === 'date_picker') {
       readyToMatch.value = false
+      showConfirmSheet.value = false
+      showTimePickerSheet.value = false
       resetTimePicker()
-      scrollToAnchor('time-picker-card')
-    } else if (state.needMoreInfo && followUpRound.value >= 2) {
-      readyToMatch.value = false
-      showInlineTimePicker.value = false
-      resetTimePicker()
-      openStructuredPicker(currentQuestionType.value)
+      openStructuredPicker('serviceDate')
     } else if (matchingInProgress.value) {
       schedulePoll()
     } else {
       readyToMatch.value = false
-      showInlineTimePicker.value = currentQuestionType.value === 'timePeriod' && !!structuredDemand.value.serviceDate
+      showConfirmSheet.value = false
+      showTimePickerSheet.value = activeFollowUpType.value === 'time_picker' && !!structuredDemand.value.serviceDate && !currentTimeProposal.value
     }
     return
   }
@@ -1034,7 +1103,9 @@ const applySessionState = async (state) => {
     sending.value = false
     matchingInProgress.value = false
     readyToMatch.value = false
-    showInlineTimePicker.value = false
+    showConfirmSheet.value = false
+    showTimePickerSheet.value = false
+    currentTimeProposal.value = null
     stopMatchDeadline()
     stopMatchingStageRotation()
     return
@@ -1074,16 +1145,17 @@ const sendMessage = async () => {
   if (!content || sending.value || navigatingToResult.value) return
 
   readyToMatch.value = false
-  confirmCardDismissed.value = false
-  showInlineTimePicker.value = false
+  showConfirmSheet.value = false
+  showTimePickerSheet.value = false
+  currentTimeProposal.value = null
   resetTimePicker()
   introExpanded.value = false
-  refreshStructuredDemandFromText(content)
   appendUserMessage(content)
   appendAssistantPlaceholder()
   userInput.value = ''
   sending.value = true
   currentQuestionType.value = ''
+  activeFollowUpType.value = ''
   activeOptions.value = []
   scrollToBottom()
 
@@ -1118,15 +1190,17 @@ const sendMessage = async () => {
 const submitStructuredSelection = async (fieldKey, selectedValue, displayText = selectedValue) => {
   if (!sessionId.value || !fieldKey || !selectedValue) return
   readyToMatch.value = false
-  confirmCardDismissed.value = false
-  if (fieldKey === 'timePeriod') {
-    showInlineTimePicker.value = false
+  showConfirmSheet.value = false
+  currentTimeProposal.value = null
+  if (fieldKey === 'timePeriod' || fieldKey === 'timeRangeConfirmed') {
+    showTimePickerSheet.value = false
     resetTimePicker()
   }
   appendUserMessage(displayText)
   appendAssistantPlaceholder()
   sending.value = true
   currentQuestionType.value = ''
+  activeFollowUpType.value = ''
   activeOptions.value = []
   applyStructuredSelectionPatch(fieldKey, selectedValue, displayText)
   scrollToBottom()
@@ -1152,7 +1226,7 @@ const submitStructuredSelection = async (fieldKey, selectedValue, displayText = 
 
 const handleChipClick = (tag) => {
   if (activeOptions.value.length && currentQuestionType.value) {
-    if (currentQuestionType.value === 'timePeriod' && ['上午', '下午', '晚上', '选择时间', '具体时间'].includes(tag)) {
+    if (activeFollowUpType.value === 'time_picker' && ['上午', '下午', '晚上', '选择时间', '具体时间'].includes(tag)) {
       if (tag === '选择时间' || tag === '具体时间') {
         openStructuredPicker('timePeriod')
         return
@@ -1168,25 +1242,26 @@ const handleChipClick = (tag) => {
 
 const openStructuredPicker = (fieldKey) => {
   if (!fieldKey) return
-  if (fieldKey === 'timePeriod') {
+  if (fieldKey === 'timePeriod' || activeFollowUpType.value === 'time_picker') {
     if (!structuredDemand.value.serviceDate) {
       uni.showToast({ title: '请先确认就诊日期', icon: 'none' })
       return
     }
-    showInlineTimePicker.value = true
+    showTimePickerSheet.value = true
     resetTimePicker()
-    scrollToAnchor('time-picker-card')
     return
   }
-  if (fieldKey === 'hospital') {
-    uni.showModal({
-      title: '补充就诊医院',
-      editable: true,
-      placeholderText: '请输入医院名称',
-      success: ({ confirm, content }) => {
-        if (confirm && content && content.trim()) {
-          submitStructuredSelection('hospital', content.trim(), content.trim())
-        }
+  if (fieldKey === 'serviceDate' || activeFollowUpType.value === 'date_picker') {
+    const itemList = [
+      formatDateKey(new Date()),
+      formatDateKey(addDays(new Date(), 1)),
+      formatDateKey(addDays(new Date(), 2))
+    ]
+    uni.showActionSheet({
+      itemList,
+      success: ({ tapIndex }) => {
+        const selected = itemList[tapIndex]
+        submitStructuredSelection('serviceDate', selected, selected)
       }
     })
     return
@@ -1229,9 +1304,13 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .ai-page {
   height: 100dvh;
+  width: 100%;
+  max-width: 100%;
   background: linear-gradient(180deg, #edf4ff 0%, #f8fbff 42%, #f6f8fc 100%);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .topbar {
@@ -1240,6 +1319,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 18rpx 28rpx 0;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .topbar-left,
@@ -1421,6 +1502,10 @@ onUnmounted(() => {
   background: linear-gradient(180deg, rgba(245, 249, 255, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%);
 }
 
+.inline-card.proposal-card {
+  border: 2rpx solid rgba(80, 121, 205, 0.12);
+}
+
 .inline-card-head {
   display: flex;
   align-items: flex-start;
@@ -1482,6 +1567,20 @@ onUnmounted(() => {
   gap: 10rpx;
 }
 
+.proposal-time-pill {
+  margin-top: 18rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #edf4ff 0%, #f6f9ff 100%);
+  color: #365b9a;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
 .summary-tag {
   padding: 10rpx 16rpx;
   border-radius: 999rpx;
@@ -1506,10 +1605,16 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   padding: 0 24rpx;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chat-list {
   padding-bottom: 40rpx;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .message-row {
@@ -1543,8 +1648,10 @@ onUnmounted(() => {
 
 .bubble {
   max-width: 76%;
+  min-width: 0;
   border-radius: 26rpx;
   padding: 20rpx 22rpx;
+  box-sizing: border-box;
 }
 
 .bubble-ai {
@@ -1649,12 +1756,13 @@ onUnmounted(() => {
 }
 
 .composer {
-  position: sticky;
-  bottom: 0;
   z-index: 20;
   flex-shrink: 0;
   padding: 16rpx 24rpx 12rpx;
   background: linear-gradient(180deg, rgba(246, 248, 252, 0) 0%, rgba(246, 248, 252, 0.92) 18%, rgba(246, 248, 252, 1) 100%);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .term-card {
@@ -1662,6 +1770,9 @@ onUnmounted(() => {
   border-radius: 24rpx;
   padding: 20rpx 22rpx 18rpx;
   box-shadow: 0 18rpx 40rpx rgba(36, 71, 140, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .term-title {
@@ -1713,15 +1824,96 @@ onUnmounted(() => {
   gap: 16rpx;
 }
 
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.sheet-panel {
+  width: 100%;
+  max-width: 720rpx;
+  max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
+  background: #fff;
+  border-radius: 34rpx 34rpx 28rpx 28rpx;
+  box-shadow: 0 -12rpx 40rpx rgba(15, 23, 42, 0.12), 0 16rpx 48rpx rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.time-sheet-panel {
+  max-width: 760rpx;
+}
+
+.sheet-handle {
+  width: 88rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(148, 163, 184, 0.35);
+  margin: 16rpx auto 0;
+  flex-shrink: 0;
+}
+
+.sheet-head {
+  padding: 28rpx 30rpx 24rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  border-bottom: 1rpx solid #eef3f8;
+}
+
+.sheet-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #23344f;
+}
+
+.sheet-subtitle {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #6a7a94;
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 22rpx 24rpx 12rpx;
+  box-sizing: border-box;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 16rpx;
+  padding: 22rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #eef3f8;
+  background: rgba(255, 255, 255, 0.98);
+  flex-shrink: 0;
+}
+
 .input-bar {
   margin-top: 18rpx;
   display: flex;
   align-items: center;
   gap: 16rpx;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .input-box {
   flex: 1;
+  min-width: 0;
   height: 92rpx;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 999rpx;
@@ -1734,6 +1926,7 @@ onUnmounted(() => {
 .send-btn {
   height: 92rpx;
   min-width: 156rpx;
+  flex-shrink: 0;
   border-radius: 999rpx;
   background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
   color: #ffffff;

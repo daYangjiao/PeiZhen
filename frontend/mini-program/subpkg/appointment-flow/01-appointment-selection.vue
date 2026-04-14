@@ -219,7 +219,9 @@ const goToAiAppointment = () => {
 	min-height: 100vh;
 	background-color: #f5f7fa;
 	padding: 20rpx;
-	padding-bottom: 40rpx; /* 与底部按钮高度匹配，避免内容露到按钮下方 */
+	padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
+	overflow-x: clip;
 }
 
 .ai-entry-card {
@@ -391,12 +393,14 @@ const goToAiAppointment = () => {
 /* 底部按钮 */
 .bottom-button {
 	position: fixed;
-	bottom: 60rpx; /* 紧贴在底部菜单正上方 */
+	bottom: calc(60rpx + env(safe-area-inset-bottom));
 	left: 0;
 	right: 0;
-	padding: 30rpx;
+	padding: 24rpx 30rpx calc(24rpx + env(safe-area-inset-bottom));
 	background-color: white;
 	border-top: 1rpx solid #eee;
+	box-sizing: border-box;
+	z-index: 20;
 }
 
 .next-btn {

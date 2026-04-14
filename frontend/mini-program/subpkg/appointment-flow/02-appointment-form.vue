@@ -1208,6 +1208,10 @@ onMounted(async () => {
 	background-color: #f5f7fa;
 	padding-bottom: 150rpx;
 	padding-top: 30rpx;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: clip;
+	box-sizing: border-box;
 }
 
 /* 新增：服务类型卡片区域 (更接近01的长方形卡片样式) */
@@ -1615,10 +1619,12 @@ onMounted(async () => {
 	bottom: 0;
 	left: 0;
 	right: 0;
+	z-index: 40;
 	background-color: #ffffff;
-	padding: 30rpx;
+	padding: 30rpx 30rpx calc(30rpx + env(safe-area-inset-bottom));
 	border-top: 1rpx solid #eee;
 	box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加底部阴影 */
+	box-sizing: border-box;
 }
 
 .confirm-btn {
@@ -1644,27 +1650,27 @@ onMounted(async () => {
 /* 弹窗样式 */
 .modal-overlay {
 	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	inset: 0;
 	background-color: rgba(0, 0, 0, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 1000;
+	z-index: 99990;
+	padding: 24rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
 }
 
 .date-modal, .time-modal, .add-symptom-modal, .hospital-modal {
 	background-color: #ffffff;
 	border-radius: 20rpx;
-	width: 80%;
-	max-height: 80%;
+	width: 100%;
+	max-width: 720rpx;
+	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
 	overflow: hidden;
+	box-sizing: border-box;
 }
 
 .time-modal {
-	width: 86%;
 	max-height: 82%;
 	border-radius: 28rpx;
 }
@@ -1672,9 +1678,11 @@ onMounted(async () => {
 .calendar-modal-simple {
 	background-color: #ffffff;
 	border-radius: 28rpx;
-	width: 86%;
-	max-height: 82%;
+	width: 100%;
+	max-width: 720rpx;
+	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
 	overflow: hidden;
+	box-sizing: border-box;
 }
 
 .calendar-modal-header,
