@@ -57,6 +57,9 @@ public class AiGuideServiceImpl implements AiGuideService {
     @Transactional
     public OrderCreateResponse createOrderBySelection(CreateOrderRequest request) {
         logger.info("创建陪诊订单：{}", request);
+        if (request == null || request.getAppointmentNo() == null || request.getAppointmentNo().trim().isEmpty()) {
+            throw new IllegalArgumentException("预约编号不能为空");
+        }
         GuideAppointment appointment = guideAppointmentMapper.selectByAppointmentNo(request.getAppointmentNo());
         if (appointment == null) {
             throw new RuntimeException("预约信息不存在，预约编号：" + request.getAppointmentNo());
@@ -112,6 +115,25 @@ public class AiGuideServiceImpl implements AiGuideService {
         order.setPaymentStatus(0);
         order.setOrderStatus(0);
 
+        Integer designatedAttendantId = null;
+        if (request.getDesignatedAttendantId() != null) {
+            designatedAttendantId = request.getDesignatedAttendantId().intValue();
+        } else if (request.getAttendantId() != null && !request.getAttendantId().trim().isEmpty()) {
+            try {
+                designatedAttendantId = Integer.valueOf(request.getAttendantId().trim());
+            } catch (NumberFormatException ignored) {
+                logger.warn("旧版 attendantId 非法，忽略定向陪诊师: {}", request.getAttendantId());
+            }
+        }
+        if (designatedAttendantId != null) {
+            User designatedUser = userMapper.findById(designatedAttendantId);
+            if (designatedUser == null) {
+                throw new IllegalStateException("指定的陪诊师不存在");
+            }
+            order.setAttendantId(designatedAttendantId);
+            order.setAttendantName(designatedUser.getName());
+        }
+
         orderMapper.insert(order);
 
         // 下单成功系统消息：提醒用户在15分钟内完成预付款
@@ -142,16 +164,25 @@ public class AiGuideServiceImpl implements AiGuideService {
         if (paymentStatus == 1) {
             order.setPaymentTime(new Date());
             if (order.getOrderStatus() == 0) {
-                order.setOrderStatus(1);
+                boolean designatedOrder = order.getAttendantId() != null;
+                order.setOrderStatus(designatedOrder ? 8 : 1);
                 orderStatusChanged = true;
-                // 支付成功时发送系统消息（仅当订单状态从0变为1时）
-                sendSystemMessage(order.getUserId(), "恭喜您!订单No." + orderNo + "支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。", order.getOrderId());
+                if (designatedOrder) {
+                    sendSystemMessage(order.getUserId(), "订单No." + orderNo + "支付完成，已优先派给您选择的陪诊师，请等待对方确认。若15分钟内未确认，系统会自动转入公共派单。", order.getOrderId());
+                    sendSystemMessage(order.getAttendantId(), "您收到一笔专属派单，请尽快确认是否接单。", order.getOrderId());
+                } else {
+                    // 支付成功时发送系统消息（仅当订单状态从0变为1时）
+                    sendSystemMessage(order.getUserId(), "恭喜您!订单No." + orderNo + "支付完成，我们已通知陪诊师为您服务。陪诊师将在30分钟内与您联系，请保持电话畅通。", order.getOrderId());
+                }
             }
         }
         orderMapper.updateByPrimaryKeySelective(order);
         if (orderStatusChanged) {
-            orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, false);
-            orderService.broadcastWaitingOrderUpdate(order);
+            boolean designatedOrder = order.getAttendantId() != null && order.getOrderStatus() != null && order.getOrderStatus() == 8;
+            orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, designatedOrder);
+            if (!designatedOrder) {
+                orderService.broadcastWaitingOrderUpdate(order);
+            }
         }
     }
 
@@ -487,6 +518,7 @@ public class AiGuideServiceImpl implements AiGuideService {
             case 5 -> "待补款";
             case 6 -> "已完成";
             case 7 -> "已取消";
+            case 8 -> "专属派单待确认";
             default -> "未知";
         };
     }

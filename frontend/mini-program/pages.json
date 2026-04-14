@@ -188,6 +188,24 @@
           }
         },
         {
+          "path": "ai-appointment/01-ai-appointment",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "AI帮我找",
+            "navigationBarBackgroundColor": "#edf4ff",
+            "backgroundColor": "#edf4ff",
+            "disableScroll": true
+          }
+        },
+        {
+          "path": "ai-appointment/02-ai-match-result",
+          "style": {
+            "navigationBarTitleText": "AI推荐结果",
+            "navigationBarBackgroundColor": "#f6f9ff",
+            "backgroundColor": "#f6f9ff"
+          }
+        },
+        {
           "path": "profile/attendant-detail",
           "style": {
             "navigationBarTitleText": "陪诊师主页",

@@ -121,6 +121,7 @@ const statusTabs = ref([
   { name: '全部', value: null },
   { name: '待支付', value: 0 },
   { name: '待接单', value: 1 },
+  { name: '专属待确认', value: 8 },
   { name: '待服务', value: 2 },
   { name: '服务中', value: 3 },
   { name: '待确认时长', value: 4 },
@@ -271,6 +272,7 @@ const getStatusText = (status) => {
   const map = {
     0: '待支付',
     1: '待接单',
+    8: '专属派单待确认',
     2: '待服务',
     3: '服务中',
     4: '待确认时长',
@@ -285,6 +287,7 @@ const getStatusClass = (status) => {
   const map = {
     0: 'status-pending',
     1: 'status-waiting',
+    8: 'status-waiting',
     2: 'status-accepted',
     3: 'status-service',
     4: 'status-confirm',

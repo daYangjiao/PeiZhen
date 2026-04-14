@@ -350,6 +350,25 @@ public class AttendantController {
         }
     }
 
+    @PostMapping("/orders/{orderId}/reject-assigned")
+    @ApiOperation(value = "拒绝专属派单", notes = "指定陪诊师可拒绝专属派单，订单会自动回到公共接单大厅。")
+    public ResponseResult<String> rejectAssignedOrder(
+            @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
+            @ApiParam(value = "拒绝原因", example = "当前时段无法接单") @RequestParam(required = false) String reason,
+            @ApiIgnore HttpServletRequest request) {
+        try {
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.rejectAssignedOrder(orderId, currentUserId, reason);
+            if ("订单已释放回接单大厅".equals(result)) {
+                return ResponseResult.success(result);
+            }
+            return ResponseResult.error(result);
+        } catch (Exception e) {
+            log.error("拒绝专属派单失败，订单ID: {}", orderId, e);
+            return ResponseResult.error("拒绝专属派单失败");
+        }
+    }
+
     /**
      * 开始服务
      */
@@ -529,6 +548,7 @@ public class AttendantController {
             case 5 -> "待补款";
             case 6 -> "已完成";
             case 7 -> "已取消";
+            case 8 -> "专属派单待确认";
             default -> "未知";
         };
     }

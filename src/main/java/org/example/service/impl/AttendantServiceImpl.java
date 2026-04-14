@@ -96,6 +96,12 @@ public class AttendantServiceImpl implements AttendantService {
     }
 
     @Override
+    public List<Attendant> findAiCandidates(int limit) {
+        int safeLimit = Math.max(3, Math.min(limit, 30));
+        return attendantMapper.findAiCandidates(safeLimit);
+    }
+
+    @Override
     public AttendantProfileResponse getProfile(Integer userId) {
         User user = userMapper.findById(userId);
         if (user == null) {

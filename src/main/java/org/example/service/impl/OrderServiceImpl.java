@@ -89,7 +89,12 @@ public class OrderServiceImpl implements OrderService {
         
         log.info("订单当前状态: {}, 订单号: {}", order.getOrderStatus(), order.getOrderNo());
         
-        if (order.getOrderStatus() != 1) {
+        boolean publicWaitingOrder = order.getOrderStatus() != null && order.getOrderStatus() == 1;
+        boolean assignedWaitingOrder = order.getOrderStatus() != null
+                && order.getOrderStatus() == 8
+                && order.getAttendantId() != null
+                && order.getAttendantId().equals(attendantId);
+        if (!publicWaitingOrder && !assignedWaitingOrder) {
             log.warn("接单失败：订单状态不允许接单，当前状态: {}", order.getOrderStatus());
             return "订单当前状态无法接单";
         }
@@ -119,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 先检查订单是否已经被其他陪诊师接单
-        if (order.getAttendantId() != null) {
+        if (publicWaitingOrder && order.getAttendantId() != null) {
             User existingAttendant = userMapper.findById(order.getAttendantId());
             if (existingAttendant != null) {
                 log.warn("订单已被接单，接单人: {}", existingAttendant.getName());
@@ -190,6 +195,48 @@ try {
 
         log.info("陪诊师 {} 接单成功并发送所有通知，订单号: {}", attendantUser.getName(), order.getOrderNo());
         return "接单成功";
+    }
+
+    @Override
+    @Transactional
+    public String rejectAssignedOrder(Integer orderId, Integer attendantId, String reason) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) {
+            return "订单不存在";
+        }
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 8) {
+            return "当前订单不是待确认的专属派单";
+        }
+        if (order.getAttendantId() == null || !order.getAttendantId().equals(attendantId)) {
+            return "无权操作该专属订单";
+        }
+
+        String releaseReason = reason != null && !reason.trim().isEmpty()
+                ? reason.trim()
+                : "指定陪诊师暂未接单，订单已转入公共派单";
+        Date now = new Date();
+        int rows = orderMapper.releaseOrderBackToHall(orderId, releaseReason, now);
+        if (rows <= 0) {
+            return "系统繁忙，请稍后重试";
+        }
+
+        order.setOrderStatus(1);
+        order.setAttendantId(null);
+        order.setAttendantName(null);
+        order.setAcceptTime(null);
+        order.setQrCodeUrl(null);
+        order.setCancelReason(releaseReason);
+        order.setCancelTime(now);
+        order.setCancelBy(1);
+
+        notifyOrderParties(
+                order,
+                "您指定的陪诊师暂未接单，订单已进入公共派单大厅，我们会继续为您匹配服务。",
+                null
+        );
+        publishOrderEvent(order, "ORDER_RELEASED_TO_HALL", releaseReason, null, true, false);
+        broadcastWaitingOrderUpdate(order);
+        return "订单已释放回接单大厅";
     }
 
     private String generateQrCodeUrl(Integer orderId) {

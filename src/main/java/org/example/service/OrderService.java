@@ -20,6 +20,8 @@ public interface OrderService {
 
     String attendantAcceptOrder(Integer orderId, Integer attendantId);
 
+    String rejectAssignedOrder(Integer orderId, Integer attendantId, String reason);
+
     String startService(Integer orderId);
 
     String endService(Integer orderId, BigDecimal actualDuration);

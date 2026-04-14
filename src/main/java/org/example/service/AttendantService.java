@@ -37,6 +37,11 @@ public interface AttendantService {
     List<Attendant> findRecommended();
 
     /**
+     * AI 匹配候选陪诊师
+     */
+    List<Attendant> findAiCandidates(int limit);
+
+    /**
      * 获取陪诊师个人中心资料
      * @param userId 陪诊师用户ID
      * @return 个人中心资料

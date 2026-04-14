@@ -817,6 +817,7 @@ const getOrderStatusText = (order) => {
   const statusMap = {
     0: '待接单',
     1: '待接单',
+    8: '专属派单待确认',
     2: '待服务', // 修改：将“已接单”改为“待服务”
     3: '服务中',
     4: '待确认时长',
@@ -837,6 +838,7 @@ const getStatusClass = (order) => {
   const classMap = {
     0: 'status-waiting',
     1: 'status-waiting',
+    8: 'status-waiting',
     2: 'status-accepted',
     3: 'status-service',
     4: 'status-confirm',

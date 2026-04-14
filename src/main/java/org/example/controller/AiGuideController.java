@@ -5,13 +5,20 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.example.common.ResponseResult;
 import org.example.model.*;
+import org.example.model.request.AiAppointmentReplyRequest;
+import org.example.model.request.AiAppointmentSessionRequest;
+import org.example.model.request.AiAttendantMatchRequest;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.request.SimplePaymentRequest;
+import org.example.model.response.AiAppointmentSessionResponse;
+import org.example.model.response.AiAttendantMatchResponse;
 import org.example.model.response.AppointmentResponse;
 import org.example.model.response.AttendantMatchResponse;
 import org.example.model.response.SimpleOrderDetailResponse;
 import org.example.model.response.CompleteOrderInfoResponse;
+import org.example.service.AiAppointmentService;
 import org.example.service.AiGuideService;
 import org.example.util.AuthUtil;
 import org.slf4j.Logger;
@@ -37,6 +44,9 @@ public class AiGuideController {
 
     @Autowired
     private AiGuideService aiGuideService;
+
+    @Autowired
+    private AiAppointmentService aiAppointmentService;
 
     @PostMapping("/appointments")
     @ApiOperation(value = "创建陪诊预约", notes = "AI导诊第一步：提交就诊需求，生成预约编号，供后续匹配陪诊师和创建订单使用。")
@@ -80,6 +90,48 @@ public class AiGuideController {
         
         AttendantMatchResponse response = aiGuideService.matchAttendantsByAppointmentNo(appointmentNo);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/ai-appointment/session")
+    @ApiOperation(value = "创建 AI 预约会话", notes = "独立 AI 预约功能入口，提交自然语言需求后进入 AI 追问/匹配链路。")
+    public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> createAiAppointmentSession(
+            @Valid @RequestBody AiAppointmentSessionRequest request,
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.createSession(currentUserId, request)));
+    }
+
+    @GetMapping("/ai-appointment/session/{sessionId}")
+    @ApiOperation(value = "获取 AI 预约会话状态", notes = "前端轮询当前 AI 预约会话状态，获取思考中、追问、匹配结果等信息。")
+    public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> getAiAppointmentSession(
+            @PathVariable String sessionId) {
+        AiAppointmentSessionResponse response = aiAppointmentService.getSession(sessionId);
+        if (response == null) {
+            return ResponseEntity.ok(ResponseResult.error("AI预约会话不存在"));
+        }
+        return ResponseEntity.ok(ResponseResult.success(response));
+    }
+
+    @PostMapping("/ai-appointment/session/{sessionId}/reply")
+    @ApiOperation(value = "回复 AI 预约追问", notes = "用户补充日期、时间、医院等信息，继续 AI 预约会话。")
+    public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> replyAiAppointmentSession(
+            @PathVariable String sessionId,
+            @RequestBody AiAppointmentReplyRequest request) {
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.replySession(sessionId, request)));
+    }
+
+    @PostMapping("/ai-appointment/session/{sessionId}/match")
+    @ApiOperation(value = "开始 AI 预约匹配", notes = "当 AI 预约关键字段齐全后，开始匹配推荐陪诊师。")
+    public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> startAiAppointmentMatch(
+            @PathVariable String sessionId) {
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.startMatch(sessionId)));
+    }
+
+    @PostMapping("/attendants/ai-match")
+    @ApiOperation(value = "AI 智能匹配陪诊师", notes = "根据 AI 预约会话或结构化需求返回 1-3 位推荐陪诊师。")
+    public ResponseEntity<ResponseResult<AiAttendantMatchResponse>> aiMatchAttendants(
+            @RequestBody AiAttendantMatchRequest request) {
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.matchAttendants(request)));
     }
 
     @PostMapping("/orders")

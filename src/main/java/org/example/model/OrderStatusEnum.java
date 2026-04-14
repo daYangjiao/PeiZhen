@@ -35,7 +35,10 @@ public enum OrderStatusEnum {
     COMPLETED(6, "已完成"),
     
     @ApiModelProperty(value = "已取消", example = "7")
-    CANCELLED(7, "已取消");
+    CANCELLED(7, "已取消"),
+
+    @ApiModelProperty(value = "专属派单待确认", example = "8")
+    ASSIGNED_WAITING_CONFIRM(8, "专属派单待确认");
 
     private final Integer code;
     private final String description;

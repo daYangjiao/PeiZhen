@@ -16,6 +16,8 @@ public interface AttendantMapper {
 
     List<Attendant> findRecommended();
 
+    List<Attendant> findAiCandidates(@Param("limit") int limit);
+
     int countAdminAttendants(@Param("keyword") String keyword, @Param("auditStatus") Integer auditStatus);
 
     List<Attendant> findAdminAttendants(@Param("keyword") String keyword,

@@ -260,11 +260,11 @@ const formatAmount = (amount) => (amount ? Number(amount).toFixed(2) : '0.00')
 const getAttendantIncome = (orderAmount) => Number(orderAmount || 0) * 0.9
 
 const getStatusText = (status) => {
-  const map = { 1: '待接单', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '待补款', 6: '已完成', 7: '已取消' }
+  const map = { 1: '待接单', 8: '专属待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '待补款', 6: '已完成', 7: '已取消' }
   return map[status] || '未知'
 }
 const getStatusClass = (status) => {
-  const map = { 1: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled' }
+  const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled' }
   return map[status] || 'status-default'
 }
 

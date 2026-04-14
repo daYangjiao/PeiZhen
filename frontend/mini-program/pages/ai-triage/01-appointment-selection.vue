@@ -1,5 +1,16 @@
 <template>
 	<view class="container">
+		<view class="ai-entry-card" @click="goToAiAppointment">
+			<view class="ai-entry-copy">
+				<text class="ai-entry-eyebrow">AI 帮我找</text>
+				<text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
+				<text class="ai-entry-desc">先说需求，AI 会自动追问关键细节，再帮您优先推荐更合适的人选。</text>
+			</view>
+			<view class="ai-entry-action">
+				<text class="ai-entry-btn">立即体验</text>
+			</view>
+		</view>
+
 		<!-- 顶部标题 -->
 		<view class="header">
 			<text class="title">选择服务类型</text>
@@ -156,6 +167,12 @@ const goToNext = () => {
 	})
 }
 
+const goToAiAppointment = () => {
+	uni.navigateTo({
+		url: '/subpkg/ai-appointment/01-ai-appointment'
+	})
+}
+
 onMounted(() => restoreUserSelections())
 onShow(() => {
   if (redirectPublicSafeToHome()) return
@@ -170,6 +187,62 @@ onShow(() => {
 	background-color: #f5f7fa;
 	padding: 20rpx;
 	padding-bottom: 220rpx; /* 适当抬高“下一步”按钮，刚好浮在底部预约 Tab 上方 */
+}
+
+.ai-entry-card {
+	margin: 8rpx 8rpx 28rpx;
+	padding: 28rpx;
+	border-radius: 26rpx;
+	background: linear-gradient(135deg, #edf5ff 0%, #ffffff 100%);
+	box-shadow: 0 16rpx 36rpx rgba(66, 109, 190, 0.10);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24rpx;
+}
+
+.ai-entry-copy {
+	flex: 1;
+}
+
+.ai-entry-eyebrow {
+	display: block;
+	font-size: 22rpx;
+	font-weight: 700;
+	color: #4b6fb7;
+	letter-spacing: 2rpx;
+}
+
+.ai-entry-title {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 34rpx;
+	font-weight: 700;
+	color: #20324f;
+}
+
+.ai-entry-desc {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #687998;
+}
+
+.ai-entry-action {
+	flex-shrink: 0;
+}
+
+.ai-entry-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18rpx 24rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
+	color: #ffffff;
+	font-size: 24rpx;
+	font-weight: 700;
 }
 
 .header {
