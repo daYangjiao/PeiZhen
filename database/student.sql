@@ -185,6 +185,7 @@ CREATE TABLE `chat_message` (
 
 CREATE TABLE `ai_medical_qa` (
   `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
   `conversation_id` varchar(64) DEFAULT NULL,
   `question` text,
   `answer` longtext,
@@ -194,7 +195,9 @@ CREATE TABLE `ai_medical_qa` (
   `deleted` tinyint(1) DEFAULT 0,
   `thinking_process` longtext,
   PRIMARY KEY (`id`),
-  KEY `idx_ai_medical_qa_conversation_id` (`conversation_id`)
+  KEY `idx_ai_medical_qa_conversation_id` (`conversation_id`),
+  KEY `idx_ai_medical_qa_user_time` (`user_id`, `create_time`),
+  KEY `idx_ai_medical_qa_user_conversation` (`user_id`, `conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `ai_appointment_session` (
@@ -274,7 +277,7 @@ INSERT INTO `chat_message` (`id`, `sender_id`, `receiver_id`, `content`, `msg_ty
   (1, 2, 3, 'Hello, I have arrived at the hospital.', 1, 1, NOW()),
   (2, 3, 2, 'I am at gate 2 and will meet you there.', 1, 0, NOW());
 
-INSERT INTO `ai_medical_qa` (`id`, `conversation_id`, `question`, `answer`, `qa_status`, `create_time`, `update_time`, `deleted`, `thinking_process`) VALUES
-  (1, 'conv-demo-001', 'I have had a fever for three days, should I go to hospital?', 'If the fever persists or worsens, please seek in-person care promptly.', 1, NOW(), NOW(), 0, 'Reviewed symptom duration and recommended timely evaluation.');
+INSERT INTO `ai_medical_qa` (`id`, `user_id`, `conversation_id`, `question`, `answer`, `qa_status`, `create_time`, `update_time`, `deleted`, `thinking_process`) VALUES
+  (1, NULL, 'conv-demo-001', 'I have had a fever for three days, should I go to hospital?', 'If the fever persists or worsens, please seek in-person care promptly.', 1, NOW(), NOW(), 0, 'Reviewed symptom duration and recommended timely evaluation.');
 
 SET FOREIGN_KEY_CHECKS = 1;

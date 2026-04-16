@@ -59,13 +59,13 @@ public class AiMedicalServiceImpl implements AiMedicalService {
     }
 
     @Override
-    public MedicalQaResponse submitQuestion(MedicalQaRequest request) {
+    public MedicalQaResponse submitQuestion(Integer userId, MedicalQaRequest request) {
+        requireUserId(userId);
         String question = normalizeQuestion(request.getQuestion());
-        String conversationId = StringUtils.hasText(request.getConversationId())
-                ? request.getConversationId().trim()
-                : UUID.randomUUID().toString();
+        String conversationId = resolveConversationId(userId, request.getConversationId());
 
         AiMedicalQa record = new AiMedicalQa();
+        record.setUserId(userId);
         record.setConversationId(conversationId);
         record.setQuestion(question);
         record.setQaStatus(0);
@@ -78,22 +78,34 @@ public class AiMedicalServiceImpl implements AiMedicalService {
     }
 
     @Override
-    public MedicalQaResponse getRecord(Long recordId) {
-        AiMedicalQa record = aiMedicalQaMapper.selectById(recordId);
+    public MedicalQaResponse getRecord(Integer userId, Long recordId) {
+        requireUserId(userId);
+        AiMedicalQa record = aiMedicalQaMapper.selectByIdAndUserId(recordId, userId);
         return record == null ? null : toResponse(record);
     }
 
     @Override
-    public List<MedicalQaResponse> getConversation(String conversationId) {
+    public List<MedicalQaResponse> getConversation(Integer userId, String conversationId) {
+        requireUserId(userId);
         if (!StringUtils.hasText(conversationId)) {
             return List.of();
         }
-        return aiMedicalQaMapper.selectByConversationId(conversationId.trim())
+        return aiMedicalQaMapper.selectByUserIdAndConversationId(userId, conversationId.trim())
                 .stream()
                 .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MedicalQaResponse> getLatestConversation(Integer userId) {
+        requireUserId(userId);
+        String conversationId = aiMedicalQaMapper.selectLatestConversationIdByUserId(userId);
+        if (!StringUtils.hasText(conversationId)) {
+            return List.of();
+        }
+        return getConversation(userId, conversationId);
     }
 
     private void generateAnswer(Long recordId) {
@@ -105,7 +117,8 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         try {
             updateThinkingProcess(recordId, THINKING_MESSAGE);
 
-            List<AiMedicalQa> conversationRecords = aiMedicalQaMapper.selectByConversationId(record.getConversationId());
+            List<AiMedicalQa> conversationRecords = aiMedicalQaMapper.selectByUserIdAndConversationId(
+                    record.getUserId(), record.getConversationId());
             List<Map<String, String>> messages = buildMessages(conversationRecords, record);
 
             updateThinkingProcess(recordId, ANSWERING_MESSAGE);
@@ -173,6 +186,26 @@ public class AiMedicalServiceImpl implements AiMedicalService {
 
     private String normalizeQuestion(String question) {
         return StringUtils.hasText(question) ? question.trim() : "";
+    }
+
+    private void requireUserId(Integer userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("请先登录后再使用 AI 导诊");
+        }
+    }
+
+    private String resolveConversationId(Integer userId, String requestedConversationId) {
+        if (!StringUtils.hasText(requestedConversationId)) {
+            return UUID.randomUUID().toString();
+        }
+
+        String trimmedConversationId = requestedConversationId.trim();
+        int ownedCount = aiMedicalQaMapper.countByUserIdAndConversationId(userId, trimmedConversationId);
+        if (ownedCount <= 0) {
+            logger.warn("AI 导诊会话归属校验失败，已创建新会话, userId={}, conversationId={}", userId, trimmedConversationId);
+            return UUID.randomUUID().toString();
+        }
+        return trimmedConversationId;
     }
 
     private MedicalQaResponse toResponse(AiMedicalQa record) {

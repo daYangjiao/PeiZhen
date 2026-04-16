@@ -6,9 +6,11 @@ import org.example.model.MedicalQaResponse;
 import java.util.List;
 
 public interface AiMedicalService {
-    MedicalQaResponse submitQuestion(MedicalQaRequest request);
+    MedicalQaResponse submitQuestion(Integer userId, MedicalQaRequest request);
 
-    MedicalQaResponse getRecord(Long recordId);
+    MedicalQaResponse getRecord(Integer userId, Long recordId);
 
-    List<MedicalQaResponse> getConversation(String conversationId);
+    List<MedicalQaResponse> getConversation(Integer userId, String conversationId);
+
+    List<MedicalQaResponse> getLatestConversation(Integer userId);
 }

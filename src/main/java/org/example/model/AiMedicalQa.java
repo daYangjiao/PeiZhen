@@ -12,6 +12,9 @@ public class AiMedicalQa {
     @ApiModelProperty(value = "问答记录ID", example = "1")
     private Long id;
 
+    @ApiModelProperty(value = "用户ID", example = "15")
+    private Integer userId;
+
     @ApiModelProperty(value = "会话ID", example = "conv-20260320-0001")
     private String conversationId;
 

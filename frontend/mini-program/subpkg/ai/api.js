@@ -16,3 +16,8 @@ export async function getMedicalConversation(conversationId) {
   const res = await get(`/ai/medical/qa/conversation/${encodeURIComponent(conversationId)}`)
   return Array.isArray(res?.data) ? res.data : []
 }
+
+export async function getLatestMedicalConversation() {
+  const res = await get('/ai/medical/qa/latest')
+  return Array.isArray(res?.data) ? res.data : []
+}

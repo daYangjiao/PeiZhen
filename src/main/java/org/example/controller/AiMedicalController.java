@@ -9,8 +9,10 @@ import org.example.common.ResponseResult;
 import org.example.model.MedicalQaRequest;
 import org.example.model.MedicalQaResponse;
 import org.example.service.AiMedicalService;
+import org.example.util.AuthUtil;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -34,8 +36,10 @@ public class AiMedicalController {
     })
     public ResponseResult<MedicalQaResponse> medicalQa(
             @ApiParam(name = "requestBody", value = "问答请求体", required = true)
-            @Valid @RequestBody MedicalQaRequest request) {
-        return ResponseResult.success(aiMedicalService.submitQuestion(request));
+            @Valid @RequestBody MedicalQaRequest request,
+            HttpServletRequest httpRequest) {
+        Integer userId = getCurrentUserId(httpRequest);
+        return ResponseResult.success(aiMedicalService.submitQuestion(userId, request));
     }
 
     @GetMapping("/qa/{recordId}")
@@ -46,8 +50,10 @@ public class AiMedicalController {
     })
     public ResponseResult<MedicalQaResponse> getRecord(
             @ApiParam(name = "recordId", value = "问答记录ID", required = true, example = "1")
-            @PathVariable Long recordId) {
-        MedicalQaResponse response = aiMedicalService.getRecord(recordId);
+            @PathVariable Long recordId,
+            HttpServletRequest httpRequest) {
+        Integer userId = getCurrentUserId(httpRequest);
+        MedicalQaResponse response = aiMedicalService.getRecord(userId, recordId);
         if (response == null) {
             return ResponseResult.error("问答记录不存在");
         }
@@ -61,13 +67,30 @@ public class AiMedicalController {
     })
     public ResponseResult<List<MedicalQaResponse>> getConversation(
             @ApiParam(name = "conversationId", value = "会话ID", required = true, example = "conv-20260413-001")
-            @PathVariable String conversationId) {
-        return ResponseResult.success(aiMedicalService.getConversation(conversationId));
+            @PathVariable String conversationId,
+            HttpServletRequest httpRequest) {
+        Integer userId = getCurrentUserId(httpRequest);
+        return ResponseResult.success(aiMedicalService.getConversation(userId, conversationId));
+    }
+
+    @GetMapping("/qa/latest")
+    @ApiOperation(value = "获取最近一次 AI 导诊会话", notes = "按当前登录用户返回最近一次会话的完整问答记录，用于进入页面自动恢复。")
+    public ResponseResult<List<MedicalQaResponse>> getLatestConversation(HttpServletRequest httpRequest) {
+        Integer userId = getCurrentUserId(httpRequest);
+        return ResponseResult.success(aiMedicalService.getLatestConversation(userId));
     }
 
     @GetMapping("/qa/thinking/{recordId}")
     @ApiOperation(value = "兼容旧版思考过程查询", notes = "兼容旧前端轮询接口，实际返回与问答状态接口一致。")
-    public ResponseResult<MedicalQaResponse> getThinkingProcess(@PathVariable Long recordId) {
-        return getRecord(recordId);
+    public ResponseResult<MedicalQaResponse> getThinkingProcess(@PathVariable Long recordId, HttpServletRequest httpRequest) {
+        return getRecord(recordId, httpRequest);
+    }
+
+    private Integer getCurrentUserId(HttpServletRequest request) {
+        Integer userId = AuthUtil.getCurrentUserId(request);
+        if (userId == null) {
+            throw new IllegalArgumentException("请先登录后再使用 AI 导诊");
+        }
+        return userId;
     }
 }

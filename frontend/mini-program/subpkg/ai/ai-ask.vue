@@ -5,7 +5,9 @@
         <text class="topbar-back">‹</text>
       </view>
       <text class="topbar-title">AI 导诊助手</text>
-      <view class="topbar-right"></view>
+      <view class="topbar-right" @click="startNewConversation">
+        <text class="new-chat-text">新对话</text>
+      </view>
     </view>
 
     <view class="hero-card">
@@ -111,22 +113,23 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
-import { getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
+import { getLatestMedicalConversation, getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
 
 const AIAvatar = brandAiAvatar
 const userStore = useUserStore()
 const STORAGE_KEY = 'ai_medical_current_conversation_id'
 const POLL_INTERVAL = 1500
+const WELCOME_TEXT = '您好，我是 AI 导诊助手。您可以描述当前症状、持续时间、年龄或担心的问题，我会帮您梳理可能的就诊科室与注意事项。'
 
-const messages = ref([
-  {
+const createWelcomeMessage = () => ({
     key: 'welcome-ai',
     type: 'ai',
-    text: '您好，我是 AI 导诊助手。您可以描述当前症状、持续时间、年龄或担心的问题，我会帮您梳理可能的就诊科室与注意事项。',
+    text: WELCOME_TEXT,
     processingPhase: 'completed',
     thinkingProcess: ''
-  }
-])
+})
+
+const messages = ref([createWelcomeMessage()])
 const userInput = ref('')
 const selectedTag = ref('')
 const sending = ref(false)
@@ -189,6 +192,16 @@ const goBack = () => {
   })
 }
 
+const startNewConversation = () => {
+  Array.from(pollTimers.keys()).forEach((recordId) => stopPolling(recordId))
+  currentConversationId.value = ''
+  userInput.value = ''
+  selectedTag.value = ''
+  messages.value = [createWelcomeMessage()]
+  uni.removeStorageSync(STORAGE_KEY)
+  scrollToBottom()
+}
+
 const upsertAiMessage = (record) => {
   const key = `a-${record.recordId}`
   const targetIndex = messages.value.findIndex((item) => item.key === key)
@@ -211,15 +224,7 @@ const upsertAiMessage = (record) => {
 }
 
 const appendConversationMessages = (records = []) => {
-  const restored = [
-    {
-      key: 'welcome-ai',
-      type: 'ai',
-      text: '您好，我是 AI 导诊助手。您可以描述当前症状、持续时间、年龄或担心的问题，我会帮您梳理可能的就诊科室与注意事项。',
-      processingPhase: 'completed',
-      thinkingProcess: ''
-    }
-  ]
+  const restored = [createWelcomeMessage()]
 
   records.forEach((record) => {
     restored.push({
@@ -240,6 +245,11 @@ const appendConversationMessages = (records = []) => {
   })
 
   messages.value = restored
+  const conversationId = records.find((record) => record?.conversationId)?.conversationId || ''
+  if (conversationId) {
+    currentConversationId.value = conversationId
+    uni.setStorageSync(STORAGE_KEY, conversationId)
+  }
 }
 
 const stopPolling = (recordId) => {
@@ -284,30 +294,33 @@ const pollRecord = async (recordId) => {
 
 const restoreConversation = async () => {
   const savedConversationId = uni.getStorageSync(STORAGE_KEY) || ''
-  if (!savedConversationId) {
-    scrollToBottom()
-    return
-  }
-
-  currentConversationId.value = savedConversationId
   try {
-    const records = await getMedicalConversation(savedConversationId)
+    let records = []
+    if (savedConversationId) {
+      currentConversationId.value = savedConversationId
+      records = await getMedicalConversation(savedConversationId)
+    }
+
     if (!records.length) {
       uni.removeStorageSync(STORAGE_KEY)
       currentConversationId.value = ''
-      scrollToBottom()
-      return
+      records = await getLatestMedicalConversation()
     }
 
-    appendConversationMessages(records)
-    records.forEach((record) => {
-      if (record.processingPhase === 'thinking' || record.processingPhase === 'answering') {
-        pollRecord(record.recordId)
-      }
-    })
+    if (!records.length) {
+      messages.value = [createWelcomeMessage()]
+    } else {
+      appendConversationMessages(records)
+      records.forEach((record) => {
+        if (record.processingPhase === 'thinking' || record.processingPhase === 'answering') {
+          pollRecord(record.recordId)
+        }
+      })
+    }
     scrollToBottom()
   } catch (error) {
     console.error('恢复 AI 会话失败:', error)
+    messages.value = [createWelcomeMessage()]
     scrollToBottom()
   }
 }
@@ -395,12 +408,20 @@ onUnmounted(() => {
 
 .topbar-left,
 .topbar-right {
-  width: 72rpx;
+  width: 116rpx;
   height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.topbar-left {
+  justify-content: flex-start;
+}
+
+.topbar-right {
+  justify-content: flex-end;
 }
 
 .topbar-back {
@@ -416,6 +437,12 @@ onUnmounted(() => {
   font-size: 30rpx;
   font-weight: 700;
   color: #1f2937;
+}
+
+.new-chat-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .hero-card {
