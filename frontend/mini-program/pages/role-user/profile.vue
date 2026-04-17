@@ -110,6 +110,11 @@
 				</view>
 			</view>
 		</view>
+
+		<view class="version-footer" @click="showVersionDetail">
+			<text class="version-label">H5 版本</text>
+			<text class="version-value">{{ h5VersionLabel }}</text>
+		</view>
 		</template>
 	</view>
 </template>
@@ -123,7 +128,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, isPublicSafeMode } from '@/utils/site-mode.js'
-import { showCurrentVersionInfo } from '@/utils/app-version.js'
+import { getH5VersionLabel, showCurrentVersionInfo } from '@/utils/app-version.js'
 
 const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
@@ -131,6 +136,8 @@ const avatarLoadFailed = ref(false)
 const publicSafeMode = isPublicSafeMode()
 let versionTapCount = 0
 let versionTapTimer = null
+
+const h5VersionLabel = computed(() => getH5VersionLabel())
 
 const getFullAvatarUrl = (relativePath) => {
 	return resolveAvatarUrl(relativePath, PLACEHOLDER_AVATAR)
@@ -157,6 +164,10 @@ const handleVersionTap = async () => {
 	versionTapCount = 0
 	clearTimeout(versionTapTimer)
 	versionTapTimer = null
+	await showCurrentVersionInfo()
+}
+
+const showVersionDetail = async () => {
 	await showCurrentVersionInfo()
 }
 
@@ -462,5 +473,20 @@ onShow(() => {
 	font-size: 24rpx;
 	color: #999;
 	font-weight: bold;
+}
+.version-footer {
+	margin: 26rpx 0 calc(28rpx + env(safe-area-inset-bottom));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6rpx;
+	color: #8b98aa;
+}
+.version-label {
+	font-size: 22rpx;
+}
+.version-value {
+	font-size: 22rpx;
+	color: #66758a;
 }
 </style>
