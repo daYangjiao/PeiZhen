@@ -25,7 +25,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/**", "/attendant/**") // 拦截API与陪诊师端请求
+                .addPathPatterns("/api/**", "/attendant/**", "/ai/medical/**") // 拦截API、陪诊师端与AI导诊请求
                 .excludePathPatterns(
                     "/api/admin/**",
                     "/api/users/login",

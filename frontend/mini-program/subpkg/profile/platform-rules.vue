@@ -5,7 +5,7 @@
         <image class="hero-icon" src="/static/escort-rules.svg" mode="aspectFit"></image>
         <view>
           <text class="hero-title">平台规则</text>
-          <text class="hero-desc">定价与定金规则清晰透明，保障双方权益</text>
+          <text class="hero-desc">定价与取消结算规则清晰透明，保障双方权益</text>
         </view>
       </view>
     </view>
@@ -19,12 +19,13 @@
     </view>
 
     <view class="rule-card slide-up delay-3">
-      <text class="card-title">定金扣除规则</text>
+      <text class="card-title">取消结算规则</text>
       <text class="rule-line">服务开始前2小时以上取消：全额退款</text>
-      <text class="rule-line">1-2小时取消：扣除20%定金</text>
-      <text class="rule-line">30-60分钟取消：扣除30%定金</text>
-      <text class="rule-line">30分钟内取消：扣除50%定金</text>
-      <text class="rule-line no-gap">服务开始后取消：扣除100%定金</text>
+      <text class="rule-line">1-2小时取消：按订单金额的20%收取违约金</text>
+      <text class="rule-line">30-60分钟取消：按订单金额的30%收取违约金</text>
+      <text class="rule-line">30分钟内取消：按订单金额的50%收取违约金</text>
+      <text class="rule-line">服务开始后取消：按订单金额的100%收取违约金</text>
+      <text class="rule-line no-gap">用户退款金额将按实际违约金扣除后结算</text>
     </view>
   </view>
 </template>

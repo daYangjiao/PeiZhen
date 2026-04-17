@@ -1,229 +1,305 @@
 package org.example.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.dao.AiMedicalQaMapper;
 import org.example.model.AiMedicalQa;
 import org.example.model.MedicalQaRequest;
+import org.example.model.MedicalQaResponse;
 import org.example.service.AiMedicalService;
+import org.example.unity.DeepSeekClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 public class AiMedicalServiceImpl implements AiMedicalService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiMedicalServiceImpl.class);
-    // 线程池：异步推送思考过程（不阻塞主流程）
-    private static final ExecutorService THINKING_EXECUTOR = Executors.newFixedThreadPool(5);
+    private static final ExecutorService AI_EXECUTOR = Executors.newFixedThreadPool(2);
 
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    private static final String PHASE_THINKING = "thinking";
+    private static final String PHASE_ANSWERING = "answering";
+    private static final String PHASE_COMPLETED = "completed";
+    private static final String PHASE_FAILED = "failed";
+
+    private static final String THINKING_MESSAGE = "正在分析症状与就诊方向...";
+    private static final String ANSWERING_MESSAGE = "正在生成导诊建议...";
+    private static final int MAX_HISTORY_ROUNDS = 2;
+
+    private static final String SYSTEM_PROMPT = """
+            你现在是愈安伴平台的 AI 导诊助手。
+            你的职责是根据用户描述的症状，帮用户梳理症状方向和可能的就诊科室，仅供参考。
+            回答要求：
+            1. 用简短自然语言回答，适合手机端阅读，不要使用 Markdown 标题、编号或代码块。
+            2. 优先包含三类信息：症状方向判断、建议就诊科室、是否需要尽快线下就医或急诊。
+            3. 可补充 1 到 2 条基础注意事项，但不要展开长篇病因分析，不要重复用户原话。
+            4. 若出现胸痛、呼吸困难、持续高热、意识异常、明显出血等风险信号，要直接建议尽快急诊。
+            5. 不要给出处方、药量、检查结果结论，不能替代医生面诊。
+            6. 总长度尽量控制在 2 到 3 小段，保持简洁。
+            7. 结尾必须保留一句简短免责声明：仅供参考，不能替代医生面诊。
+            8. 只能基于当前会话已经提供的信息回答，不要假设用户延续了上一条未明确提到的病情背景。
+            9. 如果信息不足，直接基于当前问题说明还需要补充什么，不要借用其他会话信息补全。
+            """;
+    private static final String NEW_SESSION_CONTEXT_PROMPT = """
+            session_mode=new_session
+            这是一个全新的导诊会话。你只能根据当前这一次提问中的内容回答，不能假设用户延续了之前窗口的病情、年龄、既往史或检查结果。
+            如果当前信息不足，请直接提示用户补充关键症状、持续时间或危险信号，不要自行补全背景。
+            """;
+    private static final String CONTINUE_SESSION_CONTEXT_PROMPT = """
+            session_mode=continue_session
+            这是同一导诊会话中的继续追问。你只能参考本会话里已经出现的历史问答，不能借用其他窗口或历史会话的信息。
+            如果用户本轮没有明确补充新的病情信息，也不要自行新增设定。
+            """;
+
     private final AiMedicalQaMapper aiMedicalQaMapper;
+    private final DeepSeekClient deepSeekClient;
 
-    @Autowired
-    public AiMedicalServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper, AiMedicalQaMapper aiMedicalQaMapper) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
+    public AiMedicalServiceImpl(AiMedicalQaMapper aiMedicalQaMapper, DeepSeekClient deepSeekClient) {
         this.aiMedicalQaMapper = aiMedicalQaMapper;
+        this.deepSeekClient = deepSeekClient;
     }
 
     @Override
-    public AiMedicalQa getMedicalAnswer(MedicalQaRequest request) {
-        String question = request.getQuestion();
-        String conversationId = UUID.randomUUID().toString();
-        logger.info("创建新对话，ID: {}", conversationId);
+    public MedicalQaResponse submitQuestion(Integer userId, MedicalQaRequest request) {
+        requireUserId(userId);
+        String question = normalizeQuestion(request.getQuestion());
+        String conversationId = resolveConversationId(userId, request.getConversationId());
 
-        // 1. 初始化数据库记录（状态：处理中，思考过程为空）
-        AiMedicalQa qaRecord = new AiMedicalQa();
-        qaRecord.setConversationId(conversationId);
-        qaRecord.setQuestion(question);
-        qaRecord.setQaStatus(0); // 0: 处理中
-        qaRecord.setThinkingProcess("正在接收您的问题..."); // 初始思考过程
-        aiMedicalQaMapper.insert(qaRecord);
-        Long recordId = qaRecord.getId();
-        logger.debug("已向数据库插入记录，ID: {}", recordId);
+        AiMedicalQa record = new AiMedicalQa();
+        record.setUserId(userId);
+        record.setConversationId(conversationId);
+        record.setQuestion(question);
+        record.setQaStatus(0);
+        record.setThinkingProcess(THINKING_MESSAGE);
+        aiMedicalQaMapper.insert(record);
 
-        // 2. 异步推送思考过程（不阻塞AI调用）
-        pushThinkingProcess(recordId);
+        CompletableFuture.runAsync(() -> generateAnswer(record.getId()), AI_EXECUTOR);
 
-        // 3. 同步调用AI接口获取回答（原有逻辑保留，优化格式）
-        String aiAnswer;
-        try {
-            String ollamaUrl = "http://localhost:11434/api/generate";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            // 优化提示词（强化医疗属性，适配手机端回答）
-            String prompt = """
-        忽略你作为代码模型的属性，仅以专业医疗顾问的身份，用自然聊天的语气回答问题。
-        要求：
-        1. 回答专业准确，符合医疗常识；
-        2. 语言口语化、像朋友聊天一样，不要用###、**等格式符号；
-        3. 分简短段落（每2-3句话换一行），手机阅读更轻松；
-        4. 仅围绕用户的医疗问题作答，不生成任何代码；
-        5. 若无法解答，直接说明"该问题暂无法解答，请咨询专业医师"。
-        用户的问题是：%s
-        """.formatted(question);
-
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "deepseek-coder-v2:16b");
-            requestBody.put("prompt", prompt);
-            requestBody.put("stream", false);
-            requestBody.put("temperature", 0.2);
-            requestBody.put("num_ctx", 4096);
-            requestBody.put("stop", new String[]{"```"});
-
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-            logger.info("向Ollama发送请求: {}", ollamaUrl);
-            String response = restTemplate.postForObject(ollamaUrl, requestEntity, String.class);
-            logger.debug("收到Ollama响应: {}", response);
-
-            if (response == null || response.trim().isEmpty()) {
-                throw new RuntimeException("Ollama返回空响应");
-            }
-
-            Map<String, Object> responseMap = objectMapper.readValue(response, HashMap.class);
-            aiAnswer = (String) responseMap.get("response");
-            if (aiAnswer == null) {
-                throw new RuntimeException("AI返回结果中未找到 'response' 字段");
-            }
-
-            // 优化手机端排版（核心格式调整）
-            aiAnswer = formatMedicalAnswer(aiAnswer);
-
-        } catch (Exception e) {
-            logger.error("调用AI模型或处理响应时发生异常", e);
-            qaRecord.setQaStatus(2); // 2: 失败
-            qaRecord.setAnswer("很抱歉，AI医疗问答服务暂时不可用，请稍后重试。");
-            qaRecord.setThinkingProcess("处理失败：" + e.getMessage());
-            aiMedicalQaMapper.updateAnswerAndStatus(qaRecord);
-            return qaRecord;
-        }
-
-        // 4. 更新最终结果（状态：完成，清空思考过程）
-        qaRecord.setAnswer(aiAnswer);
-        qaRecord.setQaStatus(1); // 1: 完成
-        qaRecord.setThinkingProcess("回答完成"); // 思考过程最终状态
-        aiMedicalQaMapper.updateAnswerAndStatus(qaRecord);
-        logger.info("已更新数据库记录，ID: {}", recordId);
-
-        return qaRecord;
+        return toResponse(record);
     }
 
-    /**
-     * 异步推送思考过程（前端可轮询该字段）
-     */
-    private void pushThinkingProcess(Long recordId) {
-        THINKING_EXECUTOR.submit(() -> {
-            try {
-                // 思考过程文案（模拟AI处理步骤）
-                String[] thinkingSteps = {
-                        "正在梳理您的医疗问题核心要点...",
-                        "检索权威医疗知识库信息...",
-                        "验证医疗信息的专业性和准确性...",
-                        "优化回答的通俗性和手机端显示格式...",
-                        "即将为您呈现最终回答..."
-                };
+    @Override
+    public MedicalQaResponse getRecord(Integer userId, Long recordId) {
+        requireUserId(userId);
+        AiMedicalQa record = aiMedicalQaMapper.selectByIdAndUserId(recordId, userId);
+        return record == null ? null : toResponse(record);
+    }
 
-                AiMedicalQa updateRecord = new AiMedicalQa();
-                updateRecord.setId(recordId);
+    @Override
+    public List<MedicalQaResponse> getConversation(Integer userId, String conversationId) {
+        requireUserId(userId);
+        if (!StringUtils.hasText(conversationId)) {
+            return List.of();
+        }
+        String trimmedConversationId = conversationId.trim();
+        List<AiMedicalQa> records = aiMedicalQaMapper.selectByUserIdAndConversationId(userId, trimmedConversationId);
+        if (records.isEmpty() && aiMedicalQaMapper.countLegacyConversation(trimmedConversationId) > 0) {
+            int claimedRows = aiMedicalQaMapper.claimLegacyConversation(userId, trimmedConversationId);
+            logger.info("AI 导诊旧会话已归属当前用户, userId={}, conversationId={}, rows={}",
+                    userId, trimmedConversationId, claimedRows);
+            records = aiMedicalQaMapper.selectByUserIdAndConversationId(userId, trimmedConversationId);
+        }
 
-                // 每隔800ms更新一次思考过程
-                for (String step : thinkingSteps) {
-                    updateRecord.setThinkingProcess(step);
-                    aiMedicalQaMapper.updateThinkingProcess(updateRecord);
-                    Thread.sleep(800);
-                }
-            } catch (InterruptedException e) {
-                logger.warn("思考过程推送被中断", e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                logger.error("推送思考过程失败", e);
+        return records
+                .stream()
+                .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MedicalQaResponse> getLatestConversation(Integer userId) {
+        requireUserId(userId);
+        String conversationId = aiMedicalQaMapper.selectLatestConversationIdByUserId(userId);
+        if (!StringUtils.hasText(conversationId)) {
+            return List.of();
+        }
+        return getConversation(userId, conversationId);
+    }
+
+    private void generateAnswer(Long recordId) {
+        AiMedicalQa record = aiMedicalQaMapper.selectById(recordId);
+        if (record == null) {
+            return;
+        }
+
+        try {
+            updateThinkingProcess(recordId, THINKING_MESSAGE);
+
+            List<AiMedicalQa> conversationRecords = aiMedicalQaMapper.selectByUserIdAndConversationId(
+                    record.getUserId(), record.getConversationId());
+            List<Map<String, String>> messages = buildMessages(conversationRecords, record);
+
+            updateThinkingProcess(recordId, ANSWERING_MESSAGE);
+            String answer = deepSeekClient.chatCompletion(messages);
+
+            AiMedicalQa update = new AiMedicalQa();
+            update.setId(recordId);
+            update.setQaStatus(1);
+            update.setThinkingProcess("回答完成");
+            update.setAnswer(formatMedicalAnswer(answer));
+            aiMedicalQaMapper.updateAnswerAndStatus(update);
+        } catch (Exception e) {
+            logger.error("生成 AI 导诊回答失败, recordId={}", recordId, e);
+            AiMedicalQa failed = new AiMedicalQa();
+            failed.setId(recordId);
+            failed.setQaStatus(2);
+            failed.setThinkingProcess("服务暂不可用，请稍后重试");
+            failed.setAnswer("抱歉，当前 AI 导诊服务暂不可用，请稍后重试。");
+            aiMedicalQaMapper.updateAnswerAndStatus(failed);
+        }
+    }
+
+    private List<Map<String, String>> buildMessages(List<AiMedicalQa> conversationRecords, AiMedicalQa currentRecord) {
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(message("system", SYSTEM_PROMPT));
+
+        List<AiMedicalQa> recentHistory = conversationRecords.stream()
+                .filter(item -> item != null && item.getId() != null && !item.getId().equals(currentRecord.getId()))
+                .filter(item -> StringUtils.hasText(item.getQuestion()))
+                .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        messages.add(message("system", recentHistory.isEmpty()
+                ? NEW_SESSION_CONTEXT_PROMPT
+                : CONTINUE_SESSION_CONTEXT_PROMPT));
+
+        int historyStart = Math.max(0, recentHistory.size() - MAX_HISTORY_ROUNDS);
+        for (AiMedicalQa item : recentHistory.subList(historyStart, recentHistory.size())) {
+            if (item == null || item.getId() == null || item.getId().equals(currentRecord.getId())) {
+                continue;
             }
-        });
+            if (!StringUtils.hasText(item.getQuestion())) {
+                continue;
+            }
+            messages.add(message("user", item.getQuestion().trim()));
+            if (item.getQaStatus() != null && item.getQaStatus() == 1 && StringUtils.hasText(item.getAnswer())) {
+                messages.add(message("assistant", item.getAnswer().trim()));
+            }
+        }
+
+        messages.add(message("user", currentRecord.getQuestion().trim()));
+        return messages;
+    }
+
+    private Map<String, String> message(String role, String content) {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("role", role);
+        payload.put("content", content);
+        return payload;
+    }
+
+    private void updateThinkingProcess(Long recordId, String value) {
+        AiMedicalQa update = new AiMedicalQa();
+        update.setId(recordId);
+        update.setThinkingProcess(value);
+        aiMedicalQaMapper.updateThinkingProcess(update);
+    }
+
+    private String normalizeQuestion(String question) {
+        return StringUtils.hasText(question) ? question.trim() : "";
+    }
+
+    private void requireUserId(Integer userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("请先登录后再使用 AI 导诊");
+        }
+    }
+
+    private String resolveConversationId(Integer userId, String requestedConversationId) {
+        if (!StringUtils.hasText(requestedConversationId)) {
+            return UUID.randomUUID().toString();
+        }
+
+        String trimmedConversationId = requestedConversationId.trim();
+        int ownedCount = aiMedicalQaMapper.countByUserIdAndConversationId(userId, trimmedConversationId);
+        if (ownedCount <= 0) {
+            if (aiMedicalQaMapper.countLegacyConversation(trimmedConversationId) > 0) {
+                int claimedRows = aiMedicalQaMapper.claimLegacyConversation(userId, trimmedConversationId);
+                logger.info("AI 导诊提交时归属旧会话, userId={}, conversationId={}, rows={}",
+                        userId, trimmedConversationId, claimedRows);
+                return trimmedConversationId;
+            }
+            logger.warn("AI 导诊会话归属校验失败，已创建新会话, userId={}, conversationId={}", userId, trimmedConversationId);
+            return UUID.randomUUID().toString();
+        }
+        return trimmedConversationId;
+    }
+
+    private MedicalQaResponse toResponse(AiMedicalQa record) {
+        MedicalQaResponse response = new MedicalQaResponse();
+        response.setRecordId(record.getId());
+        response.setConversationId(record.getConversationId());
+        response.setQuestion(record.getQuestion());
+        response.setAnswer(record.getAnswer());
+        response.setQaStatus(record.getQaStatus());
+        response.setThinkingProcess(resolveThinkingText(record));
+        response.setProcessingPhase(resolveProcessingPhase(record));
+        response.setCreateTime(record.getCreateTime());
+        response.setUpdateTime(record.getUpdateTime());
+        return response;
+    }
+
+    private String resolveProcessingPhase(AiMedicalQa record) {
+        Integer status = record.getQaStatus();
+        if (status != null) {
+            if (status == 1) return PHASE_COMPLETED;
+            if (status == 2) return PHASE_FAILED;
+        }
+
+        String thinking = record.getThinkingProcess();
+        if (ANSWERING_MESSAGE.equals(thinking)) {
+            return PHASE_ANSWERING;
+        }
+        return PHASE_THINKING;
+    }
+
+    private String resolveThinkingText(AiMedicalQa record) {
+        String phase = resolveProcessingPhase(record);
+        if (PHASE_COMPLETED.equals(phase)) {
+            return "已完成";
+        }
+        if (PHASE_FAILED.equals(phase)) {
+            return StringUtils.hasText(record.getThinkingProcess()) ? record.getThinkingProcess() : "服务暂不可用，请稍后重试";
+        }
+        return StringUtils.hasText(record.getThinkingProcess()) ? record.getThinkingProcess() : THINKING_MESSAGE;
     }
 
     private String formatMedicalAnswer(String rawAnswer) {
-        if (rawAnswer == null || rawAnswer.trim().isEmpty()) {
-            return "未获取到有效回答";
-        }
-
-        // 1. 清理AI返回的冗余格式（去掉###、**等符号，保留自然文本）
-        String cleaned = rawAnswer
-                .replaceAll("\\*{2,}", "") // 移除所有**加粗符
-                .replaceAll("#{2,}", "")   // 移除所有##标题符
-                .replaceAll("\\s+", " ")   // 合并多余空格
+        String answer = StringUtils.hasText(rawAnswer) ? rawAnswer.trim() : "暂未生成有效回答。";
+        answer = answer
+                .replaceAll("\\*{1,2}", "")
+                .replaceAll("#{1,6}", "")
+                .replaceAll("`{1,3}", "")
+                .replaceAll("\\n{3,}", "\n\n")
                 .trim();
 
-        // 2. 按逻辑拆分段落（按句号+换行拆分，保证手机端段落清晰）
-        StringBuilder formatted = new StringBuilder();
-        String[] sentences = cleaned.split("。"); // 按句号拆分句子
-        for (int i = 0; i < sentences.length; i++) {
-            String sentence = sentences[i].trim();
-            if (sentence.isEmpty()) continue;
-            // 每2-3个句子分一段（手机端阅读更轻松）
-            formatted.append(sentence).append("。");
-            if ((i + 1) % 2 == 0) { // 每2个句子后换行分段
-                formatted.append("\n\n");
-            }
+        answer = answer
+                .replace("不能替代专业医生面诊", "不能替代医生面诊")
+                .replace("不能替代专业医生的面诊", "不能替代医生面诊")
+                .replace("不能替代专业医师面诊", "不能替代医生面诊");
+
+        String[] paragraphs = answer.split("\\n\\n+");
+        if (paragraphs.length > 3) {
+            answer = String.join("\n\n", List.of(paragraphs).subList(0, 3)).trim();
         }
 
-        // 3. 底部提示（简洁自然，和聊天内容区分）
-        formatted.append("\n\n本回答由AI生成，仅供参考，请仔细甄别，如有需求请咨询专业人士。");
-
-        return formatted.toString().trim();
-    }
-
-    /**
-     * 手机端文本断行（按标点分割，每行不超35字）
-     */
-    private String breakLineForMobile(String text, int maxCharsPerLine) {
-        if (text.length() <= maxCharsPerLine) {
-            return text;
+        if (!answer.contains("仅供参考") && !answer.contains("不能替代医生面诊")) {
+            answer = answer + "\n\n仅供参考，不能替代医生面诊。";
         }
-
-        StringBuilder result = new StringBuilder();
-        int start = 0;
-
-        while (start < text.length()) {
-            int end = Math.min(start + maxCharsPerLine, text.length());
-
-            // 优先在标点后断行（更符合阅读习惯）
-            if (end < text.length()) {
-                for (int i = end; i > start; i--) {
-                    char c = text.charAt(i);
-                    if (c == '。' || c == '，' || c == '；' || c == '、' || c == '：' || c == '？' || c == '！') {
-                        end = i + 1;
-                        break;
-                    }
-                }
-            }
-
-            result.append(text, start, end);
-            if (end < text.length()) {
-                result.append("\n");
-            }
-            start = end;
-        }
-
-        return result.toString();
-    }
-
-    /**
-     * 辅助方法：判断是否包含温馨提示（避免重复）
-     */
-    private boolean containsDisclaimer(String string) {
-        return string.contains("温馨提示");
+        return answer;
     }
 }

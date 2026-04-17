@@ -68,11 +68,17 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     setUserInfo(userInfo) {
-      this.userInfo = userInfo
+      const previousUserInfo = this.userInfo || uni.getStorageSync('userInfo') || {}
+      this.userInfo = { ...userInfo }
       this.isLoggedIn = true
       this.isGuestMode = false
       this.loginTime = Date.now()
-      if (!this.userInfo.nickName) {
+      const previousName = previousUserInfo.name || ''
+      const nextName = this.userInfo.name || ''
+      const isEscortUser = Number(this.userInfo.userType || previousUserInfo.userType || 0) === 1
+      if (!isEscortUser && nextName && nextName !== previousName) {
+        this.userInfo.nickName = nextName
+      } else if (!this.userInfo.nickName) {
         this.userInfo.nickName = this.userInfo.name || this.userInfo.phone || '用户'
       }
       if (userInfo.token) {

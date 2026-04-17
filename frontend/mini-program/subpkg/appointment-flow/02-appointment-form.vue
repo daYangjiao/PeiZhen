@@ -30,30 +30,11 @@
 			</view>
 		</view>
 
-		<!-- 选择服务时段 -->
-		<view class="time-section">
-			<view class="section-header">
-				<view class="icon-wrapper">
-					<text class="time-icon">🕐</text>
-				</view>
-				<text class="section-title">选择服务时段</text>
-			</view>
-			
-			<view class="time-picker-row">
-				<view class="time-picker" @click="showStartTimePicker">
-					<text class="time-label">开始时间</text>
-					<text class="time-value" v-if="startTime">{{ startTime }}</text>
-					<text class="time-placeholder" v-else>请选择</text>
-					<text class="time-arrow">▼</text>
-				</view>
-				<view class="time-picker" @click="showEndTimePicker">
-					<text class="time-label">结束时间</text>
-					<text class="time-value" v-if="endTime">{{ formatSelectedEndTimeDisplay() }}</text>
-					<text class="time-placeholder" v-else>请选择</text>
-					<text class="time-arrow">▼</text>
-				</view>
-			</view>
-		</view>
+		<appointment-time-range-picker
+			v-model:start-time="startTime"
+			v-model:end-time="endTime"
+			:selected-date="selectedDate"
+		/>
 
 		<!-- 输入地址或选择医院 -->
 		<view class="location-section">
@@ -157,7 +138,7 @@
 					v-model="otherRequirements" 
 					placeholder="如：希望陪诊师有经验、会英语等" 
 					class="requirements-textarea"
-					:autosize="{ minHeight: 100 }" 
+					auto-height
 				/>
 			</view>
 		</view>
@@ -168,75 +149,6 @@
 			<button class="confirm-btn" :class="{ disabled: !isFormComplete }" @click="confirmAppointment">
 				确认预约
 			</button>
-		</view>
-
-		<!-- 时间选择器弹窗 -->
-		<view class="modal-overlay" v-if="showTimeModal" @click="hideTimePicker">
-			<view class="time-modal" @click.stop>
-				<view class="time-modal-header">
-					<view>
-						<text class="time-modal-title">{{ timePickerTitle }}</text>
-						<text class="time-modal-subtitle">24小时可预约，结束时间可跨至次日</text>
-					</view>
-					<text class="close-btn" @click="hideTimePicker">✕</text>
-				</view>
-				
-				<scroll-view
-					class="time-list"
-					scroll-y
-					:scroll-into-view="timeScrollTarget"
-					scroll-with-animation
-				>
-					<view v-if="timeOptions.length === 0" class="time-empty-state">
-						<text class="time-empty-text">当前日期已无可预约时段，请选择其他日期</text>
-					</view>
-					<template v-if="timePickerType === 'start'">
-						<view
-							v-for="group in timeGroups"
-							:key="group.key"
-							:id="group.anchorId"
-							class="time-group"
-						>
-							<view class="time-group-header" @click="toggleTimeGroup(group.key)">
-								<view class="time-group-copy">
-									<text class="time-group-title">{{ group.label }}</text>
-									<text class="time-group-meta">{{ group.rangeLabel }}</text>
-								</view>
-								<view class="time-group-badge">
-									<text class="time-group-count">{{ group.options.length }}</text>
-								</view>
-								<text class="time-group-arrow" :class="{ expanded: isTimeGroupExpanded(group.key) }">⌄</text>
-							</view>
-
-							<view v-if="isTimeGroupExpanded(group.key)" class="time-group-options">
-								<view
-									v-for="option in group.options"
-									:key="`${group.key}-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
-									:class="['time-option', { 'selected': isSelectedTimeOption(option) }]"
-									@click="selectTime(option)"
-								>
-									<text class="time-option-text">{{ option.displayLabel }}</text>
-								</view>
-							</view>
-						</view>
-					</template>
-					<view v-else class="time-sequence-grid">
-						<view
-							v-for="option in timeOptions"
-							:key="`end-${option.time}-${option.isNextDay ? 'next' : 'same'}`"
-							:class="['time-option', 'sequence-option', { 'selected': isSelectedTimeOption(option) }]"
-							@click="selectTime(option)"
-						>
-							<text class="time-option-text">{{ option.displayLabel }}</text>
-						</view>
-					</view>
-				</scroll-view>
-				
-				<view class="time-footer">
-					<button class="cancel-btn" @click="hideTimePicker">取消</button>
-					<button class="confirm-time-btn" @click="confirmTime">确定</button>
-				</view>
-			</view>
 		</view>
 
 		<!-- 日期选择弹窗 -->
@@ -393,6 +305,7 @@ import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 g
 import { appointmentServiceLogos } from '@/utils/assets.js'
 import { HOSPITAL_OPTIONS } from '@/utils/hospital-options.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 
 // --- 接收页面参数 ---
 // 使用 onLoad 钩子接收从上一个页面传递的参数
@@ -520,10 +433,19 @@ const TIME_GROUP_DEFINITIONS = [
 	{ key: 'evening', label: '晚上', rangeLabel: '18:00 - 23:30', start: 1080, end: 1439 }
 ]
 
-const getTodayBufferMinutes = () => {
+const getTodayEarliestStartMinutes = () => {
 	const now = new Date()
-	return now.getHours() * 60 + now.getMinutes() + 30
+	const currentMinutes = now.getHours() * 60 + now.getMinutes()
+	const currentSlotStartMinutes = Math.floor(currentMinutes / 30) * 30
+	const minutesAfterSlotStart = currentMinutes - currentSlotStartMinutes
+	if (minutesAfterSlotStart <= 5) {
+		return currentSlotStartMinutes
+	}
+	return currentSlotStartMinutes + 30
 }
+
+const getExpiredStartTimeMessage = (minAllowedStartMinutes) =>
+	`您选择的开始时间已超过可预约时限，请重新选择 ${formatMinutesToTime(minAllowedStartMinutes)} 及之后的开始时间`
 
 const isTodayDate = (dateValue) => {
 	if (!dateValue) return false
@@ -585,7 +507,7 @@ const getAvailableTimeOptions = (dateValue, pickerType = 'start') => {
 		for (let minute = 0; minute < 60; minute += 30) {
 			const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 			const timeMinutes = parseTimeToMinutes(timeStr)
-			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayBufferMinutes()) {
+			if (pickerType === 'start' && isTodayDate(dateValue) && timeMinutes < getTodayEarliestStartMinutes()) {
 				continue
 			}
 			options.push(createTimeOption(timeStr))
@@ -815,8 +737,15 @@ const formatSelectedEndTimeDisplay = () => {
 		return endTime.value
 	}
 	return parseTimeToMinutes(endTime.value) < parseTimeToMinutes(startTime.value)
-		? `次日 ${endTime.value}`
+		? `次日${endTime.value}`
 		: endTime.value
+}
+
+const isNextDaySelectedEndTime = () => {
+	if (!startTime.value || !endTime.value) return false
+	const durationMinutes = calculateSlotDurationMinutes(startTime.value, endTime.value)
+	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) return false
+	return parseTimeToMinutes(endTime.value) < parseTimeToMinutes(startTime.value)
 }
 
 const toggleTimeGroup = (groupKey) => {
@@ -930,13 +859,18 @@ const validateAppointmentDateTime = () => {
 	}
 
 	if (appointmentDate.getTime() === today.getTime()) {
-		const minAllowedStartMinutes = now.getHours() * 60 + now.getMinutes() + 30
+		const minAllowedStartMinutes = getTodayEarliestStartMinutes()
 		if (startMinutes < minAllowedStartMinutes) {
-			return { valid: false, message: '今日预约需至少提前30分钟' }
+			return {
+				valid: false,
+				message: getExpiredStartTimeMessage(minAllowedStartMinutes),
+				expiredStartTime: true,
+				minAllowedStartMinutes
+			}
 		}
 	}
 
-	return { valid: true, message: '' }
+	return { valid: true, message: '', expiredStartTime: false, minAllowedStartMinutes: null }
 }
 
 const validatePhone = () => {
@@ -1096,6 +1030,11 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 
 	const appointmentTimeValidation = validateAppointmentDateTime()
 	if (!appointmentTimeValidation.valid) {
+		if (appointmentTimeValidation.expiredStartTime) {
+			startTime.value = ''
+			endTime.value = ''
+			selectedTime.value = ''
+		}
 		uni.showToast({
 			title: appointmentTimeValidation.message,
 			icon: 'none'
@@ -1269,6 +1208,10 @@ onMounted(async () => {
 	background-color: #f5f7fa;
 	padding-bottom: 150rpx;
 	padding-top: 30rpx;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: clip;
+	box-sizing: border-box;
 }
 
 /* 新增：服务类型卡片区域 (更接近01的长方形卡片样式) */
@@ -1451,38 +1394,64 @@ onMounted(async () => {
 .time-picker-row {
 	display: flex;
 	gap: 30rpx;
+	flex-wrap: wrap;
+}
+
+.time-inline-tip {
+	width: 100%;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #6b7c93;
+	margin-top: 6rpx;
 }
 
 .time-picker {
 	flex: 1;
 	background-color: #f8f9fa;
 	border-radius: 15rpx;
-	padding: 30rpx 20rpx;
+	padding: 26rpx 16rpx;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	gap: 10rpx;
 	border: 2rpx solid #e9ecef;
 }
 
 .time-label {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #666;
+	flex-shrink: 0;
 }
 
 .time-value {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #333;
 	font-weight: 600;
+	flex: 1;
+	min-width: 0;
+	text-align: right;
+	white-space: nowrap;
+	line-height: 1.2;
+}
+
+.time-value-compact {
+	font-size: 22rpx;
+	letter-spacing: -0.5rpx;
 }
 
 .time-placeholder {
-	font-size: 28rpx;
+	font-size: 26rpx;
 	color: #999;
+	flex: 1;
+	min-width: 0;
+	text-align: right;
+	white-space: nowrap;
+	line-height: 1.2;
 }
 
 .time-arrow {
 	font-size: 24rpx;
 	color: #999;
+	flex-shrink: 0;
 }
 
 /* 地址输入区域 */
@@ -1580,10 +1549,17 @@ onMounted(async () => {
 	border-radius: 15rpx;
 	padding: 5rpx 20rpx;
 	border: 2rpx solid #e9ecef;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 .requirements-textarea {
+	display: block;
 	width: 100%;
+	max-width: 100%;
+	min-width: 0;
 	min-height: 100rpx; /* 设置最小高度 */
 	padding: 25rpx 0;
 	font-size: 28rpx;
@@ -1591,6 +1567,10 @@ onMounted(async () => {
 	background: transparent;
 	border: none;
 	outline: none;
+	box-sizing: border-box;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	word-break: break-all;
 	resize: vertical; /* 允许垂直调整大小 */
 }
 
@@ -1639,10 +1619,12 @@ onMounted(async () => {
 	bottom: 0;
 	left: 0;
 	right: 0;
+	z-index: 40;
 	background-color: #ffffff;
-	padding: 30rpx;
+	padding: 30rpx 30rpx calc(30rpx + env(safe-area-inset-bottom));
 	border-top: 1rpx solid #eee;
 	box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加底部阴影 */
+	box-sizing: border-box;
 }
 
 .confirm-btn {
@@ -1668,27 +1650,27 @@ onMounted(async () => {
 /* 弹窗样式 */
 .modal-overlay {
 	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	inset: 0;
 	background-color: rgba(0, 0, 0, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	z-index: 1000;
+	z-index: 99990;
+	padding: 24rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
 }
 
 .date-modal, .time-modal, .add-symptom-modal, .hospital-modal {
 	background-color: #ffffff;
 	border-radius: 20rpx;
-	width: 80%;
-	max-height: 80%;
+	width: 100%;
+	max-width: 720rpx;
+	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
 	overflow: hidden;
+	box-sizing: border-box;
 }
 
 .time-modal {
-	width: 86%;
 	max-height: 82%;
 	border-radius: 28rpx;
 }
@@ -1696,9 +1678,11 @@ onMounted(async () => {
 .calendar-modal-simple {
 	background-color: #ffffff;
 	border-radius: 28rpx;
-	width: 86%;
-	max-height: 82%;
+	width: 100%;
+	max-width: 720rpx;
+	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
 	overflow: hidden;
+	box-sizing: border-box;
 }
 
 .calendar-modal-header,

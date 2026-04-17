@@ -1,5 +1,16 @@
 <template>
 	<view class="container">
+		<view class="ai-entry-card" @click="goToAiAppointment">
+			<view class="ai-entry-copy">
+				<text class="ai-entry-eyebrow">AI 帮我找</text>
+				<text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
+				<text class="ai-entry-desc">如果您已经知道大致需求，可以先交给 AI 帮您筛人，再决定是否下单。</text>
+			</view>
+			<view class="ai-entry-action">
+				<text class="ai-entry-btn">立即体验</text>
+			</view>
+		</view>
+
 		<!-- 顶部标题 -->
 		<view class="header">
 			<text class="title">选择服务类型</text>
@@ -194,6 +205,12 @@ const goToNext = () => {
 		url: '/subpkg/appointment-flow/02-appointment-form?serviceTypeNumber=' + serviceTypeNumber + '&serviceTypeName=' + encodeURIComponent(serviceTypeName)
 	})
 }
+
+const goToAiAppointment = () => {
+	uni.navigateTo({
+		url: '/subpkg/ai-appointment/01-ai-appointment'
+	})
+}
 </script>
 
 <style lang="scss" scoped>
@@ -202,7 +219,65 @@ const goToNext = () => {
 	min-height: 100vh;
 	background-color: #f5f7fa;
 	padding: 20rpx;
-	padding-bottom: 40rpx; /* 与底部按钮高度匹配，避免内容露到按钮下方 */
+	padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+	box-sizing: border-box;
+	overflow-x: clip;
+}
+
+.ai-entry-card {
+	margin: 8rpx 8rpx 28rpx;
+	padding: 28rpx;
+	border-radius: 26rpx;
+	background: linear-gradient(135deg, #edf5ff 0%, #ffffff 100%);
+	box-shadow: 0 16rpx 36rpx rgba(66, 109, 190, 0.10);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24rpx;
+}
+
+.ai-entry-copy {
+	flex: 1;
+}
+
+.ai-entry-eyebrow {
+	display: block;
+	font-size: 22rpx;
+	font-weight: 700;
+	color: #4b6fb7;
+	letter-spacing: 2rpx;
+}
+
+.ai-entry-title {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 34rpx;
+	font-weight: 700;
+	color: #20324f;
+}
+
+.ai-entry-desc {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 24rpx;
+	line-height: 1.6;
+	color: #687998;
+}
+
+.ai-entry-action {
+	flex-shrink: 0;
+}
+
+.ai-entry-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18rpx 24rpx;
+	border-radius: 999rpx;
+	background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
+	color: #ffffff;
+	font-size: 24rpx;
+	font-weight: 700;
 }
 
 .header {
@@ -318,12 +393,14 @@ const goToNext = () => {
 /* 底部按钮 */
 .bottom-button {
 	position: fixed;
-	bottom: 60rpx; /* 紧贴在底部菜单正上方 */
+	bottom: calc(60rpx + env(safe-area-inset-bottom));
 	left: 0;
 	right: 0;
-	padding: 30rpx;
+	padding: 24rpx 30rpx calc(24rpx + env(safe-area-inset-bottom));
 	background-color: white;
 	border-top: 1rpx solid #eee;
+	box-sizing: border-box;
+	z-index: 20;
 }
 
 .next-btn {

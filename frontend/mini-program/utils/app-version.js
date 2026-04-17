@@ -18,6 +18,20 @@ const getStoredWgtVersion = () => {
   return typeof value === 'string' && value.trim() ? value.trim() : APP_BUILD.versionName
 }
 
+export const formatBuildTime = (value = APP_BUILD.buildTime) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (input) => String(input).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export const getH5VersionLabel = () => {
+  const version = APP_BUILD.h5Version || APP_BUILD.buildLabel || APP_BUILD.versionName
+  const time = formatBuildTime()
+  return time ? `${version} · ${time}` : version
+}
+
 const isAppRuntime = () => {
   // #ifdef APP-PLUS
   return true
@@ -53,7 +67,9 @@ export const showCurrentVersionInfo = async () => {
     showCancel: false,
     content: [
       `平台：${getPlatformLabel()}`,
+      `H5版本：${getH5VersionLabel()}`,
       `代码版本：${APP_BUILD.buildLabel} / ${currentCodeVersion}`,
+      `提交：${APP_BUILD.gitShortCommit || 'unknown'}${APP_BUILD.gitDirty ? ' (dirty)' : ''}`,
       `安装包版本：${appRuntime ? `${runtimeVersion} (${APP_BUILD.versionCode})` : 'H5 无安装包'}`,
       `资源包版本：${appRuntime ? wgtVersion : APP_BUILD.versionName}`,
       `包名：${APP_BUILD.packageName}`,

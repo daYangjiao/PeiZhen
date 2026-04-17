@@ -80,14 +80,6 @@
 						<text class="item-title">消息中心</text>
 						<text class="item-arrow">〉</text>
 					</view>
-          <view class="menu-item" @click="goToRules">
-            <view class="item-icon">
-              <image src="/static/settings.png" mode="aspectFit"></image>
-            </view>
-            <text class="item-title">平台规则</text>
-            <text class="item-arrow">〉</text>
-          </view>
-      </view>
 				</view>
 			</view>
 			
@@ -98,7 +90,7 @@
 						<view class="item-icon">
 							<image src="/static/settings.png" mode="aspectFit"></image>
 						</view>
-						<text class="item-title">设置</text>
+						<text class="item-title">更多功能</text>
 						<text class="item-arrow">〉</text>
 					</view>
 					<view class="menu-item" @click="goToHelp">
@@ -118,12 +110,13 @@
 				</view>
 			</view>
 		</view>
+
 		</template>
 	</view>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { getUserById } from '@/api/user.js'
@@ -160,7 +153,14 @@ const handleVersionTap = async () => {
 	versionTapTimer = setTimeout(() => {
 		versionTapCount = 0
 		versionTapTimer = null
-	}, 1200)
+	}, 5000)
+	if (versionTapCount >= 3 && versionTapCount < 5) {
+		uni.showToast({
+			title: `再点${5 - versionTapCount}次查看版本`,
+			icon: 'none',
+			duration: 700
+		})
+	}
 	if (versionTapCount < 5) return
 	versionTapCount = 0
 	clearTimeout(versionTapTimer)
@@ -198,13 +198,6 @@ const goToMessages = () => {
 		url: '/pages/role-user/message'
 	})
 }
-// 跳转到平台规则页面
-const goToRules = () => {
-  uni.navigateTo({
-    url: '/pages/rules/rules'
-  });
-}
-
 
 const goToSettings = () => {
 	uni.showToast({

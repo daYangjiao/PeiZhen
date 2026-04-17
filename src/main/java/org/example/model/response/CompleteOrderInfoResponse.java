@@ -66,7 +66,10 @@ public class CompleteOrderInfoResponse {
     
     @ApiModelProperty(value = "症状列表", example = "[\"发热\", \"咳嗽\"]")
     private List<String> symptoms;
-    
+
+    @ApiModelProperty(value = "症状描述", example = "心内科复诊，近期胸闷头晕")
+    private String symptomDescription;
+
     @ApiModelProperty(value = "其他需求", example = "需要轮椅协助")
     private String otherRequirement;
     

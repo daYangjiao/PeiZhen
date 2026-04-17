@@ -13,7 +13,18 @@ public class MedicalQaRequest {
     @NotBlank(message = "问题不能为空")
     private String question;
 
+    @ApiModelProperty(value = "当前会话ID，可选；不传则后端自动创建", example = "conv-20260413-001")
+    private String conversationId;
+
     public void setQuestion(String question) {
         this.question = question;
+    }
+
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
     }
 }

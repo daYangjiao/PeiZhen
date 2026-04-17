@@ -80,6 +80,16 @@
         ORDER BY create_time ASC
     </select>
 
+    <select id="findExpiredAssignedOrders" resultMap="OrderResultMap">
+        SELECT *
+        FROM `order`
+        WHERE payment_status = 1
+          AND order_status = 8
+          AND payment_time IS NOT NULL
+          AND payment_time &lt;= #{deadline}
+        ORDER BY payment_time ASC
+    </select>
+
     <update id="updateByPrimaryKeySelective" parameterType="org.example.model.Order">
         UPDATE `order`
         <set>

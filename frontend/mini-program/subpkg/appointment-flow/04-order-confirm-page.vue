@@ -33,15 +33,15 @@
         </view>
         <view class="info-item">
           <text class="label">就诊医院</text>
-          <text class="value">{{ orderData.hospital || '未知' }}</text>
+          <text class="value">{{ getDisplayHospital() }}</text>
         </view>
         <view class="info-item">
           <text class="label">就诊时间</text>
-          <text class="value">{{ formatDate(orderData.serviceDate) }} {{ formatServiceTime(orderData.serviceTime) || '未知' }}</text>
+          <text class="value">{{ getDisplayServiceTime() }}</text>
         </view>
         <view class="info-item">
           <text class="label">就诊人</text>
-          <text class="value">{{ orderData.patientName || '未知' }}</text>
+          <text class="value">{{ getDisplayPatientName() }}</text>
         </view>
         <view class="info-item multiline-item">
           <text class="label">症状描述</text>
@@ -49,7 +49,7 @@
         </view>
         <view class="info-item last multiline-item">
           <text class="label">其他需求</text>
-          <text class="value multiline-value">{{ orderData.otherRequirement || '无' }}</text>
+          <text class="value multiline-value">{{ getDisplayOtherRequirement() }}</text>
         </view>
       </view>
 
@@ -322,14 +322,80 @@ const formatAmount = (amount) => {
   return num.toFixed(2)
 }
 
-const getSymptomDescription = () => {
-  const { symptoms } = orderData.value
-  if (!symptoms) return '未提供症状信息'
-  if (Array.isArray(symptoms)) {
-    const validSymptoms = symptoms.filter(item => item && item.trim() && item !== '无' && item !== 'null')
-    return validSymptoms.length > 0 ? validSymptoms.join(', ') : '未提供症状信息'
+const normalizeDisplayText = (value, fallback = '未知') => {
+  if (Array.isArray(value)) {
+    const items = value
+      .map(item => (item == null ? '' : String(item).trim()))
+      .filter(item => item && item !== 'null' && item !== 'undefined' && item !== '无')
+    return items.length > 0 ? items.join('，') : fallback
   }
-  return symptoms
+
+  if (value == null) return fallback
+  const text = String(value).trim()
+  if (!text || text === 'null' || text === 'undefined') return fallback
+  return text
+}
+
+const normalizeTimePart = (value) => {
+  if (value == null) return ''
+  let text = String(value).trim()
+  if (!text) return ''
+
+  text = text
+    .replace(/[：]/g, ':')
+    .replace(/[．。]/g, '.')
+    .replace(/\s+/g, '')
+    .replace(/到|至/g, '-')
+    .replace(/点半/g, ':30')
+    .replace(/点/g, ':00')
+
+  if (text.includes('-')) {
+    return text.split('-').map(part => normalizeTimePart(part)).join('-')
+  }
+
+  const dotMatch = text.match(/^(\d{1,2})\.(\d{1,2})$/)
+  if (dotMatch) {
+    return `${dotMatch[1].padStart(2, '0')}:${dotMatch[2].padStart(2, '0')}`
+  }
+
+  const colonMatch = text.match(/^(\d{1,2}):(\d{1,2})$/)
+  if (colonMatch) {
+    return `${colonMatch[1].padStart(2, '0')}:${colonMatch[2].padStart(2, '0')}`
+  }
+
+  return text
+}
+
+const getDisplayHospital = () => normalizeDisplayText(
+  orderData.value.hospital || orderData.value.hospitalName || orderData.value.medicalInstitution,
+  '未知'
+)
+
+const getDisplayPatientName = () => normalizeDisplayText(
+  orderData.value.patientName || orderData.value.contactPerson || orderData.value.patientRealName,
+  '未知'
+)
+
+const getDisplayOtherRequirement = () => normalizeDisplayText(
+  orderData.value.otherRequirement || orderData.value.customRequirement || orderData.value.requirement,
+  '无'
+)
+
+const getSymptomDescription = () => {
+  const preferred = normalizeDisplayText(orderData.value.symptomDescription, '')
+  if (preferred && preferred !== '未知') return preferred
+
+  const { symptoms } = orderData.value
+  if (!symptoms) return '无'
+  if (Array.isArray(symptoms)) {
+    const validSymptoms = symptoms
+      .map(item => (item == null ? '' : String(item).trim()))
+      .filter(item => item && item !== '无' && item !== 'null' && item !== 'undefined')
+    return validSymptoms.length > 0 ? validSymptoms.join('，') : '无'
+  }
+  const text = String(symptoms).trim()
+  if (!text || text === '无' || text === 'null' || text === 'undefined') return '无'
+  return text
 }
 
 const formatDate = (dateStr) => {
@@ -337,7 +403,29 @@ const formatDate = (dateStr) => {
   return dateStr
 }
 
-const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || '')
+const getDisplayServiceTime = () => {
+  const dateText = normalizeDisplayText(orderData.value.serviceDate, '')
+  const startText = normalizeTimePart(orderData.value.serviceStartTime)
+  const endText = normalizeTimePart(orderData.value.serviceEndTime)
+
+  if (dateText && startText && endText) {
+    return `${dateText} ${formatServiceTimeSlot(`${startText}-${endText}`)}`
+  }
+
+  const directTime = orderData.value.serviceTimeSlot || orderData.value.serviceTime || ''
+  if (dateText && directTime) {
+    const normalized = normalizeTimePart(directTime)
+    if (normalized.includes('-')) {
+      return `${dateText} ${formatServiceTimeSlot(normalized)}`
+    }
+    return `${dateText} ${normalized || '未知'}`
+  }
+
+  if (dateText) return dateText
+  if (startText && endText) return formatServiceTimeSlot(`${startText}-${endText}`)
+
+  return '未知'
+}
 </script>
 
 <style lang="scss" scoped>
@@ -347,6 +435,9 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   @include user-page;
   min-height: 100vh;
   padding: 28rpx 24rpx 24rpx;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -948,7 +1039,7 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  padding: 24rpx;
+  padding: 24rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -956,10 +1047,13 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   width: 100%;
   max-width: 700rpx;
   min-height: 396rpx;
+  max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
   background: #ffffff;
   border-radius: 36rpx;
   overflow: hidden;
   box-shadow: 0 28rpx 56rpx rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
 }
 
 .payment-modal-header {
@@ -975,6 +1069,8 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
 
 .payment-modal-body {
   padding: 20rpx 40rpx 42rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .payment-modal-text {
@@ -988,8 +1084,9 @@ const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || 
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20rpx;
-  padding: 0 40rpx 40rpx;
+  padding: 0 40rpx calc(40rpx + env(safe-area-inset-bottom));
   align-items: stretch;
+  flex-shrink: 0;
 }
 
 .payment-modal-btn {

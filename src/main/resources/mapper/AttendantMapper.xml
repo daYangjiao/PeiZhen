@@ -64,6 +64,35 @@
         LIMIT 10
     </select>
 
+    <select id="findAiCandidates" resultMap="AttendantResultMap">
+        SELECT
+            a.*,
+            u.id,
+            u.name,
+            u.phone,
+            u.age,
+            u.sex,
+            u.avatar AS avatar_url,
+            u.status AS user_status,
+            COUNT(CASE WHEN o.order_status = 6 THEN 1 END) AS service_count
+        FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
+        LEFT JOIN `order` o ON o.attendant_id = a.user_id
+        WHERE a.status = 1
+          AND u.status = 1
+        GROUP BY
+            a.user_id, a.certificate, a.status, a.qualification_fail_reason, a.introduction,
+            a.professional_field, a.score, a.experience_years, a.hospital_name,
+            a.create_time, a.update_time,
+            u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
+        ORDER BY
+            a.score DESC,
+            service_count DESC,
+            a.experience_years DESC,
+            a.update_time DESC
+        LIMIT #{limit}
+    </select>
+
     <select id="countAdminAttendants" resultType="int">
         SELECT COUNT(*)
         FROM attendant a

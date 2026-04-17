@@ -22,6 +22,15 @@
       </text>
     </view>
 
+    <!-- 专属派单待确认倒计时 -->
+    <view v-if="showAssignedCountdown" class="assigned-countdown">
+      <text class="countdown-text">
+        专属派单待确认，剩余
+        <text class="time">{{ assignedCountdown }}</text>
+        ，超时后将自动进入公共派单
+      </text>
+    </view>
+
     <!-- 服务进度条（与陪诊师端四步保持一致） -->
     <view
       v-if="order.orderStatus === 3 || order.orderStatus === 4 || order.orderStatus === 6"
@@ -102,7 +111,7 @@
     </view>
 
     <!-- 陪诊师信息 -->
-    <view class="companion-info" v-if="order.attendantName && order.attendantName !== '待分配陪诊师'">
+    <view class="companion-info companion-info-clickable" v-if="order.attendantName && order.attendantName !== '待分配陪诊师'" @click="openAttendantDetail">
       <image
         :src="orderAttendantAvatar"
         class="avatar"
@@ -120,6 +129,7 @@
           <text class="score">{{ order.attendantScore || 5 }}</text>
         </view>
       </view>
+      <text class="companion-entry-arrow">›</text>
     </view>
     <view class="companion-info" v-else-if="(order.orderStatus === 0 || order.orderStatus === 1) && order.paymentStatus === 1">
       <view class="companion-details">
@@ -492,6 +502,7 @@ import { get, post, put, config } from '@/utils/api.js';
 import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js';
 import { makePhoneCallWithGuard } from '@/subpkg/common/runtime.js';
 import { userPlaceholder } from '@/utils/assets.js';
+import { navigateToAttendantDetail } from '@/utils/attendant-detail.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
@@ -504,6 +515,7 @@ const showBalancePayResultModal = ref(false); // 补付结果弹窗
 const showContactModal = ref(false); // 联系陪诊师方式弹窗
 let pollTimer = null; // 订单实时同步轮询定时器
 let payCountdownTimer = null; // 待支付倒计时定时器
+let assignedCountdownTimer = null; // 专属派单待确认倒计时定时器
 let socketRefreshTimer = null; // 消息刷新防抖定时器
 let currentOrderKey = ''; // 当前订单号（优先）
 let isFetchingOrder = false; // 防止并发请求
@@ -512,6 +524,7 @@ let pageActive = false; // 页面可见态
 const REALTIME_SYNC_INTERVAL = 30000;
 
 const payCountdown = ref('');
+const assignedCountdown = ref('');
 const qrLoadFailed = ref(false);
 const qrRefreshToken = ref(Date.now());
 const currentQrSourceKey = ref('');
@@ -531,6 +544,14 @@ const showPayCountdown = computed(() => {
     order.value &&
     order.value.paymentStatus === 0 &&
     order.value.orderStatus !== 7
+  );
+});
+
+const showAssignedCountdown = computed(() => {
+  return (
+    order.value &&
+    Number(order.value.paymentStatus) === 1 &&
+    Number(order.value.orderStatus) === 8
   );
 });
 
@@ -734,12 +755,57 @@ const setupPayCountdown = () => {
   payCountdownTimer = setInterval(tick, 1000);
 };
 
+const setupAssignedCountdown = () => {
+  if (assignedCountdownTimer) {
+    clearInterval(assignedCountdownTimer);
+    assignedCountdownTimer = null;
+  }
+
+  if (!showAssignedCountdown.value) {
+    assignedCountdown.value = '';
+    return;
+  }
+
+  const paymentTimeStr = order.value.paymentTime || order.value.createTime;
+  if (!paymentTimeStr) {
+    assignedCountdown.value = '';
+    return;
+  }
+
+  const baseTime = Date.parse(String(paymentTimeStr).replace(/-/g, '/'));
+  if (Number.isNaN(baseTime)) {
+    assignedCountdown.value = '';
+    return;
+  }
+
+  const deadline = baseTime + 15 * 60 * 1000;
+
+  const tick = () => {
+    const diff = deadline - Date.now();
+    if (diff <= 0) {
+      assignedCountdown.value = '00:00';
+      if (assignedCountdownTimer) {
+        clearInterval(assignedCountdownTimer);
+        assignedCountdownTimer = null;
+      }
+      return;
+    }
+
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    assignedCountdown.value = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  tick();
+  assignedCountdownTimer = setInterval(tick, 1000);
+};
+
 // 服务记录 (根据订单状态动态生成)
 const serviceSteps = computed(() => {
   if (!order.value || !order.value.orderNo) return [];
 
   const steps = [];
-  const status = order.value.orderStatus;
+  const status = Number(order.value.orderStatus);
   const paymentStatus = order.value.paymentStatus;
 
   steps.push({
@@ -751,7 +817,7 @@ const serviceSteps = computed(() => {
   // 如果订单已取消，单独处理，避免展示未发生的流程
   if (status === 7) {
     if (paymentStatus === 1) {
-      steps.push({ title: '已支付', desc: '订单费用已支付', time: order.value.paymentTime || '' });
+      steps.push({ title: '已支付', desc: '订单费用已支付', time: formatOrderDateTime(order.value.paymentTime) });
     }
     steps.push({
       title: '订单取消',
@@ -769,36 +835,92 @@ const serviceSteps = computed(() => {
     });
   }
 
-  if (status >= 2) {
-    steps.push({
-      title: '陪诊师已接单',
-      desc: '陪诊师已接单，准备为您服务',
-      time: formatOrderDateTime(order.value.acceptTime || order.value.paymentTime || order.value.createTime)
-    });
-  }
+  const acceptTime = formatOrderDateTime(order.value.acceptTime || order.value.paymentTime || order.value.createTime);
+  const startTime = formatOrderDateTime(order.value.serviceStartTime || order.value.acceptTime || order.value.paymentTime || order.value.createTime);
+  const endTime = formatOrderDateTime(order.value.serviceEndTime || order.value.updateTime || order.value.serviceStartTime);
 
-  if (status >= 3) {
-    steps.push({
-      title: '服务开始',
-      desc: '陪诊师已开始服务',
-      time: formatOrderDateTime(order.value.serviceStartTime)
-    });
-  }
-
-  if (status >= 4) {
-    const endTime = formatOrderDateTime(order.value.serviceEndTime);
-    steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
-    // 待确认时长通常紧接服务结束，这里沿用服务结束时间作为记录时间
-    steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
-  }
-
-  if (status >= 6) {
-    const finishTime = formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime);
-    steps.push({ title: '订单完成', desc: '订单已完成', time: finishTime });
-  }
-
-  if (status === 7) {
-    steps.push({ title: '订单取消', desc: '订单已被取消', time: formatOrderDateTime(order.value.cancelTime) });
+  switch (status) {
+    case 0:
+      break;
+    case 1:
+      steps.push({
+        title: '待接单',
+        desc: '订单已进入接单大厅，等待陪诊师接单',
+        time: acceptTime
+      });
+      break;
+    case 8:
+      steps.push({
+        title: '专属派单待确认',
+        desc: '已优先派给指定陪诊师，等待其确认接单',
+        time: acceptTime
+      });
+      break;
+    case 2:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      break;
+    case 3:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      break;
+    case 4:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
+      steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
+      break;
+    case 5:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
+      steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
+      steps.push({ title: '待补款', desc: '时长费用存在差异，等待补款处理', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
+      break;
+    case 6:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
+      steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
+      steps.push({ title: '订单完成', desc: '订单已完成', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
+      break;
+    default:
+      break;
   }
 
   return steps;
@@ -815,6 +937,7 @@ const getOrderStatusText = (order) => {
   const statusMap = {
     0: '待接单',
     1: '待接单',
+    8: '专属派单待确认',
     2: '待服务', // 修改：将“已接单”改为“待服务”
     3: '服务中',
     4: '待确认时长',
@@ -835,6 +958,7 @@ const getStatusClass = (order) => {
   const classMap = {
     0: 'status-waiting',
     1: 'status-waiting',
+    8: 'status-waiting',
     2: 'status-accepted',
     3: 'status-service',
     4: 'status-confirm',
@@ -984,6 +1108,10 @@ const callCompanion = () => {
   }
 
   showContactModal.value = true;
+};
+
+const openAttendantDetail = () => {
+  navigateToAttendantDetail(order.value);
 };
 
 // 处理联系陪诊师方式选择
@@ -1224,13 +1352,17 @@ const payBalance = async () => {
  * 获取症状描述文本
  */
 const getSymptomDescription = () => {
+  const preferred = String(order.value.symptomDescription || '').trim();
+  if (preferred && preferred !== '无' && preferred !== 'null') {
+    return preferred;
+  }
   const { symptoms } = order.value;
   if (!symptoms) {
     return '无';
   }
   if (Array.isArray(symptoms)) {
     const validSymptoms = symptoms.filter(s => s && s.trim() && s !== '无' && s !== 'null');
-    return validSymptoms.length > 0 ? validSymptoms.join(', ') : '无';
+    return validSymptoms.length > 0 ? validSymptoms.join('，') : '无';
   }
   return symptoms;
 };
@@ -1367,6 +1499,7 @@ const fetchOrderDetail = async (orderKey) => {
 
     // 更新待支付倒计时（仅对有支付倒计时的用户端订单生效）
     setupPayCountdown();
+    setupAssignedCountdown();
 
     // 已完成订单且可能已评价时，加载评价（含陪诊师回复）
     if (order.value.orderStatus === 6 && order.value.orderId) {
@@ -1418,6 +1551,7 @@ const applyOrderEventPatch = (payload = {}, messageType = '') => {
       ...order.value,
       orderStatus: nextStatus
     };
+    setupAssignedCountdown();
   }
 
   const nextStep = Number(payload.step);
@@ -1484,6 +1618,10 @@ const cleanupRealtimeResources = () => {
   if (payCountdownTimer) {
     clearInterval(payCountdownTimer);
     payCountdownTimer = null;
+  }
+  if (assignedCountdownTimer) {
+    clearInterval(assignedCountdownTimer);
+    assignedCountdownTimer = null;
   }
 };
 
@@ -1685,11 +1823,13 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding-top: 80rpx;
+  padding: 80rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 .duration-modal {
-  width: 90%;
+  width: 100%;
   max-width: 640rpx;
+  max-height: calc(100dvh - 80rpx - env(safe-area-inset-bottom));
   transform: translateY(0);
   animation: modalIn 180ms ease-out;
 }
@@ -1704,6 +1844,9 @@ onUnmounted(() => {
   border-radius: 24rpx;
   padding: 36rpx;
   box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.18);
+  max-height: calc(100dvh - 80rpx - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 .confirm-title {
   font-size: 32rpx;
@@ -1997,6 +2140,9 @@ onUnmounted(() => {
   padding: 20rpx 32rpx 160rpx;
   background-color: #f5f7fa;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 
@@ -2038,9 +2184,21 @@ onUnmounted(() => {
   border: 1rpx solid #ffe7ba;
 }
 
+.assigned-countdown {
+  margin: 0 32rpx 16rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background-color: #eef5ff;
+  border: 1rpx solid #d7e8ff;
+}
+
 .countdown-text {
   font-size: 24rpx;
   color: #fa8c16;
+}
+
+.assigned-countdown .countdown-text {
+  color: #007AFF;
 }
 
 .countdown-text .time {
@@ -2156,6 +2314,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 20rpx;
 }
+.companion-info-clickable {
+  cursor: pointer;
+}
 
 .avatar {
   width: 80rpx;
@@ -2180,6 +2341,12 @@ onUnmounted(() => {
 
 .companion-details {
   flex: 1;
+}
+
+.companion-entry-arrow {
+  font-size: 38rpx;
+  color: #b8c4d3;
+  line-height: 1;
 }
 
 .name {
@@ -2456,7 +2623,9 @@ onUnmounted(() => {
   height: 120rpx;
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
   z-index: 999;
-  padding: 0 32rpx;
+  padding: 0 32rpx calc(env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  width: auto;
 }
 
 .bottom-left {
@@ -2539,27 +2708,27 @@ onUnmounted(() => {
 /* 补付结果弹窗（沿用下单页样式） */
 .payment-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1100;
   padding: 20rpx;
+  box-sizing: border-box;
 }
 
 .payment-modal-content {
   background-color: white;
   border-radius: 16rpx;
-  width: 90%;
+  width: 100%;
   max-width: 500rpx;
+  max-height: calc(100dvh - 40rpx - env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .payment-modal-header {
@@ -2577,6 +2746,8 @@ onUnmounted(() => {
 
 .payment-modal-body {
   padding: 30rpx 24rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .payment-modal-text {
@@ -2621,19 +2792,21 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   z-index: 1100;
-  padding-top: 120rpx;
-  padding-left: 20rpx;
-  padding-right: 20rpx;
+  padding: 120rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .contact-modal {
-  width: 90%;
+  width: 100%;
   max-width: 640rpx;
+  max-height: calc(100dvh - 120rpx - env(safe-area-inset-bottom));
   background: #fff;
   border-radius: 24rpx;
   box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.18);
   overflow: hidden;
   animation: contactIn 180ms ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes contactIn {
@@ -2676,6 +2849,8 @@ onUnmounted(() => {
 
 .contact-options {
   padding: 10rpx 18rpx 6rpx;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .contact-option {

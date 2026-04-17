@@ -119,7 +119,8 @@
         {
           "path": "order/submit-time-fee",
           "style": {
-            "navigationBarTitleText": "提交时长与费用"
+            "navigationBarTitleText": "提交时长与费用",
+            "navigationStyle": "custom"
           }
         },
         {
@@ -179,8 +180,37 @@
         {
           "path": "ai/ai-ask",
           "style": {
+            "navigationStyle": "custom",
             "navigationBarTitleText": "AI助手",
+            "navigationBarBackgroundColor": "#edf4ff",
+            "backgroundColor": "#edf4ff",
             "disableScroll": true
+          }
+        },
+        {
+          "path": "ai-appointment/01-ai-appointment",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "AI帮我找",
+            "navigationBarBackgroundColor": "#edf4ff",
+            "backgroundColor": "#edf4ff",
+            "disableScroll": true
+          }
+        },
+        {
+          "path": "ai-appointment/02-ai-match-result",
+          "style": {
+            "navigationBarTitleText": "AI推荐结果",
+            "navigationBarBackgroundColor": "#f6f9ff",
+            "backgroundColor": "#f6f9ff"
+          }
+        },
+        {
+          "path": "profile/attendant-detail",
+          "style": {
+            "navigationBarTitleText": "陪诊师主页",
+            "navigationBarBackgroundColor": "#f6f9ff",
+            "backgroundColor": "#f6f9ff"
           }
         },
         {
@@ -286,12 +316,6 @@
             "navigationBarTitleText": "设置",
             "navigationBarBackgroundColor": "#f5f7fa",
             "backgroundColor": "#f5f7fa"
-          }
-          },
-        {
-          "path": "pages/rules/rules",
-          "style": {
-            "navigationBarTitleText": "平台规则"
           }
         }
       ]

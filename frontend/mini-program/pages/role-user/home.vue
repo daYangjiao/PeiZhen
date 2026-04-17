@@ -1,18 +1,5 @@
 <template>
   <view class="container">
-    <view class="header">
-      <view class="search-box">
-        <image class="search-icon" src="/static/sous.png"></image>
-        <input
-          class="search-input"
-          placeholder="搜索医院、科室或疾病"
-          v-model="searchKeyword"
-          @confirm="handleSearch"
-          confirm-type="search"
-        />
-      </view>
-    </view>
-
     <view class="banner-section">
       <swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="3000" duration="500">
         <swiper-item>
@@ -40,6 +27,19 @@
         >
           <image class="category-icon" :src="item.icon"></image>
           <text class="category-text">{{ item.name }}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="ai-entry-section" v-if="!publicSafeMode">
+      <view class="ai-entry-card" @click="navigateToAiAppointment">
+        <view class="ai-entry-copy">
+          <text class="ai-entry-eyebrow">AI 帮我找</text>
+          <text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
+          <text class="ai-entry-desc">先说需求，AI 会自动追问关键细节，再帮您优先推荐更合适的人选。</text>
+        </view>
+        <view class="ai-entry-pill">
+          <text class="ai-entry-pill-text">立即体验</text>
         </view>
       </view>
     </view>
@@ -146,10 +146,10 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getRecommendedAttendants } from '@/api/attendant.js'
 import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
+import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
-const searchKeyword = ref('')
 const publicSafeMode = isPublicSafeMode()
 const bannerImage = getLocalFirstImageUrl('banner.jpg', '/static/banner.jpg')
 const assistantEntryIcon = brandLogo
@@ -218,15 +218,31 @@ const refreshViewportMetrics = () => {
   safeBottomInset.value = sysInfo.safeAreaInsets?.bottom || 0
 }
 
-const normalizePosition = (x, y) => {
+const getFloatingBounds = () => {
   const minX = EDGE_MARGIN
-  const maxX = Math.max(minX, areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN)
+  const maxX = Math.max(minX, Number(areaWidth.value) - FLOAT_BTN_SIZE - EDGE_MARGIN)
   const minY = safeTopInset.value + EDGE_MARGIN
   const bottomReserved = safeBottomInset.value + TAB_BAR_RESERVED + EDGE_MARGIN
-  const maxY = Math.max(minY, areaHeight.value - FLOAT_BTN_SIZE - bottomReserved)
+  const maxY = Math.max(minY, Number(areaHeight.value) - FLOAT_BTN_SIZE - bottomReserved)
+  return { minX, maxX, minY, maxY }
+}
+
+const normalizePosition = (x, y) => {
+  const { minX, maxX, minY, maxY } = getFloatingBounds()
   const nextX = Math.max(minX, Math.min(maxX, Number(x) || 0))
   const nextY = Math.max(minY, Math.min(maxY, Number(y) || 0))
   return { x: nextX, y: nextY }
+}
+
+const snapToHorizontalEdge = (x, y) => {
+  const position = normalizePosition(x, y)
+  const { minX, maxX } = getFloatingBounds()
+  const viewportMiddle = Number(areaWidth.value) / 2
+  const buttonMiddle = position.x + FLOAT_BTN_SIZE / 2
+  return {
+    x: buttonMiddle < viewportMiddle ? minX : maxX,
+    y: position.y
+  }
 }
 
 const handleTouchStart = (e) => {
@@ -257,6 +273,9 @@ const finishDrag = () => {
   if (!isTouching.value) return
   isTouching.value = false
   if (hasDragged.value) {
+    const snapped = snapToHorizontalEdge(btnLeft.value, btnTop.value)
+    btnLeft.value = snapped.x
+    btnTop.value = snapped.y
     setSuppressState()
   }
   hasDragged.value = false
@@ -272,18 +291,17 @@ const handleTouchCancel = () => {
 
 const setInitialPosition = () => {
   refreshViewportMetrics()
-  const { x, y } = normalizePosition(
-    areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN,
-    areaHeight.value - FLOAT_BTN_SIZE - safeBottomInset.value - TAB_BAR_RESERVED - EDGE_MARGIN
-  )
-  btnLeft.value = x
-  btnTop.value = y
+  const { maxX, maxY } = getFloatingBounds()
+  btnLeft.value = maxX
+  btnTop.value = maxY
 }
 
 const updatePositionAfterViewportChange = () => {
+  const wasRightSide = btnLeft.value + FLOAT_BTN_SIZE / 2 >= Number(areaWidth.value) / 2
   refreshViewportMetrics()
-  const { x, y } = normalizePosition(btnLeft.value, btnTop.value)
-  btnLeft.value = x
+  const { minX, maxX } = getFloatingBounds()
+  const { y } = normalizePosition(btnLeft.value, btnTop.value)
+  btnLeft.value = wasRightSide ? maxX : minX
   btnTop.value = y
 }
 
@@ -294,6 +312,14 @@ const navigateToAiAsk = () => {
   }
   if (suppressClick.value) return
   uni.navigateTo({ url: '/subpkg/ai/ai-ask' })
+}
+
+const navigateToAiAppointment = () => {
+  if (publicSafeMode) {
+    showPublicSafeNotice('当前网站主要提供服务介绍与流程参考')
+    return
+  }
+  uni.navigateTo({ url: '/subpkg/ai-appointment/01-ai-appointment' })
 }
 
 const navigateToAppointmentForm = () => {
@@ -319,12 +345,12 @@ const navigateToCategory = (item) => {
   })
 }
 
-const navigateToCompanion = () => {
+const navigateToCompanion = (companion) => {
   if (publicSafeMode) {
     showPublicSafeNotice('当前页面展示陪诊经验人物信息')
     return
   }
-  uni.showToast({ title: '陪诊师详情功能暂未开放', icon: 'none' })
+  navigateToAttendantDetail(companion)
 }
 
 const toggleAvatarDiagnostics = () => {
@@ -420,14 +446,6 @@ const runCompanionAvatarDiagnostics = async (companion) => {
   }
 }
 
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    uni.showToast({ title: `搜索"${searchKeyword.value}"`, icon: 'none' })
-  } else {
-    uni.showToast({ title: '请输入搜索内容', icon: 'none' })
-  }
-}
-
 const decorateCompanion = async (companion = {}) => {
   const normalized = {
     ...companion,
@@ -502,14 +520,21 @@ if (typeof uni.onWindowResize === 'function') {
   background:
     linear-gradient(180deg, #f6f9ff 0%, #f2f7fd 100%);
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 .floating-area {
   position: fixed;
   left: 0;
+  right: 0;
   top: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
   z-index: 9999;
+  overflow: hidden;
   pointer-events: none;
 }
 .floating-btn {
@@ -527,30 +552,6 @@ if (typeof uni.onWindowResize === 'function') {
 .floating-icon {
   width: 40px;
   height: 40px;
-}
-.header {
-  background: #ffffff;
-  padding: 0 30rpx 30rpx;
-}
-.search-box {
-  background-color: #f3f8fe;
-  border-radius: 50rpx;
-  padding: 20rpx 30rpx;
-  display: flex;
-  align-items: center;
-  border: 1rpx solid rgba(76, 145, 214, 0.12);
-  box-shadow: 0 6rpx 18rpx rgba(32, 90, 148, 0.05);
-}
-.search-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 20rpx;
-  opacity: 0.68;
-}
-.search-input {
-  color: #33516f;
-  font-size: 28rpx;
-  flex: 1;
 }
 .banner-section {
   margin: 30rpx;
@@ -617,6 +618,54 @@ if (typeof uni.onWindowResize === 'function') {
   padding: 40rpx 20rpx;
   border: 1rpx solid rgba(93, 156, 224, 0.08);
   box-shadow: 0 8rpx 20rpx rgba(21, 82, 140, 0.06);
+}
+.ai-entry-section {
+  margin: 24rpx 30rpx 0;
+}
+.ai-entry-card {
+  padding: 30rpx 28rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(135deg, #ebf5ff 0%, #ffffff 100%);
+  box-shadow: 0 22rpx 44rpx rgba(56, 97, 173, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+.ai-entry-copy {
+  flex: 1;
+}
+.ai-entry-eyebrow {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #4b6fb7;
+  letter-spacing: 2rpx;
+}
+.ai-entry-title {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #20324f;
+}
+.ai-entry-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #687998;
+}
+.ai-entry-pill {
+  flex-shrink: 0;
+  padding: 18rpx 24rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
+}
+.ai-entry-pill-text {
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 .category-grid {
   display: flex;

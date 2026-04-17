@@ -54,6 +54,31 @@ bash deploy/scripts/publish-backend.sh
 bash deploy/scripts/publish-all.sh
 ```
 
+Team collaboration with GitHub:
+
+- Use `GitHub` as the source of truth for code review and merges.
+- Add collaborators directly in the GitHub repository settings.
+- Daily workflow:
+  1. Everyone pulls from GitHub.
+  2. Everyone works on their own branch and opens PRs.
+  3. Merge to `FF` only after review.
+- This repo now includes `.github/workflows/deploy-ff.yml`.
+- Behavior:
+  - Every push to `FF` auto-deploys backend + H5.
+  - GitHub Actions also supports manual publish with `all / backend / frontend`.
+- Required GitHub repository secret:
+
+```bash
+DEPLOY_SSH_KEY=<ops user private key content>
+```
+
+- Recommended repository settings:
+  - Protect `FF`
+  - Require PR review before merge
+  - Restrict direct pushes if you want release control
+
+With this setup, collaborators only need GitHub access to trigger backend/H5 deployment. They do not need to run publish scripts on your Mac.
+
 Release discipline:
 
 - Treat the local git repo as the only source of truth.
@@ -167,3 +192,22 @@ Check local/remote consistency in one command:
 ```bash
 bash deploy/scripts/check-consistency.sh
 ```
+
+WGT collaboration note:
+
+- `WGT` is still a packaged build artifact, not a git-tracked source output.
+- Current project already supports publishing a packaged WGT from any collaborator machine with:
+
+```bash
+APP_VERSION=1.0.1 \
+APP_VERSION_CODE=101 \
+WGT_FILE=/absolute/path/to/app.wgt \
+WGT_VERSION=1.0.1-hotfix.1 \
+UPDATE_NOTES='修复首页与 AI 预约交互' \
+bash deploy/scripts/publish-app-update.sh
+```
+
+- This means:
+  - `backend + h5` can be auto-published through GitHub Actions
+  - `wgt` can be published by any collaborator who has the packaged file and the same `ops` deploy key
+- If you want, the next step can be to continue turning `wgt` into a GitHub Actions release pipeline too, but that requires settling the CI-side app packaging toolchain first.

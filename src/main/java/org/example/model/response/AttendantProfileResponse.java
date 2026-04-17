@@ -85,6 +85,9 @@ public class AttendantProfileResponse {
     @ApiModelProperty("好评率(百分比整数，不含%)")
     private Integer praiseRate;
 
+    @ApiModelProperty("评价总数")
+    private Integer evaluationCount;
+
     @ApiModelProperty("钱包余额")
     private BigDecimal balance;
 

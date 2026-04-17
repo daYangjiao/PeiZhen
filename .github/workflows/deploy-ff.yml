@@ -1,0 +1,67 @@
+name: Deploy FF
+
+on:
+  push:
+    branches:
+      - FF
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "发布范围"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+
+concurrency:
+  group: deploy-ff
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SERVER_HOST: 101.245.94.141
+      SERVER_USER: ops
+      REMOTE_ROOT: /home/ops/PZ_yuanbao
+      SSH_KEY: ${{ runner.temp }}/pz_ops_ed25519
+      COMPONENT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.component || 'all' }}
+      GIT_REF: ${{ github.sha }}
+      RELEASE_ACTOR: ${{ github.actor }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            frontend/mini-program/package-lock.json
+            frontend/admin/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          npm ci --prefix frontend/mini-program
+          npm ci --prefix frontend/admin
+
+      - name: Prepare SSH Key
+        run: |
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "${SSH_KEY}"
+          chmod 600 "${SSH_KEY}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${SERVER_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Deploy Backend
+        if: env.COMPONENT == 'all' || env.COMPONENT == 'backend'
+        run: bash deploy/scripts/publish-backend.sh
+
+      - name: Deploy Frontend
+        if: env.COMPONENT == 'all' || env.COMPONENT == 'frontend'
+        run: bash deploy/scripts/publish-frontend.sh

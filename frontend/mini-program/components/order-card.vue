@@ -98,6 +98,7 @@ const onAvatarError = () => {
 const statusClass = computed(() => {
 	const statusMap = {
 		1: 'status-pending',
+		8: 'status-pending',
 		2: 'status-accepted',
 		3: 'status-progress',
 		4: 'status-confirm',
@@ -123,6 +124,7 @@ const statusClass = computed(() => {
 const statusText = computed(() => {
 	const statusMap = {
 		1: '待接单',
+		8: '专属派单待确认',
 		2: '待服务',
 		3: '服务中',
 		4: '待确认时长',

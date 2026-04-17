@@ -688,7 +688,7 @@ const setupOrderSocketListener = () => {
 }
 
 .content-wrapper {
-  padding: 14rpx 24rpx 40rpx;
+  padding: 14rpx 24rpx calc(164rpx + env(safe-area-inset-bottom));
 }
 
 .order-container {
@@ -697,8 +697,10 @@ const setupOrderSocketListener = () => {
 
 .order-list {
   flex: 1;
+  height: 0;
   min-height: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .empty-state {

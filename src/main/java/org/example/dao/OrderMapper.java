@@ -68,6 +68,11 @@ public interface OrderMapper {
     List<Order> findExpiredUnpaidOrders(@Param("deadline") java.util.Date deadline);
 
     /**
+     * 查询超过专属派单确认时限的订单
+     */
+    List<Order> findExpiredAssignedOrders(@Param("deadline") java.util.Date deadline);
+
+    /**
      * 统计陪诊师今日已完成服务次数（按 service_date）
      */
     Integer countTodayCompletedService(@Param("attendantId") Integer attendantId);

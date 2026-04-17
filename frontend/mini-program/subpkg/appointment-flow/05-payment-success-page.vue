@@ -41,15 +41,15 @@
       <view class="title">服务详情</view>
       <view class="info-item">
         <text class="label">就诊时间</text>
-        <text class="value">{{ orderData.serviceDate }} {{ formatServiceTime(orderData.serviceTime) }}</text>
+        <text class="value">{{ getDisplayServiceTime() }}</text>
       </view>
       <view class="info-item">
         <text class="label">就诊医院</text>
-        <text class="value">{{ orderData.hospital || '—' }}</text>
+        <text class="value">{{ getDisplayHospital() }}</text>
       </view>
       <view class="info-item">
         <text class="label">就诊人</text>
-        <text class="value">{{ orderData.patientName || '—' }}</text>
+        <text class="value">{{ getDisplayPatientName() }}</text>
       </view>
       <view class="info-item">
         <text class="label">就诊人电话</text>
@@ -64,8 +64,8 @@
         <text class="value multiline-value">{{ getSymptomDescription() }}</text>
       </view>
       <view class="info-item last multiline-item">
-        <text class="label">其他要求</text>
-        <text class="value multiline-value">{{ orderData.otherRequirement || '无' }}</text>
+        <text class="label">其他需求</text>
+        <text class="value multiline-value">{{ getDisplayOtherRequirement() }}</text>
       </view>
     </view>
   </view>
@@ -114,16 +114,104 @@ const formatAmount = (amount) => {
   return num.toFixed(2)
 }
 
-const formatServiceTime = (serviceTime) => formatServiceTimeSlot(serviceTime || '')
+const normalizeDisplayText = (value, fallback = '—') => {
+  if (Array.isArray(value)) {
+    const items = value
+      .map(item => (item == null ? '' : String(item).trim()))
+      .filter(item => item && item !== 'null' && item !== 'undefined' && item !== '无')
+    return items.length > 0 ? items.join('，') : fallback
+  }
+
+  if (value == null) return fallback
+  const text = String(value).trim()
+  if (!text || text === 'null' || text === 'undefined') return fallback
+  return text
+}
+
+const normalizeTimePart = (value) => {
+  if (value == null) return ''
+  let text = String(value).trim()
+  if (!text) return ''
+
+  text = text
+    .replace(/[：]/g, ':')
+    .replace(/[．。]/g, '.')
+    .replace(/\s+/g, '')
+    .replace(/到|至/g, '-')
+    .replace(/点半/g, ':30')
+    .replace(/点/g, ':00')
+
+  if (text.includes('-')) {
+    return text.split('-').map(part => normalizeTimePart(part)).join('-')
+  }
+
+  const dotMatch = text.match(/^(\d{1,2})\.(\d{1,2})$/)
+  if (dotMatch) {
+    return `${dotMatch[1].padStart(2, '0')}:${dotMatch[2].padStart(2, '0')}`
+  }
+
+  const colonMatch = text.match(/^(\d{1,2}):(\d{1,2})$/)
+  if (colonMatch) {
+    return `${colonMatch[1].padStart(2, '0')}:${colonMatch[2].padStart(2, '0')}`
+  }
+
+  return text
+}
+
+const getDisplayHospital = () => normalizeDisplayText(
+  orderData.value.hospital || orderData.value.hospitalName || orderData.value.medicalInstitution,
+  '—'
+)
+
+const getDisplayPatientName = () => normalizeDisplayText(
+  orderData.value.patientName || orderData.value.contactPerson || orderData.value.patientRealName,
+  '—'
+)
+
+const getDisplayOtherRequirement = () => normalizeDisplayText(
+  orderData.value.otherRequirement || orderData.value.customRequirement || orderData.value.requirement,
+  '无'
+)
 
 const getSymptomDescription = () => {
+  const preferred = normalizeDisplayText(orderData.value.symptomDescription, '')
+  if (preferred && preferred !== '—') return preferred
+
   const { symptoms } = orderData.value
   if (!symptoms) return '无'
   if (Array.isArray(symptoms)) {
-    const validSymptoms = symptoms.filter(item => item && item.trim() && item !== '无' && item !== 'null')
-    return validSymptoms.length > 0 ? validSymptoms.join(', ') : '无'
+    const validSymptoms = symptoms
+      .map(item => (item == null ? '' : String(item).trim()))
+      .filter(item => item && item !== '无' && item !== 'null' && item !== 'undefined')
+    return validSymptoms.length > 0 ? validSymptoms.join('，') : '无'
   }
-  return symptoms
+  const text = String(symptoms).trim()
+  if (!text || text === '无' || text === 'null' || text === 'undefined') return '无'
+  return text
+}
+
+const getDisplayServiceTime = () => {
+  const dateText = normalizeDisplayText(orderData.value.serviceDate, '')
+  const startText = normalizeTimePart(orderData.value.serviceStartTime)
+  const endText = normalizeTimePart(orderData.value.serviceEndTime)
+
+  if (dateText && startText && endText) {
+    return `${dateText} ${formatServiceTimeSlot(`${startText}-${endText}`)}`
+  }
+
+  const directTime = orderData.value.serviceTimeSlot || orderData.value.serviceTime || ''
+  if (dateText && directTime) {
+    const normalized = normalizeTimePart(directTime)
+    if (normalized.includes('-')) {
+      return `${dateText} ${formatServiceTimeSlot(normalized)}`
+    }
+    return `${dateText} ${normalized || '—'}`
+  }
+
+  if (dateText) return dateText
+  if (startText && endText) return formatServiceTimeSlot(`${startText}-${endText}`)
+
+  return '—'
 }
 
 const goToOrderDetail = () => {
@@ -153,6 +241,9 @@ const goToOrderDetail = () => {
   @include user-page;
   min-height: 100vh;
   padding: 24rpx 24rpx calc(44rpx + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   box-sizing: border-box;
 }
 

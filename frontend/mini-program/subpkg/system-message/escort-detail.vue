@@ -83,6 +83,7 @@ const getEscortOrderStatusText = (order = {}) => {
   const map = {
     0: '待支付',
     1: '待接单',
+    8: '专属派单待确认',
     2: '待核销',
     3: '服务中',
     4: '待患者确认',

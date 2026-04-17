@@ -1,13 +1,23 @@
-import { post } from '@/utils/api.js'
+import { get, post } from '@/utils/api.js'
 
-export async function askMedicalQuestion(question) {
-  try {
-    const res = await post('/ai/medical/qa', { question })
-    if (res && (res.code === 200 || res.code === 0) && res.data) return res.data
-    if (res && res.answer) return res
-    return null
-  } catch (error) {
-    console.error('AI 医疗问答请求失败:', error)
-    return null
-  }
+export async function submitMedicalQuestion(question, conversationId = '') {
+  const payload = { question }
+  if (conversationId) payload.conversationId = conversationId
+  const res = await post('/ai/medical/qa', payload)
+  return res?.data || null
+}
+
+export async function getMedicalQaRecord(recordId) {
+  const res = await get(`/ai/medical/qa/${recordId}`)
+  return res?.data || null
+}
+
+export async function getMedicalConversation(conversationId) {
+  const res = await get(`/ai/medical/qa/conversation/${encodeURIComponent(conversationId)}`)
+  return Array.isArray(res?.data) ? res.data : []
+}
+
+export async function getLatestMedicalConversation() {
+  const res = await get('/ai/medical/qa/latest')
+  return Array.isArray(res?.data) ? res.data : []
 }
