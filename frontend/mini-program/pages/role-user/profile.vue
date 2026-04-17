@@ -153,7 +153,14 @@ const handleVersionTap = async () => {
 	versionTapTimer = setTimeout(() => {
 		versionTapCount = 0
 		versionTapTimer = null
-	}, 1200)
+	}, 5000)
+	if (versionTapCount >= 3 && versionTapCount < 5) {
+		uni.showToast({
+			title: `再点${5 - versionTapCount}次查看版本`,
+			icon: 'none',
+			duration: 700
+		})
+	}
 	if (versionTapCount < 5) return
 	versionTapCount = 0
 	clearTimeout(versionTapTimer)
