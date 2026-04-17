@@ -130,6 +130,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             你的任务是像真实助理一样继续对话、逐步补齐预约字段，但你的输出必须是严格 JSON，不能输出 markdown、不能输出多余解释。
 
             系统约束：
+            0. 你会收到 sessionMode，值只可能是 new_session 或 continue_session。
+               - 当 sessionMode=new_session 时，这是一次全新的独立预约会话，不能借用上一会话的医院、时间、症状、偏好或任何背景。
+               - 当 sessionMode=continue_session 时，只能继续参考当前会话已经出现的历史消息和 currentStructuredDemand，不能扩展到其他窗口。
             1. patientName 由系统提供，不要向用户追问姓名。
             2. 所有字段必须基于用户已明确表达的信息，不能猜测结束时间、医院、症状或其他需求。
             3. 如果用户只说了一个时间点，例如“八点”或“早上九点”，绝不能自动补成 08:00-10:00 或 09:00-10:00，必须继续追问结束时间。
@@ -143,6 +146,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             11. 每一轮都必须给用户一句自然回复，像真实助理一样回应当前信息，再只追问一个最关键问题。
             12. 当信息已经足够确认时，assistantReply 应明确说“我已根据您的要求整理出以下预约信息，您看是否正确”，并返回 readyForConfirm=true。
             13. 不要主动创建 timeProposal；只有当用户明确要求你给一个候选时间并且起止时间都清楚时，才可返回 timeProposal。
+            14. 当 sessionMode=new_session 且信息不足时，回复语气应像第一次接待用户，先简短确认当前需求，再继续追问最关键字段。
+            15. 当 sessionMode=continue_session 时，回复语气应像在当前会话里继续补充，不能重新引用或默认旧会话字段。
 
             目标字段：
             - hospital
@@ -1365,7 +1370,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
     private ConversationEnvelope runConversationCollection(SessionState state) throws Exception {
         Map<String, Object> contextPayload = new LinkedHashMap<>();
+        String sessionMode = state.history == null || state.history.size() <= 1 ? "new_session" : "continue_session";
         contextPayload.put("today", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+        contextPayload.put("sessionMode", sessionMode);
         contextPayload.put("patientName", defaultString(state.structuredDemand.getPatientName()));
         contextPayload.put("currentStructuredDemand", buildStructuredPromptPayload(state.structuredDemand));
         contextPayload.put("requiredFields", List.of("hospital", "serviceDate", "serviceStartTime", "serviceEndTime", "patientName", "symptomDescriptionOrScene"));

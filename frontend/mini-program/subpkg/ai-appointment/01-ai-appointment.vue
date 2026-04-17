@@ -5,7 +5,9 @@
         <text class="topbar-back">‹</text>
       </view>
       <text class="topbar-title">AI 帮我找</text>
-      <view class="topbar-right"></view>
+      <view class="topbar-right" @click="startNewSession">
+        <text class="new-chat-text">新会话</text>
+      </view>
     </view>
 
     <view v-if="showIntroCards" class="intro-stack">
@@ -283,6 +285,7 @@ const matchingStageIndex = ref(0)
 const restoringSession = ref(false)
 const showHistoryDivider = ref(false)
 const loadedFromQuerySession = ref(false)
+const manualNewSessionStarted = ref(false)
 let pollTimer = null
 let matchingStageTimer = null
 
@@ -720,6 +723,37 @@ const clearCurrentSessionCache = (targetSessionId = '') => {
   }
 }
 
+const startNewSession = () => {
+  const previousSessionId = sessionId.value
+  stopPolling()
+  stopMatchDeadline()
+  stopMatchingStageRotation()
+  cancelTimePicker()
+  clearCurrentSessionCache(previousSessionId)
+
+  sessionId.value = ''
+  userInput.value = ''
+  sending.value = false
+  matchingInProgress.value = false
+  currentQuestionType.value = ''
+  currentAssistantIntent.value = ''
+  activeOptions.value = []
+  followUpRound.value = 0
+  activeFollowUpType.value = ''
+  navigatingToResult.value = false
+  activeAssistantKey.value = ''
+  structuredDemand.value = createEmptyStructuredDemand()
+  readyToMatch.value = false
+  introExpanded.value = true
+  currentTimeProposal.value = null
+  matchingStageIndex.value = 0
+  showHistoryDivider.value = false
+  loadedFromQuerySession.value = false
+  manualNewSessionStarted.value = true
+  resetToWelcomeMessage()
+  scrollToBottom()
+}
+
 const restoreStructuredDemand = () => {
   try {
     const cached = uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
@@ -1083,7 +1117,7 @@ const applySessionStructuredDemand = (state = {}) => {
 
 const restoreSessionConversation = async (targetSessionId = '', options = {}) => {
   const normalizedSessionId = normalizeString(targetSessionId || readCurrentSessionId())
-  if (!normalizedSessionId || restoringSession.value) return
+  if (!normalizedSessionId || restoringSession.value || manualNewSessionStarted.value) return
   restoringSession.value = true
   try {
     const state = await getAiAppointmentSession(normalizedSessionId)
@@ -1103,6 +1137,7 @@ const restoreSessionConversation = async (targetSessionId = '', options = {}) =>
       return
     }
     sessionId.value = normalizedSessionId
+    manualNewSessionStarted.value = false
     persistCurrentSessionId(normalizedSessionId)
     showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
     messages.value = buildMessagesFromHistory(state.messages, showHistoryDivider.value)
@@ -1240,6 +1275,7 @@ const sendMessage = async () => {
       })
       response = response?.data || null
       sessionId.value = response?.sessionId || ''
+      manualNewSessionStarted.value = false
       persistCurrentSessionId(sessionId.value)
       persistStructuredDemand()
     } else {
@@ -1373,6 +1409,9 @@ onLoad((options) => {
 })
 
 onShow(() => {
+  if (manualNewSessionStarted.value) {
+    return
+  }
   const restoredId = sessionId.value || readCurrentSessionId()
   if (restoredId) {
     restoreSessionConversation(restoredId, { allowMatchedRestore: loadedFromQuerySession.value })
@@ -1410,9 +1449,13 @@ onUnmounted(() => {
 
 .topbar-left,
 .topbar-right {
-  width: 72rpx;
+  width: 128rpx;
   display: flex;
   align-items: center;
+}
+
+.topbar-right {
+  justify-content: flex-end;
 }
 
 .topbar-back {
@@ -1425,6 +1468,12 @@ onUnmounted(() => {
   font-size: 34rpx;
   font-weight: 700;
   color: #22324f;
+}
+
+.new-chat-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .intro-stack {

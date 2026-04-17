@@ -48,6 +48,18 @@ public class AiMedicalServiceImpl implements AiMedicalService {
             5. 不要给出处方、药量、检查结果结论，不能替代医生面诊。
             6. 总长度尽量控制在 2 到 3 小段，保持简洁。
             7. 结尾必须保留一句简短免责声明：仅供参考，不能替代医生面诊。
+            8. 只能基于当前会话已经提供的信息回答，不要假设用户延续了上一条未明确提到的病情背景。
+            9. 如果信息不足，直接基于当前问题说明还需要补充什么，不要借用其他会话信息补全。
+            """;
+    private static final String NEW_SESSION_CONTEXT_PROMPT = """
+            session_mode=new_session
+            这是一个全新的导诊会话。你只能根据当前这一次提问中的内容回答，不能假设用户延续了之前窗口的病情、年龄、既往史或检查结果。
+            如果当前信息不足，请直接提示用户补充关键症状、持续时间或危险信号，不要自行补全背景。
+            """;
+    private static final String CONTINUE_SESSION_CONTEXT_PROMPT = """
+            session_mode=continue_session
+            这是同一导诊会话中的继续追问。你只能参考本会话里已经出现的历史问答，不能借用其他窗口或历史会话的信息。
+            如果用户本轮没有明确补充新的病情信息，也不要自行新增设定。
             """;
 
     private final AiMedicalQaMapper aiMedicalQaMapper;
@@ -160,6 +172,10 @@ public class AiMedicalServiceImpl implements AiMedicalService {
                 .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
+
+        messages.add(message("system", recentHistory.isEmpty()
+                ? NEW_SESSION_CONTEXT_PROMPT
+                : CONTINUE_SESSION_CONTEXT_PROMPT));
 
         int historyStart = Math.max(0, recentHistory.size() - MAX_HISTORY_ROUNDS);
         for (AiMedicalQa item : recentHistory.subList(historyStart, recentHistory.size())) {

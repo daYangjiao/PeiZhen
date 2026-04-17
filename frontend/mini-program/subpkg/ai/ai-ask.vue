@@ -110,10 +110,11 @@
 
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
-import { getLatestMedicalConversation, getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
+import { getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
 
 const AIAvatar = brandAiAvatar
 const userStore = useUserStore()
@@ -136,6 +137,8 @@ const sending = ref(false)
 const scrollIntoView = ref('')
 const composerPaddingBottom = ref(8)
 const currentConversationId = ref('')
+const manualNewConversationStarted = ref(false)
+const restoringConversation = ref(false)
 const pollTimers = new Map()
 
 const suggestions = [
@@ -198,6 +201,7 @@ const startNewConversation = () => {
   userInput.value = ''
   selectedTag.value = ''
   messages.value = [createWelcomeMessage()]
+  manualNewConversationStarted.value = true
   uni.removeStorageSync(STORAGE_KEY)
   scrollToBottom()
 }
@@ -293,35 +297,46 @@ const pollRecord = async (recordId) => {
 }
 
 const restoreConversation = async () => {
+  if (manualNewConversationStarted.value || restoringConversation.value) {
+    messages.value = [createWelcomeMessage()]
+    scrollToBottom()
+    return
+  }
+  restoringConversation.value = true
   const savedConversationId = uni.getStorageSync(STORAGE_KEY) || ''
   try {
-    let records = []
-    if (savedConversationId) {
-      currentConversationId.value = savedConversationId
-      records = await getMedicalConversation(savedConversationId)
+    if (!savedConversationId) {
+      uni.removeStorageSync(STORAGE_KEY)
+      currentConversationId.value = ''
+      messages.value = [createWelcomeMessage()]
+      scrollToBottom()
+      return
     }
+
+    currentConversationId.value = savedConversationId
+    const records = await getMedicalConversation(savedConversationId)
 
     if (!records.length) {
       uni.removeStorageSync(STORAGE_KEY)
       currentConversationId.value = ''
-      records = await getLatestMedicalConversation()
+      messages.value = [createWelcomeMessage()]
+      scrollToBottom()
+      return
     }
 
-    if (!records.length) {
-      messages.value = [createWelcomeMessage()]
-    } else {
-      appendConversationMessages(records)
-      records.forEach((record) => {
-        if (record.processingPhase === 'thinking' || record.processingPhase === 'answering') {
-          pollRecord(record.recordId)
-        }
-      })
-    }
+    appendConversationMessages(records)
+    records.forEach((record) => {
+      if (record.processingPhase === 'thinking' || record.processingPhase === 'answering') {
+        pollRecord(record.recordId)
+      }
+    })
     scrollToBottom()
   } catch (error) {
     console.error('恢复 AI 会话失败:', error)
     messages.value = [createWelcomeMessage()]
     scrollToBottom()
+  } finally {
+    restoringConversation.value = false
   }
 }
 
@@ -350,6 +365,7 @@ const sendMessage = async () => {
     if (currentConversationId.value) {
       uni.setStorageSync(STORAGE_KEY, currentConversationId.value)
     }
+    manualNewConversationStarted.value = false
 
     upsertAiMessage(record)
     scrollToBottom()
@@ -372,6 +388,12 @@ const sendMessage = async () => {
 onMounted(async () => {
   refreshSafeBottom()
   await restoreConversation()
+})
+
+onShow(() => {
+  if (!manualNewConversationStarted.value) {
+    restoreConversation()
+  }
 })
 
 onUnmounted(() => {
