@@ -218,15 +218,31 @@ const refreshViewportMetrics = () => {
   safeBottomInset.value = sysInfo.safeAreaInsets?.bottom || 0
 }
 
-const normalizePosition = (x, y) => {
+const getFloatingBounds = () => {
   const minX = EDGE_MARGIN
-  const maxX = Math.max(minX, areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN)
+  const maxX = Math.max(minX, Number(areaWidth.value) - FLOAT_BTN_SIZE - EDGE_MARGIN)
   const minY = safeTopInset.value + EDGE_MARGIN
   const bottomReserved = safeBottomInset.value + TAB_BAR_RESERVED + EDGE_MARGIN
-  const maxY = Math.max(minY, areaHeight.value - FLOAT_BTN_SIZE - bottomReserved)
+  const maxY = Math.max(minY, Number(areaHeight.value) - FLOAT_BTN_SIZE - bottomReserved)
+  return { minX, maxX, minY, maxY }
+}
+
+const normalizePosition = (x, y) => {
+  const { minX, maxX, minY, maxY } = getFloatingBounds()
   const nextX = Math.max(minX, Math.min(maxX, Number(x) || 0))
   const nextY = Math.max(minY, Math.min(maxY, Number(y) || 0))
   return { x: nextX, y: nextY }
+}
+
+const snapToHorizontalEdge = (x, y) => {
+  const position = normalizePosition(x, y)
+  const { minX, maxX } = getFloatingBounds()
+  const viewportMiddle = Number(areaWidth.value) / 2
+  const buttonMiddle = position.x + FLOAT_BTN_SIZE / 2
+  return {
+    x: buttonMiddle < viewportMiddle ? minX : maxX,
+    y: position.y
+  }
 }
 
 const handleTouchStart = (e) => {
@@ -257,6 +273,9 @@ const finishDrag = () => {
   if (!isTouching.value) return
   isTouching.value = false
   if (hasDragged.value) {
+    const snapped = snapToHorizontalEdge(btnLeft.value, btnTop.value)
+    btnLeft.value = snapped.x
+    btnTop.value = snapped.y
     setSuppressState()
   }
   hasDragged.value = false
@@ -272,18 +291,17 @@ const handleTouchCancel = () => {
 
 const setInitialPosition = () => {
   refreshViewportMetrics()
-  const { x, y } = normalizePosition(
-    areaWidth.value - FLOAT_BTN_SIZE - EDGE_MARGIN,
-    areaHeight.value - FLOAT_BTN_SIZE - safeBottomInset.value - TAB_BAR_RESERVED - EDGE_MARGIN
-  )
-  btnLeft.value = x
-  btnTop.value = y
+  const { maxX, maxY } = getFloatingBounds()
+  btnLeft.value = maxX
+  btnTop.value = maxY
 }
 
 const updatePositionAfterViewportChange = () => {
+  const wasRightSide = btnLeft.value + FLOAT_BTN_SIZE / 2 >= Number(areaWidth.value) / 2
   refreshViewportMetrics()
-  const { x, y } = normalizePosition(btnLeft.value, btnTop.value)
-  btnLeft.value = x
+  const { minX, maxX } = getFloatingBounds()
+  const { y } = normalizePosition(btnLeft.value, btnTop.value)
+  btnLeft.value = wasRightSide ? maxX : minX
   btnTop.value = y
 }
 
@@ -512,8 +530,11 @@ if (typeof uni.onWindowResize === 'function') {
   left: 0;
   right: 0;
   top: 0;
+  bottom: 0;
+  width: 100vw;
   height: 100vh;
   z-index: 9999;
+  overflow: hidden;
   pointer-events: none;
 }
 .floating-btn {
