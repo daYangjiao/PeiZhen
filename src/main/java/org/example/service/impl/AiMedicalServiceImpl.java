@@ -90,7 +90,16 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         if (!StringUtils.hasText(conversationId)) {
             return List.of();
         }
-        return aiMedicalQaMapper.selectByUserIdAndConversationId(userId, conversationId.trim())
+        String trimmedConversationId = conversationId.trim();
+        List<AiMedicalQa> records = aiMedicalQaMapper.selectByUserIdAndConversationId(userId, trimmedConversationId);
+        if (records.isEmpty() && aiMedicalQaMapper.countLegacyConversation(trimmedConversationId) > 0) {
+            int claimedRows = aiMedicalQaMapper.claimLegacyConversation(userId, trimmedConversationId);
+            logger.info("AI 导诊旧会话已归属当前用户, userId={}, conversationId={}, rows={}",
+                    userId, trimmedConversationId, claimedRows);
+            records = aiMedicalQaMapper.selectByUserIdAndConversationId(userId, trimmedConversationId);
+        }
+
+        return records
                 .stream()
                 .sorted(Comparator.comparing(AiMedicalQa::getCreateTime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(AiMedicalQa::getId, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -202,6 +211,12 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         String trimmedConversationId = requestedConversationId.trim();
         int ownedCount = aiMedicalQaMapper.countByUserIdAndConversationId(userId, trimmedConversationId);
         if (ownedCount <= 0) {
+            if (aiMedicalQaMapper.countLegacyConversation(trimmedConversationId) > 0) {
+                int claimedRows = aiMedicalQaMapper.claimLegacyConversation(userId, trimmedConversationId);
+                logger.info("AI 导诊提交时归属旧会话, userId={}, conversationId={}, rows={}",
+                        userId, trimmedConversationId, claimedRows);
+                return trimmedConversationId;
+            }
             logger.warn("AI 导诊会话归属校验失败，已创建新会话, userId={}, conversationId={}", userId, trimmedConversationId);
             return UUID.randomUUID().toString();
         }

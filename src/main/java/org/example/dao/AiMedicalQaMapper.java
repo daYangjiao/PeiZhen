@@ -46,4 +46,10 @@ public interface AiMedicalQaMapper {
 
     @Select("SELECT COUNT(1) FROM ai_medical_qa WHERE user_id = #{userId} AND conversation_id = #{conversationId} AND deleted = 0")
     int countByUserIdAndConversationId(@Param("userId") Integer userId, @Param("conversationId") String conversationId);
+
+    @Select("SELECT COUNT(1) FROM ai_medical_qa WHERE user_id IS NULL AND conversation_id = #{conversationId} AND deleted = 0")
+    int countLegacyConversation(@Param("conversationId") String conversationId);
+
+    @Update("UPDATE ai_medical_qa SET user_id = #{userId} WHERE user_id IS NULL AND conversation_id = #{conversationId} AND deleted = 0")
+    int claimLegacyConversation(@Param("userId") Integer userId, @Param("conversationId") String conversationId);
 }
