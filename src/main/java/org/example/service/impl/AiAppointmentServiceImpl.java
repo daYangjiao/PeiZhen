@@ -19,6 +19,7 @@ import org.example.model.User;
 import org.example.model.request.AiAppointmentReplyRequest;
 import org.example.model.request.AiAppointmentSessionRequest;
 import org.example.model.request.AiAttendantMatchRequest;
+import org.example.model.response.AiAppointmentChatMessageVO;
 import org.example.model.response.AiAppointmentSessionResponse;
 import org.example.model.response.AiAttendantMatchResponse;
 import org.example.service.AiAppointmentService;
@@ -1706,10 +1707,40 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         response.setStructuredDemand(state.structuredDemand);
         response.setFieldPatch(state.fieldPatch);
         response.setConfirmSummary(state.confirmSummary == null ? Map.of() : new LinkedHashMap<>(state.confirmSummary));
+        response.setMessages(loadChatMessages(state.sessionId));
         response.setMatchedList(state.matchedList == null ? List.of() : new ArrayList<>(state.matchedList));
         response.setAppointmentNo(state.appointmentNo);
         response.setDegraded(Boolean.TRUE.equals(state.degraded));
         return response;
+    }
+
+    private List<AiAppointmentChatMessageVO> loadChatMessages(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            return List.of();
+        }
+        try {
+            List<AiAppointmentMessageRecord> records = aiAppointmentMessageMapper.selectBySessionId(sessionId);
+            if (records == null || records.isEmpty()) {
+                return List.of();
+            }
+            return records.stream()
+                    .filter(item -> StringUtils.hasText(item.getRole()) && StringUtils.hasText(item.getContent()))
+                    .map(this::toChatMessageVo)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("加载 AI预约聊天记录失败 sessionId={}, cause={}", sessionId, summarizeException(e), e);
+            return List.of();
+        }
+    }
+
+    private AiAppointmentChatMessageVO toChatMessageVo(AiAppointmentMessageRecord record) {
+        AiAppointmentChatMessageVO message = new AiAppointmentChatMessageVO();
+        message.setRole(defaultString(record.getRole()));
+        message.setContent(defaultString(record.getContent()));
+        message.setProcessingPhase(PHASE_COMPLETED);
+        message.setThinkingProcess("");
+        message.setCreatedAt(record.getCreateTime());
+        return message;
     }
 
     private void saveSession(SessionState state) {

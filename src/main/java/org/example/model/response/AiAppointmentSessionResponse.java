@@ -76,6 +76,9 @@ public class AiAppointmentSessionResponse {
     @ApiModelProperty(value = "确认卡摘要")
     private Map<String, Object> confirmSummary = new LinkedHashMap<>();
 
+    @ApiModelProperty(value = "历史聊天消息")
+    private List<AiAppointmentChatMessageVO> messages = new ArrayList<>();
+
     @ApiModelProperty(value = "匹配到的陪诊师")
     private List<MatchedAttendantVO> matchedList = new ArrayList<>();
 

@@ -21,7 +21,7 @@
 
       <view class="tip-card">
         <text class="tip-title">示例</text>
-        <text class="tip-text">下周三上午，带80岁的爷爷去华西医院心内科复诊，需要一位有力气推轮椅、懂点急救知识的男陪诊师。</text>
+        <text class="tip-text">明天 09:00-11:00，我去华西医院复诊，需要陪诊帮我取号和陪同检查。</text>
       </view>
     </view>
 
@@ -41,9 +41,15 @@
           v-for="(msg, index) in messages"
           :key="msg.key"
           class="message-row"
-          :class="msg.type === 'user' ? 'row-user' : 'row-ai'"
+          :class="msg.type === 'system' ? 'row-system' : (msg.type === 'user' ? 'row-user' : 'row-ai')"
           :id="`msg-${index}`"
         >
+          <template v-if="msg.type === 'system'">
+            <view class="history-divider">
+              <text class="history-divider-text">{{ msg.text }}</text>
+            </view>
+          </template>
+          <template v-else>
           <image
             v-if="msg.type === 'ai'"
             class="avatar"
@@ -83,6 +89,7 @@
             :src="getUserAvatar()"
             mode="aspectFill"
           />
+          </template>
         </view>
 
         <view v-if="showInlineConfirmCard" id="confirm-card" class="inline-card confirm-card">
@@ -226,6 +233,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
@@ -240,23 +248,16 @@ const userStore = useUserStore()
 const POLL_INTERVAL = 1500
 const MATCH_WAIT_LIMIT = 30000
 const AI_APPOINTMENT_DRAFT_KEY = 'ai_appointment_draft_pending'
+const AI_APPOINTMENT_SESSION_KEY = 'ai_appointment_current_session_id'
 
 const suggestions = [
-  '明天下午去华西医院，需要推轮椅',
-  '下周一上午去省医院复诊，需要熟悉老人陪护',
-  '周五晚上急诊陪同，希望反应快',
-  '后天去协和医院检查，希望有护士经验'
+  '明天 09:00-11:00，我去华西医院复诊，需要陪诊帮我取号',
+  '下周一 14:00-16:00，我去省医院检查，希望熟悉医院流程',
+  '周五 19:00-21:00，我去急诊复查，希望反应快一点',
+  '后天 08:30-10:30，我去协和医院取药，希望有护士经验'
 ]
 
-const messages = ref([
-  {
-    key: 'welcome-ai-appointment',
-    type: 'ai',
-    text: '您好，我可以帮您先梳理预约需求，再推荐更合适的陪诊师。您直接描述时间、医院、患者情况和偏好就可以。',
-    processingPhase: 'completed',
-    thinkingProcess: ''
-  }
-])
+const messages = ref([createWelcomeMessage()])
 const userInput = ref('')
 const sending = ref(false)
 const matchingInProgress = ref(false)
@@ -279,8 +280,43 @@ const pickerStartTime = ref('')
 const pickerEndTime = ref('')
 const currentTimeProposal = ref(null)
 const matchingStageIndex = ref(0)
+const restoringSession = ref(false)
+const showHistoryDivider = ref(false)
 let pollTimer = null
 let matchingStageTimer = null
+
+function createWelcomeMessage() {
+  return {
+    key: 'welcome-ai-appointment',
+    type: 'ai',
+    text: '您好，我可以帮您先梳理预约需求，再推荐更合适的陪诊师。您直接描述时间段、医院和就诊情况就可以。',
+    processingPhase: 'completed',
+    thinkingProcess: ''
+  }
+}
+
+function createSystemMessage(text = '') {
+  return {
+    key: `sys-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    type: 'system',
+    text
+  }
+}
+
+function createChatMessage(role = 'assistant', content = '', processingPhase = 'completed', thinkingProcess = '') {
+  return {
+    key: `${role}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    type: role === 'user' ? 'user' : 'ai',
+    text: content,
+    processingPhase,
+    thinkingProcess,
+    waitingMatch: false
+  }
+}
+
+function resetToWelcomeMessage() {
+  messages.value = [createWelcomeMessage()]
+}
 
 const getUserAvatar = () => {
   const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
@@ -338,6 +374,47 @@ function createEmptyStructuredDemand() {
 }
 
 const normalizeString = (value = '') => String(value || '').trim()
+
+const buildMessagesFromHistory = (historyMessages = [], includeHistoryDivider = false) => {
+  const restored = Array.isArray(historyMessages)
+    ? historyMessages
+      .filter((item) => normalizeString(item?.role) && normalizeString(item?.content))
+      .map((item) => createChatMessage(
+        item.role === 'user' ? 'user' : 'assistant',
+        normalizeString(item.content),
+        item.role === 'assistant' ? (item.processingPhase || 'completed') : 'completed',
+        item.role === 'assistant' ? (item.thinkingProcess || '') : ''
+      ))
+    : []
+
+  if (!restored.length) {
+    return [createWelcomeMessage()]
+  }
+  if (includeHistoryDivider) {
+    restored.push(createSystemMessage('以上为之前的聊天记录'))
+  }
+  return restored
+}
+
+const getLastConversationMessage = () => {
+  return [...messages.value].reverse().find((item) => item.type === 'ai' || item.type === 'user') || null
+}
+
+const shouldUpsertAssistantMessage = (state = {}) => {
+  if (!state) return false
+  if (state.processingPhase && state.processingPhase !== 'completed') {
+    return true
+  }
+  const assistantReply = normalizeString(state.assistantReply || state.message || '')
+  if (!assistantReply) {
+    return false
+  }
+  const lastMessage = getLastConversationMessage()
+  if (!lastMessage || lastMessage.type !== 'ai') {
+    return true
+  }
+  return normalizeString(lastMessage.text) !== assistantReply
+}
 
 const uniqueList = (items = []) => {
   return Array.from(new Set((Array.isArray(items) ? items : [items]).map((item) => normalizeString(item)).filter(Boolean)))
@@ -607,6 +684,25 @@ const persistStructuredDemand = () => {
     }
   } catch (error) {
     console.warn('保存 AI 预约草稿失败:', error)
+  }
+}
+
+const persistCurrentSessionId = (id = '') => {
+  try {
+    const normalizedId = normalizeString(id)
+    if (normalizedId) {
+      uni.setStorageSync(AI_APPOINTMENT_SESSION_KEY, normalizedId)
+    }
+  } catch (error) {
+    console.warn('保存 AI 预约会话失败:', error)
+  }
+}
+
+const readCurrentSessionId = () => {
+  try {
+    return normalizeString(uni.getStorageSync(AI_APPOINTMENT_SESSION_KEY))
+  } catch (error) {
+    return ''
   }
 }
 
@@ -971,19 +1067,47 @@ const applySessionStructuredDemand = (state = {}) => {
   persistStructuredDemand()
 }
 
-const applySessionState = async (state) => {
+const restoreSessionConversation = async (targetSessionId = '') => {
+  const normalizedSessionId = normalizeString(targetSessionId || readCurrentSessionId())
+  if (!normalizedSessionId || restoringSession.value) return
+  restoringSession.value = true
+  try {
+    const state = await getAiAppointmentSession(normalizedSessionId)
+    if (!state) return
+    sessionId.value = normalizedSessionId
+    persistCurrentSessionId(normalizedSessionId)
+    showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
+    messages.value = buildMessagesFromHistory(state.messages, showHistoryDivider.value)
+    introExpanded.value = false
+    await applySessionState(state, { keepHistoryDivider: showHistoryDivider.value })
+  } catch (error) {
+    console.warn('恢复 AI 预约历史聊天失败:', error)
+  } finally {
+    restoringSession.value = false
+  }
+}
+
+const applySessionState = async (state, options = {}) => {
   if (!state) return
   applySessionStructuredDemand(state)
+  if (Array.isArray(state.messages) && state.messages.length) {
+    const shouldKeepHistoryDivider = options.keepHistoryDivider ?? showHistoryDivider.value
+    messages.value = buildMessagesFromHistory(state.messages, shouldKeepHistoryDivider)
+  } else if (!messages.value.some((item) => item.type === 'user' || item.type === 'ai')) {
+    resetToWelcomeMessage()
+  }
   if (hasStartedConversation.value) {
     introExpanded.value = false
   }
   const assistantReply = state.assistantReply || state.message || ''
-  upsertAssistantMessage({
-    message: assistantReply,
-    processingPhase: state.processingPhase,
-    thinkingProcess: matchingInProgress.value ? matchingStageText.value : state.thinkingProcess,
-    waitingMatch: matchingInProgress.value
-  })
+  if (shouldUpsertAssistantMessage(state)) {
+    upsertAssistantMessage({
+      message: assistantReply,
+      processingPhase: state.processingPhase,
+      thinkingProcess: matchingInProgress.value ? matchingStageText.value : state.thinkingProcess,
+      waitingMatch: matchingInProgress.value
+    })
+  }
   currentAssistantIntent.value = state.assistantIntent || ''
   currentQuestionType.value = state.questionKey || state.questionType || ''
   activeFollowUpType.value = state.followUpType || ''
@@ -1081,12 +1205,14 @@ const sendMessage = async () => {
   try {
     let response
     if (!sessionId.value) {
+      showHistoryDivider.value = false
       response = await apiPost('/ai/guide/ai-appointment/session', {
         demandText: content,
         structuredDemand: structuredDemand.value
       })
       response = response?.data || null
       sessionId.value = response?.sessionId || ''
+      persistCurrentSessionId(sessionId.value)
       persistStructuredDemand()
     } else {
       response = await apiPost(`/ai/guide/ai-appointment/session/${encodeURIComponent(sessionId.value)}/reply`, {
@@ -1210,6 +1336,20 @@ onMounted(() => {
   refreshSafeBottom()
   restoreStructuredDemand()
   scrollToBottom()
+})
+
+onLoad((options) => {
+  const restoredId = normalizeString(options?.sessionId || readCurrentSessionId())
+  if (restoredId) {
+    sessionId.value = restoredId
+  }
+})
+
+onShow(() => {
+  const restoredId = sessionId.value || readCurrentSessionId()
+  if (restoredId) {
+    restoreSessionConversation(restoredId)
+  }
 })
 
 onUnmounted(() => {
@@ -1549,6 +1689,10 @@ onUnmounted(() => {
   justify-content: flex-start;
 }
 
+.row-system {
+  justify-content: center;
+}
+
 .avatar {
   width: 64rpx;
   height: 64rpx;
@@ -1637,6 +1781,20 @@ onUnmounted(() => {
 
 .bubble-content.loading {
   min-height: 44rpx;
+}
+
+.history-divider {
+  max-width: 100%;
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(112, 136, 180, 0.12);
+  box-sizing: border-box;
+}
+
+.history-divider-text {
+  font-size: 24rpx;
+  color: #7d8daa;
+  line-height: 1.5;
 }
 
 .matching-indicator {
