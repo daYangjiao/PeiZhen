@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { getUserById } from '@/api/user.js'
