@@ -282,6 +282,7 @@ const currentTimeProposal = ref(null)
 const matchingStageIndex = ref(0)
 const restoringSession = ref(false)
 const showHistoryDivider = ref(false)
+const loadedFromQuerySession = ref(false)
 let pollTimer = null
 let matchingStageTimer = null
 
@@ -706,6 +707,19 @@ const readCurrentSessionId = () => {
   }
 }
 
+const clearCurrentSessionCache = (targetSessionId = '') => {
+  const normalizedSessionId = normalizeString(targetSessionId || sessionId.value)
+  try {
+    uni.removeStorageSync(AI_APPOINTMENT_SESSION_KEY)
+    uni.removeStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    if (normalizedSessionId) {
+      uni.removeStorageSync(getStructuredDemandStorageKey(normalizedSessionId))
+    }
+  } catch (error) {
+    console.warn('清理 AI 预约会话缓存失败:', error)
+  }
+}
+
 const restoreStructuredDemand = () => {
   try {
     const cached = uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
@@ -1067,13 +1081,27 @@ const applySessionStructuredDemand = (state = {}) => {
   persistStructuredDemand()
 }
 
-const restoreSessionConversation = async (targetSessionId = '') => {
+const restoreSessionConversation = async (targetSessionId = '', options = {}) => {
   const normalizedSessionId = normalizeString(targetSessionId || readCurrentSessionId())
   if (!normalizedSessionId || restoringSession.value) return
   restoringSession.value = true
   try {
     const state = await getAiAppointmentSession(normalizedSessionId)
     if (!state) return
+    const hasMatchedResult = (Array.isArray(state.matchedList) && state.matchedList.length > 0)
+      || normalizeString(state.status) === 'MATCHED'
+      || !!normalizeString(state.appointmentNo)
+    if (!options.allowMatchedRestore && hasMatchedResult) {
+      clearCurrentSessionCache(normalizedSessionId)
+      sessionId.value = ''
+      showHistoryDivider.value = false
+      matchingInProgress.value = false
+      readyToMatch.value = false
+      activeAssistantKey.value = ''
+      structuredDemand.value = createEmptyStructuredDemand()
+      resetToWelcomeMessage()
+      return
+    }
     sessionId.value = normalizedSessionId
     persistCurrentSessionId(normalizedSessionId)
     showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
@@ -1339,16 +1367,15 @@ onMounted(() => {
 })
 
 onLoad((options) => {
-  const restoredId = normalizeString(options?.sessionId || readCurrentSessionId())
-  if (restoredId) {
-    sessionId.value = restoredId
-  }
+  const routeSessionId = normalizeString(options?.sessionId)
+  loadedFromQuerySession.value = !!routeSessionId
+  sessionId.value = routeSessionId || readCurrentSessionId()
 })
 
 onShow(() => {
   const restoredId = sessionId.value || readCurrentSessionId()
   if (restoredId) {
-    restoreSessionConversation(restoredId)
+    restoreSessionConversation(restoredId, { allowMatchedRestore: loadedFromQuerySession.value })
   }
 })
 

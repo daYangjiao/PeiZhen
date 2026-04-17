@@ -107,6 +107,7 @@ const phaseLabel = ref('AI 正在为您寻优匹配中...')
 const phaseText = ref('请稍候，系统正在结合需求与可用陪诊师做筛选')
 const structuredDemand = ref(createEmptyStructuredDemand())
 const AI_APPOINTMENT_DRAFT_KEY = 'ai_appointment_draft_pending'
+const AI_APPOINTMENT_SESSION_KEY = 'ai_appointment_current_session_id'
 let hydrateTimer = null
 const MAX_HYDRATE_RETRY = 3
 
@@ -184,6 +185,18 @@ const sanitizeStructuredDemand = (payload = {}) => ({
 
 const getStructuredDemandStorageKey = (id = '') => {
   return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
+}
+
+const clearAiAppointmentCache = () => {
+  try {
+    uni.removeStorageSync(AI_APPOINTMENT_SESSION_KEY)
+    uni.removeStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    if (sessionId.value) {
+      uni.removeStorageSync(getStructuredDemandStorageKey(sessionId.value))
+    }
+  } catch (error) {
+    console.warn('清理 AI 预约缓存失败:', error)
+  }
 }
 
 const formatTimeRange = (startTime = '', endTime = '') => {
@@ -347,6 +360,7 @@ const createOrder = async (designatedAttendantId) => {
     if (!orderNo) {
       throw new Error('订单创建失败')
     }
+    clearAiAppointmentCache()
     uni.navigateTo({
       url: `/subpkg/appointment-flow/04-order-confirm-page?orderNo=${encodeURIComponent(orderNo)}`
     })
@@ -358,6 +372,7 @@ const createOrder = async (designatedAttendantId) => {
 }
 
 const goToNormalFlow = () => {
+  clearAiAppointmentCache()
   uni.switchTab({ url: '/pages/ai-triage/01-appointment-selection' })
 }
 
