@@ -13,6 +13,7 @@ import org.example.model.request.AiAttendantMatchRequest;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.request.SimplePaymentRequest;
 import org.example.model.response.AiAppointmentSessionResponse;
+import org.example.model.response.AiAppointmentLatestOverviewResponse;
 import org.example.model.response.AiAttendantMatchResponse;
 import org.example.model.response.AppointmentResponse;
 import org.example.model.response.AttendantMatchResponse;
@@ -120,6 +121,14 @@ public class AiGuideController {
             @ApiIgnore HttpServletRequest httpRequest) {
         Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
         return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.getLatestRestorableSession(currentUserId)));
+    }
+
+    @GetMapping("/ai-appointment/session/latest-overview")
+    @ApiOperation(value = "获取最近一次 AI导诊会话概览", notes = "按当前登录用户返回最近一条会话，并标记是否已完成、是否一小时内可继续。")
+    public ResponseEntity<ResponseResult<AiAppointmentLatestOverviewResponse>> getLatestAiAppointmentSessionOverview(
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.getLatestSessionOverview(currentUserId)));
     }
 
     @PostMapping("/ai-appointment/session/{sessionId}/reply")

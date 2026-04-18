@@ -20,6 +20,7 @@ import org.example.model.request.AiAppointmentReplyRequest;
 import org.example.model.request.AiAppointmentSessionRequest;
 import org.example.model.request.AiAttendantMatchRequest;
 import org.example.model.response.AiAppointmentChatMessageVO;
+import org.example.model.response.AiAppointmentLatestOverviewResponse;
 import org.example.model.response.AiAppointmentSessionResponse;
 import org.example.model.response.AiAttendantMatchResponse;
 import org.example.service.AiAppointmentService;
@@ -31,7 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAdjusters;
@@ -83,6 +87,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private static final int CONVERSATION_TIMEOUT_SECONDS = 18;
     private static final int MATCH_TIMEOUT_SECONDS = 30;
     private static final int MAX_CONVERSATION_HISTORY = 12;
+    private static final Duration RESTORABLE_SESSION_WINDOW = Duration.ofHours(1);
     private static final Set<Integer> OCCUPIED_ORDER_STATUS = Set.of(2, 3, 4, 5, 8);
 
     private static final Pattern HOSPITAL_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5A-Za-z0-9（）()·]{2,30}?医院(?:[\\u4e00-\\u9fa5A-Za-z0-9（）()·]{0,10}院区)?)");
@@ -130,9 +135,12 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             你的任务是像真实助理一样继续对话、逐步补齐预约字段，但你的输出必须是严格 JSON，不能输出 markdown、不能输出多余解释。
 
             系统约束：
+            - 严格会话隔离：你只能使用本次 messages 中的 system payload、currentStructuredDemand、currentSessionMessages 与当前 userId/sessionId；不得使用其他用户、其他 session、历史训练记忆、上一请求残留或任何未出现在本次 messages 中的内容。
+            - 如果 payload 中的 userId/sessionId/requestId 与当前消息上下文不一致，必须以 payload 为准，并忽略其他上下文。
             0. 你会收到 sessionMode，值只可能是 new_session 或 continue_session。
                - 当 sessionMode=new_session 时，这是一次全新的独立预约会话，不能借用上一会话的医院、时间、症状、偏好或任何背景。
-               - 当 sessionMode=continue_session 时，只能继续参考当前会话已经出现的历史消息和 currentStructuredDemand，不能扩展到其他窗口。
+               - 当 sessionMode=new_session 时，即使前端正在展示历史聊天，也必须完全忽略展示用历史，只按当前用户本轮输入处理。
+               - 当 sessionMode=continue_session 时，只能延续 currentSessionMessages 中当前 session 的消息和 currentStructuredDemand，不能扩展到其他窗口。
             1. patientName 由系统提供，不要向用户追问姓名。
             1.1 patientSex 由系统提供。称谓必须按 patientTitleRule：男可称先生，女可称女士；未知或为空时不要猜测性别，不要使用先生/女士称谓。
             2. 所有字段必须基于用户已明确表达的信息，不能猜测结束时间、医院、症状或其他需求。
@@ -149,6 +157,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             13. 不要主动创建 timeProposal；只有当用户明确要求你给一个候选时间并且起止时间都清楚时，才可返回 timeProposal。
             14. 当 sessionMode=new_session 且信息不足时，回复语气应像第一次接待用户，先简短确认当前需求，再继续追问最关键字段。
             15. 当 sessionMode=continue_session 时，回复语气应像在当前会话里继续补充，不能重新引用或默认旧会话字段。
+            16. 回复风格必须遵循 replyTemplate：先一句简短确认，再只追问一个最关键缺失字段；信息足够时固定使用“我已根据您的要求整理出以下预约信息，您看是否正确”。
 
             目标字段：
             - hospital
@@ -255,6 +264,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         state.canMatch = Boolean.FALSE;
         state.readyForConfirm = Boolean.FALSE;
         state.followUpRound = 0;
+        state.createTime = new Date();
+        state.updateTime = state.createTime;
         state.structuredDemand = new AiAppointmentStructuredDemand();
         state.structuredDemand.setRawDemandText(state.rawDemandText);
         mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
@@ -302,6 +313,33 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             return null;
         }
         return getSession(userId, record.getSessionId());
+    }
+
+    @Override
+    public AiAppointmentLatestOverviewResponse getLatestSessionOverview(Integer userId) {
+        requireUserId(userId);
+        AiAppointmentSessionRecord record = aiAppointmentSessionMapper.selectLatestByUserId(userId);
+        if (record == null || !StringUtils.hasText(record.getSessionId())) {
+            return null;
+        }
+
+        AiAppointmentSessionResponse session = getSession(userId, record.getSessionId());
+        if (session == null) {
+            return null;
+        }
+
+        boolean completed = isCompletedSession(record, session);
+        LocalDateTime updatedAt = toLocalDateTime(record.getUpdateTime());
+        LocalDateTime expiresAt = updatedAt == null ? null : updatedAt.plus(RESTORABLE_SESSION_WINDOW);
+        boolean continuable = !completed && expiresAt != null && expiresAt.isAfter(LocalDateTime.now());
+
+        AiAppointmentLatestOverviewResponse overview = new AiAppointmentLatestOverviewResponse();
+        overview.setSession(session);
+        overview.setCompleted(completed);
+        overview.setContinuable(continuable);
+        overview.setHistoryOnly(completed || !continuable);
+        overview.setExpiresAt(expiresAt);
+        return overview;
     }
 
     @Override
@@ -1469,12 +1507,31 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private ConversationEnvelope runConversationCollection(SessionState state) throws Exception {
         Map<String, Object> contextPayload = new LinkedHashMap<>();
         String sessionMode = state.history == null || state.history.size() <= 1 ? "new_session" : "continue_session";
+        List<Map<String, String>> history = state.history == null ? List.of() : state.history;
+        int startIndex = Math.max(0, history.size() - MAX_CONVERSATION_HISTORY);
+        List<Map<String, String>> currentSessionMessages = history.subList(startIndex, history.size());
         contextPayload.put("today", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+        contextPayload.put("conversationScope", "user_session");
+        contextPayload.put("userId", state.userId);
+        contextPayload.put("sessionId", state.sessionId);
+        contextPayload.put("requestId", UUID.randomUUID().toString());
         contextPayload.put("sessionMode", sessionMode);
+        contextPayload.put("contextPolicy", Map.of(
+                "allowedContext", "仅当前 userId + sessionId 的 system payload、currentStructuredDemand 与 currentSessionMessages",
+                "forbiddenContext", "其他用户、其他 session、展示用历史、训练记忆、上一请求残留",
+                "newSessionRule", "sessionMode=new_session 时忽略任何展示用历史，只处理当前用户本轮输入",
+                "continueSessionRule", "sessionMode=continue_session 时只延续 currentSessionMessages"
+        ));
+        contextPayload.put("replyTemplate", Map.of(
+                "collecting", "先一句简短确认，再只追问一个最关键缺失字段",
+                "readyConfirm", "我已根据您的要求整理出以下预约信息，您看是否正确",
+                "format", "输出严格 JSON，字段名和 schema 不允许改变"
+        ));
         contextPayload.put("patientName", defaultString(state.structuredDemand.getPatientName()));
         contextPayload.put("patientSex", defaultString(state.structuredDemand.getPatientSex()));
         contextPayload.put("patientTitleRule", "男=先生，女=女士，未知或为空时不要使用先生/女士称谓");
         contextPayload.put("currentStructuredDemand", buildStructuredPromptPayload(state.structuredDemand));
+        contextPayload.put("currentSessionMessages", currentSessionMessages);
         contextPayload.put("requiredFields", List.of("hospital", "serviceDate", "serviceStartTime", "serviceEndTime", "patientName", "symptomDescriptionOrScene"));
         contextPayload.put("currentMissingFields", collectMissingFields(state.structuredDemand));
         contextPayload.put("uiCapabilities", List.of(
@@ -1488,10 +1545,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", CONVERSATION_SYSTEM_PROMPT));
         messages.add(message("user", objectMapper.writeValueAsString(contextPayload)));
-
-        List<Map<String, String>> history = state.history == null ? List.of() : state.history;
-        int startIndex = Math.max(0, history.size() - MAX_CONVERSATION_HISTORY);
-        messages.addAll(history.subList(startIndex, history.size()));
+        messages.addAll(currentSessionMessages);
 
         long startedAt = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(
@@ -1791,6 +1845,23 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         return state != null && userId != null && userId.equals(state.userId);
     }
 
+    private boolean isCompletedSession(AiAppointmentSessionRecord record, AiAppointmentSessionResponse session) {
+        if (record != null && STATUS_MATCHED.equals(defaultString(record.getStatus()))) {
+            return true;
+        }
+        if (record != null && StringUtils.hasText(record.getAppointmentNo())) {
+            return true;
+        }
+        return session != null && session.getMatchedList() != null && !session.getMatchedList().isEmpty();
+    }
+
+    private LocalDateTime toLocalDateTime(Date date) {
+        if (date == null) {
+            return null;
+        }
+        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+    }
+
     private void markFailed(SessionState state, String message) {
         synchronized (state) {
             state.status = STATUS_FAILED;
@@ -1822,6 +1893,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private AiAppointmentSessionResponse toResponse(SessionState state) {
         AiAppointmentSessionResponse response = new AiAppointmentSessionResponse();
         response.setSessionId(state.sessionId);
+        response.setCreateTime(toLocalDateTime(state.createTime));
+        response.setUpdateTime(toLocalDateTime(state.updateTime));
         response.setStatus(state.status);
         response.setProcessingPhase(state.processingPhase);
         response.setThinkingProcess(state.thinkingProcess);
@@ -1879,6 +1952,10 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
 
     private void saveSession(SessionState state) {
         try {
+            if (state.createTime == null) {
+                state.createTime = new Date();
+            }
+            state.updateTime = new Date();
             AiAppointmentSessionRecord record = toSessionRecord(state);
             AiAppointmentSessionRecord existing = aiAppointmentSessionMapper.selectBySessionId(state.sessionId);
             if (existing == null) {
@@ -1984,6 +2061,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         state.matchedList = readMatchedList(record.getMatchedListJson());
         state.appointmentNo = defaultString(record.getAppointmentNo());
         state.degraded = record.getDegraded() != null && record.getDegraded() == 1;
+        state.createTime = record.getCreateTime();
+        state.updateTime = record.getUpdateTime();
         return state;
     }
 
@@ -2342,5 +2421,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         private List<MatchedAttendantVO> matchedList = new ArrayList<>();
         private String appointmentNo;
         private Boolean degraded = Boolean.FALSE;
+        private Date createTime;
+        private Date updateTime;
     }
 }

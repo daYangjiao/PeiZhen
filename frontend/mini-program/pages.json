@@ -191,7 +191,7 @@
           "path": "ai-appointment/01-ai-appointment",
           "style": {
             "navigationStyle": "custom",
-            "navigationBarTitleText": "AI帮我找",
+            "navigationBarTitleText": "AI导诊",
             "navigationBarBackgroundColor": "#edf4ff",
             "backgroundColor": "#edf4ff",
             "disableScroll": true

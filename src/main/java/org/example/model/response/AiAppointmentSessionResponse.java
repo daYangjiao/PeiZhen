@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 @Data
 @ApiModel(description = "AI预约会话响应")
@@ -18,6 +19,12 @@ public class AiAppointmentSessionResponse {
 
     @ApiModelProperty(value = "会话ID")
     private String sessionId;
+
+    @ApiModelProperty(value = "创建时间")
+    private LocalDateTime createTime;
+
+    @ApiModelProperty(value = "更新时间")
+    private LocalDateTime updateTime;
 
     @ApiModelProperty(value = "业务状态", example = "COLLECTING")
     private String status;

@@ -4,7 +4,7 @@
       <view class="topbar-left" @click="goBack">
         <text class="topbar-back">‹</text>
       </view>
-      <text class="topbar-title">AI 帮我找</text>
+      <text class="topbar-title">AI导诊</text>
       <view class="topbar-right" @click="startNewSession">
         <text class="new-chat-text">新会话</text>
       </view>
@@ -62,7 +62,7 @@
           <view class="bubble" :class="msg.type === 'user' ? 'bubble-user' : 'bubble-ai'">
             <template v-if="msg.type === 'ai'">
               <view class="bubble-head">
-                <text class="bubble-name">AI 帮我找</text>
+                <text class="bubble-name">AI导诊</text>
                 <view v-if="msg.processingPhase && msg.processingPhase !== 'completed'" class="phase-badge" :class="`phase-${msg.processingPhase}`">
                   <text>{{ getPhaseLabel(msg.processingPhase) }}</text>
                 </view>
@@ -243,7 +243,7 @@ import { post as apiPost } from '@/utils/api.js'
 import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 import {
   getAiAppointmentSession,
-  getLatestAiAppointmentSession,
+  getLatestAiAppointmentSessionOverview,
 } from './api.js'
 
 const AIAvatar = brandAiAvatar
@@ -252,6 +252,7 @@ const POLL_INTERVAL = 1500
 const MATCH_WAIT_LIMIT = 30000
 const AI_APPOINTMENT_DRAFT_KEY = 'ai_appointment_draft_pending'
 const AI_APPOINTMENT_SESSION_KEY = 'ai_appointment_current_session_id'
+const HISTORY_DIVIDER_TEXT = '以上为之前的聊天记录'
 
 const suggestions = [
   '明天 09:00-11:00，我去华西医院复诊，需要陪诊帮我取号',
@@ -266,7 +267,9 @@ const sending = ref(false)
 const matchingInProgress = ref(false)
 const scrollIntoView = ref('')
 const composerPaddingBottom = ref(8)
-const sessionId = ref('')
+const activeSessionId = ref('')
+const displayHistorySessionId = ref('')
+const sessionId = activeSessionId
 const currentQuestionType = ref('')
 const currentAssistantIntent = ref('')
 const activeOptions = ref([])
@@ -285,6 +288,8 @@ const currentTimeProposal = ref(null)
 const matchingStageIndex = ref(0)
 const restoringSession = ref(false)
 const showHistoryDivider = ref(false)
+const historyBoundaryCount = ref(0)
+const restoredHistoryMessages = ref([])
 const loadedFromQuerySession = ref(false)
 const manualNewSessionStarted = ref(false)
 let pollTimer = null
@@ -400,8 +405,8 @@ function createEmptyStructuredDemand() {
 
 const normalizeString = (value = '') => String(value || '').trim()
 
-const buildMessagesFromHistory = (historyMessages = [], includeHistoryDivider = false) => {
-  const restored = Array.isArray(historyMessages)
+const normalizeHistoryMessages = (historyMessages = []) => {
+  return Array.isArray(historyMessages)
     ? historyMessages
       .filter((item) => normalizeString(item?.role) && normalizeString(item?.content))
       .map((item) => createChatMessage(
@@ -411,14 +416,82 @@ const buildMessagesFromHistory = (historyMessages = [], includeHistoryDivider = 
         item.role === 'assistant' ? (item.thinkingProcess || '') : ''
       ))
     : []
+}
 
-  if (!restored.length) {
-    return [createWelcomeMessage()]
+const withHistoryDivider = (historyMessages = [], activeMessages = []) => {
+  if (!historyMessages.length) {
+    return activeMessages.length ? activeMessages : [createWelcomeMessage()]
   }
-  if (includeHistoryDivider) {
-    restored.push(createSystemMessage('以上为之前的聊天记录'))
+  return [
+    ...historyMessages,
+    createSystemMessage(HISTORY_DIVIDER_TEXT),
+    ...activeMessages
+  ]
+}
+
+const buildMessagesFromHistory = (historyMessages = []) => {
+  const restored = normalizeHistoryMessages(historyMessages)
+  return restored.length ? restored : [createWelcomeMessage()]
+}
+
+const buildDisplayMessages = (stateMessages = []) => {
+  const activeMessages = normalizeHistoryMessages(stateMessages)
+  if (displayHistorySessionId.value && activeSessionId.value === displayHistorySessionId.value && historyBoundaryCount.value > 0) {
+    const boundary = Math.min(historyBoundaryCount.value, activeMessages.length)
+    return withHistoryDivider(activeMessages.slice(0, boundary), activeMessages.slice(boundary))
   }
-  return restored
+  if (restoredHistoryMessages.value.length) {
+    return withHistoryDivider(restoredHistoryMessages.value, activeMessages)
+  }
+  if (activeMessages.length) {
+    return activeMessages
+  }
+  return [createWelcomeMessage()]
+}
+
+const displayHistoryOnly = (state = {}) => {
+  const historyMessages = normalizeHistoryMessages(state.messages || [])
+  restoredHistoryMessages.value = historyMessages
+  historyBoundaryCount.value = historyMessages.length
+  displayHistorySessionId.value = normalizeString(state.sessionId)
+  showHistoryDivider.value = historyMessages.length > 0
+  messages.value = historyMessages.length ? withHistoryDivider(historyMessages, []) : [createWelcomeMessage()]
+}
+
+const clearDisplayedHistory = () => {
+  restoredHistoryMessages.value = []
+  historyBoundaryCount.value = 0
+  displayHistorySessionId.value = ''
+  showHistoryDivider.value = false
+}
+
+const clearActiveSessionState = ({ keepHistory = true } = {}) => {
+  stopPolling()
+  stopMatchDeadline()
+  stopMatchingStageRotation()
+  cancelTimePicker()
+  clearCurrentSessionCache(activeSessionId.value)
+  activeSessionId.value = ''
+  userInput.value = ''
+  sending.value = false
+  matchingInProgress.value = false
+  currentQuestionType.value = ''
+  currentAssistantIntent.value = ''
+  activeOptions.value = []
+  followUpRound.value = 0
+  activeFollowUpType.value = ''
+  navigatingToResult.value = false
+  activeAssistantKey.value = ''
+  structuredDemand.value = createEmptyStructuredDemand()
+  readyToMatch.value = false
+  currentTimeProposal.value = null
+  matchingStageIndex.value = 0
+  if (!keepHistory) {
+    clearDisplayedHistory()
+    resetToWelcomeMessage()
+  } else {
+    messages.value = buildDisplayMessages([])
+  }
 }
 
 const getLastConversationMessage = () => {
@@ -745,34 +818,31 @@ const clearCurrentSessionCache = (targetSessionId = '') => {
   }
 }
 
-const startNewSession = () => {
-  const previousSessionId = sessionId.value
-  stopPolling()
-  stopMatchDeadline()
-  stopMatchingStageRotation()
-  cancelTimePicker()
-  clearCurrentSessionCache(previousSessionId)
+const snapshotVisibleConversationAsHistory = () => {
+  const visibleMessages = messages.value
+    .filter((item) => item.type === 'user' || item.type === 'ai')
+    .filter((item) => item.key !== 'welcome-ai-appointment')
+    .map((item) => ({
+      ...item,
+      key: `hist-${item.key}-${Math.random().toString(16).slice(2, 6)}`,
+      processingPhase: item.type === 'ai' ? (item.processingPhase || 'completed') : 'completed',
+      waitingMatch: false
+    }))
+  if (!visibleMessages.length || !visibleMessages.some((item) => item.type === 'user')) {
+    return
+  }
+  restoredHistoryMessages.value = visibleMessages
+  historyBoundaryCount.value = visibleMessages.length
+  displayHistorySessionId.value = activeSessionId.value || displayHistorySessionId.value
+  showHistoryDivider.value = true
+}
 
-  sessionId.value = ''
-  userInput.value = ''
-  sending.value = false
-  matchingInProgress.value = false
-  currentQuestionType.value = ''
-  currentAssistantIntent.value = ''
-  activeOptions.value = []
-  followUpRound.value = 0
-  activeFollowUpType.value = ''
-  navigatingToResult.value = false
-  activeAssistantKey.value = ''
-  structuredDemand.value = createEmptyStructuredDemand()
-  readyToMatch.value = false
+const startNewSession = () => {
+  snapshotVisibleConversationAsHistory()
+  clearActiveSessionState({ keepHistory: true })
   introExpanded.value = true
-  currentTimeProposal.value = null
-  matchingStageIndex.value = 0
-  showHistoryDivider.value = false
   loadedFromQuerySession.value = false
   manualNewSessionStarted.value = true
-  resetToWelcomeMessage()
   scrollToBottom()
 }
 
@@ -1139,34 +1209,65 @@ const applySessionStructuredDemand = (state = {}) => {
   persistStructuredDemand()
 }
 
+const isCompletedSessionState = (state = {}) => {
+  return (Array.isArray(state.matchedList) && state.matchedList.length > 0)
+    || normalizeString(state.status) === 'MATCHED'
+    || !!normalizeString(state.appointmentNo)
+}
+
+const showEmptySession = () => {
+  activeSessionId.value = ''
+  clearDisplayedHistory()
+  matchingInProgress.value = false
+  readyToMatch.value = false
+  activeAssistantKey.value = ''
+  structuredDemand.value = createEmptyStructuredDemand()
+  resetToWelcomeMessage()
+}
+
+const activateRestoredSession = async (state = {}) => {
+  activeSessionId.value = normalizeString(state.sessionId)
+  manualNewSessionStarted.value = false
+  persistCurrentSessionId(activeSessionId.value)
+  restoredHistoryMessages.value = []
+  historyBoundaryCount.value = Array.isArray(state.messages) ? state.messages.length : 0
+  displayHistorySessionId.value = activeSessionId.value
+  showHistoryDivider.value = historyBoundaryCount.value > 0
+  introExpanded.value = false
+  await applySessionState(state, { keepHistoryDivider: true })
+}
+
+const promptContinueLatestSession = (overview = {}) => {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title: '继续上次AI导诊？',
+      content: '检测到1小时内还有未完成的AI导诊请求，是否继续补充并沿用上次上下文？',
+      confirmText: '继续',
+      cancelText: '新会话',
+      success: ({ confirm }) => resolve(!!confirm),
+      fail: () => resolve(false)
+    })
+  })
+}
+
 const restoreSessionConversation = async (targetSessionId = '', options = {}) => {
   const normalizedSessionId = normalizeString(targetSessionId || readCurrentSessionId())
-  if (!normalizedSessionId || restoringSession.value || manualNewSessionStarted.value) return
+  if (!normalizedSessionId || restoringSession.value) return
+  if (manualNewSessionStarted.value && !options.allowMatchedRestore) return
   restoringSession.value = true
   try {
     const state = await getAiAppointmentSession(normalizedSessionId)
     if (!state) return
-    const hasMatchedResult = (Array.isArray(state.matchedList) && state.matchedList.length > 0)
-      || normalizeString(state.status) === 'MATCHED'
-      || !!normalizeString(state.appointmentNo)
-    if (!options.allowMatchedRestore && hasMatchedResult) {
+    const hasMatchedResult = isCompletedSessionState(state)
+    if (hasMatchedResult) {
       clearCurrentSessionCache(normalizedSessionId)
-      sessionId.value = ''
-      showHistoryDivider.value = false
-      matchingInProgress.value = false
-      readyToMatch.value = false
-      activeAssistantKey.value = ''
-      structuredDemand.value = createEmptyStructuredDemand()
-      resetToWelcomeMessage()
+      activeSessionId.value = ''
+      displayHistoryOnly(state)
+      clearActiveSessionState({ keepHistory: true })
+      introExpanded.value = false
       return
     }
-    sessionId.value = normalizedSessionId
-    manualNewSessionStarted.value = false
-    persistCurrentSessionId(normalizedSessionId)
-    showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
-    messages.value = buildMessagesFromHistory(state.messages, showHistoryDivider.value)
-    introExpanded.value = false
-    await applySessionState(state, { keepHistoryDivider: showHistoryDivider.value })
+    await activateRestoredSession(state)
   } catch (error) {
     console.warn('恢复 AI 预约历史聊天失败:', error)
   } finally {
@@ -1178,22 +1279,28 @@ const restoreLatestSessionConversation = async () => {
   if (restoringSession.value || manualNewSessionStarted.value) return
   restoringSession.value = true
   try {
-    const state = await getLatestAiAppointmentSession()
+    const overview = await getLatestAiAppointmentSessionOverview()
+    const state = overview?.session || null
     if (!state?.sessionId) {
-      sessionId.value = ''
-      showHistoryDivider.value = false
-      matchingInProgress.value = false
-      readyToMatch.value = false
-      activeAssistantKey.value = ''
-      structuredDemand.value = createEmptyStructuredDemand()
-      resetToWelcomeMessage()
+      showEmptySession()
       return
     }
-    sessionId.value = state.sessionId
+    displayHistoryOnly(state)
+    introExpanded.value = false
+    if (overview?.continuable) {
+      const shouldContinue = await promptContinueLatestSession(overview)
+      if (shouldContinue) {
+        await activateRestoredSession(state)
+      } else {
+        clearCurrentSessionCache(state.sessionId)
+        clearActiveSessionState({ keepHistory: true })
+        manualNewSessionStarted.value = true
+      }
+      return
+    }
+    clearCurrentSessionCache(state.sessionId)
+    clearActiveSessionState({ keepHistory: true })
     manualNewSessionStarted.value = false
-    persistCurrentSessionId(state.sessionId)
-    showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
-    await applySessionState(state, { keepHistoryDivider: showHistoryDivider.value })
   } catch (error) {
     console.warn('恢复最近 AI 预约会话失败:', error)
   } finally {
@@ -1203,10 +1310,12 @@ const restoreLatestSessionConversation = async () => {
 
 const applySessionState = async (state, options = {}) => {
   if (!state) return
-  applySessionStructuredDemand(state)
+  const historyOnly = !!options.historyOnly
+  if (!historyOnly && activeSessionId.value) {
+    applySessionStructuredDemand(state)
+  }
   if (Array.isArray(state.messages) && state.messages.length) {
-    const shouldKeepHistoryDivider = options.keepHistoryDivider ?? showHistoryDivider.value
-    messages.value = buildMessagesFromHistory(state.messages, shouldKeepHistoryDivider)
+    messages.value = buildDisplayMessages(state.messages)
   } else if (!messages.value.some((item) => item.type === 'user' || item.type === 'ai')) {
     resetToWelcomeMessage()
   }
@@ -1232,7 +1341,7 @@ const applySessionState = async (state, options = {}) => {
 
   if (state.processingPhase === 'completed') {
     sending.value = false
-    if (Array.isArray(state.matchedList) && state.matchedList.length) {
+    if (!historyOnly && Array.isArray(state.matchedList) && state.matchedList.length) {
       stopMatchDeadline()
       stopMatchingStageRotation()
       await navigateToResultPage()
@@ -1302,6 +1411,18 @@ const sendMessage = async () => {
   const content = userInput.value.trim()
   if (!content || sending.value || navigatingToResult.value) return
 
+  const isNewSessionRequest = !activeSessionId.value
+  if (isNewSessionRequest) {
+    structuredDemand.value = createEmptyStructuredDemand()
+    currentAssistantIntent.value = ''
+    currentQuestionType.value = ''
+    activeFollowUpType.value = ''
+    activeOptions.value = []
+    followUpRound.value = 0
+    activeAssistantKey.value = ''
+    matchingInProgress.value = false
+  }
+  refreshStructuredDemandFromText(content)
   readyToMatch.value = false
   showTimePickerSheet.value = false
   currentTimeProposal.value = null
@@ -1318,19 +1439,18 @@ const sendMessage = async () => {
 
   try {
     let response
-    if (!sessionId.value) {
-      showHistoryDivider.value = false
+    if (isNewSessionRequest) {
       response = await apiPost('/ai/guide/ai-appointment/session', {
         demandText: content,
         structuredDemand: structuredDemand.value
       })
       response = response?.data || null
-      sessionId.value = response?.sessionId || ''
+      activeSessionId.value = response?.sessionId || ''
       manualNewSessionStarted.value = false
-      persistCurrentSessionId(sessionId.value)
+      persistCurrentSessionId(activeSessionId.value)
       persistStructuredDemand()
     } else {
-      response = await apiPost(`/ai/guide/ai-appointment/session/${encodeURIComponent(sessionId.value)}/reply`, {
+      response = await apiPost(`/ai/guide/ai-appointment/session/${encodeURIComponent(activeSessionId.value)}/reply`, {
         replyText: content,
         structuredDemand: structuredDemand.value
       })
@@ -1456,16 +1576,15 @@ onMounted(() => {
 onLoad((options) => {
   const routeSessionId = normalizeString(options?.sessionId)
   loadedFromQuerySession.value = !!routeSessionId
-  sessionId.value = routeSessionId || readCurrentSessionId()
+  activeSessionId.value = routeSessionId
 })
 
 onShow(() => {
   if (manualNewSessionStarted.value) {
     return
   }
-  const restoredId = sessionId.value || readCurrentSessionId()
-  if (restoredId) {
-    restoreSessionConversation(restoredId, { allowMatchedRestore: loadedFromQuerySession.value })
+  if (loadedFromQuerySession.value && activeSessionId.value) {
+    restoreSessionConversation(activeSessionId.value, { allowMatchedRestore: true })
     return
   }
   restoreLatestSessionConversation()

@@ -34,7 +34,7 @@
     <view class="ai-entry-section" v-if="!publicSafeMode">
       <view class="ai-entry-card" @click="navigateToAiAppointment">
         <view class="ai-entry-copy">
-          <text class="ai-entry-eyebrow">AI 帮我找</text>
+          <text class="ai-entry-eyebrow">AI导诊</text>
           <text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
           <text class="ai-entry-desc">先说需求，AI 会自动追问关键细节，再帮您优先推荐更合适的人选。</text>
         </view>

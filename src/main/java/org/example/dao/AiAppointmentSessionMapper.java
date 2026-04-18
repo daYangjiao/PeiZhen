@@ -63,6 +63,25 @@ public interface AiAppointmentSessionMapper {
             """)
     AiAppointmentSessionRecord selectLatestRestorableByUserId(Integer userId);
 
+    @Select("""
+            SELECT id, session_id AS sessionId, user_id AS userId, status, processing_phase AS processingPhase,
+                   thinking_process AS thinkingProcess, assistant_reply AS assistantReply, assistant_intent AS assistantIntent,
+                   need_more_info AS needMoreInfo, missing_fields_json AS missingFieldsJson,
+                   question_type AS questionType, question_key AS questionKey, follow_up_type AS followUpType,
+                   time_proposal_json AS timeProposalJson, options_json AS optionsJson,
+                   can_match AS canMatch, ready_for_confirm AS readyForConfirm, follow_up_round AS followUpRound,
+                   raw_demand_text AS rawDemandText, structured_demand_json AS structuredDemandJson,
+                   field_patch_json AS fieldPatchJson, confirm_summary_json AS confirmSummaryJson,
+                   matched_list_json AS matchedListJson, appointment_no AS appointmentNo,
+                   degraded, deleted, create_time AS createTime, update_time AS updateTime
+            FROM ai_appointment_session
+            WHERE user_id = #{userId}
+              AND deleted = 0
+            ORDER BY update_time DESC, id DESC
+            LIMIT 1
+            """)
+    AiAppointmentSessionRecord selectLatestByUserId(Integer userId);
+
     @Update("""
             UPDATE ai_appointment_session
             SET status = #{status},
