@@ -25,7 +25,6 @@ public class AiAppointmentSessionResponse {
 
     @ApiModelProperty(value = "更新时间")
     private LocalDateTime updateTime;
-
     @ApiModelProperty(value = "业务状态", example = "COLLECTING")
     private String status;
 

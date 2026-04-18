@@ -140,6 +140,9 @@ function createEmptyStructuredDemand() {
   return {
     patientName: getCurrentUserName(),
     patientSex: getCurrentUserSex(),
+function createEmptyStructuredDemand() {
+  return {
+    patientName: getCurrentUserName(),
     patientProfile: '',
     hospital: '',
     serviceDate: '',
@@ -205,12 +208,15 @@ const sanitizeStructuredDemand = (payload = {}) => ({
 
 const getStructuredDemandStorageKey = (id = '') => {
   return id ? `ai_appointment_draft_${id}` : getUserScopedStorageKey(AI_APPOINTMENT_DRAFT_KEY)
+  return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
 }
 
 const clearAiAppointmentCache = () => {
   try {
     uni.removeStorageSync(getUserScopedStorageKey(AI_APPOINTMENT_SESSION_KEY))
     uni.removeStorageSync(getStructuredDemandStorageKey())
+    uni.removeStorageSync(AI_APPOINTMENT_SESSION_KEY)
+    uni.removeStorageSync(AI_APPOINTMENT_DRAFT_KEY)
     if (sessionId.value) {
       uni.removeStorageSync(getStructuredDemandStorageKey(sessionId.value))
     }
@@ -249,6 +255,7 @@ const mergeStructuredDemand = (state = {}) => {
 const persistStructuredDemand = () => {
   try {
     uni.setStorageSync(getStructuredDemandStorageKey(), structuredDemand.value)
+    uni.setStorageSync(AI_APPOINTMENT_DRAFT_KEY, structuredDemand.value)
   } catch (error) {
     console.warn('保存 AI 预约草稿失败:', error)
   }
@@ -259,6 +266,7 @@ const restoreStructuredDemand = () => {
     const cached = sessionId.value
       ? uni.getStorageSync(getStructuredDemandStorageKey(sessionId.value))
       : uni.getStorageSync(getStructuredDemandStorageKey())
+      : uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
     if (cached && typeof cached === 'object') {
       structuredDemand.value = sanitizeStructuredDemand({ ...createEmptyStructuredDemand(), ...cached })
     }

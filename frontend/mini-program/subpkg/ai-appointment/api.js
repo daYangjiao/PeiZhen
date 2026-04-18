@@ -19,7 +19,6 @@ export async function getLatestAiAppointmentSessionOverview() {
   const res = await get('/ai/guide/ai-appointment/session/latest-overview')
   return res?.data || null
 }
-
 export async function replyAiAppointmentSession(sessionId, payload = {}) {
   const res = await post(`/ai/guide/ai-appointment/session/${encodeURIComponent(sessionId)}/reply`, payload)
   return res?.data || null

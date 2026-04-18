@@ -26,6 +26,5 @@ public interface AiAppointmentService {
     AiAppointmentSessionResponse startMatch(String sessionId);
 
     AiAppointmentSessionResponse startMatch(Integer userId, String sessionId);
-
     AiAttendantMatchResponse matchAttendants(AiAttendantMatchRequest request);
 }

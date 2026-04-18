@@ -81,7 +81,6 @@ public interface AiAppointmentSessionMapper {
             LIMIT 1
             """)
     AiAppointmentSessionRecord selectLatestByUserId(Integer userId);
-
     @Update("""
             UPDATE ai_appointment_session
             SET status = #{status},
