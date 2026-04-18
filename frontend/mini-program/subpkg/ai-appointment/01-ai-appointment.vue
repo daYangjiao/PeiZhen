@@ -243,6 +243,7 @@ import { post as apiPost } from '@/utils/api.js'
 import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 import {
   getAiAppointmentSession,
+  getLatestAiAppointmentSession,
 } from './api.js'
 
 const AIAvatar = brandAiAvatar
@@ -360,9 +361,29 @@ function getCurrentUserName() {
   return userStore.displayName || userStore.userInfo?.name || userStore.userInfo?.nickName || userStore.userInfo?.phone || '本人'
 }
 
+function getCurrentUserId() {
+  const cached = uni.getStorageSync('userInfo') || {}
+  return userStore.userInfo?.id || cached.id || ''
+}
+
+function getCurrentUserSex() {
+  const cached = uni.getStorageSync('userInfo') || {}
+  const raw = String(userStore.userInfo?.sex || cached.sex || '').trim()
+  const normalized = raw.toLowerCase()
+  if (['男', '男性', 'male', 'm'].includes(normalized)) return '男'
+  if (['女', '女性', 'female', 'f'].includes(normalized)) return '女'
+  return ''
+}
+
+function getUserScopedStorageKey(baseKey) {
+  const userId = getCurrentUserId()
+  return userId ? `${baseKey}_${userId}` : baseKey
+}
+
 function createEmptyStructuredDemand() {
   return {
     patientName: getCurrentUserName(),
+    patientSex: getCurrentUserSex(),
     patientProfile: '',
     hospital: '',
     serviceDate: '',
@@ -666,6 +687,7 @@ function classifyDemandText(text = '') {
 function sanitizeStructuredDemand(payload = {}) {
   return {
     patientName: normalizeString(payload.patientName) || getCurrentUserName(),
+    patientSex: normalizeString(payload.patientSex) || getCurrentUserSex(),
     patientProfile: normalizeString(payload.patientProfile),
     hospital: normalizeString(payload.hospital),
     serviceDate: normalizeString(payload.serviceDate),
@@ -682,7 +704,7 @@ function sanitizeStructuredDemand(payload = {}) {
 
 const persistStructuredDemand = () => {
   try {
-    uni.setStorageSync(AI_APPOINTMENT_DRAFT_KEY, structuredDemand.value)
+    uni.setStorageSync(getStructuredDemandStorageKey(), structuredDemand.value)
     if (sessionId.value) {
       uni.setStorageSync(`ai_appointment_draft_${sessionId.value}`, structuredDemand.value)
     }
@@ -695,7 +717,7 @@ const persistCurrentSessionId = (id = '') => {
   try {
     const normalizedId = normalizeString(id)
     if (normalizedId) {
-      uni.setStorageSync(AI_APPOINTMENT_SESSION_KEY, normalizedId)
+      uni.setStorageSync(getUserScopedStorageKey(AI_APPOINTMENT_SESSION_KEY), normalizedId)
     }
   } catch (error) {
     console.warn('保存 AI 预约会话失败:', error)
@@ -704,7 +726,7 @@ const persistCurrentSessionId = (id = '') => {
 
 const readCurrentSessionId = () => {
   try {
-    return normalizeString(uni.getStorageSync(AI_APPOINTMENT_SESSION_KEY))
+    return normalizeString(uni.getStorageSync(getUserScopedStorageKey(AI_APPOINTMENT_SESSION_KEY)))
   } catch (error) {
     return ''
   }
@@ -713,8 +735,8 @@ const readCurrentSessionId = () => {
 const clearCurrentSessionCache = (targetSessionId = '') => {
   const normalizedSessionId = normalizeString(targetSessionId || sessionId.value)
   try {
-    uni.removeStorageSync(AI_APPOINTMENT_SESSION_KEY)
-    uni.removeStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    uni.removeStorageSync(getUserScopedStorageKey(AI_APPOINTMENT_SESSION_KEY))
+    uni.removeStorageSync(getStructuredDemandStorageKey())
     if (normalizedSessionId) {
       uni.removeStorageSync(getStructuredDemandStorageKey(normalizedSessionId))
     }
@@ -756,7 +778,7 @@ const startNewSession = () => {
 
 const restoreStructuredDemand = () => {
   try {
-    const cached = uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    const cached = uni.getStorageSync(getStructuredDemandStorageKey())
     if (cached && typeof cached === 'object') {
       structuredDemand.value = sanitizeStructuredDemand({ ...createEmptyStructuredDemand(), ...cached })
     }
@@ -771,6 +793,7 @@ const refreshStructuredDemandFromText = (text = '') => {
     ...structuredDemand.value,
     ...parsed,
     patientName: getCurrentUserName(),
+    patientSex: getCurrentUserSex(),
     rawDemandText: text || structuredDemand.value.rawDemandText
   })
   persistStructuredDemand()
@@ -809,7 +832,7 @@ const applyStructuredSelectionPatch = (fieldKey, selectedValue, displayText = se
   }
 
   patch.rawDemandText = [patch.rawDemandText, displayText].filter(Boolean).join(' ').trim()
-  structuredDemand.value = sanitizeStructuredDemand({ ...patch, patientName: getCurrentUserName() })
+  structuredDemand.value = sanitizeStructuredDemand({ ...patch, patientName: getCurrentUserName(), patientSex: getCurrentUserSex() })
   persistStructuredDemand()
   return true
 }
@@ -877,7 +900,7 @@ const MATCHING_STAGE_COPY = [
 const matchingStageText = computed(() => MATCHING_STAGE_COPY[matchingStageIndex.value] || MATCHING_STAGE_COPY[0])
 
 const getStructuredDemandStorageKey = (id = '') => {
-  return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
+  return id ? `ai_appointment_draft_${id}` : getUserScopedStorageKey(AI_APPOINTMENT_DRAFT_KEY)
 }
 
 const getQuestionLabel = (field) => {
@@ -1099,6 +1122,7 @@ const applySessionStructuredDemand = (state = {}) => {
     ...structuredDemand.value,
     ...source,
     patientName: state.patientName || source.patientName || structuredDemand.value.patientName || getCurrentUserName(),
+    patientSex: state.patientSex || source.patientSex || structuredDemand.value.patientSex || getCurrentUserSex(),
     patientProfile: state.patientProfile || source.patientProfile || structuredDemand.value.patientProfile,
     hospital: state.hospital || source.hospital || structuredDemand.value.hospital,
     serviceDate: state.serviceDate || source.serviceDate || structuredDemand.value.serviceDate,
@@ -1145,6 +1169,33 @@ const restoreSessionConversation = async (targetSessionId = '', options = {}) =>
     await applySessionState(state, { keepHistoryDivider: showHistoryDivider.value })
   } catch (error) {
     console.warn('恢复 AI 预约历史聊天失败:', error)
+  } finally {
+    restoringSession.value = false
+  }
+}
+
+const restoreLatestSessionConversation = async () => {
+  if (restoringSession.value || manualNewSessionStarted.value) return
+  restoringSession.value = true
+  try {
+    const state = await getLatestAiAppointmentSession()
+    if (!state?.sessionId) {
+      sessionId.value = ''
+      showHistoryDivider.value = false
+      matchingInProgress.value = false
+      readyToMatch.value = false
+      activeAssistantKey.value = ''
+      structuredDemand.value = createEmptyStructuredDemand()
+      resetToWelcomeMessage()
+      return
+    }
+    sessionId.value = state.sessionId
+    manualNewSessionStarted.value = false
+    persistCurrentSessionId(state.sessionId)
+    showHistoryDivider.value = Array.isArray(state.messages) && state.messages.length > 0
+    await applySessionState(state, { keepHistoryDivider: showHistoryDivider.value })
+  } catch (error) {
+    console.warn('恢复最近 AI 预约会话失败:', error)
   } finally {
     restoringSession.value = false
   }
@@ -1415,7 +1466,9 @@ onShow(() => {
   const restoredId = sessionId.value || readCurrentSessionId()
   if (restoredId) {
     restoreSessionConversation(restoredId, { allowMatchedRestore: loadedFromQuerySession.value })
+    return
   }
+  restoreLatestSessionConversation()
 })
 
 onUnmounted(() => {

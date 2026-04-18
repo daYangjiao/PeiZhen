@@ -118,9 +118,28 @@ function getCurrentUserName() {
   return userInfo.nickName || userInfo.name || userInfo.phone || '本人'
 }
 
+function getCurrentUserId() {
+  const userInfo = uni.getStorageSync('userInfo') || {}
+  return userInfo.id || ''
+}
+
+function getCurrentUserSex() {
+  const userInfo = uni.getStorageSync('userInfo') || {}
+  const normalized = String(userInfo.sex || '').trim().toLowerCase()
+  if (['男', '男性', 'male', 'm'].includes(normalized)) return '男'
+  if (['女', '女性', 'female', 'f'].includes(normalized)) return '女'
+  return ''
+}
+
+function getUserScopedStorageKey(baseKey) {
+  const userId = getCurrentUserId()
+  return userId ? `${baseKey}_${userId}` : baseKey
+}
+
 function createEmptyStructuredDemand() {
   return {
     patientName: getCurrentUserName(),
+    patientSex: getCurrentUserSex(),
     patientProfile: '',
     hospital: '',
     serviceDate: '',
@@ -170,6 +189,7 @@ const normalizeTimeValue = (value = '') => {
 
 const sanitizeStructuredDemand = (payload = {}) => ({
   patientName: normalizeString(payload.patientName) || getCurrentUserName(),
+  patientSex: normalizeString(payload.patientSex) || getCurrentUserSex(),
   patientProfile: normalizeString(payload.patientProfile),
   hospital: normalizeString(payload.hospital),
   serviceDate: normalizeString(payload.serviceDate),
@@ -184,13 +204,13 @@ const sanitizeStructuredDemand = (payload = {}) => ({
 })
 
 const getStructuredDemandStorageKey = (id = '') => {
-  return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
+  return id ? `ai_appointment_draft_${id}` : getUserScopedStorageKey(AI_APPOINTMENT_DRAFT_KEY)
 }
 
 const clearAiAppointmentCache = () => {
   try {
-    uni.removeStorageSync(AI_APPOINTMENT_SESSION_KEY)
-    uni.removeStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+    uni.removeStorageSync(getUserScopedStorageKey(AI_APPOINTMENT_SESSION_KEY))
+    uni.removeStorageSync(getStructuredDemandStorageKey())
     if (sessionId.value) {
       uni.removeStorageSync(getStructuredDemandStorageKey(sessionId.value))
     }
@@ -211,6 +231,7 @@ const mergeStructuredDemand = (state = {}) => {
     ...structuredDemand.value,
     ...source,
     patientName: state.patientName || source.patientName || structuredDemand.value.patientName || getCurrentUserName(),
+    patientSex: state.patientSex || source.patientSex || structuredDemand.value.patientSex || getCurrentUserSex(),
     patientProfile: state.patientProfile || source.patientProfile || structuredDemand.value.patientProfile,
     hospital: state.hospital || source.hospital || structuredDemand.value.hospital,
     serviceDate: state.serviceDate || source.serviceDate || structuredDemand.value.serviceDate,
@@ -227,7 +248,7 @@ const mergeStructuredDemand = (state = {}) => {
 
 const persistStructuredDemand = () => {
   try {
-    uni.setStorageSync(AI_APPOINTMENT_DRAFT_KEY, structuredDemand.value)
+    uni.setStorageSync(getStructuredDemandStorageKey(), structuredDemand.value)
   } catch (error) {
     console.warn('保存 AI 预约草稿失败:', error)
   }
@@ -237,7 +258,7 @@ const restoreStructuredDemand = () => {
   try {
     const cached = sessionId.value
       ? uni.getStorageSync(getStructuredDemandStorageKey(sessionId.value))
-      : uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+      : uni.getStorageSync(getStructuredDemandStorageKey())
     if (cached && typeof cached === 'object') {
       structuredDemand.value = sanitizeStructuredDemand({ ...createEmptyStructuredDemand(), ...cached })
     }

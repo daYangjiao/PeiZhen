@@ -114,7 +114,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
-import { getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
+import { getLatestMedicalConversation, getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
 
 const AIAvatar = brandAiAvatar
 const userStore = useUserStore()
@@ -149,6 +149,16 @@ const suggestions = [
   '老人腿脚无力怎么检查',
   '咳嗽两周还没好怎么办'
 ]
+
+const getCurrentUserId = () => {
+  const cached = uni.getStorageSync('userInfo') || {}
+  return userStore.userInfo?.id || cached.id || ''
+}
+
+const getConversationStorageKey = () => {
+  const userId = getCurrentUserId()
+  return userId ? `${STORAGE_KEY}_${userId}` : STORAGE_KEY
+}
 
 const getUserAvatar = () => {
   const avatar = userStore.avatar || uni.getStorageSync('userInfo')?.avatar || ''
@@ -202,7 +212,7 @@ const startNewConversation = () => {
   selectedTag.value = ''
   messages.value = [createWelcomeMessage()]
   manualNewConversationStarted.value = true
-  uni.removeStorageSync(STORAGE_KEY)
+  uni.removeStorageSync(getConversationStorageKey())
   scrollToBottom()
 }
 
@@ -252,8 +262,14 @@ const appendConversationMessages = (records = []) => {
   const conversationId = records.find((record) => record?.conversationId)?.conversationId || ''
   if (conversationId) {
     currentConversationId.value = conversationId
-    uni.setStorageSync(STORAGE_KEY, conversationId)
+    uni.setStorageSync(getConversationStorageKey(), conversationId)
   }
+}
+
+const showWelcomeOnly = () => {
+  currentConversationId.value = ''
+  messages.value = [createWelcomeMessage()]
+  scrollToBottom()
 }
 
 const stopPolling = (recordId) => {
@@ -303,24 +319,25 @@ const restoreConversation = async () => {
     return
   }
   restoringConversation.value = true
-  const savedConversationId = uni.getStorageSync(STORAGE_KEY) || ''
+  const storageKey = getConversationStorageKey()
+  const savedConversationId = uni.getStorageSync(storageKey) || ''
   try {
+    let records = []
     if (!savedConversationId) {
-      uni.removeStorageSync(STORAGE_KEY)
-      currentConversationId.value = ''
-      messages.value = [createWelcomeMessage()]
-      scrollToBottom()
-      return
+      records = await getLatestMedicalConversation()
+      if (!records.length) {
+        uni.removeStorageSync(storageKey)
+        showWelcomeOnly()
+        return
+      }
+    } else {
+      currentConversationId.value = savedConversationId
+      records = await getMedicalConversation(savedConversationId)
     }
 
-    currentConversationId.value = savedConversationId
-    const records = await getMedicalConversation(savedConversationId)
-
     if (!records.length) {
-      uni.removeStorageSync(STORAGE_KEY)
-      currentConversationId.value = ''
-      messages.value = [createWelcomeMessage()]
-      scrollToBottom()
+      uni.removeStorageSync(storageKey)
+      showWelcomeOnly()
       return
     }
 
@@ -333,8 +350,7 @@ const restoreConversation = async () => {
     scrollToBottom()
   } catch (error) {
     console.error('恢复 AI 会话失败:', error)
-    messages.value = [createWelcomeMessage()]
-    scrollToBottom()
+    showWelcomeOnly()
   } finally {
     restoringConversation.value = false
   }
@@ -363,7 +379,7 @@ const sendMessage = async () => {
 
     currentConversationId.value = record.conversationId || currentConversationId.value
     if (currentConversationId.value) {
-      uni.setStorageSync(STORAGE_KEY, currentConversationId.value)
+      uni.setStorageSync(getConversationStorageKey(), currentConversationId.value)
     }
     manualNewConversationStarted.value = false
 

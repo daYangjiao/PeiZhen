@@ -104,27 +104,41 @@ public class AiGuideController {
     @GetMapping("/ai-appointment/session/{sessionId}")
     @ApiOperation(value = "获取 AI 预约会话状态", notes = "前端轮询当前 AI 预约会话状态，获取思考中、追问、匹配结果等信息。")
     public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> getAiAppointmentSession(
-            @PathVariable String sessionId) {
-        AiAppointmentSessionResponse response = aiAppointmentService.getSession(sessionId);
+            @PathVariable String sessionId,
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        AiAppointmentSessionResponse response = aiAppointmentService.getSession(currentUserId, sessionId);
         if (response == null) {
             return ResponseEntity.ok(ResponseResult.error("AI预约会话不存在"));
         }
         return ResponseEntity.ok(ResponseResult.success(response));
     }
 
+    @GetMapping("/ai-appointment/session/latest")
+    @ApiOperation(value = "获取最近一次可恢复 AI 预约会话", notes = "按当前登录用户返回最近一次未完成匹配的 AI 预约会话，用于进入页面自动恢复。")
+    public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> getLatestAiAppointmentSession(
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.getLatestRestorableSession(currentUserId)));
+    }
+
     @PostMapping("/ai-appointment/session/{sessionId}/reply")
     @ApiOperation(value = "回复 AI 预约追问", notes = "用户补充日期、时间、医院等信息，继续 AI 预约会话。")
     public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> replyAiAppointmentSession(
             @PathVariable String sessionId,
-            @RequestBody AiAppointmentReplyRequest request) {
-        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.replySession(sessionId, request)));
+            @RequestBody AiAppointmentReplyRequest request,
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.replySession(currentUserId, sessionId, request)));
     }
 
     @PostMapping("/ai-appointment/session/{sessionId}/match")
     @ApiOperation(value = "开始 AI 预约匹配", notes = "当 AI 预约关键字段齐全后，开始匹配推荐陪诊师。")
     public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> startAiAppointmentMatch(
-            @PathVariable String sessionId) {
-        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.startMatch(sessionId)));
+            @PathVariable String sessionId,
+            @ApiIgnore HttpServletRequest httpRequest) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.startMatch(currentUserId, sessionId)));
     }
 
     @PostMapping("/attendants/ai-match")

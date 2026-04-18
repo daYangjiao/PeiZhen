@@ -12,9 +12,17 @@ public interface AiAppointmentService {
 
     AiAppointmentSessionResponse getSession(String sessionId);
 
+    AiAppointmentSessionResponse getSession(Integer userId, String sessionId);
+
+    AiAppointmentSessionResponse getLatestRestorableSession(Integer userId);
+
     AiAppointmentSessionResponse replySession(String sessionId, AiAppointmentReplyRequest request);
 
+    AiAppointmentSessionResponse replySession(Integer userId, String sessionId, AiAppointmentReplyRequest request);
+
     AiAppointmentSessionResponse startMatch(String sessionId);
+
+    AiAppointmentSessionResponse startMatch(Integer userId, String sessionId);
 
     AiAttendantMatchResponse matchAttendants(AiAttendantMatchRequest request);
 }

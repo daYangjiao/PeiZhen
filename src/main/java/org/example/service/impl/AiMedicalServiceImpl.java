@@ -1,9 +1,11 @@
 package org.example.service.impl;
 
 import org.example.dao.AiMedicalQaMapper;
+import org.example.dao.UserMapper;
 import org.example.model.AiMedicalQa;
 import org.example.model.MedicalQaRequest;
 import org.example.model.MedicalQaResponse;
+import org.example.model.User;
 import org.example.service.AiMedicalService;
 import org.example.unity.DeepSeekClient;
 import org.slf4j.Logger;
@@ -64,10 +66,12 @@ public class AiMedicalServiceImpl implements AiMedicalService {
 
     private final AiMedicalQaMapper aiMedicalQaMapper;
     private final DeepSeekClient deepSeekClient;
+    private final UserMapper userMapper;
 
-    public AiMedicalServiceImpl(AiMedicalQaMapper aiMedicalQaMapper, DeepSeekClient deepSeekClient) {
+    public AiMedicalServiceImpl(AiMedicalQaMapper aiMedicalQaMapper, DeepSeekClient deepSeekClient, UserMapper userMapper) {
         this.aiMedicalQaMapper = aiMedicalQaMapper;
         this.deepSeekClient = deepSeekClient;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -165,6 +169,10 @@ public class AiMedicalServiceImpl implements AiMedicalService {
     private List<Map<String, String>> buildMessages(List<AiMedicalQa> conversationRecords, AiMedicalQa currentRecord) {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(message("system", SYSTEM_PROMPT));
+        String userProfileContext = buildUserProfileContext(currentRecord == null ? null : currentRecord.getUserId());
+        if (StringUtils.hasText(userProfileContext)) {
+            messages.add(message("system", userProfileContext));
+        }
 
         List<AiMedicalQa> recentHistory = conversationRecords.stream()
                 .filter(item -> item != null && item.getId() != null && !item.getId().equals(currentRecord.getId()))
@@ -193,6 +201,44 @@ public class AiMedicalServiceImpl implements AiMedicalService {
 
         messages.add(message("user", currentRecord.getQuestion().trim()));
         return messages;
+    }
+
+    private String buildUserProfileContext(Integer userId) {
+        if (userId == null) {
+            return "";
+        }
+        try {
+            User user = userMapper.findById(userId);
+            if (user == null) {
+                return "";
+            }
+            String name = StringUtils.hasText(user.getName()) ? user.getName().trim() : "未知";
+            String sex = normalizePatientSex(user.getSex());
+            String age = user.getAge() == null ? "未知" : String.valueOf(user.getAge());
+            return String.format(
+                    "用户资料：姓名=%s，性别=%s，年龄=%s。称谓规则：性别=男时可以称先生，性别=女时可以称女士；性别未知时不要猜测用户性别，不要使用先生或女士。",
+                    name,
+                    sex,
+                    age
+            );
+        } catch (Exception e) {
+            logger.warn("构建 AI 导诊用户资料上下文失败, userId={}, cause={}", userId, e.getMessage());
+            return "";
+        }
+    }
+
+    private String normalizePatientSex(String sex) {
+        if (!StringUtils.hasText(sex)) {
+            return "未知";
+        }
+        String normalized = sex.trim();
+        if ("男".equals(normalized) || "男性".equals(normalized) || "male".equalsIgnoreCase(normalized) || "m".equalsIgnoreCase(normalized)) {
+            return "男";
+        }
+        if ("女".equals(normalized) || "女性".equals(normalized) || "female".equalsIgnoreCase(normalized) || "f".equalsIgnoreCase(normalized)) {
+            return "女";
+        }
+        return "未知";
     }
 
     private Map<String, String> message(String role, String content) {

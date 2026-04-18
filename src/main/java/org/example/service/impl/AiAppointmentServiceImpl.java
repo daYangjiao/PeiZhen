@@ -134,6 +134,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                - 当 sessionMode=new_session 时，这是一次全新的独立预约会话，不能借用上一会话的医院、时间、症状、偏好或任何背景。
                - 当 sessionMode=continue_session 时，只能继续参考当前会话已经出现的历史消息和 currentStructuredDemand，不能扩展到其他窗口。
             1. patientName 由系统提供，不要向用户追问姓名。
+            1.1 patientSex 由系统提供。称谓必须按 patientTitleRule：男可称先生，女可称女士；未知或为空时不要猜测性别，不要使用先生/女士称谓。
             2. 所有字段必须基于用户已明确表达的信息，不能猜测结束时间、医院、症状或其他需求。
             3. 如果用户只说了一个时间点，例如“八点”或“早上九点”，绝不能自动补成 08:00-10:00 或 09:00-10:00，必须继续追问结束时间。
             4. 如果用户说的是“八点到十点”这类完整时段，可以提取为 serviceStartTime=08:00、serviceEndTime=10:00。
@@ -152,6 +153,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             目标字段：
             - hospital
             - patientProfile
+            - patientSex
             - serviceDate（YYYY-MM-DD）
             - serviceStartTime（HH:mm）
             - serviceEndTime（HH:mm）
@@ -256,10 +258,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         state.structuredDemand = new AiAppointmentStructuredDemand();
         state.structuredDemand.setRawDemandText(state.rawDemandText);
         mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
-        if (userId != null) {
-            User currentUser = userMapper.findById(userId);
-            state.structuredDemand.setPatientName(resolvePatientName(currentUser));
-        }
+        backfillCurrentUserProfile(state);
         normalizeStructuredDemandFields(state.structuredDemand);
         appendHistory(state.history, "user", state.rawDemandText);
         sessions.put(state.sessionId, state);
@@ -285,14 +284,47 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     }
 
     @Override
+    public AiAppointmentSessionResponse getSession(Integer userId, String sessionId) {
+        requireUserId(userId);
+        SessionState state = loadSessionState(sessionId);
+        if (state == null || !isOwnedBy(state, userId)) {
+            return null;
+        }
+        persistIfBackfilled(state);
+        return toResponse(state);
+    }
+
+    @Override
+    public AiAppointmentSessionResponse getLatestRestorableSession(Integer userId) {
+        requireUserId(userId);
+        AiAppointmentSessionRecord record = aiAppointmentSessionMapper.selectLatestRestorableByUserId(userId);
+        if (record == null || !StringUtils.hasText(record.getSessionId())) {
+            return null;
+        }
+        return getSession(userId, record.getSessionId());
+    }
+
+    @Override
     public AiAppointmentSessionResponse replySession(String sessionId, AiAppointmentReplyRequest request) {
         SessionState state = requireSession(sessionId);
+        return replySession(state, request);
+    }
+
+    @Override
+    public AiAppointmentSessionResponse replySession(Integer userId, String sessionId, AiAppointmentReplyRequest request) {
+        requireUserId(userId);
+        SessionState state = requireOwnedSession(userId, sessionId);
+        return replySession(state, request);
+    }
+
+    private AiAppointmentSessionResponse replySession(SessionState state, AiAppointmentReplyRequest request) {
         String replyText = request == null ? "" : normalize(request.getReplyText());
         String syntheticReply = buildSyntheticReplyText(request);
         String mergedReplyText = StringUtils.hasText(replyText) ? replyText : syntheticReply;
         synchronized (state) {
             mergeStructuredDemand(state.structuredDemand, request == null ? null : request.getStructuredDemand());
             mergeStructuredReply(state, request);
+            backfillCurrentUserProfile(state);
             normalizeStructuredDemandFields(state.structuredDemand);
             if (StringUtils.hasText(mergedReplyText)) {
                 state.rawDemandText = mergeDemandText(state.rawDemandText, mergedReplyText);
@@ -320,6 +352,17 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     @Override
     public AiAppointmentSessionResponse startMatch(String sessionId) {
         SessionState state = requireSession(sessionId);
+        return startMatch(state);
+    }
+
+    @Override
+    public AiAppointmentSessionResponse startMatch(Integer userId, String sessionId) {
+        requireUserId(userId);
+        SessionState state = requireOwnedSession(userId, sessionId);
+        return startMatch(state);
+    }
+
+    private AiAppointmentSessionResponse startMatch(SessionState state) {
         synchronized (state) {
             ensureReadyForMatch(state);
             state.status = STATUS_MATCHING;
@@ -370,6 +413,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             synchronized (state) {
                 state.processingPhase = PHASE_THINKING;
                 state.thinkingProcess = COLLECTING_MESSAGE;
+                persistIfBackfilled(state);
             }
             normalizeStructuredDemandFields(state.structuredDemand);
 
@@ -663,6 +707,60 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             return user.getName().trim();
         }
         return StringUtils.hasText(user.getPhone()) ? user.getPhone().trim() : "就诊人";
+    }
+
+    private String resolvePatientSex(User user) {
+        if (user == null) {
+            return "";
+        }
+        return normalizePatientSex(user.getSex());
+    }
+
+    private void persistIfBackfilled(SessionState state) {
+        if (backfillCurrentUserProfile(state)) {
+            saveSession(state);
+        }
+    }
+
+    private boolean backfillCurrentUserProfile(SessionState state) {
+        if (state == null || state.userId == null) {
+            return false;
+        }
+        if (state.structuredDemand == null) {
+            state.structuredDemand = new AiAppointmentStructuredDemand();
+        }
+        User currentUser = userMapper.findById(state.userId);
+        if (currentUser == null) {
+            return false;
+        }
+        boolean changed = false;
+        String patientName = resolvePatientName(currentUser);
+        if (StringUtils.hasText(patientName)
+                && !patientName.equals(defaultString(state.structuredDemand.getPatientName()))) {
+            state.structuredDemand.setPatientName(patientName);
+            changed = true;
+        }
+        String patientSex = resolvePatientSex(currentUser);
+        String existingSex = normalizePatientSex(state.structuredDemand.getPatientSex());
+        if (!patientSex.equals(existingSex)) {
+            state.structuredDemand.setPatientSex(patientSex);
+            changed = true;
+        }
+        return changed;
+    }
+
+    private String normalizePatientSex(String sex) {
+        if (!StringUtils.hasText(sex)) {
+            return "";
+        }
+        String normalized = sex.trim();
+        if ("男".equals(normalized) || "男性".equals(normalized) || "male".equalsIgnoreCase(normalized) || "m".equalsIgnoreCase(normalized)) {
+            return "男";
+        }
+        if ("女".equals(normalized) || "女性".equals(normalized) || "female".equalsIgnoreCase(normalized) || "f".equalsIgnoreCase(normalized)) {
+            return "女";
+        }
+        return "";
     }
 
     private String resolvePatientPhone(User user) {
@@ -1374,6 +1472,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         contextPayload.put("today", LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
         contextPayload.put("sessionMode", sessionMode);
         contextPayload.put("patientName", defaultString(state.structuredDemand.getPatientName()));
+        contextPayload.put("patientSex", defaultString(state.structuredDemand.getPatientSex()));
+        contextPayload.put("patientTitleRule", "男=先生，女=女士，未知或为空时不要使用先生/女士称谓");
         contextPayload.put("currentStructuredDemand", buildStructuredPromptPayload(state.structuredDemand));
         contextPayload.put("requiredFields", List.of("hospital", "serviceDate", "serviceStartTime", "serviceEndTime", "patientName", "symptomDescriptionOrScene"));
         contextPayload.put("currentMissingFields", collectMissingFields(state.structuredDemand));
@@ -1534,6 +1634,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("hospital", defaultString(demand.getHospital()));
         summary.put("patientName", defaultString(demand.getPatientName()));
+        summary.put("patientSex", defaultString(demand.getPatientSex()));
         summary.put("patientProfile", defaultString(demand.getPatientProfile()));
         summary.put("serviceDate", defaultString(demand.getServiceDate()));
         summary.put("serviceStartTime", defaultString(demand.getServiceStartTime()));
@@ -1591,6 +1692,9 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
         if (StringUtils.hasText(incoming.getPatientName())) {
             target.setPatientName(incoming.getPatientName().trim());
+        }
+        if (StringUtils.hasText(incoming.getPatientSex())) {
+            target.setPatientSex(normalizePatientSex(incoming.getPatientSex()));
         }
         if (StringUtils.hasText(incoming.getPatientProfile())) {
             target.setPatientProfile(incoming.getPatientProfile().trim());
@@ -1650,7 +1754,29 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         }
     }
 
+    private void requireUserId(Integer userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("请先登录");
+        }
+    }
+
     private SessionState requireSession(String sessionId) {
+        SessionState state = loadSessionState(sessionId);
+        if (state == null) {
+            throw new IllegalArgumentException("AI预约会话不存在");
+        }
+        return state;
+    }
+
+    private SessionState requireOwnedSession(Integer userId, String sessionId) {
+        SessionState state = requireSession(sessionId);
+        if (!isOwnedBy(state, userId)) {
+            throw new IllegalArgumentException("AI预约会话不存在");
+        }
+        return state;
+    }
+
+    private SessionState loadSessionState(String sessionId) {
         SessionState state = sessions.get(sessionId);
         if (state == null) {
             state = loadSessionFromDb(sessionId);
@@ -1658,10 +1784,11 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                 sessions.put(sessionId, state);
             }
         }
-        if (state == null) {
-            throw new IllegalArgumentException("AI预约会话不存在");
-        }
         return state;
+    }
+
+    private boolean isOwnedBy(SessionState state, Integer userId) {
+        return state != null && userId != null && userId.equals(state.userId);
     }
 
     private void markFailed(SessionState state, String message) {
@@ -2011,6 +2138,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("rawDemandText", defaultString(demand.getRawDemandText()));
         summary.put("patientName", defaultString(demand.getPatientName()));
+        summary.put("patientSex", defaultString(demand.getPatientSex()));
         summary.put("patientProfile", defaultString(demand.getPatientProfile()));
         summary.put("serviceDate", defaultString(demand.getServiceDate()));
         summary.put("timePeriod", defaultString(demand.getTimePeriod()));
@@ -2027,6 +2155,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
     private Map<String, Object> buildStructuredPromptPayload(AiAppointmentStructuredDemand demand) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("patientName", defaultString(demand.getPatientName()));
+        payload.put("patientSex", defaultString(demand.getPatientSex()));
+        payload.put("patientTitleRule", "男=先生，女=女士，未知或为空时不要使用先生/女士称谓");
         payload.put("patientProfile", defaultString(demand.getPatientProfile()));
         payload.put("timePeriod", defaultString(demand.getTimePeriod()));
         payload.put("serviceDate", defaultString(demand.getServiceDate()));
@@ -2049,6 +2179,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         mergeStructuredDemand(normalized, demand);
         normalized.setRawDemandText(defaultString(demand.getRawDemandText()));
         normalized.setPatientName(StringUtils.hasText(normalized.getPatientName()) ? normalized.getPatientName() : demand.getPatientName());
+        normalized.setPatientSex(StringUtils.hasText(normalized.getPatientSex()) ? normalized.getPatientSex() : normalizePatientSex(demand.getPatientSex()));
         if (!StringUtils.hasText(normalized.getHospital()) && StringUtils.hasText(demand.getHospital())) {
             normalized.setHospital(cleanupHospitalCandidate(demand.getHospital()));
         }
@@ -2058,6 +2189,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             normalized.setTimePeriod("具体时间");
         }
         demand.setPatientName(normalized.getPatientName());
+        demand.setPatientSex(normalized.getPatientSex());
         demand.setPatientProfile(normalized.getPatientProfile());
         demand.setServiceDate(normalized.getServiceDate());
         demand.setTimePeriod(normalized.getTimePeriod());
