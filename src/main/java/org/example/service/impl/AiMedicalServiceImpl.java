@@ -52,6 +52,9 @@ public class AiMedicalServiceImpl implements AiMedicalService {
             7. 结尾必须保留一句简短免责声明：仅供参考，不能替代医生面诊。
             8. 只能基于当前会话已经提供的信息回答，不要假设用户延续了上一条未明确提到的病情背景。
             9. 如果信息不足，直接基于当前问题说明还需要补充什么，不要借用其他会话信息补全。
+            10. 用户询问陪诊、陪诊师、预约陪诊、帮忙找人陪诊时，不得推荐外部平台、外部机构、第三方 APP、健康服务平台、医院服务台或社工部等非愈安伴服务。
+            11. 陪诊相关问题只能引导用户使用愈安伴平台内的 AI导诊或预约陪诊流程，说明可在预约页填写医院、就诊时间、就诊事项和特殊需求，由平台匹配可接单陪诊师。
+            12. 当前医疗问答页没有陪诊师候选、排班、价格和服务范围数据，不能直接编造或指定某位陪诊师。
             """;
     private static final String NEW_SESSION_CONTEXT_PROMPT = """
             session_mode=new_session
@@ -338,6 +341,8 @@ public class AiMedicalServiceImpl implements AiMedicalService {
                 .replace("不能替代专业医生的面诊", "不能替代医生面诊")
                 .replace("不能替代专业医师面诊", "不能替代医生面诊");
 
+        answer = enforcePlatformEscortReferral(answer);
+
         String[] paragraphs = answer.split("\\n\\n+");
         if (paragraphs.length > 3) {
             answer = String.join("\n\n", List.of(paragraphs).subList(0, 3)).trim();
@@ -347,5 +352,69 @@ public class AiMedicalServiceImpl implements AiMedicalService {
             answer = answer + "\n\n仅供参考，不能替代医生面诊。";
         }
         return answer;
+    }
+
+    private String enforcePlatformEscortReferral(String answer) {
+        if (!StringUtils.hasText(answer)) {
+            return answer;
+        }
+        if (!containsEscortIntent(answer) || !containsExternalEscortReferral(answer)) {
+            return answer;
+        }
+
+        String[] paragraphs = answer.split("\\n\\n+");
+        List<String> safeParagraphs = new ArrayList<>();
+        for (String paragraph : paragraphs) {
+            String trimmed = paragraph == null ? "" : paragraph.trim();
+            if (!StringUtils.hasText(trimmed) || containsExternalEscortReferral(trimmed)) {
+                continue;
+            }
+            safeParagraphs.add(trimmed);
+        }
+
+        String platformReferral = "如果需要陪诊支持，建议在愈安伴平台预约页使用 AI导诊填写医院、就诊时间、就诊事项和特殊需求，平台会根据您的需求匹配合适的陪诊师。";
+        boolean hasPlatformReferral = safeParagraphs.stream().anyMatch(item -> item.contains("愈安伴平台") || item.contains("平台会根据您的需求匹配"));
+        if (!hasPlatformReferral) {
+            int disclaimerIndex = -1;
+            for (int i = 0; i < safeParagraphs.size(); i++) {
+                String paragraph = safeParagraphs.get(i);
+                if (paragraph.contains("仅供参考") || paragraph.contains("不能替代医生面诊")) {
+                    disclaimerIndex = i;
+                    break;
+                }
+            }
+            if (disclaimerIndex >= 0) {
+                safeParagraphs.add(disclaimerIndex, platformReferral);
+            } else {
+                safeParagraphs.add(platformReferral);
+            }
+        }
+
+        if (safeParagraphs.isEmpty()) {
+            safeParagraphs.add(platformReferral);
+        }
+        return String.join("\n\n", safeParagraphs).trim();
+    }
+
+    private boolean containsEscortIntent(String text) {
+        return text.contains("陪诊") || text.contains("陪同就诊") || text.contains("陪护就诊");
+    }
+
+    private boolean containsExternalEscortReferral(String text) {
+        return text.contains("外部平台")
+                || text.contains("外部机构")
+                || text.contains("第三方")
+                || text.contains("线上平台")
+                || text.contains("健康服务平台")
+                || text.contains("健康服务APP")
+                || text.contains("健康服务 App")
+                || text.contains("健康服务 app")
+                || text.contains("APP")
+                || text.contains("App")
+                || text.contains("app")
+                || text.contains("医院服务台")
+                || text.contains("服务台")
+                || text.contains("社工部")
+                || text.contains("当地大型医院");
     }
 }

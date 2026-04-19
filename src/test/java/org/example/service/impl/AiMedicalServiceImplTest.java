@@ -158,4 +158,47 @@ class AiMedicalServiceImplTest {
                 .contains("不要猜测用户性别")
                 .contains("不要使用先生或女士");
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void buildMessagesShouldConstrainEscortQuestionsToPlatformServices() throws Exception {
+        AiMedicalServiceImpl service = new AiMedicalServiceImpl(aiMedicalQaMapper, deepSeekClient, userMapper);
+        AiMedicalQa currentRecord = new AiMedicalQa();
+        currentRecord.setId(203L);
+        currentRecord.setQuestion("可以给我推荐陪诊师吗");
+
+        Method method = AiMedicalServiceImpl.class.getDeclaredMethod("buildMessages", List.class, AiMedicalQa.class);
+        method.setAccessible(true);
+
+        List<Map<String, String>> messages = (List<Map<String, String>>) method.invoke(service, List.of(currentRecord), currentRecord);
+
+        assertThat(messages.get(0).get("content"))
+                .contains("不得推荐外部平台")
+                .contains("只能引导用户使用愈安伴平台内的 AI导诊或预约陪诊流程")
+                .contains("不能直接编造或指定某位陪诊师");
+    }
+
+    @Test
+    void formatMedicalAnswerShouldRewriteExternalEscortReferral() throws Exception {
+        AiMedicalServiceImpl service = new AiMedicalServiceImpl(aiMedicalQaMapper, deepSeekClient, userMapper);
+        Method method = AiMedicalServiceImpl.class.getDeclaredMethod("formatMedicalAnswer", String.class);
+        method.setAccessible(true);
+
+        String answer = (String) method.invoke(service, """
+                我无法直接推荐具体的陪诊师。
+
+                你可以联系当地大型医院的服务台或社工部，也可以在正规的线上平台或APP查找第三方服务机构。
+
+                仅供参考，不能替代医生面诊。
+                """);
+
+        assertThat(answer)
+                .contains("愈安伴平台")
+                .contains("预约页")
+                .contains("匹配合适的陪诊师")
+                .doesNotContain("第三方")
+                .doesNotContain("线上平台")
+                .doesNotContain("APP")
+                .doesNotContain("社工部");
+    }
 }

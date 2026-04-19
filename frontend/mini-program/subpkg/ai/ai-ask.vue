@@ -24,6 +24,14 @@
       <text class="disclaimer-text">免责声明：AI 回复仅供参考，不构成诊断、治疗或用药建议；如有不适请及时前往正规医疗机构就诊。</text>
     </view>
 
+    <view class="platform-referral" @click="goToAppointmentPage">
+      <view class="platform-referral-copy">
+        <text class="platform-referral-title">需要陪诊师协助？</text>
+        <text class="platform-referral-desc">前往预约页使用 AI导诊，填写医院、时间和需求后由平台匹配陪诊师。</text>
+      </view>
+      <text class="platform-referral-action">去预约</text>
+    </view>
+
     <scroll-view
       class="chat-scroll"
       scroll-y
@@ -202,6 +210,12 @@ const goBack = () => {
   }
   uni.switchTab({
     url: '/pages/role-user/home'
+  })
+}
+
+const goToAppointmentPage = () => {
+  uni.switchTab({
+    url: '/pages/ai-triage/01-appointment-selection'
   })
 }
 
@@ -540,6 +554,53 @@ onUnmounted(() => {
   font-size: 22rpx;
   line-height: 1.55;
   color: #9a6514;
+}
+
+.platform-referral {
+  margin: 0 24rpx 10rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  border: 1rpx solid #dce8fa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  box-shadow: 0 8rpx 22rpx rgba(31, 41, 55, 0.06);
+}
+
+.platform-referral-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.platform-referral-title {
+  font-size: 25rpx;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #1f3f6d;
+}
+
+.platform-referral-desc {
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #65758b;
+}
+
+.platform-referral-action {
+  flex-shrink: 0;
+  min-width: 104rpx;
+  height: 54rpx;
+  line-height: 54rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  background: #1d75f0;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .chat-scroll {
