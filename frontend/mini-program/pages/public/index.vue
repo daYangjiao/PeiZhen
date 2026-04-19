@@ -67,6 +67,7 @@ import { getRecommendedAttendants } from '@/api/attendant.js'
 import { appointmentServiceLogos, brandLogo } from '@/utils/assets.js'
 import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatRatingScore } from '@/utils/rating.js'
 
 const categories = ref([
   { name: '普通陪诊', icon: appointmentServiceLogos[1] },
@@ -97,6 +98,7 @@ const getCategoryDescription = (name) => {
 
 const decorateCompanion = (companion = {}) => ({
   ...companion,
+  score: formatRatingScore(companion.score),
   displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
 })
 

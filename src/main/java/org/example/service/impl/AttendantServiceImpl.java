@@ -80,7 +80,7 @@ public class AttendantServiceImpl implements AttendantService {
 
     @Override
     public Attendant findByUserId(Integer userId) {
-        return attendantMapper.findByUserId(userId);
+        return applyActualRating(attendantMapper.findByUserId(userId));
     }
 
     @Override
@@ -92,13 +92,13 @@ public class AttendantServiceImpl implements AttendantService {
     public List<Attendant> findRecommended() {
         // 简单实现：查找所有状态正常的陪诊师
         // 实际业务中可以根据评分、接单量等更复杂的逻辑来推荐
-        return attendantMapper.findRecommended();
+        return applyActualRating(attendantMapper.findRecommended());
     }
 
     @Override
     public List<Attendant> findAiCandidates(int limit) {
         int safeLimit = Math.max(3, Math.min(limit, 30));
-        return attendantMapper.findAiCandidates(safeLimit);
+        return applyActualRating(attendantMapper.findAiCandidates(safeLimit));
     }
 
     @Override
@@ -114,10 +114,10 @@ public class AttendantServiceImpl implements AttendantService {
         response.setPhone(user.getPhone());
         response.setAvatarUrl(user.getAvatar());
 
-        Attendant attendant = attendantMapper.findByUserId(userId);
+        Attendant attendant = applyActualRating(attendantMapper.findByUserId(userId));
         if (attendant != null) {
             response.setCertificate(attendant.getCertificate());
-            response.setScore(attendant.getScore());
+            response.setScore(attendant.getScore() == null ? 0D : attendant.getScore());
             response.setIntroduction(attendant.getIntroduction());
             response.setProfessionalField(attendant.getProfessionalField());
             response.setExperienceYears(attendant.getExperienceYears());
@@ -133,6 +133,7 @@ public class AttendantServiceImpl implements AttendantService {
                 );
             }
         } else {
+            response.setScore(0D);
             response.setQualificationStatusCode(0);
             response.setQualificationStatusText(mapQualificationStatusText(0));
         }
@@ -251,6 +252,26 @@ public class AttendantServiceImpl implements AttendantService {
             case 3 -> "审核失败";
             default -> "待审核";
         };
+    }
+
+    private List<Attendant> applyActualRating(List<Attendant> attendants) {
+        if (attendants == null || attendants.isEmpty()) {
+            return attendants;
+        }
+        attendants.forEach(this::applyActualRating);
+        return attendants;
+    }
+
+    private Attendant applyActualRating(Attendant attendant) {
+        if (attendant == null || attendant.getUserId() == null) {
+            return attendant;
+        }
+        attendant.setScore(normalizeRatingScore(orderEvaluationMapper.averageRatingByAttendantId(attendant.getUserId())));
+        return attendant;
+    }
+
+    private BigDecimal normalizeRatingScore(BigDecimal score) {
+        return (score == null ? BigDecimal.ZERO : score).setScale(1, RoundingMode.HALF_UP);
     }
 
     private boolean toBoolean(Integer flag) {

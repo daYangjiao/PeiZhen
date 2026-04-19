@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import org.example.model.Order;
 import org.example.model.request.OrderListQueryRequest;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Mapper
@@ -71,6 +72,19 @@ public interface OrderMapper {
      * 查询超过专属派单确认时限的订单
      */
     List<Order> findExpiredAssignedOrders(@Param("deadline") java.util.Date deadline);
+
+    /**
+     * 查询服务开始后仍未匹配成功的已支付订单
+     */
+    List<Order> findTimedOutUnmatchedOrders(@Param("now") java.util.Date now);
+
+    /**
+     * 将未匹配成功且已超时的订单关闭
+     */
+    int closeOrderAsTimeout(@Param("orderId") Integer orderId,
+                            @Param("reason") String reason,
+                            @Param("cancelTime") java.util.Date cancelTime,
+                            @Param("refundAmount") BigDecimal refundAmount);
 
     /**
      * 统计陪诊师今日已完成服务次数（按 service_date）

@@ -14,6 +14,7 @@ import org.example.model.response.SimpleOrderDetailResponse;
 import org.example.service.AiGuideService;
 import org.example.service.AttendantService;
 import org.example.service.OrderService;
+import org.example.util.OrderTimeoutCloseUtils;
 import org.example.unity.ServiceFeeCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,7 +196,7 @@ public class AiGuideServiceImpl implements AiGuideService {
         response.setOrderNo(order.getOrderNo());
         response.setOrderId(order.getOrderId()); // 补充 OrderId
         response.setOrderStatus(order.getOrderStatus());
-        response.setOrderStatusDesc(getOrderStatusDesc(order.getOrderStatus()));
+        response.setOrderStatusDesc(OrderTimeoutCloseUtils.resolveOrderStatusText(order));
         response.setPaymentStatus(order.getPaymentStatus());
         response.setPaymentStatusDesc(getOrderPaymentStatusDesc(order.getPaymentStatus()));
         response.setTotalPrice(order.getOrderAmount());
@@ -422,7 +423,7 @@ public class AiGuideServiceImpl implements AiGuideService {
                 info.setId(user.getId());
                 info.setName(user.getName());
                 info.setPhoto(user.getAvatar());
-                info.setScore(att.getScore() != null ? att.getScore().doubleValue() : 5.0);
+                info.setScore(att.getScore() != null ? att.getScore().doubleValue() : 0.0);
                 info.setExperienceYears(att.getExperienceYears());
                 info.setProfessionalField(att.getProfessionalField());
                 attendants.add(info);

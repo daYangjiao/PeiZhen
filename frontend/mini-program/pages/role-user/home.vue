@@ -148,6 +148,7 @@ import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
 import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatRatingScore } from '@/utils/rating.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const publicSafeMode = isPublicSafeMode()
@@ -449,6 +450,7 @@ const runCompanionAvatarDiagnostics = async (companion) => {
 const decorateCompanion = async (companion = {}) => {
   const normalized = {
     ...companion,
+    score: formatRatingScore(companion.score),
     displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar),
     avatarDiagnostic: {
       rawAvatar: companion.avatar || '',

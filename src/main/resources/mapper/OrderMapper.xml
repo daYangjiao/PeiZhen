@@ -90,6 +90,26 @@
         ORDER BY payment_time ASC
     </select>
 
+    <select id="findTimedOutUnmatchedOrders" resultMap="OrderResultMap">
+        SELECT *
+        FROM `order`
+        WHERE payment_status = 1
+          AND order_status IN (1, 8)
+          AND service_date IS NOT NULL
+          AND service_date != ''
+          AND service_time_slot IS NOT NULL
+          AND service_time_slot != ''
+          AND STR_TO_DATE(
+                CONCAT(
+                    service_date,
+                    ' ',
+                    TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))
+                ),
+                '%Y-%m-%d %H:%i'
+              ) <= #{now}
+        ORDER BY service_date ASC, service_time_slot ASC, create_time ASC
+    </select>
+
     <update id="updateByPrimaryKeySelective" parameterType="org.example.model.Order">
         UPDATE `order`
         <set>
@@ -256,6 +276,24 @@
             penalty_amount = NULL,
             refund_amount = NULL
         WHERE order_id = #{orderId}
+    </update>
+
+    <update id="closeOrderAsTimeout">
+        UPDATE `order`
+        SET order_status = 7,
+            attendant_id = NULL,
+            attendant_name = NULL,
+            qr_code_url = NULL,
+            accept_time = NULL,
+            cancel_reason = #{reason},
+            cancel_time = #{cancelTime},
+            cancel_by = 2,
+            penalty_rate = 0,
+            penalty_amount = 0,
+            refund_amount = #{refundAmount}
+        WHERE order_id = #{orderId}
+          AND payment_status = 1
+          AND order_status IN (1, 8)
     </update>
 
     <select id="countTodayCompletedService" resultType="int">

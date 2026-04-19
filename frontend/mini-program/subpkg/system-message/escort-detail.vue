@@ -79,6 +79,7 @@ let socketRefreshTimer = null
 let pageActive = false
 
 const getEscortOrderStatusText = (order = {}) => {
+  if (order?.orderStatusText) return order.orderStatusText
   const status = Number(order?.orderStatus)
   const map = {
     0: '待支付',

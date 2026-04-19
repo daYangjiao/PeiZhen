@@ -94,6 +94,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { defaultAvatar } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatRatingScore as formatScore } from '@/utils/rating.js'
 import { createAiAppointmentOrder, getAiAppointmentSession } from './api.js'
 
 const sessionId = ref('')
@@ -331,7 +332,6 @@ const stopPolling = () => {
 }
 
 const resolveAvatar = (url) => resolveAvatarUrl(url, defaultAvatar)
-const formatScore = (score) => Number(score || 5).toFixed(1)
 
 const hydrateSession = async (attempt = 0) => {
   stopPolling()

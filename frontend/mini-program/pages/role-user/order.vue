@@ -47,7 +47,7 @@
               <view class="order-header">
                 <text class="order-number">订单号: {{ order.orderNo }}</text>
                 <view class="status-badge" :class="getStatusClass(order.orderStatus)">
-                  <text class="status-text">{{ getStatusText(order.orderStatus) }}</text>
+                  <text class="status-text">{{ getStatusText(order) }}</text>
                 </view>
               </view>
 
@@ -79,13 +79,14 @@
                 </view>
                 <view class="attendant-wrapper" v-else>
                   <image class="doctor-avatar" src="/static/default-avatar.jpg" mode="aspectFill"></image>
-                  <text class="doctor-name text-gray">
+                  <text v-if="false" class="doctor-name text-gray">
                     {{
                       order.orderStatus === 7
                         ? '已取消'
                         : (order.paymentStatus === 0 ? '待支付' : '待分配')
                     }}
                   </text>
+                  <text v-else class="doctor-name text-gray">{{ getDoctorNamePlaceholder(order) }}</text>
                 </view>
 
                 <view class="action-buttons">
@@ -118,6 +119,7 @@ import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
+import { isTimeoutClosedOrder, TIMEOUT_CLOSE_STATUS_TEXT } from '@/utils/order-timeout.js'
 
 const statusBarHeight = ref(0)
 const searchKeyword = ref('')
@@ -317,7 +319,13 @@ const filteredOrders = computed(() => {
   })
 })
 
-const getStatusText = (status) => {
+const getStatusText = (orderOrStatus) => {
+  if (typeof orderOrStatus === 'object' && orderOrStatus !== null) {
+    if (orderOrStatus.orderStatusDesc) return orderOrStatus.orderStatusDesc
+    if (isTimeoutClosedOrder(orderOrStatus)) return TIMEOUT_CLOSE_STATUS_TEXT
+    return getStatusText(orderOrStatus.orderStatus)
+  }
+  const status = orderOrStatus
   const map = {
     0: '待支付',
     1: '待接单',
@@ -345,6 +353,14 @@ const getStatusClass = (status) => {
     7: 'status-cancelled'
   }
   return map[status] || 'status-default'
+}
+
+const getDoctorNamePlaceholder = (order) => {
+  if (!order) return '寰呭垎閰?'
+  if (Number(order.orderStatus) === 7) {
+    return getStatusText(order)
+  }
+  return Number(order.paymentStatus) === 0 ? '寰呮敮浠?' : '寰呭垎閰?'
 }
 
 
@@ -419,21 +435,31 @@ const extractOrderEventPayload = (message) => {
   return {
     orderId: Number(message.orderId || payload.orderId || 0),
     orderNo: String(message.orderNo || payload.orderNo || ''),
-    orderStatus: payload.orderStatus ?? message.orderStatus
+    orderStatus: payload.orderStatus ?? message.orderStatus,
+    reason: String(payload.reason ?? message.reason ?? '')
   }
 }
 
-const applyOrderStatusPatch = ({ orderId, orderNo, orderStatus }) => {
+const applyOrderStatusPatch = ({ orderId, orderNo, orderStatus, reason }) => {
   const nextStatus = Number(orderStatus)
   if (!Number.isFinite(nextStatus)) return
   orders.value = orders.value.map((order) => {
     const matchById = orderId && Number(order.orderId || 0) === orderId
     const matchByNo = orderNo && String(order.orderNo || '') === orderNo
     if (!matchById && !matchByNo) return order
-    if (Number(order.orderStatus) === nextStatus) return order
-    return {
+    const nextOrder = {
       ...order,
       orderStatus: nextStatus
+    }
+    if (reason) {
+      nextOrder.cancelReason = reason
+      if (nextStatus === 7 && reason.includes('超时未匹配到陪诊师')) {
+        nextOrder.orderStatusDesc = TIMEOUT_CLOSE_STATUS_TEXT
+      }
+    }
+    if (Number(order.orderStatus) === nextStatus && !reason) return order
+    return {
+      ...nextOrder
     }
   })
 }
