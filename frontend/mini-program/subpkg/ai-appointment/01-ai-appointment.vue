@@ -230,6 +230,22 @@
         </view>
       </view>
     </view>
+
+    <view v-if="showContinueSessionDialog" class="continue-session-overlay" @click="chooseContinueSession(false)">
+      <view class="continue-session-panel" @click.stop>
+        <view class="continue-session-mark">
+          <image class="continue-session-avatar" :src="AIAvatar" mode="aspectFill" />
+        </view>
+        <view class="continue-session-copy">
+          <text class="continue-session-title">继续上次AI导诊？</text>
+          <text class="continue-session-desc">检测到1小时内还有未完成的导诊请求，可以继续补充，也可以重新开始。</text>
+        </view>
+        <view class="continue-session-actions">
+          <button class="continue-session-secondary" @click="chooseContinueSession(false)">开始新会话</button>
+          <button class="continue-session-primary" @click="chooseContinueSession(true)">继续上次</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -292,8 +308,10 @@ const historyBoundaryCount = ref(0)
 const restoredHistoryMessages = ref([])
 const loadedFromQuerySession = ref(false)
 const manualNewSessionStarted = ref(false)
+const showContinueSessionDialog = ref(false)
 let pollTimer = null
 let matchingStageTimer = null
+let continueSessionResolver = null
 
 function createWelcomeMessage() {
   return {
@@ -838,6 +856,7 @@ const snapshotVisibleConversationAsHistory = () => {
 }
 
 const startNewSession = () => {
+  chooseContinueSession(false)
   snapshotVisibleConversationAsHistory()
   clearActiveSessionState({ keepHistory: true })
   introExpanded.value = true
@@ -1239,15 +1258,19 @@ const activateRestoredSession = async (state = {}) => {
 
 const promptContinueLatestSession = (overview = {}) => {
   return new Promise((resolve) => {
-    uni.showModal({
-      title: '继续上次AI导诊？',
-      content: '检测到1小时内还有未完成的AI导诊请求，是否继续补充并沿用上次上下文？',
-      confirmText: '继续',
-      cancelText: '新会话',
-      success: ({ confirm }) => resolve(!!confirm),
-      fail: () => resolve(false)
-    })
+    continueSessionResolver = resolve
+    showContinueSessionDialog.value = true
   })
+}
+
+const chooseContinueSession = (shouldContinue = false) => {
+  if (!showContinueSessionDialog.value && !continueSessionResolver) return
+  showContinueSessionDialog.value = false
+  const resolver = continueSessionResolver
+  continueSessionResolver = null
+  if (resolver) {
+    resolver(!!shouldContinue)
+  }
 }
 
 const restoreSessionConversation = async (targetSessionId = '', options = {}) => {
@@ -1591,6 +1614,7 @@ onShow(() => {
 })
 
 onUnmounted(() => {
+  chooseContinueSession(false)
   stopPolling()
   stopMatchDeadline()
   stopMatchingStageRotation()
@@ -2223,6 +2247,91 @@ onUnmounted(() => {
   border-top: 1rpx solid #eef3f8;
   background: rgba(255, 255, 255, 0.98);
   flex-shrink: 0;
+}
+
+.continue-session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  background: rgba(21, 36, 62, 0.34);
+  box-sizing: border-box;
+}
+
+.continue-session-panel {
+  width: 100%;
+  max-width: 640rpx;
+  padding: 36rpx 32rpx 30rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  box-shadow: 0 34rpx 80rpx rgba(25, 57, 113, 0.22);
+  box-sizing: border-box;
+}
+
+.continue-session-mark {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #dcecff 0%, #f6fbff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.continue-session-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 20rpx;
+}
+
+.continue-session-copy {
+  margin-top: 24rpx;
+}
+
+.continue-session-title {
+  display: block;
+  font-size: 34rpx;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #1f2f4d;
+}
+
+.continue-session-desc {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  line-height: 1.65;
+  color: #657691;
+}
+
+.continue-session-actions {
+  margin-top: 30rpx;
+  display: flex;
+  gap: 18rpx;
+}
+
+.continue-session-secondary,
+.continue-session-primary {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  line-height: 80rpx;
+}
+
+.continue-session-secondary {
+  background: #edf4ff;
+  color: #45669e;
+}
+
+.continue-session-primary {
+  background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
+  color: #ffffff;
+  box-shadow: 0 16rpx 30rpx rgba(63, 132, 255, 0.22);
 }
 
 .input-bar {

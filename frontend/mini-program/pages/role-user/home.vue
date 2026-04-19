@@ -31,19 +31,6 @@
       </view>
     </view>
 
-    <view class="ai-entry-section" v-if="!publicSafeMode">
-      <view class="ai-entry-card" @click="navigateToAiAppointment">
-        <view class="ai-entry-copy">
-          <text class="ai-entry-eyebrow">AI导诊</text>
-          <text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
-          <text class="ai-entry-desc">先说需求，AI 会自动追问关键细节，再帮您优先推荐更合适的人选。</text>
-        </view>
-        <view class="ai-entry-pill">
-          <text class="ai-entry-pill-text">立即体验</text>
-        </view>
-      </view>
-    </view>
-
     <view class="service-section">
       <view class="service-section-head">
         <text class="title-text">服务流程展示</text>
@@ -312,14 +299,6 @@ const navigateToAiAsk = () => {
   }
   if (suppressClick.value) return
   uni.navigateTo({ url: '/subpkg/ai/ai-ask' })
-}
-
-const navigateToAiAppointment = () => {
-  if (publicSafeMode) {
-    showPublicSafeNotice('当前网站主要提供服务介绍与流程参考')
-    return
-  }
-  uni.navigateTo({ url: '/subpkg/ai-appointment/01-ai-appointment' })
 }
 
 const navigateToAppointmentForm = () => {
@@ -618,54 +597,6 @@ if (typeof uni.onWindowResize === 'function') {
   padding: 40rpx 20rpx;
   border: 1rpx solid rgba(93, 156, 224, 0.08);
   box-shadow: 0 8rpx 20rpx rgba(21, 82, 140, 0.06);
-}
-.ai-entry-section {
-  margin: 24rpx 30rpx 0;
-}
-.ai-entry-card {
-  padding: 30rpx 28rpx;
-  border-radius: 30rpx;
-  background: linear-gradient(135deg, #ebf5ff 0%, #ffffff 100%);
-  box-shadow: 0 22rpx 44rpx rgba(56, 97, 173, 0.10);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24rpx;
-}
-.ai-entry-copy {
-  flex: 1;
-}
-.ai-entry-eyebrow {
-  display: block;
-  font-size: 22rpx;
-  font-weight: 700;
-  color: #4b6fb7;
-  letter-spacing: 2rpx;
-}
-.ai-entry-title {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #20324f;
-}
-.ai-entry-desc {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
-  color: #687998;
-}
-.ai-entry-pill {
-  flex-shrink: 0;
-  padding: 18rpx 24rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #3f84ff 0%, #6cb0ff 100%);
-}
-.ai-entry-pill-text {
-  color: #ffffff;
-  font-size: 24rpx;
-  font-weight: 700;
 }
 .category-grid {
   display: flex;
