@@ -1,18 +1,5 @@
 <template>
   <view class="order-page" :style="{ paddingTop: statusBarHeight + 'px' }">
-    <view class="header">
-      <view class="search-box">
-        <image class="search-icon" src="/static/sous.png"></image>
-        <input
-          class="search-input"
-          placeholder="搜索医院、科室或疾病"
-          v-model="searchKeyword"
-          @confirm="handleSearch"
-          confirm-type="search"
-        />
-      </view>
-    </view>
-
     <view class="content-wrapper">
       <view class="status-tabs">
         <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
@@ -120,7 +107,6 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 
 const statusBarHeight = ref(0)
-const searchKeyword = ref('')
 const clockNow = ref(Date.now())
 
 const statusTabs = ref([
@@ -277,8 +263,7 @@ const loadOrders = async ({ silent = false } = {}) => {
   try {
     const response = await get('/api/orders/user-orders', {
       page: 0,
-      pageSize: 100,
-      keyword: searchKeyword.value || undefined
+      pageSize: 100
     })
     if (response.code === 200 && response.data && response.data.content) {
       orders.value = (response.data.content || []).map((order) => ({
@@ -384,10 +369,6 @@ const handlePay = (order) => {
   })
 }
 
-const handleSearch = () => {
-  loadOrders({ silent: orders.value.length > 0 })
-}
-
 const stopPolling = () => {
   if (pollTimer) {
     clearInterval(pollTimer)
@@ -487,31 +468,6 @@ onUnmounted(() => {
   min-height: 100vh;
   background-color: #f5f7fa;
   padding-bottom: 40rpx;
-}
-.header {
-  padding: 20rpx 30rpx;
-  background-color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.search-box {
-  background-color: #f5f7fa;
-  border-radius: 40rpx;
-  padding: 16rpx 30rpx;
-  display: flex;
-  align-items: center;
-}
-.search-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 20rpx;
-  opacity: 0.5;
-}
-.search-input {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
 }
 .status-tabs {
   background-color: #fff;
