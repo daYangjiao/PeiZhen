@@ -141,9 +141,6 @@ function createEmptyStructuredDemand() {
   return {
     patientName: getCurrentUserName(),
     patientSex: getCurrentUserSex(),
-function createEmptyStructuredDemand() {
-  return {
-    patientName: getCurrentUserName(),
     patientProfile: '',
     hospital: '',
     serviceDate: '',
@@ -209,7 +206,6 @@ const sanitizeStructuredDemand = (payload = {}) => ({
 
 const getStructuredDemandStorageKey = (id = '') => {
   return id ? `ai_appointment_draft_${id}` : getUserScopedStorageKey(AI_APPOINTMENT_DRAFT_KEY)
-  return id ? `ai_appointment_draft_${id}` : AI_APPOINTMENT_DRAFT_KEY
 }
 
 const clearAiAppointmentCache = () => {
@@ -266,8 +262,7 @@ const restoreStructuredDemand = () => {
   try {
     const cached = sessionId.value
       ? uni.getStorageSync(getStructuredDemandStorageKey(sessionId.value))
-      : uni.getStorageSync(getStructuredDemandStorageKey())
-      : uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY)
+      : (uni.getStorageSync(getStructuredDemandStorageKey()) || uni.getStorageSync(AI_APPOINTMENT_DRAFT_KEY))
     if (cached && typeof cached === 'object') {
       structuredDemand.value = sanitizeStructuredDemand({ ...createEmptyStructuredDemand(), ...cached })
     }

@@ -123,7 +123,6 @@ import { brandAiAvatar, userPlaceholder } from '@/utils/assets.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { useUserStore } from '@/stores/user'
 import { getLatestMedicalConversation, getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
-import { getMedicalConversation, getMedicalQaRecord, submitMedicalQuestion } from './api.js'
 
 const AIAvatar = brandAiAvatar
 const userStore = useUserStore()

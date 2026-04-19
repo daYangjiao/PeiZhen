@@ -341,11 +341,11 @@ const getStatusClass = (status) => {
 }
 
 const getDoctorNamePlaceholder = (order) => {
-  if (!order) return '寰呭垎閰?'
+  if (!order) return '待分配'
   if (Number(order.orderStatus) === 7) {
     return getStatusText(order)
   }
-  return Number(order.paymentStatus) === 0 ? '寰呮敮浠?' : '寰呭垎閰?'
+  return Number(order.paymentStatus) === 0 ? '待支付' : '待分配'
 }
 
 
