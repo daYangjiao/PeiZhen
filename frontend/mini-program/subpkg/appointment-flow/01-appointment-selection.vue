@@ -11,6 +11,17 @@
 			</view>
 		</view>
 
+		<view class="ai-entry-card" @click="goToAiAppointment">
+			<view class="ai-entry-copy">
+				<text class="ai-entry-eyebrow">AI 帮我找</text>
+				<text class="ai-entry-title">智能匹配最懂您的陪诊师</text>
+				<text class="ai-entry-desc">如果您已经知道大致需求，可以先交给 AI 帮您筛人，再决定是否下单。</text>
+			</view>
+			<view class="ai-entry-action">
+				<text class="ai-entry-btn">立即体验</text>
+			</view>
+		</view>
+
 		<!-- 顶部标题 -->
 		<view class="header">
 			<text class="title">选择服务类型</text>

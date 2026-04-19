@@ -161,6 +161,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { getAttendantById, getAttendantPublicReviews } from '@/api/attendant.js'
 import { defaultAvatar } from '@/utils/assets.js'
 import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
+import { formatRatingScore, getRatingStarCount } from '@/utils/rating.js'
 
 const loading = ref(true)
 const loadError = ref('')
@@ -171,8 +172,8 @@ const reviewList = ref([])
 const defaultIntroduction = '该陪诊师已完成实名认证与资料补充，可提供院内陪诊、就诊流程协助与基础沟通支持。'
 
 const avatarUrl = computed(() => resolveAvatarUrl(profile.value.avatarUrl || '', defaultAvatar))
-const roundedScore = computed(() => Math.max(0, Math.min(5, Math.round(Number(profile.value.score || 0)))))
-const displayScore = computed(() => Number(profile.value.score || 0).toFixed(1))
+const roundedScore = computed(() => getRatingStarCount(profile.value.score))
+const displayScore = computed(() => formatRatingScore(profile.value.score))
 
 const specialtyTags = computed(() => {
   const raw = String(profile.value.professionalField || '')

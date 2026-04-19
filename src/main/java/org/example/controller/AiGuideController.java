@@ -12,8 +12,8 @@ import org.example.model.request.AiAppointmentSessionRequest;
 import org.example.model.request.AiAttendantMatchRequest;
 import org.example.model.request.CreateOrderRequest;
 import org.example.model.request.SimplePaymentRequest;
-import org.example.model.response.AiAppointmentSessionResponse;
 import org.example.model.response.AiAppointmentLatestOverviewResponse;
+import org.example.model.response.AiAppointmentSessionResponse;
 import org.example.model.response.AiAttendantMatchResponse;
 import org.example.model.response.AppointmentResponse;
 import org.example.model.response.AttendantMatchResponse;
@@ -130,7 +130,6 @@ public class AiGuideController {
         Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
         return ResponseEntity.ok(ResponseResult.success(aiAppointmentService.getLatestSessionOverview(currentUserId)));
     }
-
     @PostMapping("/ai-appointment/session/{sessionId}/reply")
     @ApiOperation(value = "回复 AI 预约追问", notes = "用户补充日期、时间、医院等信息，继续 AI 预约会话。")
     public ResponseEntity<ResponseResult<AiAppointmentSessionResponse>> replyAiAppointmentSession(

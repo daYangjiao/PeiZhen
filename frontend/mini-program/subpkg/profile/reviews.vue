@@ -93,6 +93,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { get, post } from '@/utils/api.js'
+import { formatRatingScore } from '@/utils/rating.js'
 
 const loading = ref(false)
 const submittingOrderId = ref(null)
@@ -105,9 +106,9 @@ const pendingCount = computed(() => reviews.value.filter((item) => !item.attenda
 const repliedCount = computed(() => reviews.value.filter((item) => !!item.attendantReply).length)
 
 const avgRating = computed(() => {
-  if (!reviews.value.length) return '0.0'
+  if (!reviews.value.length) return formatRatingScore(0)
   const sum = reviews.value.reduce((acc, item) => acc + Number(item.rating || 0), 0)
-  return (sum / reviews.value.length).toFixed(1)
+  return formatRatingScore(sum / reviews.value.length)
 })
 
 const filteredReviews = computed(() => {

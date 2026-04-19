@@ -22,6 +22,8 @@ public interface OrderService {
 
     String rejectAssignedOrder(Integer orderId, Integer attendantId, String reason);
 
+    String closeTimedOutUnmatchedOrder(Integer orderId);
+
     String startService(Integer orderId);
 
     String endService(Integer orderId, BigDecimal actualDuration);

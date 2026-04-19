@@ -13,6 +13,7 @@ import org.example.model.response.EscortSystemMessageDetailResponse;
 import org.example.service.ChatService;
 import org.example.service.OrderService;
 import org.example.util.AuthUtil;
+import org.example.util.OrderTimeoutCloseUtils;
 import org.springframework.web.bind.annotation.*;
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -157,7 +158,7 @@ public class ChatController {
         summary.setOrderId(order.getOrderId());
         summary.setOrderNo(order.getOrderNo());
         summary.setOrderStatus(order.getOrderStatus());
-        summary.setOrderStatusText(resolveOrderStatusText(order.getOrderStatus()));
+        summary.setOrderStatusText(OrderTimeoutCloseUtils.resolveOrderStatusText(order));
         summary.setHospital(order.getHospital());
         summary.setPatientName(order.getPatientName());
         summary.setServiceDate(order.getServiceDate());

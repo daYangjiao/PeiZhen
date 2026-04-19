@@ -243,7 +243,6 @@ public class AiMedicalServiceImpl implements AiMedicalService {
         }
         return "未知";
     }
-
     private Map<String, String> message(String role, String content) {
         Map<String, String> payload = new LinkedHashMap<>();
         payload.put("role", role);

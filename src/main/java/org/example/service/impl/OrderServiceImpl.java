@@ -13,6 +13,7 @@ import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
 import org.example.service.OrderService;
+import org.example.util.OrderTimeoutCloseUtils;
 import org.example.unity.ServiceFeeCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -237,6 +238,60 @@ try {
         publishOrderEvent(order, "ORDER_RELEASED_TO_HALL", releaseReason, null, true, false);
         broadcastWaitingOrderUpdate(order);
         return "订单已释放回接单大厅";
+    }
+
+    @Override
+    @Transactional
+    public String closeTimedOutUnmatchedOrder(Integer orderId) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) {
+            return "订单不存在";
+        }
+        if (order.getPaymentStatus() == null || order.getPaymentStatus() != 1) {
+            return "订单尚未支付";
+        }
+        if (order.getOrderStatus() == null || (order.getOrderStatus() != 1 && order.getOrderStatus() != 8)) {
+            return "当前订单无需超时关闭";
+        }
+
+        Date appointmentStart = parseAppointmentStartTime(order.getServiceDate(), order.getServiceTimeSlot());
+        Date now = new Date();
+        if (appointmentStart != null && now.before(appointmentStart)) {
+            return "服务时间未开始";
+        }
+
+        String timeoutMessage = OrderTimeoutCloseUtils.buildTimeoutCloseMessage(order);
+        BigDecimal refundAmount = order.getOrderAmount() == null ? BigDecimal.ZERO : order.getOrderAmount();
+        Integer previousAttendantId = order.getAttendantId();
+        String previousAttendantName = order.getAttendantName();
+
+        int rows = orderMapper.closeOrderAsTimeout(orderId, timeoutMessage, now, refundAmount);
+        if (rows <= 0) {
+            return "订单状态已更新";
+        }
+
+        order.setOrderStatus(7);
+        order.setCancelReason(timeoutMessage);
+        order.setCancelTime(now);
+        order.setCancelBy(2);
+        order.setPenaltyRate(BigDecimal.ZERO);
+        order.setPenaltyAmount(BigDecimal.ZERO);
+        order.setRefundAmount(refundAmount);
+        order.setQrCodeUrl(null);
+        order.setAcceptTime(null);
+        order.setAttendantId(previousAttendantId);
+        order.setAttendantName(previousAttendantName);
+
+        String attendantMessage = previousAttendantId != null
+                ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 已因服务开始前仍未完成接单而自动关闭。"
+                : null;
+        notifyOrderParties(order, timeoutMessage, attendantMessage);
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", timeoutMessage, null, true, previousAttendantId != null);
+
+        order.setAttendantId(null);
+        order.setAttendantName(null);
+        broadcastWaitingOrderUpdate(order);
+        return "订单已超时关闭";
     }
 
     private String generateQrCodeUrl(Integer orderId) {
@@ -644,7 +699,9 @@ try {
             res.setServiceTimeSlot(order.getServiceTimeSlot());
             res.setOrderAmount(order.getOrderAmount());
             res.setOrderStatus(order.getOrderStatus());
+            res.setOrderStatusDesc(OrderTimeoutCloseUtils.resolveOrderStatusText(order));
             res.setPaymentStatus(order.getPaymentStatus());
+            res.setPaymentStatusDesc(order.getPaymentStatus() != null && order.getPaymentStatus() == 1 ? "已支付" : "待支付");
             res.setServiceTypeName(order.getServiceContent());
             res.setCreateTime(order.getCreateTime());
             res.setAcceptTime(order.getAcceptTime());

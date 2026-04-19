@@ -25,7 +25,12 @@ public class OrderAssignTimeoutJob {
 
     @Scheduled(fixedDelay = 60_000)
     @Transactional
-    public void releaseExpiredAssignedOrders() {
+    public void handleAssignAndMatchTimeoutOrders() {
+        releaseExpiredAssignedOrders();
+        closeTimedOutUnmatchedOrders();
+    }
+
+    private void releaseExpiredAssignedOrders() {
         Date now = new Date();
         Date deadline = new Date(now.getTime() - 15 * 60 * 1000L);
         List<Order> expired = orderMapper.findExpiredAssignedOrders(deadline);
@@ -38,10 +43,30 @@ public class OrderAssignTimeoutJob {
                 if (order.getOrderStatus() == null || order.getOrderStatus() != 8 || order.getAttendantId() == null) {
                     continue;
                 }
-                String result = orderService.rejectAssignedOrder(order.getOrderId(), order.getAttendantId(), "指定陪诊师超时未确认，订单已转入公共派单");
-                log.info("超时释放专属派单, orderId={}, orderNo={}, result={}", order.getOrderId(), order.getOrderNo(), result);
+                String result = orderService.rejectAssignedOrder(order.getOrderId(), order.getAttendantId(),
+                        "指定陪诊师超时未确认，订单已转入公共派单");
+                log.info("超时释放专属派单, orderId={}, orderNo={}, result={}",
+                        order.getOrderId(), order.getOrderNo(), result);
             } catch (Exception e) {
                 log.error("超时释放专属派单失败, orderId={}", order.getOrderId(), e);
+            }
+        }
+    }
+
+    private void closeTimedOutUnmatchedOrders() {
+        Date now = new Date();
+        List<Order> timedOutOrders = orderMapper.findTimedOutUnmatchedOrders(now);
+        if (timedOutOrders == null || timedOutOrders.isEmpty()) {
+            return;
+        }
+
+        for (Order order : timedOutOrders) {
+            try {
+                String result = orderService.closeTimedOutUnmatchedOrder(order.getOrderId());
+                log.info("未匹配订单超时关闭处理完成, orderId={}, orderNo={}, result={}",
+                        order.getOrderId(), order.getOrderNo(), result);
+            } catch (Exception e) {
+                log.error("未匹配订单超时关闭失败, orderId={}", order.getOrderId(), e);
             }
         }
     }

@@ -19,7 +19,6 @@ public class AiAppointmentStructuredDemand {
 
     @ApiModelProperty(value = "就诊人性别", example = "女")
     private String patientSex;
-
     @ApiModelProperty(value = "服务日期", example = "2026-04-16")
     private String serviceDate;
 

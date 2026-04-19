@@ -126,7 +126,7 @@
         </view>
         <view class="rating">
           <text class="star">⭐</text>
-          <text class="score">{{ order.attendantScore || 5 }}</text>
+          <text class="score">{{ formatRatingScore(order.attendantScore) }}</text>
         </view>
       </view>
       <text class="companion-entry-arrow">›</text>
@@ -142,6 +142,12 @@
       <view class="companion-details">
         <text class="name">待支付</text>
         <text class="desc">请尽快完成支付以确认订单</text>
+      </view>
+    </view>
+    <view class="companion-info" v-else-if="timeoutClosedOrder">
+      <view class="companion-details">
+        <text class="name">订单已超时关闭</text>
+        <text class="desc timeout-close-text">{{ getTimeoutClosedMessage(order) }}</text>
       </view>
     </view>
     <view class="companion-info" v-else-if="order.orderStatus === 7">
@@ -172,7 +178,10 @@
     </view>
 
     <!-- 取消信息 -->
-    <view class="payment-info" v-if="order.orderStatus === 7">
+    <view class="payment-info" v-if="timeoutClosedOrder">
+      <text class="timeout-close-message">{{ getTimeoutClosedMessage(order) }}</text>
+    </view>
+    <view class="payment-info" v-else-if="order.orderStatus === 7">
       <view class="payment-row">
         <text class="label">取消原因</text>
         <text class="value">{{ order.cancelReason || '未填写' }}</text>
@@ -505,7 +514,9 @@ import { userPlaceholder } from '@/utils/assets.js';
 import { navigateToAttendantDetail } from '@/utils/attendant-detail.js';
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
+import { formatRatingScore } from '@/utils/rating.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
+import { getTimeoutClosedMessage, isTimeoutClosedOrder, TIMEOUT_CLOSE_STATUS_TEXT } from '@/utils/order-timeout.js'
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -554,6 +565,8 @@ const showAssignedCountdown = computed(() => {
     Number(order.value.orderStatus) === 8
   );
 });
+
+const timeoutClosedOrder = computed(() => isTimeoutClosedOrder(order.value));
 
 // 计算属性
 const showQRCode = computed(() => {
@@ -928,6 +941,12 @@ const serviceSteps = computed(() => {
 
 // 状态文本映射
 const getOrderStatusText = (order) => {
+  if (order?.orderStatusDesc) {
+    return order.orderStatusDesc;
+  }
+  if (isTimeoutClosedOrder(order)) {
+    return TIMEOUT_CLOSE_STATUS_TEXT;
+  }
   if (!order) return '未知状态';
 
   if (order.paymentStatus === 0 && order.orderStatus !== 7) {
@@ -1554,6 +1573,19 @@ const applyOrderEventPatch = (payload = {}, messageType = '') => {
     setupAssignedCountdown();
   }
 
+  if (typeof payload.reason === 'string' && payload.reason.trim()) {
+    order.value = {
+      ...order.value,
+      cancelReason: payload.reason
+    };
+    if (nextStatus === 7 && payload.reason.includes('超时未匹配到陪诊师')) {
+      order.value = {
+        ...order.value,
+        orderStatusDesc: TIMEOUT_CLOSE_STATUS_TEXT
+      };
+    }
+  }
+
   const nextStep = Number(payload.step);
   const normalizedType = String(messageType || '').toUpperCase();
   if (Number.isFinite(nextStep) && nextStep >= 1 && nextStep <= 4) {
@@ -1598,11 +1630,16 @@ const handleSocketMessage = (message) => {
 
   applyOrderEventPatch({
     orderStatus: payload.orderStatus ?? message.orderStatus,
-    step: payload.step ?? message.step
+    step: payload.step ?? message.step,
+    reason: payload.reason ?? message.reason
   }, messageType);
 
   if (String(messageType).toUpperCase() === 'ORDER_RELEASED_BY_ATTENDANT') {
     uni.showToast({ title: '订单已重新进入接单大厅，将为您重新匹配陪诊师', icon: 'none', duration: 2500 });
+  }
+
+  if (typeof payload.reason === 'string' && payload.reason.includes('超时未匹配到陪诊师')) {
+    uni.showToast({ title: '订单已超时关闭', icon: 'none', duration: 2500 });
   }
 
   scheduleOrderRefresh();
@@ -2332,6 +2369,11 @@ onUnmounted(() => {
   margin-top: 4rpx;
 }
 
+.companion-details .timeout-close-text {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
 .companion-details .release-hint {
   font-size: 22rpx;
   color: #999;
@@ -2395,6 +2437,14 @@ onUnmounted(() => {
   padding: 32rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.timeout-close-message {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.8;
+  white-space: pre-wrap;
 }
 
 .payment-row {

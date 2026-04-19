@@ -73,13 +73,9 @@ public class OrderEvaluationServiceImpl implements OrderEvaluationService {
         }
 
         BigDecimal averageRating = evaluationMapper.averageRatingByAttendantId(attendantId);
-        if (averageRating == null) {
-            return;
-        }
-
         Attendant attendant = new Attendant();
         attendant.setUserId(attendantId);
-        attendant.setScore(averageRating.setScale(1, RoundingMode.HALF_UP));
+        attendant.setScore((averageRating == null ? BigDecimal.ZERO : averageRating).setScale(1, RoundingMode.HALF_UP));
         attendantMapper.update(attendant);
     }
 }
