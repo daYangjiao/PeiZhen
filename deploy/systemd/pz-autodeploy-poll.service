@@ -1,0 +1,12 @@
+[Unit]
+Description=PZ Gitee FF Autodeploy Poll
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ops
+Group=ops
+WorkingDirectory=/opt/pz-autodeploy
+EnvironmentFile=/etc/pz-autodeploy/autodeploy.env
+ExecStart=/usr/bin/python3 /opt/pz-autodeploy/poll/poll_deploy.py

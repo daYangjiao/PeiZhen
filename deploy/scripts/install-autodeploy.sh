@@ -14,6 +14,8 @@ AUTODEPLOY_ROOT="${AUTODEPLOY_ROOT:-/opt/pz-autodeploy}"
 ENV_DIR="${ENV_DIR:-/etc/pz-autodeploy}"
 ENV_FILE="${ENV_FILE:-${ENV_DIR}/autodeploy.env}"
 SERVICE_FILE="/etc/systemd/system/pz-autodeploy-webhook.service"
+POLL_SERVICE_FILE="/etc/systemd/system/pz-autodeploy-poll.service"
+POLL_TIMER_FILE="/etc/systemd/system/pz-autodeploy-poll.timer"
 NGINX_SITE="/etc/nginx/sites-available/pz-mini.conf"
 
 install_node20() {
@@ -82,12 +84,14 @@ PY
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}"
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}/bin"
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}/webhook"
+install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}/poll"
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}/source"
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${AUTODEPLOY_ROOT}/wgt-release"
 install -d -o "${OPS_USER}" -g "${OPS_USER}" /var/log/pz-autodeploy
 
 install -m 0755 "${PROJECT_ROOT}/deploy/scripts/autodeploy-run.sh" "${AUTODEPLOY_ROOT}/bin/autodeploy-run.sh"
 install -m 0644 "${PROJECT_ROOT}/deploy/autodeploy/webhook_server.py" "${AUTODEPLOY_ROOT}/webhook/webhook_server.py"
+install -m 0755 "${PROJECT_ROOT}/deploy/autodeploy/poll_deploy.py" "${AUTODEPLOY_ROOT}/poll/poll_deploy.py"
 
 install -d -o "${OPS_USER}" -g "${OPS_USER}" "${ENV_DIR}"
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -104,6 +108,8 @@ install_node20
 install_hbuilderx
 
 install -m 0644 "${PROJECT_ROOT}/deploy/systemd/pz-autodeploy-webhook.service" "${SERVICE_FILE}"
+install -m 0644 "${PROJECT_ROOT}/deploy/systemd/pz-autodeploy-poll.service" "${POLL_SERVICE_FILE}"
+install -m 0644 "${PROJECT_ROOT}/deploy/systemd/pz-autodeploy-poll.timer" "${POLL_TIMER_FILE}"
 install -m 0644 "${PROJECT_ROOT}/deploy/nginx/pz-mini.conf" "${NGINX_SITE}"
 ln -sf "${NGINX_SITE}" /etc/nginx/sites-enabled/pz-mini.conf
 rm -f /etc/nginx/sites-enabled/default
@@ -113,7 +119,9 @@ systemctl reload nginx
 systemctl daemon-reload
 systemctl enable --now pz-autodeploy-webhook.service
 systemctl restart pz-autodeploy-webhook.service
+systemctl enable --now pz-autodeploy-poll.timer
 
 echo "Autodeploy webhook installed."
 echo "Gitee WebHook URL: http://<server>/gitee-webhook"
 echo "Token is in ${ENV_FILE}."
+echo "Autodeploy poll timer installed: pz-autodeploy-poll.timer"

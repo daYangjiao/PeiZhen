@@ -57,9 +57,9 @@ bash deploy/scripts/publish-backend.sh
 bash deploy/scripts/publish-all.sh
 ```
 
-Gitee push-to-deploy:
+Gitee auto deploy:
 
-1. On the server, install the WebHook service:
+1. On the server, install the WebHook and poll services:
 
 ```bash
 sudo bash deploy/scripts/install-autodeploy.sh
@@ -73,7 +73,7 @@ sudo -u ops vim /etc/pz-autodeploy/autodeploy.env
 
 Set `HBUILDERX_USERNAME` and `HBUILDERX_PASSWORD`. `HBUILDERX_DOWNLOAD_URL` can stay blank; the installer resolves the current Linux package from DCloud release metadata. Keep the file mode `600`; the installer enforces this.
 
-3. Add a Gitee WebHook:
+3. Preferred if you have repository admin permission: add a Gitee WebHook:
 
 ```text
 URL: http://101.245.94.141/gitee-webhook
@@ -81,10 +81,15 @@ Password/Token: value of GITEE_WEBHOOK_TOKEN in /etc/pz-autodeploy/autodeploy.en
 Events: Push
 ```
 
+If you do not have Gitee repository admin permission, skip the WebHook. The
+installer also enables `pz-autodeploy-poll.timer`, which checks Gitee `FF` once
+per minute with `git ls-remote` and deploys only when the commit changes.
+
 Behavior:
 
 - Only pushes to `FF` deploy production.
 - Pushes to `main` or `master` are acknowledged and ignored.
+- Without WebHook access, the server polls `FF` every minute; unchanged commits do not build.
 - A deployment lock prevents overlapping deploys.
 - Backend and H5/admin publish first. WGT publishes last.
 - WGT uses Linux HBuilderX CLI with `publish app --type wgt --project <absolute project path>`.
@@ -103,6 +108,8 @@ Validate automatic deployment:
 
 ```bash
 systemctl status pz-autodeploy-webhook --no-pager
+systemctl status pz-autodeploy-poll.timer --no-pager
+systemctl list-timers pz-autodeploy-poll.timer --no-pager
 curl -s http://127.0.0.1:9017/gitee-webhook/healthz
 cat /var/lib/pz-deploy/releases/backend-release.env
 cat /var/lib/pz-deploy/releases/frontend-release.env
