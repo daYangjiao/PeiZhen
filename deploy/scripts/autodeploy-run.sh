@@ -292,7 +292,10 @@ fi
 publish_wgt_metadata "${WGT_FILE}" "${APP_VERSION}" "${APP_VERSION_CODE}" "${WGT_VERSION}" "${WGT_NAME}"
 write_wgt_release_metadata "${WGT_FILE}" "${WGT_VERSION}"
 
-curl -fsS -o /dev/null "http://127.0.0.1:8080/api/app-upgrade/check" || true
+curl -fsS -o /dev/null \
+  -H "Content-Type: application/json" \
+  --data '{"platform":"android","appVersion":"0.0.0","appVersionCode":0,"wgtVersion":"health-check"}' \
+  "http://127.0.0.1:8080/api/app-upgrade/check" || true
 curl -fsS -o /dev/null "${WEB_HEALTH_URL:-http://127.0.0.1/}"
 
 log "Autodeploy complete commit=${RELEASE_GIT_SHORT_COMMIT} wgt=${WGT_VERSION}"
