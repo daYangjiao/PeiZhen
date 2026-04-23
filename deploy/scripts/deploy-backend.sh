@@ -35,6 +35,24 @@ if ! grep -q '^JWT_SECRET=' "${ENV_FILE}"; then
   echo "Warning: JWT_SECRET is not set in ${ENV_FILE}. Production should provide a stable secret." >&2
 fi
 
+set -a
+# shellcheck disable=SC1090
+source "${ENV_FILE}"
+set +a
+
+DB_NAME="$(
+  printf '%s' "${DB_URL:-}" \
+    | sed -nE 's#^jdbc:mysql://[^/]+/([^?]+).*$#\1#p'
+)"
+DB_NAME="${DB_NAME:-student}"
+if [[ -f database/sys_admin_role.sql ]]; then
+  MYSQL_ARGS=(-u"${DB_USERNAME:-root}")
+  if [[ -n "${DB_PASSWORD:-}" ]]; then
+    MYSQL_ARGS+=(-p"${DB_PASSWORD}")
+  fi
+  mysql "${MYSQL_ARGS[@]}" "${DB_NAME}" < database/sys_admin_role.sql
+fi
+
 install -m 0644 deploy/systemd/pz-app.service "${SERVICE_FILE}"
 systemctl daemon-reload
 systemctl enable --now "${SERVICE_NAME}"

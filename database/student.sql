@@ -34,6 +34,7 @@ CREATE TABLE `sys_admin` (
   `phone` varchar(20) NOT NULL,
   `password` varchar(100) NOT NULL,
   `status` tinyint NOT NULL DEFAULT 1,
+  `role` varchar(20) NOT NULL DEFAULT 'ADMIN',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `last_login_time` datetime DEFAULT NULL,
@@ -267,8 +268,8 @@ INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `
   (2, '123456', 'Test User', '13800000001', 'female', 26, '/static/uploads/user-avatar.jpg', 0, 1, NULL, NOW()),
   (3, '123456', 'Test Attendant', '13800000002', 'female', 32, '/static/uploads/user-avatar.jpg', 1, 1, NULL, NOW());
 
-INSERT INTO `sys_admin` (`id`, `name`, `phone`, `password`, `status`, `create_time`, `update_time`, `last_login_time`) VALUES
-  (1, '本地管理员', '13800000000', 'admin123', 1, NOW(), NOW(), NULL);
+INSERT INTO `sys_admin` (`id`, `name`, `phone`, `password`, `status`, `role`, `create_time`, `update_time`, `last_login_time`) VALUES
+  (1, '本地管理员', '13800000000', 'admin123', 1, 'SUPER_ADMIN', NOW(), NOW(), NULL);
 
 INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `service_count`, `create_time`, `update_time`) VALUES
   (3, 'CERT-20260325-001', 1, '', 'Experienced hospital escort with qualification review completed.', 'Registration, consultation, examination', 5.0, 6, 'Fujian Union Hospital', 12, NOW(), NOW());

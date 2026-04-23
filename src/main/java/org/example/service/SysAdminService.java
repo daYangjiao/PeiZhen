@@ -9,7 +9,7 @@ public interface SysAdminService {
 
     AdminLoginResponse login(String account, String password);
 
-    PagedResponse<SysAdmin> getAdmins(String keyword, Integer status, Integer page, Integer pageSize);
+    PagedResponse<SysAdmin> getAdmins(Integer operatorId, String keyword, Integer status, Integer page, Integer pageSize);
 
     SysAdmin createAdmin(Integer operatorId, AdminCreateSysAdminRequest request);
 

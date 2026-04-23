@@ -37,17 +37,18 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th class="id-cell">ID</th>
                   <th>管理员信息</th>
-                  <th>状态</th>
-                  <th>创建时间</th>
-                  <th>最近登录</th>
-                  <th>操作</th>
+                  <th class="status-cell">状态</th>
+                  <th class="status-cell">账号类型</th>
+                  <th class="time-cell">创建时间</th>
+                  <th class="time-cell">最近登录</th>
+                  <th class="actions-cell">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="admin in admins" :key="admin.id || admin.phone || admin.account">
-                  <td>{{ admin.id ?? '-' }}</td>
+                  <td class="id-cell">{{ admin.id ?? '-' }}</td>
                   <td>
                     <p class="table-cell-title">{{ admin.name || '未命名管理员' }}</p>
                     <p class="table-cell-copy">
@@ -55,10 +56,11 @@
                       <span v-if="admin.account"> / {{ admin.account }}</span>
                     </p>
                   </td>
-                  <td><span class="badge" :class="getUserStatusBadge(admin.status)">{{ getStatusLabel(admin.status) }}</span></td>
-                  <td>{{ formatDateTime(admin.createTime) }}</td>
-                  <td>{{ formatDateTime(admin.lastLoginTime) }}</td>
-                  <td>
+                  <td class="status-cell"><span class="badge" :class="getUserStatusBadge(admin.status)">{{ getStatusLabel(admin.status) }}</span></td>
+                  <td class="status-cell"><span class="badge badge-blue">{{ getRoleLabel(admin.role) }}</span></td>
+                  <td class="time-cell">{{ formatDateTime(admin.createTime) }}</td>
+                  <td class="time-cell">{{ formatDateTime(admin.lastLoginTime) }}</td>
+                  <td class="actions-cell">
                     <div class="table-actions">
                       <button
                         class="button"
@@ -112,6 +114,13 @@
         <label class="login-field">
           <span>初始密码</span>
           <input v-model.trim="createForm.password" class="field" type="password" placeholder="请输入初始密码（至少 6 位）" />
+        </label>
+        <label class="login-field">
+          <span>账号类型</span>
+          <select v-model="createForm.role" class="field">
+            <option value="ADMIN">管理员</option>
+            <option value="SUPER_ADMIN">超级管理员</option>
+          </select>
         </label>
       </div>
 
@@ -176,7 +185,8 @@ const createLoading = ref(false)
 const createForm = reactive({
   name: '',
   phone: '',
-  password: ''
+  password: '',
+  role: 'ADMIN'
 })
 
 const statusDialogOpen = ref(false)
@@ -190,6 +200,7 @@ const currentAdminIdentity = computed(() => ({
 }))
 
 const getStatusLabel = (status) => (Number(status) === 1 ? '正常' : '禁用')
+const getRoleLabel = (role) => (role === 'SUPER_ADMIN' ? '超级管理员' : '管理员')
 
 const normalizeAdmin = (item) => ({
   ...item,
@@ -198,6 +209,7 @@ const normalizeAdmin = (item) => ({
   phone: item.phone || item.mobile || '',
   account: item.account || item.username || '',
   status: Number(item.status ?? 1),
+  role: item.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
   createTime: item.createTime || item.createdAt || item.gmtCreate || '',
   lastLoginTime: item.lastLoginTime || item.lastLoginAt || item.loginTime || ''
 })
@@ -264,6 +276,7 @@ const openCreateDialog = () => {
   createForm.name = ''
   createForm.phone = ''
   createForm.password = ''
+  createForm.role = 'ADMIN'
   createDialogOpen.value = true
 }
 
@@ -282,7 +295,8 @@ const submitCreateAdmin = async () => {
     await createAdminUser({
       name: createForm.name,
       phone: createForm.phone,
-      password: createForm.password
+      password: createForm.password,
+      role: createForm.role
     })
     uiStore.toast('管理员创建成功', 'success')
     createDialogOpen.value = false

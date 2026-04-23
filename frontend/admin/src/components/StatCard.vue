@@ -40,7 +40,7 @@ const badgeClass = computed(() => `tone-${props.tone}`)
 
 <style scoped>
 .overview-card {
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px;
   min-height: 108px;
 }

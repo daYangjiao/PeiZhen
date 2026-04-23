@@ -15,9 +15,9 @@
   --warning: #eb8d18;
   --danger: #e45555;
   --shadow: 0 10px 28px rgba(33, 71, 126, 0.07);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --sidebar-width: 248px;
 }
 
@@ -89,7 +89,7 @@ img {
 .brand-badge {
   width: 42px;
   height: 42px;
-  border-radius: 8px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.16);
@@ -163,11 +163,15 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
-  padding: 0 10px;
+  min-width: 68px;
+  min-height: 30px;
+  padding: 0 14px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .admin-main {
@@ -193,7 +197,7 @@ img {
 .topbar-avatar {
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   color: #fff;
@@ -338,7 +342,7 @@ img {
 .filter-textarea {
   min-height: 42px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   background: #fff;
   color: var(--text);
@@ -366,9 +370,10 @@ img {
 .button {
   min-height: 38px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0 14px;
   font-weight: 600;
+  white-space: nowrap;
   transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
 }
 
@@ -424,7 +429,7 @@ img {
   padding: 12px 14px;
   border-bottom: 1px solid rgba(220, 232, 251, 0.8);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .table th {
@@ -455,10 +460,32 @@ img {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
 }
 
 .table-actions .button {
   min-height: 34px;
+  padding: 0 14px;
+}
+
+.status-cell {
+  width: 96px;
+}
+
+.payment-cell {
+  width: 96px;
+}
+
+.actions-cell {
+  width: 178px;
+}
+
+.time-cell {
+  width: 150px;
+}
+
+.id-cell {
+  width: 78px;
 }
 
 .pagination {
@@ -596,7 +623,7 @@ img {
   width: 100%;
   min-height: 132px;
   border: 1px solid rgba(184, 208, 246, 0.72);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: #fff;
   padding: 0;
   overflow: hidden;
@@ -610,7 +637,7 @@ img {
 
 .qualification-thumb-placeholder {
   min-height: 132px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px dashed rgba(184, 208, 246, 0.9);
   background: rgba(255, 255, 255, 0.82);
   color: var(--text-muted);
@@ -725,7 +752,7 @@ img {
   background: rgba(107, 122, 150, 0.1);
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 22px;
   line-height: 1;
 }
@@ -754,7 +781,7 @@ img {
   min-width: 260px;
   max-width: 360px;
   padding: 14px 16px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   gap: 10px;

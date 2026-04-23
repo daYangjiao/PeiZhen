@@ -19,6 +19,8 @@ public class SysAdmin {
 
     private Integer status;
 
+    private String role;
+
     private Date createTime;
 
     private Date updateTime;

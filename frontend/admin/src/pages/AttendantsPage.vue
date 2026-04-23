@@ -37,21 +37,21 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th class="id-cell">ID</th>
                   <th>陪诊师</th>
                   <th>常驻医院</th>
                   <th>擅长领域</th>
                   <th>评分 / 年限</th>
-                  <th>审核状态</th>
-                  <th>账号状态</th>
+                  <th class="status-cell">审核状态</th>
+                  <th class="status-cell">账号状态</th>
                   <th>服务单量</th>
-                  <th>更新时间</th>
-                  <th>操作</th>
+                  <th class="time-cell">更新时间</th>
+                  <th class="actions-cell">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="item in attendants" :key="item.id">
-                  <td>{{ item.id }}</td>
+                  <td class="id-cell">{{ item.id }}</td>
                   <td>
                     <p class="table-cell-title">{{ item.name || '未命名陪诊师' }}</p>
                     <p class="table-cell-copy">{{ item.phone || '-' }}</p>
@@ -59,11 +59,11 @@
                   <td>{{ item.hospitalName || '-' }}</td>
                   <td>{{ item.professionalField || '-' }}</td>
                   <td>{{ item.score ?? '-' }} / {{ item.experienceYears || 0 }} 年</td>
-                  <td><span class="badge" :class="getAttendantStatusBadge(item.status)">{{ getAttendantStatusLabel(item.status, item.statusLabel || '--') }}</span></td>
-                  <td><span class="badge" :class="getUserStatusBadge(item.userStatus)">{{ getUserStatusLabel(item.userStatus, item.userStatusLabel || '--') }}</span></td>
+                  <td class="status-cell"><span class="badge" :class="getAttendantStatusBadge(item.status)">{{ getAttendantStatusLabel(item.status, item.statusLabel || '--') }}</span></td>
+                  <td class="status-cell"><span class="badge" :class="getUserStatusBadge(item.userStatus)">{{ getUserStatusLabel(item.userStatus, item.userStatusLabel || '--') }}</span></td>
                   <td>{{ item.serviceCount || 0 }}</td>
-                  <td>{{ formatDateTime(item.updateTime || item.createTime) }}</td>
-                  <td>
+                  <td class="time-cell">{{ formatDateTime(item.updateTime || item.createTime) }}</td>
+                  <td class="actions-cell">
                     <div class="table-actions">
                       <button class="button button-secondary" type="button" @click="goToDetail(item.id)">查看详情</button>
                       <button

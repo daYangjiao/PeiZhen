@@ -19,7 +19,7 @@ const routes = [
   { path: '/attendants/:id', name: 'attendant-detail', component: AttendantDetailPage, meta: { requiresAuth: true } },
   { path: '/orders', name: 'orders', component: OrdersPage, meta: { requiresAuth: true } },
   { path: '/orders/:id', name: 'order-detail', component: OrderDetailPage, meta: { requiresAuth: true } },
-  { path: '/system', name: 'system', component: SystemPage, meta: { requiresAuth: true } }
+  { path: '/system', name: 'system', component: SystemPage, meta: { requiresAuth: true, requiresSuperAdmin: true } }
 ]
 
 
@@ -33,6 +33,9 @@ router.beforeEach((to) => {
   authStore.restore()
   if (to.meta.requiresAuth && !authStore.token) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
+    return { name: 'dashboard' }
   }
   if (to.meta.guestOnly && authStore.token) {
     return { name: 'dashboard' }

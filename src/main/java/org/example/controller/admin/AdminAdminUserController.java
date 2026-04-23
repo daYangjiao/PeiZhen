@@ -25,8 +25,13 @@ public class AdminAdminUserController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-        return ResponseResult.success(sysAdminService.getAdmins(keyword, status, page, pageSize));
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest httpServletRequest) {
+        try {
+            return ResponseResult.success(sysAdminService.getAdmins(AuthUtil.getCurrentAdminId(httpServletRequest), keyword, status, page, pageSize));
+        } catch (SecurityException ex) {
+            return new ResponseResult<>(403, ex.getMessage(), null);
+        }
     }
 
     @PostMapping
@@ -34,6 +39,8 @@ public class AdminAdminUserController {
                                            HttpServletRequest httpServletRequest) {
         try {
             return ResponseResult.success(sysAdminService.createAdmin(AuthUtil.getCurrentAdminId(httpServletRequest), request));
+        } catch (SecurityException ex) {
+            return new ResponseResult<>(403, ex.getMessage(), null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
         }
@@ -46,6 +53,8 @@ public class AdminAdminUserController {
         try {
             sysAdminService.updateStatus(AuthUtil.getCurrentAdminId(httpServletRequest), adminId, request.getStatus());
             return ResponseResult.success(null);
+        } catch (SecurityException ex) {
+            return new ResponseResult<>(403, ex.getMessage(), null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
         }

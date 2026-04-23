@@ -10,6 +10,7 @@
         <result column="phone" property="phone"/>
         <result column="password" property="password"/>
         <result column="status" property="status"/>
+        <result column="role" property="role"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="last_login_time" property="lastLoginTime"/>
@@ -43,6 +44,13 @@
         </where>
     </select>
 
+    <select id="countEnabledSuperAdmins" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_admin
+        WHERE status = 1
+          AND `role` = 'SUPER_ADMIN'
+    </select>
+
     <select id="findAdmins" resultMap="SysAdminResultMap">
         SELECT *
         FROM sys_admin
@@ -61,8 +69,8 @@
     </select>
 
     <insert id="insert" parameterType="org.example.entity.SysAdmin" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_admin (name, phone, password, status, last_login_time)
-        VALUES (#{name}, #{phone}, #{password}, #{status}, #{lastLoginTime})
+        INSERT INTO sys_admin (name, phone, password, status, `role`, last_login_time)
+        VALUES (#{name}, #{phone}, #{password}, #{status}, #{role}, #{lastLoginTime})
     </insert>
 
     <update id="update" parameterType="org.example.entity.SysAdmin">
@@ -72,6 +80,7 @@
             <if test="phone != null">phone = #{phone},</if>
             <if test="password != null">password = #{password},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="role != null">`role` = #{role},</if>
             <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
         </set>
         WHERE id = #{id}

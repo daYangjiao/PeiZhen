@@ -48,6 +48,7 @@ class SysAdminServiceImplTest {
         admin.setPhone("13800000008");
         admin.setPassword(passwordEncoder.encode("secret123"));
         admin.setStatus(1);
+        admin.setRole("SUPER_ADMIN");
         when(sysAdminMapper.findByPhone("13800000008")).thenReturn(admin);
 
         AdminLoginResponse response = service.login("13800000008", "secret123");
@@ -55,6 +56,8 @@ class SysAdminServiceImplTest {
         assertThat(response.getToken()).isNotBlank();
         assertThat(jwtUtil.getPrincipalTypeFromToken(response.getToken())).isEqualTo("admin");
         assertThat(jwtUtil.getAdminIdFromToken(response.getToken())).isEqualTo(8);
+        assertThat(jwtUtil.getAllClaimsFromToken(response.getToken()).get("role", String.class)).isEqualTo("SUPER_ADMIN");
+        assertThat(response.getUserInfo().getRole()).isEqualTo("SUPER_ADMIN");
 
         ArgumentCaptor<SysAdmin> patchCaptor = ArgumentCaptor.forClass(SysAdmin.class);
         verify(sysAdminMapper).update(patchCaptor.capture());
@@ -66,6 +69,7 @@ class SysAdminServiceImplTest {
     void createAdminShouldRejectDuplicatePhone() {
         SysAdmin existing = new SysAdmin();
         existing.setId(1);
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
         when(sysAdminMapper.findByPhone("13800000000")).thenReturn(existing);
 
         AdminCreateSysAdminRequest request = new AdminCreateSysAdminRequest();
@@ -80,6 +84,7 @@ class SysAdminServiceImplTest {
 
     @Test
     void createAdminShouldPersistEncodedPassword() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
         when(sysAdminMapper.findByPhone("13800000009")).thenReturn(null);
         doAnswer(invocation -> {
             SysAdmin admin = invocation.getArgument(0);
@@ -92,6 +97,7 @@ class SysAdminServiceImplTest {
         persisted.setName("新管理员");
         persisted.setPhone("13800000009");
         persisted.setStatus(1);
+        persisted.setRole("ADMIN");
         when(sysAdminMapper.findById(9)).thenReturn(persisted);
 
         AdminCreateSysAdminRequest request = new AdminCreateSysAdminRequest();
@@ -105,7 +111,51 @@ class SysAdminServiceImplTest {
         verify(sysAdminMapper).insert(insertCaptor.capture());
         assertThat(insertCaptor.getValue().getPassword()).startsWith("$2");
         assertThat(passwordEncoder.matches("secret123", insertCaptor.getValue().getPassword())).isTrue();
+        assertThat(insertCaptor.getValue().getRole()).isEqualTo("ADMIN");
         assertThat(response.getId()).isEqualTo(9);
+    }
+
+    @Test
+    void createAdminShouldAllowSuperAdminRoleWhenRequestedBySuperAdmin() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+        when(sysAdminMapper.findByPhone("13800000010")).thenReturn(null);
+        doAnswer(invocation -> {
+            SysAdmin admin = invocation.getArgument(0);
+            admin.setId(10);
+            return 1;
+        }).when(sysAdminMapper).insert(any(SysAdmin.class));
+
+        SysAdmin persisted = superAdmin(10);
+        persisted.setName("超级管理员");
+        persisted.setPhone("13800000010");
+        when(sysAdminMapper.findById(10)).thenReturn(persisted);
+
+        AdminCreateSysAdminRequest request = new AdminCreateSysAdminRequest();
+        request.setName("超级管理员");
+        request.setPhone("13800000010");
+        request.setPassword("secret123");
+        request.setRole("SUPER_ADMIN");
+
+        SysAdmin response = service.createAdmin(1, request);
+
+        ArgumentCaptor<SysAdmin> insertCaptor = ArgumentCaptor.forClass(SysAdmin.class);
+        verify(sysAdminMapper).insert(insertCaptor.capture());
+        assertThat(insertCaptor.getValue().getRole()).isEqualTo("SUPER_ADMIN");
+        assertThat(response.getRole()).isEqualTo("SUPER_ADMIN");
+    }
+
+    @Test
+    void createAdminShouldRejectNormalAdminOperator() {
+        when(sysAdminMapper.findById(2)).thenReturn(normalAdmin(2));
+
+        AdminCreateSysAdminRequest request = new AdminCreateSysAdminRequest();
+        request.setName("新管理员");
+        request.setPhone("13800000011");
+        request.setPassword("secret123");
+
+        assertThatThrownBy(() -> service.createAdmin(2, request))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("仅超级管理员可管理管理员账号");
     }
 
     @Test
@@ -113,11 +163,32 @@ class SysAdminServiceImplTest {
         SysAdmin current = new SysAdmin();
         current.setId(5);
         current.setStatus(1);
+        current.setRole("SUPER_ADMIN");
         when(sysAdminMapper.findById(5)).thenReturn(current);
 
         assertThatThrownBy(() -> service.updateStatus(5, 5, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("不能禁用当前登录管理员");
+    }
+
+    @Test
+    void updateStatusShouldRejectNormalAdminOperator() {
+        when(sysAdminMapper.findById(2)).thenReturn(normalAdmin(2));
+
+        assertThatThrownBy(() -> service.updateStatus(2, 1, 0))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("仅超级管理员可管理管理员账号");
+    }
+
+    @Test
+    void updateStatusShouldRejectDisablingLastEnabledSuperAdmin() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+        when(sysAdminMapper.findById(5)).thenReturn(superAdmin(5));
+        when(sysAdminMapper.countEnabledSuperAdmins()).thenReturn(1);
+
+        assertThatThrownBy(() -> service.updateStatus(1, 5, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("至少保留一个启用状态的超级管理员");
     }
 
     @Test
@@ -127,13 +198,45 @@ class SysAdminServiceImplTest {
         admin.setName("审核管理员");
         admin.setPhone("13800000006");
         admin.setStatus(1);
+        admin.setRole("ADMIN");
 
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
         when(sysAdminMapper.countAdmins("审核", 1)).thenReturn(1);
         when(sysAdminMapper.findAdmins("审核", 1, 0, 10)).thenReturn(List.of(admin));
 
-        PagedResponse<SysAdmin> response = service.getAdmins("审核", 1, 0, 10);
+        PagedResponse<SysAdmin> response = service.getAdmins(1, "审核", 1, 0, 10);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getPhone()).isEqualTo("13800000006");
+        assertThat(response.getContent().get(0).getRole()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    void getAdminsShouldRejectNormalAdminOperator() {
+        when(sysAdminMapper.findById(2)).thenReturn(normalAdmin(2));
+
+        assertThatThrownBy(() -> service.getAdmins(2, null, null, 0, 10))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("仅超级管理员可管理管理员账号");
+    }
+
+    private SysAdmin superAdmin(Integer id) {
+        SysAdmin admin = new SysAdmin();
+        admin.setId(id);
+        admin.setName("超级管理员");
+        admin.setPhone("13800000000");
+        admin.setStatus(1);
+        admin.setRole("SUPER_ADMIN");
+        return admin;
+    }
+
+    private SysAdmin normalAdmin(Integer id) {
+        SysAdmin admin = new SysAdmin();
+        admin.setId(id);
+        admin.setName("普通管理员");
+        admin.setPhone("13800000002");
+        admin.setStatus(1);
+        admin.setRole("ADMIN");
+        return admin;
     }
 }

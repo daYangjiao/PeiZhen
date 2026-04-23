@@ -61,9 +61,9 @@
                   <th>陪诊师</th>
                   <th>服务信息</th>
                   <th>金额</th>
-                  <th>订单状态</th>
-                  <th>支付状态</th>
-                  <th>创建时间</th>
+                  <th class="status-cell">订单状态</th>
+                  <th class="payment-cell">支付状态</th>
+                  <th class="time-cell">创建时间</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,9 +82,9 @@
                     <p class="table-cell-copy">{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
                   </td>
                   <td>{{ formatMoney(order.orderAmount) }}</td>
-                  <td><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
-                  <td><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
-                  <td>{{ formatDateTime(order.createTime) }}</td>
+                  <td class="status-cell"><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
+                  <td class="payment-cell"><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
+                  <td class="time-cell">{{ formatDateTime(order.createTime) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -214,7 +214,7 @@ onMounted(loadDashboard)
 
 .quick-entry-card {
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: #fff;
   padding: 12px;
   text-align: left;
@@ -262,12 +262,12 @@ onMounted(loadDashboard)
 
 .queue-skeleton {
   min-height: 92px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .table-skeleton {
   min-height: 220px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .error-card {

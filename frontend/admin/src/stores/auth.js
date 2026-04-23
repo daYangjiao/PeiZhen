@@ -8,6 +8,9 @@ export const useAuthStore = defineStore('admin-auth', {
     token: '',
     user: null
   }),
+  getters: {
+    isSuperAdmin: (state) => state.user?.role === 'SUPER_ADMIN'
+  },
   actions: {
     restore() {
       if (this.token) return

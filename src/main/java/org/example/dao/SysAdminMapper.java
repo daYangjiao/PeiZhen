@@ -15,6 +15,8 @@ public interface SysAdminMapper {
 
     int countAdmins(@Param("keyword") String keyword, @Param("status") Integer status);
 
+    int countEnabledSuperAdmins();
+
     List<SysAdmin> findAdmins(@Param("keyword") String keyword,
                               @Param("status") Integer status,
                               @Param("offset") int offset,

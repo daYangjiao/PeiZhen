@@ -73,8 +73,7 @@
 | `/attendants/:id` | `AttendantDetailPage.vue` | 管理员 JWT | 陪诊师详情、历史订单、资质审核、禁用/恢复。 | `GET /api/admin/attendants/{id}`<br>`PATCH /api/admin/attendants/{id}/qualification-review`<br>`PATCH /api/admin/attendants/{id}/status` |
 | `/orders` | `OrdersPage.vue` | 管理员 JWT | 订单列表筛选、查看详情、取消订单、争议处理。 | `GET /api/admin/orders`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution` |
 | `/orders/:id` | `OrderDetailPage.vue` | 管理员 JWT | 订单详情、取消订单、时长费用争议处理。 | `GET /api/admin/orders/{id}`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution` |
-| `/service` | `ServicePage.vue` | 管理员 JWT | 服务管理只读说明页，当前不直接调用后端。 | 无直接接口调用 |
-| `/system` | `SystemPage.vue` | 管理员 JWT | 系统设置和管理员账号管理，创建管理员、启用/停用账号。 | `GET /api/admin/admin-users`<br>`POST /api/admin/admin-users`<br>`PATCH /api/admin/admin-users/{id}/status` |
+| `/system` | `SystemPage.vue` | 超级管理员 JWT | 管理员账号管理，创建管理员/超级管理员、启用/停用账号。 | `GET /api/admin/admin-users`<br>`POST /api/admin/admin-users`<br>`PATCH /api/admin/admin-users/{id}/status` |
 
 ## 导航和鉴权
 

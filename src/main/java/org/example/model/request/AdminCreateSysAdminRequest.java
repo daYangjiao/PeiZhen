@@ -19,4 +19,7 @@ public class AdminCreateSysAdminRequest {
     @NotBlank(message = "管理员密码不能为空")
     @Size(min = 6, message = "密码至少 6 位")
     private String password;
+
+    @Pattern(regexp = "^(SUPER_ADMIN|ADMIN)$", message = "账号类型不合法")
+    private String role;
 }

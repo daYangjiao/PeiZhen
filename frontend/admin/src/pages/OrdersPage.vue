@@ -47,10 +47,10 @@
                   <th>陪诊师</th>
                   <th>服务信息</th>
                   <th>金额</th>
-                  <th>订单状态</th>
-                  <th>支付状态</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
+                  <th class="status-cell">订单状态</th>
+                  <th class="payment-cell">支付状态</th>
+                  <th class="time-cell">创建时间</th>
+                  <th class="actions-cell">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,10 +69,10 @@
                     <p class="table-cell-copy">{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
                   </td>
                   <td>{{ formatMoney(order.orderAmount) }}</td>
-                  <td><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
-                  <td><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
-                  <td>{{ formatDateTime(order.createTime) }}</td>
-                  <td>
+                  <td class="status-cell"><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
+                  <td class="payment-cell"><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
+                  <td class="time-cell">{{ formatDateTime(order.createTime) }}</td>
+                  <td class="actions-cell">
                     <div class="table-actions">
                       <button class="button button-secondary" type="button" @click="goToDetail(order.orderId)">查看详情</button>
                       <button

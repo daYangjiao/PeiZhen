@@ -74,14 +74,15 @@ const router = useRouter()
 const authStore = useAuthStore()
 authStore.restore()
 
-const menuItems = [
+const allMenuItems = [
   { name: 'dashboard', path: '/dashboard', label: '首页', caption: '核心经营数据与最近订单' },
   { name: 'users', path: '/users', label: '用户管理', caption: '用户查询、状态管理与订单侧写' },
   { name: 'attendants', path: '/attendants', label: '陪诊师管理', caption: '资质审核、账号状态与服务能力' },
   { name: 'orders', path: '/orders', label: '订单管理', caption: '订单详情、取消与争议处理' },
-  { name: 'system', path: '/system', label: '管理员账号', caption: '账号创建、启用与禁用' }
+  { name: 'system', path: '/system', label: '管理员账号', caption: '账号创建、启用与禁用', superOnly: true }
 ]
 
+const menuItems = computed(() => allMenuItems.filter((item) => !item.superOnly || authStore.isSuperAdmin))
 const displayName = computed(() => authStore.user?.name || authStore.user?.account || '管理员')
 const roleText = computed(() => '平台管理员')
 

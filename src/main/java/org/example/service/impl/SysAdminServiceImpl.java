@@ -21,6 +21,9 @@ import java.util.regex.Pattern;
 public class SysAdminServiceImpl implements SysAdminService {
 
     private static final Pattern BCRYPT_PATTERN = Pattern.compile("^\\$2[aby]?\\$.{56}$");
+    private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String MANAGE_ADMIN_FORBIDDEN_MESSAGE = "仅超级管理员可管理管理员账号";
 
     private final SysAdminMapper sysAdminMapper;
     private final PasswordEncoder passwordEncoder;
@@ -69,11 +72,14 @@ public class SysAdminServiceImpl implements SysAdminService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("principalType", "admin");
         claims.put("adminId", admin.getId());
+        claims.put("role", normalizeRole(admin.getRole()));
+        admin.setRole(normalizeRole(admin.getRole()));
         return new AdminLoginResponse(jwtUtil.generateAdminToken(admin.getId(), claims), admin);
     }
 
     @Override
-    public PagedResponse<SysAdmin> getAdmins(String keyword, Integer status, Integer page, Integer pageSize) {
+    public PagedResponse<SysAdmin> getAdmins(Integer operatorId, String keyword, Integer status, Integer page, Integer pageSize) {
+        requireSuperAdmin(operatorId);
         int safePage = normalizePage(page);
         int safeSize = normalizePageSize(pageSize);
         int total = sysAdminMapper.countAdmins(trim(keyword), status);
@@ -88,6 +94,7 @@ public class SysAdminServiceImpl implements SysAdminService {
     @Override
     @Transactional
     public SysAdmin createAdmin(Integer operatorId, AdminCreateSysAdminRequest request) {
+        requireSuperAdmin(operatorId);
         if (sysAdminMapper.findByPhone(request.getPhone().trim()) != null) {
             throw new IllegalArgumentException("管理员手机号已存在");
         }
@@ -96,6 +103,7 @@ public class SysAdminServiceImpl implements SysAdminService {
         admin.setPhone(request.getPhone().trim());
         admin.setPassword(passwordEncoder.encode(request.getPassword()));
         admin.setStatus(1);
+        admin.setRole(normalizeCreateRole(request.getRole()));
         sysAdminMapper.insert(admin);
         return sysAdminMapper.findById(admin.getId());
     }
@@ -103,12 +111,18 @@ public class SysAdminServiceImpl implements SysAdminService {
     @Override
     @Transactional
     public void updateStatus(Integer operatorId, Integer adminId, Integer status) {
+        requireSuperAdmin(operatorId);
         SysAdmin current = requireAdmin(adminId);
         if (status == null || (status != 0 && status != 1)) {
             throw new IllegalArgumentException("状态值不合法");
         }
         if (operatorId != null && operatorId.equals(adminId) && status == 0) {
             throw new IllegalArgumentException("不能禁用当前登录管理员");
+        }
+        if (status == 0 && Integer.valueOf(1).equals(current.getStatus())
+                && ROLE_SUPER_ADMIN.equals(normalizeRole(current.getRole()))
+                && sysAdminMapper.countEnabledSuperAdmins() <= 1) {
+            throw new IllegalArgumentException("至少保留一个启用状态的超级管理员");
         }
         if (current.getStatus() != null && current.getStatus().equals(status)) {
             return;
@@ -125,11 +139,21 @@ public class SysAdminServiceImpl implements SysAdminService {
     }
 
     private SysAdmin requireAdmin(Integer adminId) {
+        if (adminId == null) {
+            throw new SecurityException(MANAGE_ADMIN_FORBIDDEN_MESSAGE);
+        }
         SysAdmin admin = sysAdminMapper.findById(adminId);
         if (admin == null) {
             throw new IllegalArgumentException("管理员不存在");
         }
         return admin;
+    }
+
+    private void requireSuperAdmin(Integer operatorId) {
+        SysAdmin operator = requireAdmin(operatorId);
+        if (!ROLE_SUPER_ADMIN.equals(normalizeRole(operator.getRole()))) {
+            throw new SecurityException(MANAGE_ADMIN_FORBIDDEN_MESSAGE);
+        }
     }
 
     private int normalizePage(Integer page) {
@@ -149,5 +173,24 @@ public class SysAdminServiceImpl implements SysAdminService {
 
     private String trim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private String normalizeRole(String role) {
+        String normalized = trim(role);
+        if (ROLE_SUPER_ADMIN.equals(normalized)) {
+            return ROLE_SUPER_ADMIN;
+        }
+        return ROLE_ADMIN;
+    }
+
+    private String normalizeCreateRole(String role) {
+        String normalized = trim(role);
+        if (normalized == null || normalized.isEmpty()) {
+            return ROLE_ADMIN;
+        }
+        if (ROLE_SUPER_ADMIN.equals(normalized) || ROLE_ADMIN.equals(normalized)) {
+            return normalized;
+        }
+        throw new IllegalArgumentException("账号类型不合法");
     }
 }

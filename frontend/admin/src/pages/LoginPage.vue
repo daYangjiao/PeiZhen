@@ -88,7 +88,7 @@ const handleSubmit = async () => {
 .login-card {
   width: min(100%, 460px);
   padding: 28px;
-  border-radius: 10px;
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(220, 232, 251, 0.92);
   box-shadow: 0 24px 54px rgba(23, 68, 150, 0.12);
@@ -105,7 +105,7 @@ const handleSubmit = async () => {
 .login-badge {
   width: 64px;
   height: 64px;
-  border-radius: 10px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
   font-size: 28px;
