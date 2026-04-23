@@ -9,3 +9,4 @@ frontend/mini-program/unpackage/
 frontend/mini-program/android-local/
 frontend/admin/node_modules/
 frontend/admin/dist/
+SECRET_VAULT.md
