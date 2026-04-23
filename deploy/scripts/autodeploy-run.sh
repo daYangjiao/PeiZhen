@@ -17,7 +17,9 @@ REMOTE_ROOT="${REMOTE_ROOT:-/home/ops/PZ_yuanbao}"
 WEB_ROOT="${WEB_ROOT:-/var/www/pz-mini}"
 SERVICE_NAME="${SERVICE_NAME:-pz-app}"
 HBUILDERX_CLI="${HBUILDERX_CLI:-/opt/HBuilderX/cli}"
-HBUILDERX_PROJECT_NAME="${HBUILDERX_PROJECT_NAME:-mini-program}"
+HBUILDERX_OPEN_TIMEOUT="${HBUILDERX_OPEN_TIMEOUT:-45s}"
+HBUILDERX_COMMAND_TIMEOUT="${HBUILDERX_COMMAND_TIMEOUT:-300s}"
+HBUILDERX_PUBLISH_TIMEOUT="${HBUILDERX_PUBLISH_TIMEOUT:-900s}"
 WGT_UPDATE_NOTES="${WGT_UPDATE_NOTES:-资源更新与问题修复}"
 TARGET_COMMIT="${1:-}"
 
@@ -36,6 +38,18 @@ require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1" >&2
     exit 1
+  fi
+}
+
+hbuilderx_cli() {
+  local timeout_value="$1"
+  shift
+  timeout "${timeout_value}" "${HBUILDERX_CLI}" "$@"
+}
+
+cleanup_hbuilderx() {
+  if [[ -x "${HBUILDERX_CLI}" ]]; then
+    hbuilderx_cli 20s app quit >/dev/null 2>&1 || true
   fi
 }
 
@@ -115,6 +129,7 @@ require_cmd mvn
 require_cmd node
 require_cmd npm
 require_cmd python3
+require_cmd timeout
 
 log "Preparing source ${REPO_URL} branch=${BRANCH}"
 if [[ ! -d "${SOURCE_DIR}/.git" ]]; then
@@ -194,14 +209,16 @@ if [[ ! -x "${HBUILDERX_CLI}" ]]; then
   echo "wgt failed: HBuilderX CLI is not executable: ${HBUILDERX_CLI}" >&2
   exit 1
 fi
-"${HBUILDERX_CLI}" open || true
+trap cleanup_hbuilderx EXIT
+hbuilderx_cli "${HBUILDERX_OPEN_TIMEOUT}" open || true
 sleep 2
 if [[ -n "${HBUILDERX_USERNAME:-}" && -n "${HBUILDERX_PASSWORD:-}" ]]; then
-  "${HBUILDERX_CLI}" user login --username "${HBUILDERX_USERNAME}" --password "${HBUILDERX_PASSWORD}"
+  hbuilderx_cli "${HBUILDERX_COMMAND_TIMEOUT}" user login --username "${HBUILDERX_USERNAME}" --password "${HBUILDERX_PASSWORD}"
 else
   echo "wgt warning: HBUILDERX_USERNAME/HBUILDERX_PASSWORD are empty; trying without login." >&2
 fi
-"${HBUILDERX_CLI}" project open --path "${SOURCE_DIR}/frontend/mini-program"
+HBUILDERX_PROJECT_PATH="${HBUILDERX_PROJECT_PATH:-${SOURCE_DIR}/frontend/mini-program}"
+hbuilderx_cli "${HBUILDERX_COMMAND_TIMEOUT}" project open --path "${HBUILDERX_PROJECT_PATH}"
 
 APP_VERSION="$(read_manifest_field versionName)"
 APP_VERSION_CODE="$(read_manifest_field versionCode)"
@@ -211,10 +228,10 @@ WGT_RELEASE_DIR="${AUTODEPLOY_ROOT}/wgt-release"
 rm -rf "${WGT_RELEASE_DIR}"
 mkdir -p "${WGT_RELEASE_DIR}"
 
-"${HBUILDERX_CLI}" publish \
-  --platform APP \
+hbuilderx_cli "${HBUILDERX_PUBLISH_TIMEOUT}" publish \
+  app \
   --type wgt \
-  --project "${HBUILDERX_PROJECT_NAME}" \
+  --project "${HBUILDERX_PROJECT_PATH}" \
   --path "${WGT_RELEASE_DIR}" \
   --name "${WGT_NAME}"
 

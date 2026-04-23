@@ -87,6 +87,7 @@ Behavior:
 - Pushes to `main` or `master` are acknowledged and ignored.
 - A deployment lock prevents overlapping deploys.
 - Backend and H5/admin publish first. WGT publishes last.
+- WGT uses Linux HBuilderX CLI with `publish app --type wgt --project <absolute project path>`.
 - If WGT generation fails, backend and H5 stay deployed; check `/var/log/pz-autodeploy/` and `journalctl -u pz-autodeploy-webhook`.
 
 WGT versioning:
