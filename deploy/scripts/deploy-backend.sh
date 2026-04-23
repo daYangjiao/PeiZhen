@@ -8,9 +8,14 @@ ENV_FILE="${ENV_FILE:-/etc/pz-app/pz-app.env}"
 RELEASE_META_DIR="${RELEASE_META_DIR:-/var/lib/pz-deploy/releases}"
 RELEASE_META_FILE="${RELEASE_META_DIR}/backend-release.env"
 
-mvn -DskipTests clean package
+if [[ "${BACKEND_SKIP_BUILD:-0}" != "1" ]]; then
+  mvn -DskipTests clean package
+fi
 
-JAR_FILE="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+JAR_FILE="${BACKEND_JAR_FILE:-}"
+if [[ -z "${JAR_FILE}" ]]; then
+  JAR_FILE="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+fi
 if [[ -z "${JAR_FILE}" ]]; then
   echo "No runnable jar found in target/." >&2
   exit 1

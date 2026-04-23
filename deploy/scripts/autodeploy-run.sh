@@ -144,6 +144,7 @@ if [[ -z "${TARGET_COMMIT}" ]]; then
   TARGET_COMMIT="origin/${BRANCH}"
 fi
 git -C "${SOURCE_DIR}" checkout --force "${TARGET_COMMIT}"
+sudo rm -rf "${SOURCE_DIR}/target"
 git -C "${SOURCE_DIR}" clean -ffdx
 
 RELEASE_GIT_COMMIT="$(git -C "${SOURCE_DIR}" rev-parse HEAD)"
@@ -161,10 +162,23 @@ log "Installing frontend dependencies"
 npm ci --prefix "${SOURCE_DIR}/frontend/mini-program"
 npm ci --prefix "${SOURCE_DIR}/frontend/admin"
 
+log "Building backend ${RELEASE_GIT_SHORT_COMMIT}"
+(
+  cd "${SOURCE_DIR}"
+  mvn -DskipTests clean package
+)
+BACKEND_JAR_FILE="$(find "${SOURCE_DIR}/target" -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+if [[ -z "${BACKEND_JAR_FILE}" ]]; then
+  echo "No runnable jar found in ${SOURCE_DIR}/target." >&2
+  exit 1
+fi
+
 log "Deploying backend ${RELEASE_GIT_SHORT_COMMIT}"
 (
   cd "${SOURCE_DIR}"
   sudo \
+    BACKEND_SKIP_BUILD=1 \
+    BACKEND_JAR_FILE="${BACKEND_JAR_FILE}" \
     RELEASE_GIT_COMMIT="${RELEASE_GIT_COMMIT}" \
     RELEASE_GIT_SHORT_COMMIT="${RELEASE_GIT_SHORT_COMMIT}" \
     RELEASE_GIT_BRANCH="${RELEASE_GIT_BRANCH}" \
