@@ -22,6 +22,9 @@ rsync -av --delete -e "ssh ${SSH_OPTS[*]}" \
   --exclude ".git" \
   --exclude ".idea" \
   --exclude ".DS_Store" \
+  --exclude ".superpowers" \
+  --exclude "SECRET_VAULT.md" \
+  --exclude "passwprd.txt" \
   --exclude "audit" \
   --exclude "node_modules" \
   --exclude "frontend/mini-program/dist" \
