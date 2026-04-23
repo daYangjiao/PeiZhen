@@ -194,14 +194,13 @@ if [[ ! -x "${HBUILDERX_CLI}" ]]; then
   echo "wgt failed: HBuilderX CLI is not executable: ${HBUILDERX_CLI}" >&2
   exit 1
 fi
-if [[ -z "${HBUILDERX_USERNAME:-}" || -z "${HBUILDERX_PASSWORD:-}" ]]; then
-  echo "wgt failed: HBUILDERX_USERNAME and HBUILDERX_PASSWORD must be configured." >&2
-  exit 1
-fi
-
 "${HBUILDERX_CLI}" open || true
 sleep 2
-"${HBUILDERX_CLI}" user login --username "${HBUILDERX_USERNAME}" --password "${HBUILDERX_PASSWORD}"
+if [[ -n "${HBUILDERX_USERNAME:-}" && -n "${HBUILDERX_PASSWORD:-}" ]]; then
+  "${HBUILDERX_CLI}" user login --username "${HBUILDERX_USERNAME}" --password "${HBUILDERX_PASSWORD}"
+else
+  echo "wgt warning: HBUILDERX_USERNAME/HBUILDERX_PASSWORD are empty; trying without login." >&2
+fi
 "${HBUILDERX_CLI}" project open --path "${SOURCE_DIR}/frontend/mini-program"
 
 APP_VERSION="$(read_manifest_field versionName)"
