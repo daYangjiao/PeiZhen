@@ -13,6 +13,9 @@ This directory contains the server-side templates needed to run the current stac
 - `scripts/publish-backend.sh`: sync the repo to the server and run the backend deploy step remotely.
 - `scripts/publish-all.sh`: publish backend first and frontend second using the same local git source version.
 - `scripts/publish-lib.sh`: shared helpers for git-based release metadata and rollback-by-ref publishing.
+- `scripts/install-autodeploy.sh`: install the Gitee WebHook receiver, Node 20, optional Linux HBuilderX CLI, systemd service, and Nginx route.
+- `scripts/autodeploy-run.sh`: server-side deploy runner used by the WebHook service to publish backend, H5/admin, and WGT from Gitee `FF`.
+- `autodeploy/webhook_server.py`: stdlib Python WebHook receiver that validates `X-Gitee-Token` and only accepts `refs/heads/FF`.
 
 Recommended server flow:
 
@@ -52,6 +55,57 @@ One-command publish from your Mac:
 bash deploy/scripts/publish-frontend.sh
 bash deploy/scripts/publish-backend.sh
 bash deploy/scripts/publish-all.sh
+```
+
+Gitee push-to-deploy:
+
+1. On the server, install the WebHook service:
+
+```bash
+sudo bash deploy/scripts/install-autodeploy.sh
+```
+
+2. Edit the server-only env file:
+
+```bash
+sudo -u ops vim /etc/pz-autodeploy/autodeploy.env
+```
+
+Set `HBUILDERX_USERNAME` and `HBUILDERX_PASSWORD`. `HBUILDERX_DOWNLOAD_URL` can stay blank; the installer resolves the current Linux package from DCloud release metadata. Keep the file mode `600`; the installer enforces this.
+
+3. Add a Gitee WebHook:
+
+```text
+URL: http://101.245.94.141/gitee-webhook
+Password/Token: value of GITEE_WEBHOOK_TOKEN in /etc/pz-autodeploy/autodeploy.env
+Events: Push
+```
+
+Behavior:
+
+- Only pushes to `FF` deploy production.
+- Pushes to `main` or `master` are acknowledged and ignored.
+- A deployment lock prevents overlapping deploys.
+- Backend and H5/admin publish first. WGT publishes last.
+- If WGT generation fails, backend and H5 stay deployed; check `/var/log/pz-autodeploy/` and `journalctl -u pz-autodeploy-webhook`.
+
+WGT versioning:
+
+```text
+wgtVersion=<manifest.versionName>-wgt.<shortCommit>
+file=/opt/pz-app/uploads/app-updates/android/yuanban-<wgtVersion>.wgt
+metadata=/opt/pz-app/uploads/app-updates/android.json
+```
+
+Validate automatic deployment:
+
+```bash
+systemctl status pz-autodeploy-webhook --no-pager
+curl -s http://127.0.0.1:9017/gitee-webhook/healthz
+cat /var/lib/pz-deploy/releases/backend-release.env
+cat /var/lib/pz-deploy/releases/frontend-release.env
+cat /var/lib/pz-deploy/releases/wgt-release.env
+cat /opt/pz-app/uploads/app-updates/android.json
 ```
 
 Team collaboration with GitHub:

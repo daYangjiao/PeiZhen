@@ -1,0 +1,17 @@
+[Unit]
+Description=PZ Gitee Autodeploy Webhook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ops
+Group=ops
+WorkingDirectory=/opt/pz-autodeploy
+EnvironmentFile=/etc/pz-autodeploy/autodeploy.env
+ExecStart=/usr/bin/python3 /opt/pz-autodeploy/webhook/webhook_server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
