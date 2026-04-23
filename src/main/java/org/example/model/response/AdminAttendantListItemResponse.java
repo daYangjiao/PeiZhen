@@ -32,6 +32,20 @@ public class AdminAttendantListItemResponse {
 
     private Integer serviceCount;
 
+    private Integer qualificationCompleteness;
+
+    private Boolean idCardUploaded;
+
+    private Boolean idCardFrontUploaded;
+
+    private Boolean idCardBackUploaded;
+
+    private Boolean practiceCertUploaded;
+
+    private Boolean healthCertUploaded;
+
+    private Boolean qualificationComplete;
+
     private Date createTime;
 
     private Date updateTime;

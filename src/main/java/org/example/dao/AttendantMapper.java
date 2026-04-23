@@ -24,4 +24,6 @@ public interface AttendantMapper {
                                         @Param("auditStatus") Integer auditStatus,
                                         @Param("offset") int offset,
                                         @Param("limit") int limit);
+
+    Integer findNextPendingUserId(@Param("excludeId") Integer excludeId);
 }

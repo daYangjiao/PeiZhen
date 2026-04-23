@@ -18,6 +18,8 @@ public interface AdminService {
 
     PagedResponse<AdminAttendantListItemResponse> getAttendants(String keyword, Integer auditStatus, Integer page, Integer pageSize);
 
+    AdminAttendantDetailResponse getNextPendingAttendant(Integer excludeId);
+
     AdminAttendantDetailResponse getAttendantDetail(Integer userId);
 
     void updateAttendantStatus(Integer operatorId, Integer userId, Integer status, String reason);

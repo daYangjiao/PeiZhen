@@ -29,6 +29,11 @@ public class AdminAttendantController {
         return ResponseResult.success(adminService.getAttendants(keyword, auditStatus, page, pageSize));
     }
 
+    @GetMapping("/next-pending")
+    public ResponseResult<AdminAttendantDetailResponse> nextPending(@RequestParam(required = false) Integer excludeId) {
+        return ResponseResult.success(adminService.getNextPendingAttendant(excludeId));
+    }
+
     @GetMapping("/{userId}")
     public ResponseResult<AdminAttendantDetailResponse> detail(@PathVariable Integer userId) {
         try {

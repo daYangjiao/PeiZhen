@@ -48,3 +48,9 @@ export const patch = (url, body) =>
     method: 'PATCH',
     body: JSON.stringify(body || {})
   })
+
+export const del = (url, body) =>
+  request(url, {
+    method: 'DELETE',
+    body: body === undefined ? undefined : JSON.stringify(body || {})
+  })

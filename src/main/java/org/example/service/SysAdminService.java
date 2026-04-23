@@ -15,5 +15,7 @@ public interface SysAdminService {
 
     void updateStatus(Integer operatorId, Integer adminId, Integer status);
 
+    void deleteAdmin(Integer operatorId, Integer adminId);
+
     SysAdmin findById(Integer adminId);
 }

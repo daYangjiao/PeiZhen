@@ -13,7 +13,7 @@
             <div class="toolbar-group">
               <span class="badge" :class="getAttendantStatusBadge(detail.attendant.status)">{{ attendantStatusLabel }}</span>
               <span class="badge" :class="getUserStatusBadge(detail.user.status)">{{ getUserStatusLabel(detail.user.status, '--') }}</span>
-              <button class="button button-ghost" type="button" @click="router.push('/attendants')">返回列表</button>
+              <button class="button button-ghost" type="button" @click="router.push({ path: '/attendants', query: { selectedId: String(detail.user.id) } })">返回列表</button>
             </div>
           </div>
 
@@ -135,6 +135,17 @@
       <div class="page-stack">
         <label v-if="actionMeta.needReason" class="login-field">
           <span>{{ actionMeta.reasonLabel }}</span>
+          <div class="reason-chip-row">
+            <button
+              v-for="chip in reasonChips"
+              :key="chip"
+              class="button button-secondary reason-chip"
+              type="button"
+              @click="applyReasonChip(chip)"
+            >
+              {{ chip }}
+            </button>
+          </div>
           <textarea v-model.trim="actionReason" class="filter-textarea" :placeholder="actionMeta.reasonPlaceholder"></textarea>
         </label>
       </div>
@@ -163,12 +174,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import { useAttendantReviewActions } from '../composables/useAttendantReviewActions'
 import { useUiStore } from '../stores/ui'
-import { fetchAttendantDetail, reviewAttendant, updateAttendantStatus } from '../utils/admin-api'
+import { fetchAttendantDetail } from '../utils/admin-api'
 import { getAttendantStatusBadge, getAttendantStatusLabel, getOrderStatusBadge, getOrderStatusLabel, getUserStatusBadge, getUserStatusLabel } from '../utils/admin-view'
 import { formatMoney } from '../utils/format'
 
@@ -180,59 +192,17 @@ const loading = ref(true)
 const detail = ref(null)
 
 const actionDialogOpen = ref(false)
-const actionLoading = ref(false)
 const actionType = ref('approve')
 const actionReason = ref('')
 const previewDialogOpen = ref(false)
 const previewImageUrl = ref('')
 const previewTitle = ref('')
 
-const attendantStatusLabel = computed(() => getAttendantStatusLabel(detail.value?.attendant?.status, '--'))
+const { actionLoading, getActionMeta, getReasonChips, runAttendantAction } = useAttendantReviewActions(uiStore)
 
-const actionMeta = computed(() => {
-  const map = {
-    approve: {
-      title: '通过审核',
-      description: '确认后会把该陪诊师设置为正常状态。',
-      confirmText: '确认通过',
-      confirmTone: 'button-primary',
-      needReason: false
-    },
-    reject: {
-      title: '驳回审核',
-      description: '驳回时必须填写原因，后台会记录在失败原因中。',
-      confirmText: '确认驳回',
-      confirmTone: 'button-danger',
-      needReason: true,
-      reasonLabel: '驳回原因',
-      reasonPlaceholder: '请输入驳回原因'
-    },
-    ban: {
-      title: '封禁陪诊师',
-      description: '封禁后会把该陪诊师状态改为封禁。',
-      confirmText: '确认封禁',
-      confirmTone: 'button-danger',
-      needReason: true,
-      reasonLabel: '封禁原因',
-      reasonPlaceholder: '请输入封禁原因'
-    },
-    'restore-status': {
-      title: '恢复陪诊师',
-      description: '恢复后会重新回到正常状态。',
-      confirmText: '确认恢复',
-      confirmTone: 'button-primary',
-      needReason: false
-    },
-    'restore-review': {
-      title: '重新通过审核',
-      description: '将审核失败状态重新通过。',
-      confirmText: '确认通过',
-      confirmTone: 'button-primary',
-      needReason: false
-    }
-  }
-  return map[actionType.value]
-})
+const attendantStatusLabel = computed(() => getAttendantStatusLabel(detail.value?.attendant?.status, '--'))
+const actionMeta = computed(() => getActionMeta(actionType.value))
+const reasonChips = computed(() => getReasonChips(actionType.value))
 
 const qualificationCards = computed(() => [
   {
@@ -274,35 +244,27 @@ const openActionDialog = (type) => {
   actionDialogOpen.value = true
 }
 
+const applyReasonChip = (reason) => {
+  actionReason.value = reason
+}
+
 const submitAction = async () => {
   if (!detail.value) return
-  if (actionMeta.value.needReason && !actionReason.value) {
-    uiStore.toast('请填写处理原因', 'error')
+  const result = await runAttendantAction({
+    attendantId: detail.value.user.id,
+    actionType: actionType.value,
+    reason: actionReason.value
+  })
+  if (!result.ok) {
+    if (result.errorMessage === '请填写处理原因') {
+      uiStore.toast(result.errorMessage, 'error')
+    }
     return
   }
 
-  actionLoading.value = true
-  try {
-    if (actionType.value === 'approve') {
-      await reviewAttendant(detail.value.user.id, { action: 'approve' })
-    } else if (actionType.value === 'reject') {
-      await reviewAttendant(detail.value.user.id, { action: 'reject', reason: actionReason.value })
-    } else if (actionType.value === 'ban') {
-      await updateAttendantStatus(detail.value.user.id, { status: 2, reason: actionReason.value })
-    } else if (actionType.value === 'restore-status') {
-      await updateAttendantStatus(detail.value.user.id, { status: 1, reason: '' })
-    } else if (actionType.value === 'restore-review') {
-      await reviewAttendant(detail.value.user.id, { action: 'restore' })
-    }
-
-    uiStore.toast('处理成功', 'success')
-    actionDialogOpen.value = false
-    await loadDetail()
-  } catch (error) {
-    uiStore.toast(error.message || '处理失败', 'error')
-  } finally {
-    actionLoading.value = false
-  }
+  uiStore.toast('处理成功', 'success')
+  actionDialogOpen.value = false
+  await loadDetail()
 }
 
 const openPreview = (card) => {
@@ -312,5 +274,19 @@ const openPreview = (card) => {
   previewDialogOpen.value = true
 }
 
-onMounted(loadDetail)
+watch(() => route.params.id, loadDetail, { immediate: true })
 </script>
+
+<style scoped>
+.reason-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 8px;
+}
+
+.reason-chip {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+</style>

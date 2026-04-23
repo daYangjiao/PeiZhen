@@ -26,4 +26,20 @@ public class AdminUserListItemResponse {
     private Date createTime;
 
     private long orderCount;
+
+    private long completedOrderCount;
+
+    private Integer attendantAuditStatus;
+
+    private String attendantAuditStatusLabel;
+
+    private Boolean attendantProfileCompleted;
+
+    private String attendantHospitalName;
+
+    private String attendantProfessionalField;
+
+    private Integer attendantExperienceYears;
+
+    private Integer qualificationCompleteness;
 }

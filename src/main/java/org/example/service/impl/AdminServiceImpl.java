@@ -6,6 +6,7 @@ import org.example.dao.AttendantQualificationMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
 import org.example.model.Attendant;
+import org.example.model.AttendantQualification;
 import org.example.model.Order;
 import org.example.model.User;
 import org.example.model.request.AdminOrderCancelRequest;
@@ -75,6 +76,20 @@ public class AdminServiceImpl implements AdminService {
             item.setAvatar(user.getAvatar());
             item.setCreateTime(user.getCreateTime());
             item.setOrderCount(orderMapper.countUserOrders(user.getId(), new OrderListQueryRequest()));
+            item.setCompletedOrderCount(orderMapper.countUserOrders(user.getId(), buildCompletedOrderQuery()));
+            if (user.getUserType() != null && user.getUserType() == 1) {
+                Attendant attendant = attendantMapper.findByUserId(user.getId());
+                AttendantQualification qualification = attendantQualificationMapper.findByUserId(user.getId());
+                item.setQualificationCompleteness(calculateQualificationCompleteness(qualification));
+                if (attendant != null) {
+                    item.setAttendantAuditStatus(attendant.getStatus());
+                    item.setAttendantAuditStatusLabel(mapAttendantStatus(attendant.getStatus()));
+                    item.setAttendantProfileCompleted(isAttendantProfileCompleted(attendant));
+                    item.setAttendantHospitalName(attendant.getHospitalName());
+                    item.setAttendantProfessionalField(attendant.getProfessionalField());
+                    item.setAttendantExperienceYears(attendant.getExperienceYears());
+                }
+            }
             items.add(item);
         }
         return new PagedResponse<>(items, total, safePage, safeSize);
@@ -134,11 +149,21 @@ public class AdminServiceImpl implements AdminService {
             item.setUserStatus(attendant.getUserStatus());
             item.setUserStatusLabel(mapUserStatus(attendant.getUserStatus()));
             item.setServiceCount(attendant.getServiceCount());
+            applyQualificationSummary(item, attendantQualificationMapper.findByUserId(attendant.getUserId()));
             item.setCreateTime(attendant.getCreateTime());
             item.setUpdateTime(attendant.getUpdateTime());
             items.add(item);
         }
         return new PagedResponse<>(items, total, safePage, safeSize);
+    }
+
+    @Override
+    public AdminAttendantDetailResponse getNextPendingAttendant(Integer excludeId) {
+        Integer userId = attendantMapper.findNextPendingUserId(excludeId);
+        if (userId == null) {
+            return null;
+        }
+        return getAttendantDetail(userId);
     }
 
     @Override
@@ -204,21 +229,16 @@ public class AdminServiceImpl implements AdminService {
 
         Attendant patch = new Attendant();
         patch.setUserId(userId);
-        String normalizedAction = trim(action);
+        String normalizedAction = validateReviewAction(action, reason);
         if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
             patch.setStatus(1);
             patch.setQualificationFailReason("");
         } else if ("reject".equals(normalizedAction)) {
-            if (!hasText(reason)) {
-                throw new IllegalArgumentException("驳回原因不能为空");
-            }
             patch.setStatus(3);
             patch.setQualificationFailReason(reason.trim());
-        } else if ("ban".equals(normalizedAction)) {
+        } else {
             patch.setStatus(2);
             patch.setQualificationFailReason(trim(reason));
-        } else {
-            throw new IllegalArgumentException("不支持的审核动作");
         }
         attendantMapper.update(patch);
     }
@@ -371,18 +391,38 @@ public class AdminServiceImpl implements AdminService {
                 item.setAttendantName(order.getAttendantName());
             }
             item.setPatientName(order.getPatientName());
+            item.setPatientAge(order.getPatientAge());
+            item.setPatientSex(order.getPatientSex());
+            item.setContactPerson(order.getContactPerson());
+            item.setContactPhone(order.getContactPhone());
             item.setHospital(order.getHospital());
+            item.setServiceContent(order.getServiceContent());
             item.setServiceDate(order.getServiceDate());
             item.setServiceTimeSlot(order.getServiceTimeSlot());
+            item.setSpecialRequirements(order.getSpecialRequirements());
             item.setOrderStatus(order.getOrderStatus());
             item.setOrderStatusLabel(mapOrderStatus(order.getOrderStatus()));
             item.setPaymentStatus(order.getPaymentStatus());
             item.setPaymentStatusLabel(mapPaymentStatus(order.getPaymentStatus()));
             item.setOrderAmount(order.getOrderAmount());
+            item.setPaymentTime(order.getPaymentTime());
+            item.setAcceptTime(order.getAcceptTime());
+            item.setServiceStartTime(order.getServiceStartTime());
+            item.setServiceEndTime(order.getServiceEndTime());
+            item.setActualDuration(order.getActualDuration());
+            item.setBalanceAmount(order.getBalanceAmount());
+            item.setRefundAmount(order.getRefundAmount());
+            item.setAdminRemark(order.getAdminRemark());
             item.setCreateTime(order.getCreateTime());
             items.add(item);
         }
         return items;
+    }
+
+    private OrderListQueryRequest buildCompletedOrderQuery() {
+        OrderListQueryRequest completedQuery = new OrderListQueryRequest();
+        completedQuery.setOrderStatus(6);
+        return completedQuery;
     }
 
     private User requireUser(Integer userId) {
@@ -425,6 +465,64 @@ public class AdminServiceImpl implements AdminService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String validateReviewAction(String action, String reason) {
+        String normalizedAction = trim(action);
+        if (!"approve".equals(normalizedAction)
+                && !"restore".equals(normalizedAction)
+                && !"reject".equals(normalizedAction)
+                && !"ban".equals(normalizedAction)) {
+            throw new IllegalArgumentException("不支持的审核动作");
+        }
+        if ("reject".equals(normalizedAction) && !hasText(reason)) {
+            throw new IllegalArgumentException("驳回原因不能为空");
+        }
+        return normalizedAction;
+    }
+
+    private boolean isAttendantProfileCompleted(Attendant attendant) {
+        return attendant != null
+                && hasText(attendant.getHospitalName())
+                && hasText(attendant.getProfessionalField())
+                && attendant.getExperienceYears() != null
+                && hasText(attendant.getIntroduction())
+                && hasText(attendant.getCertificate());
+    }
+
+    private int calculateQualificationCompleteness(AttendantQualification qualification) {
+        if (qualification == null) {
+            return 0;
+        }
+        int completed = 0;
+        if (hasText(qualification.getIdCardFrontFileUrl())) {
+            completed++;
+        }
+        if (hasText(qualification.getIdCardBackFileUrl())) {
+            completed++;
+        }
+        if (hasText(qualification.getPracticeCertFileUrl())) {
+            completed++;
+        }
+        if (hasText(qualification.getHealthCertFileUrl())) {
+            completed++;
+        }
+        return completed * 100 / 4;
+    }
+
+    private void applyQualificationSummary(AdminAttendantListItemResponse item, AttendantQualification qualification) {
+        boolean idCardFrontUploaded = qualification != null && hasText(qualification.getIdCardFrontFileUrl());
+        boolean idCardBackUploaded = qualification != null && hasText(qualification.getIdCardBackFileUrl());
+        boolean practiceCertUploaded = qualification != null && hasText(qualification.getPracticeCertFileUrl());
+        boolean healthCertUploaded = qualification != null && hasText(qualification.getHealthCertFileUrl());
+
+        item.setIdCardFrontUploaded(idCardFrontUploaded);
+        item.setIdCardBackUploaded(idCardBackUploaded);
+        item.setIdCardUploaded(idCardFrontUploaded && idCardBackUploaded);
+        item.setPracticeCertUploaded(practiceCertUploaded);
+        item.setHealthCertUploaded(healthCertUploaded);
+        item.setQualificationComplete(idCardFrontUploaded && idCardBackUploaded && practiceCertUploaded && healthCertUploaded);
+        item.setQualificationCompleteness(calculateQualificationCompleteness(qualification));
     }
 
     private String mapUserType(Integer userType) {

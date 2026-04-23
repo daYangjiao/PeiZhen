@@ -86,4 +86,9 @@
         WHERE id = #{id}
     </update>
 
+    <delete id="deleteById">
+        DELETE FROM sys_admin
+        WHERE id = #{id}
+    </delete>
+
 </mapper>

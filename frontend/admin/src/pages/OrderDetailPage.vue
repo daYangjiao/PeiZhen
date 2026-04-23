@@ -7,44 +7,44 @@
         <section class="panel-card">
           <div class="section-heading">
             <div>
-              <h3 class="section-title">{{ detail.order.orderNo }}</h3>
-              <p class="section-copy">{{ detail.order.hospital || '-' }} · {{ detail.order.serviceDate || '-' }} {{ detail.order.serviceTimeSlot || '' }}</p>
+              <h3 class="section-title">{{ order.orderNo }}</h3>
+              <p class="section-copy">{{ order.hospital || '-' }} · {{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
             </div>
             <div class="toolbar-group">
-              <span class="badge" :class="getOrderStatusBadge(detail.order.orderStatus)">{{ orderStatusLabel }}</span>
-              <span class="badge" :class="getPaymentStatusBadge(detail.order.paymentStatus)">{{ paymentStatusLabel }}</span>
+              <span class="badge no-wrap" :class="getOrderStatusBadge(order.orderStatus)">{{ orderStatusLabel }}</span>
+              <span class="badge no-wrap" :class="getPaymentStatusBadge(order.paymentStatus)">{{ paymentStatusLabel }}</span>
               <button class="button button-ghost" type="button" @click="router.push('/orders')">返回列表</button>
             </div>
           </div>
 
           <div class="kv-grid">
             <div class="kv-item">
-              <p class="kv-label">患者信息</p>
-              <p class="kv-value">{{ detail.order.patientName || '-' }} / {{ detail.order.patientSex || '未知' }} / {{ detail.order.patientAge || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">联系人</p>
-              <p class="kv-value">{{ detail.order.contactPerson || detail.user?.name || '-' }} / {{ detail.order.contactPhone || detail.user?.phone || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">服务内容</p>
-              <p class="kv-value">{{ detail.order.serviceContent || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">特殊需求</p>
-              <p class="kv-value">{{ detail.order.specialRequirements || detail.order.customRequirement || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">支付时间</p>
-              <p class="kv-value">{{ formatDateTime(detail.order.paymentTime) }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">陪诊师</p>
-              <p class="kv-value">{{ detail.attendant?.name || detail.order.attendantName || '暂未接单' }} / {{ detail.attendant?.phone || '-' }}</p>
+              <p class="kv-label">订单编号</p>
+              <p class="kv-value">{{ order.orderNo || '-' }}</p>
             </div>
             <div class="kv-item">
               <p class="kv-label">创建时间</p>
-              <p class="kv-value">{{ formatDateTime(detail.order.createTime) }}</p>
+              <p class="kv-value">{{ formatDateTime(order.createTime) }}</p>
+            </div>
+            <div class="kv-item">
+              <p class="kv-label">支付时间</p>
+              <p class="kv-value">{{ formatDateTime(getPaymentTime(order)) }}</p>
+            </div>
+            <div class="kv-item">
+              <p class="kv-label">患者信息</p>
+              <p class="kv-value">{{ getPatientName(order) }} / {{ formatSex(getPatientSex(order)) }} / {{ getPatientAge(order) }}</p>
+            </div>
+            <div class="kv-item">
+              <p class="kv-label">联系人</p>
+              <p class="kv-value">{{ getContactName(order) }} / {{ getContactPhone(order) }}</p>
+            </div>
+            <div class="kv-item">
+              <p class="kv-label">服务内容</p>
+              <p class="kv-value">{{ getServiceContent(order) }}</p>
+            </div>
+            <div class="kv-item">
+              <p class="kv-label">特殊需求</p>
+              <p class="kv-value">{{ getSpecialRequirement(order) }}</p>
             </div>
           </div>
         </section>
@@ -52,72 +52,123 @@
         <section class="panel-card">
           <div class="section-heading">
             <div>
-              <h3 class="section-title">金额拆分</h3>
-              <p class="section-copy">订单金额、退款与差额明细。</p>
-            </div>
-          </div>
-          <div class="amount-breakdown-grid">
-            <div class="amount-breakdown-item">
-              <p class="amount-breakdown-label">订单金额</p>
-              <p class="amount-breakdown-value">{{ formatMoney(detail.order.orderAmount) }}</p>
-            </div>
-            <div class="amount-breakdown-item">
-              <p class="amount-breakdown-label">退款金额</p>
-              <p class="amount-breakdown-value">{{ formatMoney(detail.order.refundAmount) }}</p>
-            </div>
-            <div class="amount-breakdown-item">
-              <p class="amount-breakdown-label">差额金额</p>
-              <p class="amount-breakdown-value">{{ formatMoney(detail.order.balanceAmount) }}</p>
-            </div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-row-label">后台备注</div>
-            <div class="detail-row-value">{{ detail.order.adminRemark || '-' }}</div>
-          </div>
-        </section>
-
-        <section class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h3 class="section-title">订单进展</h3>
-              <p class="section-copy">服务开始、结束与争议记录。</p>
+              <h3 class="section-title">服务进展</h3>
+              <p class="section-copy">接单、服务开始与结束、时长与争议记录。</p>
             </div>
             <div class="toolbar-group">
-              <button v-if="canCancel(detail.order.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog">取消订单</button>
-              <button v-if="detail.order.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog">处理争议</button>
+              <button v-if="canCancel(order.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog">取消订单</button>
+              <button v-if="order.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog">处理争议</button>
             </div>
           </div>
 
           <div class="detail-row">
-            <div class="detail-row-label">支付状态</div>
-            <div class="detail-row-value">{{ paymentStatusLabel }}</div>
-          </div>
-          <div class="detail-row">
             <div class="detail-row-label">订单状态</div>
-            <div class="detail-row-value">{{ orderStatusLabel }}</div>
+            <div class="detail-row-value no-wrap">{{ orderStatusLabel }}</div>
           </div>
           <div class="detail-row">
-            <div class="detail-row-label">服务进度步骤</div>
-            <div class="detail-row-value">{{ detail.order.serviceProgressStep || '-' }}</div>
+            <div class="detail-row-label">支付状态</div>
+            <div class="detail-row-value no-wrap">{{ paymentStatusLabel }}</div>
           </div>
           <div class="detail-row">
             <div class="detail-row-label">接单时间</div>
-            <div class="detail-row-value">{{ formatDateTime(detail.order.acceptTime) }}</div>
+            <div class="detail-row-value">{{ formatDateTime(getAcceptTime(order)) }}</div>
           </div>
           <div class="detail-row">
             <div class="detail-row-label">服务开始 / 结束</div>
-            <div class="detail-row-value">{{ formatDateTime(detail.order.serviceStartTime) }} / {{ formatDateTime(detail.order.serviceEndTime) }}</div>
+            <div class="detail-row-value">{{ formatDateTime(getServiceStartTime(order)) }} / {{ formatDateTime(getServiceEndTime(order)) }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">实际服务时长</div>
+            <div class="detail-row-value">{{ formatDuration(getActualDuration(order)) }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">服务进度步骤</div>
+            <div class="detail-row-value">{{ order.serviceProgressStep || '-' }}</div>
           </div>
           <div class="detail-row">
             <div class="detail-row-label">争议说明</div>
-            <div class="detail-row-value">{{ detail.order.timeDisputeReason || '-' }}</div>
+            <div class="detail-row-value">{{ getDisputeReason(order) }}</div>
           </div>
-          <div class="detail-row" v-if="detail.order.cancelReason">
-            <div class="detail-row-label">取消信息</div>
-            <div class="detail-row-value">
-              {{ detail.order.cancelReason }}<br />
-              {{ formatDateTime(detail.order.cancelTime) }}
+        </section>
+
+        <section class="panel-card">
+          <div class="section-heading">
+            <div>
+              <h3 class="section-title">金额结算</h3>
+              <p class="section-copy">订单金额、退款、差额与最终结算。</p>
             </div>
+          </div>
+
+          <div class="amount-breakdown-grid">
+            <div class="amount-breakdown-item">
+              <p class="amount-breakdown-label">订单金额</p>
+              <p class="amount-breakdown-value">{{ formatMoney(order.orderAmount) }}</p>
+            </div>
+            <div class="amount-breakdown-item">
+              <p class="amount-breakdown-label">最终金额</p>
+              <p class="amount-breakdown-value">{{ formatMoney(getFinalOrderAmount(order)) }}</p>
+            </div>
+            <div class="amount-breakdown-item">
+              <p class="amount-breakdown-label">差额金额</p>
+              <p class="amount-breakdown-value">{{ formatMoney(getBalanceAmount(order)) }}</p>
+            </div>
+            <div class="amount-breakdown-item">
+              <p class="amount-breakdown-label">退款金额</p>
+              <p class="amount-breakdown-value">{{ formatMoney(getRefundAmount(order)) }}</p>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-row-label">后台备注</div>
+            <div class="detail-row-value">{{ getAdminRemark(order) }}</div>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-heading">
+            <div>
+              <h3 class="section-title">参与人信息</h3>
+              <p class="section-copy">下单用户、联系人与陪诊师资料。</p>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-row-label">下单用户</div>
+            <div class="detail-row-value">{{ detail.user?.name || order.userName || '-' }} / {{ detail.user?.phone || order.userPhone || '-' }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">联系人</div>
+            <div class="detail-row-value">{{ getContactName(order) }} / {{ getContactPhone(order) }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">陪诊师</div>
+            <div class="detail-row-value">{{ detail.attendant?.name || order.attendantName || '暂未接单' }} / {{ detail.attendant?.phone || order.attendantPhone || '-' }}</div>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-heading">
+            <div>
+              <h3 class="section-title">后台处理记录</h3>
+              <p class="section-copy">取消、争议与备注信息。</p>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-row-label">取消原因</div>
+            <div class="detail-row-value">{{ order.cancelReason || '-' }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">取消时间</div>
+            <div class="detail-row-value">{{ formatDateTime(order.cancelTime) }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">争议备注</div>
+            <div class="detail-row-value">{{ getDisputeReason(order) }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-row-label">后台备注</div>
+            <div class="detail-row-value">{{ getAdminRemark(order) }}</div>
           </div>
         </section>
       </template>
@@ -206,8 +257,51 @@ const disputeForm = reactive({
   adminRemark: ''
 })
 
-const orderStatusLabel = computed(() => getOrderStatusLabel(detail.value?.order?.orderStatus, '--'))
-const paymentStatusLabel = computed(() => getPaymentStatusLabel(detail.value?.order?.paymentStatus, '--'))
+const order = computed(() => detail.value?.order || {})
+const orderStatusLabel = computed(() => getOrderStatusLabel(order.value?.orderStatus, '--'))
+const paymentStatusLabel = computed(() => getPaymentStatusLabel(order.value?.paymentStatus, '--'))
+
+const firstValidValue = (payload, keys) => {
+  for (const key of keys) {
+    const value = payload?.[key]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return ''
+}
+
+const formatSex = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return '未知'
+  const lower = raw.toLowerCase()
+  if (['1', 'male', '男', 'man'].includes(lower)) return '男'
+  if (['2', 'female', '女', 'woman'].includes(lower)) return '女'
+  return raw
+}
+
+const getPatientName = (orderItem) => firstValidValue(orderItem, ['patientName', 'userName', 'name']) || '-'
+const getPatientSex = (orderItem) => firstValidValue(orderItem, ['patientSex', 'sex', 'gender'])
+const getPatientAge = (orderItem) => firstValidValue(orderItem, ['patientAge', 'age', 'userAge']) || '-'
+const getContactName = (orderItem) => firstValidValue(orderItem, ['contactPerson', 'contactName', 'emergencyContact', 'userName']) || '-'
+const getContactPhone = (orderItem) => firstValidValue(orderItem, ['contactPhone', 'contactMobile', 'userPhone', 'phone']) || '-'
+const getServiceContent = (orderItem) => firstValidValue(orderItem, ['serviceContent', 'serviceTypeName', 'serviceType', 'serviceProject']) || '-'
+const getSpecialRequirement = (orderItem) => firstValidValue(orderItem, ['specialRequirements', 'customRequirement', 'remark', 'note']) || '-'
+const getPaymentTime = (orderItem) => firstValidValue(orderItem, ['paymentTime', 'payTime', 'paidTime'])
+const getAcceptTime = (orderItem) => firstValidValue(orderItem, ['acceptTime', 'takeOrderTime', 'receiveOrderTime'])
+const getServiceStartTime = (orderItem) => firstValidValue(orderItem, ['serviceStartTime', 'startTime'])
+const getServiceEndTime = (orderItem) => firstValidValue(orderItem, ['serviceEndTime', 'endTime'])
+const getActualDuration = (orderItem) => firstValidValue(orderItem, ['actualDuration', 'serviceDuration', 'finalDuration', 'timeDisputeFinalDuration', 'timeDisputeUserDuration'])
+const getFinalOrderAmount = (orderItem) => firstValidValue(orderItem, ['finalOrderAmount', 'settlementAmount', 'actualPayAmount', 'orderAmount'])
+const getBalanceAmount = (orderItem) => firstValidValue(orderItem, ['balanceAmount', 'differenceAmount'])
+const getRefundAmount = (orderItem) => firstValidValue(orderItem, ['refundAmount', 'refundFee'])
+const getAdminRemark = (orderItem) => firstValidValue(orderItem, ['adminRemark', 'remark', 'backendRemark']) || '-'
+const getDisputeReason = (orderItem) => firstValidValue(orderItem, ['timeDisputeReason', 'disputeReason', 'disputeRemark']) || '-'
+
+const formatDuration = (value) => {
+  if (value === '' || value === null || value === undefined) return '-'
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) return `${value}`
+  return `${numericValue} 小时`
+}
 
 const canCancel = (status) => status !== 6 && status !== 7
 
@@ -284,3 +378,33 @@ const submitDispute = async () => {
 
 onMounted(loadDetail)
 </script>
+
+<style scoped>
+.no-wrap {
+  white-space: nowrap;
+}
+
+.detail-row-label {
+  flex: 0 0 140px;
+}
+
+.detail-row-value {
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .section-heading {
+    align-items: flex-start;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-row-label {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+}
+</style>

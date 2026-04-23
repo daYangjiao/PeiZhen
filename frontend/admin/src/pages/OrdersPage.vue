@@ -39,26 +39,39 @@
         <div v-if="loading" class="skeleton"></div>
         <template v-else>
           <div v-if="orders.length" class="table-wrap">
-            <table class="table">
+            <table class="table orders-table">
               <thead>
                 <tr>
                   <th>订单号</th>
-                  <th>患者 / 用户</th>
+                  <th>患者</th>
+                  <th>联系人</th>
                   <th>陪诊师</th>
                   <th>服务信息</th>
+                  <th>特殊需求</th>
                   <th>金额</th>
+                  <th>支付时间</th>
+                  <th>接单 / 服务时间</th>
+                  <th>实际时长</th>
+                  <th>差额 / 退款 / 备注</th>
                   <th class="status-cell">订单状态</th>
                   <th class="payment-cell">支付状态</th>
-                  <th class="time-cell">创建时间</th>
                   <th class="actions-cell">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="order in orders" :key="order.orderId">
-                  <td>{{ order.orderNo }}</td>
+                  <td class="no-wrap">
+                    <p class="table-cell-title">{{ order.orderNo }}</p>
+                    <p class="table-cell-copy">创建：{{ formatDateTime(order.createTime) }}</p>
+                  </td>
                   <td>
-                    <p class="table-cell-title">{{ order.patientName || order.userName || '-' }}</p>
+                    <p class="table-cell-title">{{ getPatientName(order) }}</p>
+                    <p class="table-cell-copy">{{ formatPatientProfile(order) }}</p>
                     <p class="table-cell-copy">{{ order.userPhone || '-' }}</p>
+                  </td>
+                  <td>
+                    <p class="table-cell-title">{{ getContactName(order) }}</p>
+                    <p class="table-cell-copy">{{ getContactPhone(order) }}</p>
                   </td>
                   <td>
                     <p class="table-cell-title">{{ order.attendantName || '暂未接单' }}</p>
@@ -66,12 +79,28 @@
                   </td>
                   <td>
                     <p class="table-cell-title">{{ order.hospital || '-' }}</p>
+                    <p class="table-cell-copy">{{ getServiceContent(order) }}</p>
                     <p class="table-cell-copy">{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
                   </td>
-                  <td>{{ formatMoney(order.orderAmount) }}</td>
+                  <td><p class="summary-copy">{{ summarizeText(getSpecialRequirement(order)) }}</p></td>
+                  <td class="no-wrap">
+                    <p class="table-cell-title">{{ formatMoney(order.orderAmount) }}</p>
+                    <p class="table-cell-copy">实结：{{ formatMoney(getFinalAmount(order)) }}</p>
+                  </td>
+                  <td class="time-cell">{{ formatDateTime(getPaymentTime(order)) }}</td>
+                  <td class="time-cell">
+                    <p class="table-cell-copy">接单：{{ formatDateTime(getAcceptTime(order)) }}</p>
+                    <p class="table-cell-copy">开始：{{ formatDateTime(getServiceStartTime(order)) }}</p>
+                    <p class="table-cell-copy">结束：{{ formatDateTime(getServiceEndTime(order)) }}</p>
+                  </td>
+                  <td class="no-wrap">{{ formatDurationHour(getActualDuration(order)) }}</td>
+                  <td>
+                    <p class="table-cell-copy">差额：{{ formatMoney(getBalanceAmount(order)) }}</p>
+                    <p class="table-cell-copy">退款：{{ formatMoney(getRefundAmount(order)) }}</p>
+                    <p class="summary-copy">{{ summarizeText(getAdminRemark(order)) }}</p>
+                  </td>
                   <td class="status-cell"><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
                   <td class="payment-cell"><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
-                  <td class="time-cell">{{ formatDateTime(order.createTime) }}</td>
                   <td class="actions-cell">
                     <div class="table-actions">
                       <button class="button button-secondary" type="button" @click="goToDetail(order.orderId)">查看详情</button>
@@ -228,6 +257,57 @@ const disputeForm = reactive({
   finalOrderAmount: '',
   adminRemark: ''
 })
+
+const firstValidValue = (payload, keys) => {
+  for (const key of keys) {
+    const value = payload?.[key]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return ''
+}
+
+const normalizeSex = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return '未知'
+  const lower = raw.toLowerCase()
+  if (['1', 'male', '男', 'man'].includes(lower)) return '男'
+  if (['2', 'female', '女', 'woman'].includes(lower)) return '女'
+  return raw
+}
+
+const getPatientName = (order) => firstValidValue(order, ['patientName', 'userName', 'name']) || '-'
+const getPatientSex = (order) => normalizeSex(firstValidValue(order, ['patientSex', 'sex', 'gender']))
+const getPatientAge = (order) => firstValidValue(order, ['patientAge', 'age', 'userAge']) || '-'
+const formatPatientProfile = (order) => `${getPatientSex(order)} / ${getPatientAge(order)}`
+
+const getContactName = (order) => firstValidValue(order, ['contactPerson', 'contactName', 'emergencyContact', 'userName']) || '-'
+const getContactPhone = (order) => firstValidValue(order, ['contactPhone', 'contactMobile', 'userPhone', 'phone']) || '-'
+
+const getServiceContent = (order) => firstValidValue(order, ['serviceContent', 'serviceTypeName', 'serviceType', 'serviceProject']) || '-'
+const getSpecialRequirement = (order) => firstValidValue(order, ['specialRequirements', 'customRequirement', 'remark', 'note']) || '-'
+const getPaymentTime = (order) => firstValidValue(order, ['paymentTime', 'payTime', 'paidTime'])
+const getAcceptTime = (order) => firstValidValue(order, ['acceptTime', 'takeOrderTime', 'receiveOrderTime'])
+const getServiceStartTime = (order) => firstValidValue(order, ['serviceStartTime', 'startTime'])
+const getServiceEndTime = (order) => firstValidValue(order, ['serviceEndTime', 'endTime'])
+const getActualDuration = (order) => firstValidValue(order, ['actualDuration', 'serviceDuration', 'finalDuration', 'timeDisputeFinalDuration', 'timeDisputeUserDuration'])
+const getFinalAmount = (order) => firstValidValue(order, ['finalOrderAmount', 'settlementAmount', 'actualPayAmount', 'orderAmount'])
+const getBalanceAmount = (order) => firstValidValue(order, ['balanceAmount', 'differenceAmount'])
+const getRefundAmount = (order) => firstValidValue(order, ['refundAmount', 'refundFee'])
+const getAdminRemark = (order) => firstValidValue(order, ['adminRemark', 'remark', 'backendRemark']) || '-'
+
+const formatDurationHour = (value) => {
+  if (value === '' || value === null || value === undefined) return '-'
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) return `${value}`
+  return `${numericValue} 小时`
+}
+
+const summarizeText = (text, maxLength = 36) => {
+  const raw = String(text || '-').replace(/\s+/g, ' ').trim()
+  if (!raw) return '-'
+  if (raw.length <= maxLength) return raw
+  return `${raw.slice(0, maxLength)}...`
+}
 
 const readQueryValue = (queryValue) => (Array.isArray(queryValue) ? queryValue[0] : queryValue)
 
@@ -418,6 +498,30 @@ watch(
 .filter-actions-row {
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.orders-table {
+  min-width: 2280px;
+}
+
+.summary-copy {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 260px;
+  word-break: break-word;
+}
+
+.status-cell,
+.payment-cell,
+.time-cell,
+.no-wrap {
+  white-space: nowrap;
+}
+
+.actions-cell {
+  min-width: 180px;
 }
 
 @media (max-width: 1320px) {

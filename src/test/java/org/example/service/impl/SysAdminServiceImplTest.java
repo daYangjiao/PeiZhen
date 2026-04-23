@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -189,6 +190,58 @@ class SysAdminServiceImplTest {
         assertThatThrownBy(() -> service.updateStatus(1, 5, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("至少保留一个启用状态的超级管理员");
+    }
+
+    @Test
+    void deleteAdminShouldRejectNormalAdminOperator() {
+        when(sysAdminMapper.findById(2)).thenReturn(normalAdmin(2));
+
+        assertThatThrownBy(() -> service.deleteAdmin(2, 8))
+                .isInstanceOf(SecurityException.class)
+                .hasMessage("仅超级管理员可管理管理员账号");
+    }
+
+    @Test
+    void deleteAdminShouldRejectDeletingCurrentAdmin() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+
+        assertThatThrownBy(() -> service.deleteAdmin(1, 1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("不能删除当前登录管理员");
+        verify(sysAdminMapper, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteAdminShouldRejectWhenTargetNotFound() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+        when(sysAdminMapper.findById(99)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.deleteAdmin(1, 99))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("管理员不存在");
+        verify(sysAdminMapper, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteAdminShouldRejectDeletingLastEnabledSuperAdmin() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+        when(sysAdminMapper.findById(8)).thenReturn(superAdmin(8));
+        when(sysAdminMapper.countEnabledSuperAdmins()).thenReturn(1);
+
+        assertThatThrownBy(() -> service.deleteAdmin(1, 8))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("至少保留一个启用状态的超级管理员");
+        verify(sysAdminMapper, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteAdminShouldDeleteById() {
+        when(sysAdminMapper.findById(1)).thenReturn(superAdmin(1));
+        when(sysAdminMapper.findById(8)).thenReturn(normalAdmin(8));
+
+        service.deleteAdmin(1, 8);
+
+        verify(sysAdminMapper).deleteById(8);
     }
 
     @Test

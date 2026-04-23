@@ -25,4 +25,6 @@ public interface SysAdminMapper {
     int insert(SysAdmin admin);
 
     int update(SysAdmin admin);
+
+    int deleteById(@Param("id") Integer id);
 }

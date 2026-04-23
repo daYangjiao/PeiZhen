@@ -26,11 +26,23 @@ public class AdminOrderListItemResponse {
 
     private String patientName;
 
+    private Integer patientAge;
+
+    private String patientSex;
+
+    private String contactPerson;
+
+    private String contactPhone;
+
     private String hospital;
+
+    private String serviceContent;
 
     private String serviceDate;
 
     private String serviceTimeSlot;
+
+    private String specialRequirements;
 
     private Integer orderStatus;
 
@@ -41,6 +53,22 @@ public class AdminOrderListItemResponse {
     private String paymentStatusLabel;
 
     private BigDecimal orderAmount;
+
+    private Date paymentTime;
+
+    private Date acceptTime;
+
+    private Date serviceStartTime;
+
+    private Date serviceEndTime;
+
+    private BigDecimal actualDuration;
+
+    private BigDecimal balanceAmount;
+
+    private BigDecimal refundAmount;
+
+    private String adminRemark;
 
     private Date createTime;
 }

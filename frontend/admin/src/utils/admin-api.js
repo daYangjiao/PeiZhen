@@ -1,4 +1,4 @@
-import { get, patch, post } from './http'
+import { del, get, patch, post } from './http'
 
 export const loginAdmin = (payload) => post('/api/admin/auth/login', payload)
 export const fetchDashboard = () => get('/api/admin/dashboard/overview')
@@ -8,6 +8,7 @@ export const updateUserStatus = (id, status) => patch(`/api/admin/users/${id}/st
 
 export const fetchAttendants = (params) => get('/api/admin/attendants', params)
 export const fetchAttendantDetail = (id) => get(`/api/admin/attendants/${id}`)
+export const fetchNextPendingAttendant = (params) => get('/api/admin/attendants/next-pending', params)
 export const reviewAttendant = (id, payload) => patch(`/api/admin/attendants/${id}/qualification-review`, payload)
 export const updateAttendantStatus = (id, payload) => patch(`/api/admin/attendants/${id}/status`, payload)
 
@@ -19,3 +20,4 @@ export const resolveDispute = (id, payload) => patch(`/api/admin/orders/${id}/di
 export const fetchAdminUsers = (params) => get('/api/admin/admin-users', params)
 export const createAdminUser = (payload) => post('/api/admin/admin-users', payload)
 export const updateAdminUserStatus = (id, status) => patch(`/api/admin/admin-users/${id}/status`, { status })
+export const deleteAdminUser = (id) => del(`/api/admin/admin-users/${id}`)

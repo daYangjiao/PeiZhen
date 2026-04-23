@@ -149,4 +149,15 @@
         LIMIT #{offset}, #{limit}
     </select>
 
+    <select id="findNextPendingUserId" resultType="int">
+        SELECT a.user_id
+        FROM attendant a
+        WHERE a.status = 0
+        <if test="excludeId != null">
+            AND a.user_id != #{excludeId}
+        </if>
+        ORDER BY a.update_time DESC, a.user_id DESC
+        LIMIT 1
+    </select>
+
 </mapper>

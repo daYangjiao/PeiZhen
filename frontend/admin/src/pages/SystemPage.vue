@@ -71,6 +71,14 @@
                       >
                         {{ admin.status === 1 ? '禁用' : '恢复' }}
                       </button>
+                      <button
+                        class="button button-danger"
+                        type="button"
+                        :disabled="actionLoading || isCurrentAdmin(admin)"
+                        @click="promptDeleteAdmin(admin)"
+                      >
+                        删除
+                      </button>
                     </div>
                     <p v-if="admin.status === 1 && isCurrentAdmin(admin)" class="helper-text">当前登录账号不可禁用</p>
                   </td>
@@ -152,6 +160,26 @@
         </button>
       </template>
     </BaseDialog>
+
+    <BaseDialog
+      v-model="deleteDialogOpen"
+      title="确认删除管理员"
+      :description="deleteTarget ? `将永久删除管理员 ${deleteTarget.name || deleteTarget.phone || deleteTarget.id}。` : ''"
+      width="520px"
+    >
+      <p class="section-copy">该操作不可撤销，请谨慎确认。</p>
+      <template #footer>
+        <button class="button button-ghost" type="button" @click="deleteDialogOpen = false">取消</button>
+        <button
+          class="button button-danger"
+          type="button"
+          :disabled="actionLoading"
+          @click="submitDeleteAdmin"
+        >
+          {{ actionLoading ? '删除中...' : '确认删除' }}
+        </button>
+      </template>
+    </BaseDialog>
   </AppShell>
 </template>
 
@@ -161,7 +189,7 @@ import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUiStore } from '../stores/ui'
-import { createAdminUser, fetchAdminUsers, updateAdminUserStatus } from '../utils/admin-api'
+import { createAdminUser, deleteAdminUser, fetchAdminUsers, updateAdminUserStatus } from '../utils/admin-api'
 import { getUserStatusBadge, toQueryValue, userStatusOptions } from '../utils/admin-view'
 import { formatDateTime } from '../utils/format'
 
@@ -192,6 +220,8 @@ const createForm = reactive({
 const statusDialogOpen = ref(false)
 const actionLoading = ref(false)
 const statusTarget = ref(null)
+const deleteDialogOpen = ref(false)
+const deleteTarget = ref(null)
 
 const currentAdminIdentity = computed(() => ({
   id: authStore.user?.id ?? authStore.user?.adminId ?? authStore.user?.userId ?? null,
@@ -340,6 +370,41 @@ const submitStatusChange = async () => {
     await loadAdminUsers()
   } catch (error) {
     uiStore.toast(error.message || '管理员状态更新失败', 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const promptDeleteAdmin = (admin) => {
+  if (isCurrentAdmin(admin)) {
+    uiStore.toast('当前登录账号不可删除', 'error')
+    return
+  }
+  deleteTarget.value = admin
+  deleteDialogOpen.value = true
+}
+
+const submitDeleteAdmin = async () => {
+  if (!deleteTarget.value) return
+  if (deleteTarget.value.id === null || deleteTarget.value.id === undefined) {
+    uiStore.toast('无法识别管理员 ID，删除失败', 'error')
+    deleteDialogOpen.value = false
+    return
+  }
+  if (isCurrentAdmin(deleteTarget.value)) {
+    uiStore.toast('当前登录账号不可删除', 'error')
+    deleteDialogOpen.value = false
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    await deleteAdminUser(deleteTarget.value.id)
+    uiStore.toast('管理员删除成功', 'success')
+    deleteDialogOpen.value = false
+    await loadAdminUsers()
+  } catch (error) {
+    uiStore.toast(error.message || '管理员删除失败', 'error')
   } finally {
     actionLoading.value = false
   }

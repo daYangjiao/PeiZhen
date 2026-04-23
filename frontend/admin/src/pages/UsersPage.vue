@@ -37,14 +37,16 @@
         <div v-if="loading" class="skeleton"></div>
         <template v-else>
           <div v-if="users.length" class="table-wrap">
-            <table class="table">
+            <table class="table users-table">
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>用户信息</th>
+                  <th>性别 / 年龄</th>
                   <th>角色</th>
-                  <th>状态</th>
-                  <th>订单数</th>
+                  <th class="status-cell">状态</th>
+                  <th>订单数据</th>
+                  <th>陪诊师资料</th>
                   <th>注册时间</th>
                   <th>操作</th>
                 </tr>
@@ -53,13 +55,27 @@
                 <tr v-for="user in users" :key="user.id">
                   <td>{{ user.id }}</td>
                   <td>
-                    <p class="table-cell-title">{{ user.name || '未命名用户' }}</p>
-                    <p class="table-cell-copy">{{ user.phone || '-' }}</p>
+                    <div class="user-info">
+                      <img class="user-avatar" :src="getUserAvatar(user)" :alt="user.name || '用户头像'" />
+                      <div>
+                        <p class="table-cell-title">{{ user.name || '未命名用户' }}</p>
+                        <p class="table-cell-copy">{{ user.phone || '-' }}</p>
+                      </div>
+                    </div>
                   </td>
+                  <td class="no-wrap">{{ formatUserSex(user) }} / {{ formatUserAge(user) }}</td>
                   <td>{{ getUserTypeLabel(user.userType, user.userTypeLabel || '--') }}</td>
-                  <td><span class="badge" :class="getUserStatusBadge(user.status)">{{ getUserStatusLabel(user.status, user.statusLabel || '--') }}</span></td>
-                  <td>{{ user.orderCount }}</td>
-                  <td>{{ formatDateTime(user.createTime) }}</td>
+                  <td class="status-cell"><span class="badge" :class="getUserStatusBadge(user.status)">{{ getUserStatusLabel(user.status, user.statusLabel || '--') }}</span></td>
+                  <td class="no-wrap">{{ getOrderCountValue(user) }} / {{ getCompletedOrderCountValue(user) }}</td>
+                  <td>
+                    <template v-if="isAttendantUser(user)">
+                      <p class="table-cell-title no-wrap">{{ getAttendantAuditStatus(user) }}</p>
+                      <p class="table-cell-copy">{{ getAttendantHospital(user) }}</p>
+                      <p class="table-cell-copy">{{ getAttendantField(user) }}</p>
+                    </template>
+                    <p v-else class="table-cell-copy">-</p>
+                  </td>
+                  <td class="time-cell">{{ formatDateTime(getUserRegisterTime(user)) }}</td>
                   <td>
                     <div class="table-actions">
                       <button class="button button-secondary" type="button" @click="openUserDetail(user)">查看详情</button>
@@ -233,6 +249,45 @@ const selectedUserDetail = ref(null)
 const confirmOpen = ref(false)
 const confirmUser = ref(null)
 const actionLoading = ref(false)
+const defaultAvatar = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2284%22 height=%2284%22 viewBox=%220 0 84 84%22 fill=%22none%22%3E%3Crect width=%2284%22 height=%2284%22 rx=%2242%22 fill=%22%23E7EEF9%22/%3E%3Cpath d=%22M42 42C49.1797 42 55 36.1797 55 29C55 21.8203 49.1797 16 42 16C34.8203 16 29 21.8203 29 29C29 36.1797 34.8203 42 42 42ZM42 48.5C33.3242 48.5 26.25 55.5742 26.25 64.25V67H57.75V64.25C57.75 55.5742 50.6758 48.5 42 48.5Z%22 fill=%22%2392A3BF%22/%3E%3C/svg%3E'
+
+const firstValidValue = (payload, keys) => {
+  for (const key of keys) {
+    const value = payload?.[key]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return ''
+}
+
+const formatUserSex = (user) => {
+  const value = String(firstValidValue(user, ['sex', 'gender', 'patientSex'])).trim()
+  if (!value) return '未知'
+  if (['1', 'male', '男', 'man'].includes(value.toLowerCase())) return '男'
+  if (['2', 'female', '女', 'woman'].includes(value.toLowerCase())) return '女'
+  return value
+}
+
+const formatUserAge = (user) => {
+  const value = firstValidValue(user, ['age', 'userAge', 'patientAge'])
+  return value === '' ? '-' : `${value}`
+}
+
+const getUserAvatar = (user) => firstValidValue(user, ['avatar', 'avatarUrl', 'headImg', 'headImgUrl', 'profilePhoto']) || defaultAvatar
+const getUserRegisterTime = (user) => firstValidValue(user, ['registerTime', 'registerAt', 'createTime', 'createdAt'])
+const getOrderCountValue = (user) => firstValidValue(user, ['orderCount', 'totalOrderCount', 'totalOrders', 'orderNum']) || 0
+const getCompletedOrderCountValue = (user) => firstValidValue(user, ['completedOrderCount', 'finishOrderCount', 'finishedOrderCount', 'completedOrders']) || 0
+
+const isAttendantUser = (user) => {
+  if (user?.attendantProfile) return true
+  const typeLabel = String(user?.userTypeLabel || '').toLowerCase()
+  const typeValue = String(user?.userType || '').toLowerCase()
+  return typeLabel.includes('陪诊') || typeValue.includes('attendant') || typeValue === '2'
+}
+
+const getAttendantProfile = (user) => user?.attendantProfile || {}
+const getAttendantAuditStatus = (user) => getAttendantStatusLabel(firstValidValue(getAttendantProfile(user), ['status', 'auditStatus']), firstValidValue(getAttendantProfile(user), ['statusLabel', 'auditStatusLabel']) || '--')
+const getAttendantHospital = (user) => firstValidValue(getAttendantProfile(user), ['hospitalName', 'residentHospital', 'permanentHospital']) || '-'
+const getAttendantField = (user) => firstValidValue(getAttendantProfile(user), ['professionalField', 'speciality', 'expertise', 'specialty']) || '-'
 
 const loadUsers = async () => {
   loading.value = true
@@ -339,6 +394,36 @@ onMounted(loadUsers)
 .filter-actions-row {
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.users-table {
+  min-width: 1380px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: 0 0 36px;
+  object-fit: cover;
+  border: 1px solid rgba(173, 199, 232, 0.75);
+  background: #eef4fb;
+}
+
+.no-wrap {
+  white-space: nowrap;
+}
+
+.status-cell,
+.time-cell {
+  white-space: nowrap;
 }
 
 @media (max-width: 1080px) {

@@ -134,6 +134,22 @@ public class SysAdminServiceImpl implements SysAdminService {
     }
 
     @Override
+    @Transactional
+    public void deleteAdmin(Integer operatorId, Integer adminId) {
+        requireSuperAdmin(operatorId);
+        if (operatorId != null && operatorId.equals(adminId)) {
+            throw new IllegalArgumentException("不能删除当前登录管理员");
+        }
+        SysAdmin current = requireAdmin(adminId);
+        if (Integer.valueOf(1).equals(current.getStatus())
+                && ROLE_SUPER_ADMIN.equals(normalizeRole(current.getRole()))
+                && sysAdminMapper.countEnabledSuperAdmins() <= 1) {
+            throw new IllegalArgumentException("至少保留一个启用状态的超级管理员");
+        }
+        sysAdminMapper.deleteById(adminId);
+    }
+
+    @Override
     public SysAdmin findById(Integer adminId) {
         return sysAdminMapper.findById(adminId);
     }

@@ -59,4 +59,17 @@ public class AdminAdminUserController {
             return new ResponseResult<>(400, ex.getMessage(), null);
         }
     }
+
+    @DeleteMapping("/{adminId}")
+    public ResponseResult<Void> delete(@PathVariable Integer adminId,
+                                       HttpServletRequest httpServletRequest) {
+        try {
+            sysAdminService.deleteAdmin(AuthUtil.getCurrentAdminId(httpServletRequest), adminId);
+            return ResponseResult.success(null);
+        } catch (SecurityException ex) {
+            return new ResponseResult<>(403, ex.getMessage(), null);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseResult<>(400, ex.getMessage(), null);
+        }
+    }
 }
