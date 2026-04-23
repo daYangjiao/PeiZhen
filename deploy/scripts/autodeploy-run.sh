@@ -103,6 +103,30 @@ PY
   rm -f "${tmp_json}"
 }
 
+create_wgt_from_app_plus() {
+  local app_plus_dir="$1"
+  local wgt_file="$2"
+
+  if [[ ! -f "${app_plus_dir}/manifest.json" ]]; then
+    echo "wgt fallback failed: app-plus manifest not found: ${app_plus_dir}/manifest.json" >&2
+    return 1
+  fi
+
+  APP_PLUS_DIR="${app_plus_dir}" WGT_FILE="${wgt_file}" python3 <<'PY'
+import os
+from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
+
+source = Path(os.environ["APP_PLUS_DIR"])
+target = Path(os.environ["WGT_FILE"])
+target.parent.mkdir(parents=True, exist_ok=True)
+with ZipFile(target, "w", ZIP_DEFLATED) as archive:
+    for path in sorted(source.rglob("*")):
+        if path.is_file():
+            archive.write(path, path.relative_to(source).as_posix())
+PY
+}
+
 write_wgt_release_metadata() {
   local wgt_file="$1"
   local wgt_version="$2"
@@ -242,20 +266,27 @@ WGT_RELEASE_DIR="${AUTODEPLOY_ROOT}/wgt-release"
 rm -rf "${WGT_RELEASE_DIR}"
 mkdir -p "${WGT_RELEASE_DIR}"
 
-hbuilderx_cli "${HBUILDERX_PUBLISH_TIMEOUT}" publish \
+if ! hbuilderx_cli "${HBUILDERX_PUBLISH_TIMEOUT}" publish \
   app \
   --type wgt \
   --project "${HBUILDERX_PROJECT_PATH}" \
   --path "${WGT_RELEASE_DIR}" \
-  --name "${WGT_NAME}"
+  --name "${WGT_NAME}"; then
+  echo "wgt warning: HBuilderX CLI publish returned non-zero; checking compiled app-plus output." >&2
+fi
 
 WGT_FILE="${WGT_RELEASE_DIR}/${WGT_NAME}"
 if [[ ! -f "${WGT_FILE}" ]]; then
   WGT_FILE="$(find "${WGT_RELEASE_DIR}" -maxdepth 1 -type f -name '*.wgt' | head -n 1)"
 fi
 if [[ -z "${WGT_FILE}" || ! -f "${WGT_FILE}" ]]; then
-  echo "wgt failed: HBuilderX CLI completed but no .wgt file was found in ${WGT_RELEASE_DIR}" >&2
-  exit 1
+  APP_PLUS_DIR="${HBUILDERX_PROJECT_PATH}/unpackage/dist/build/app-plus"
+  echo "wgt warning: no .wgt file found; creating fallback package from ${APP_PLUS_DIR}" >&2
+  WGT_FILE="${WGT_RELEASE_DIR}/${WGT_NAME}"
+  create_wgt_from_app_plus "${APP_PLUS_DIR}" "${WGT_FILE}" || {
+    echo "wgt failed: HBuilderX CLI completed but no .wgt file was found in ${WGT_RELEASE_DIR}" >&2
+    exit 1
+  }
 fi
 
 publish_wgt_metadata "${WGT_FILE}" "${APP_VERSION}" "${APP_VERSION_CODE}" "${WGT_VERSION}" "${WGT_NAME}"
