@@ -38,7 +38,21 @@ cat /var/lib/pz-deploy/releases/backend-release.env
 echo "--- frontend release ---"
 cat /var/lib/pz-deploy/releases/frontend-release.env
 echo "--- remote db counts ---"
-mysql -u pzapp -p'JRFW232tuvmBkXl3p49r' -D student -N <<'SQL'
+ENV_FILE="${ENV_FILE:-/etc/pz-app/pz-app.env}"
+if [ -f "${ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${ENV_FILE}"
+  set +a
+fi
+REMOTE_DB_USER="${REMOTE_DB_USER:-${DB_USERNAME:-pzapp}}"
+REMOTE_DB_PASSWORD="${REMOTE_DB_PASSWORD:-${DB_PASSWORD:-}}"
+REMOTE_DB_NAME="${REMOTE_DB_NAME:-student}"
+if [ -z "${REMOTE_DB_PASSWORD}" ]; then
+  echo "Missing REMOTE_DB_PASSWORD or DB_PASSWORD on server." >&2
+  exit 1
+fi
+mysql -u "${REMOTE_DB_USER}" -p"${REMOTE_DB_PASSWORD}" -D "${REMOTE_DB_NAME}" -N <<'SQL'
 SELECT 'user', COUNT(*) FROM user
 UNION ALL SELECT 'attendant', COUNT(*) FROM attendant
 UNION ALL SELECT 'attendant_qualification', COUNT(*) FROM attendant_qualification
