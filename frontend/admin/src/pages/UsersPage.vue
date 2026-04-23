@@ -1,11 +1,11 @@
 <template>
-  <AppShell title="用户管理" subtitle="用户查询、状态变更与订单侧写">
+  <AppShell title="用户管理" subtitle="用户档案与账号状态">
     <div class="page-stack">
       <section class="panel-card">
         <div class="section-heading">
           <div>
             <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">支持按关键词、角色和账号状态查询用户。</p>
+            <p class="section-copy">按关键词、角色和账号状态筛选用户。</p>
           </div>
         </div>
 
@@ -20,8 +20,8 @@
             </select>
           </div>
           <div class="toolbar-group filter-actions-row">
-            <button class="button button-primary" type="button" @click="submitFilters" :disabled="loading">查询</button>
-            <button class="button button-ghost" type="button" @click="resetFilters" :disabled="loading">重置</button>
+            <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
+            <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
           </div>
         </div>
       </section>
@@ -30,63 +30,61 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">用户列表</h3>
-            <p class="section-copy">查看用户资料并管理账号状态。</p>
+            <p class="section-copy">定位用户并切换下方档案面板。</p>
           </div>
         </div>
 
         <div v-if="loading" class="skeleton"></div>
         <template v-else>
-          <div v-if="users.length" class="table-wrap">
-            <table class="table users-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>用户信息</th>
-                  <th>性别 / 年龄</th>
-                  <th>角色</th>
-                  <th class="status-cell">状态</th>
-                  <th>订单数据</th>
-                  <th>陪诊师资料</th>
-                  <th>注册时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in users" :key="user.id">
-                  <td>{{ user.id }}</td>
-                  <td>
-                    <div class="user-info">
-                      <img class="user-avatar" :src="getUserAvatar(user)" :alt="user.name || '用户头像'" />
-                      <div>
-                        <p class="table-cell-title">{{ user.name || '未命名用户' }}</p>
-                        <p class="table-cell-copy">{{ user.phone || '-' }}</p>
-                      </div>
+          <div v-if="users.length" class="record-list user-record-list">
+            <article
+              v-for="user in users"
+              :key="user.id"
+              class="record-item user-record-item"
+              :class="{ 'selected-row': selectedUserId === user.id }"
+              @click="selectUser(user.id)"
+            >
+              <div class="record-main">
+                <div class="record-summary">
+                  <div class="user-info">
+                    <img class="user-avatar" :src="getUserAvatar(user)" :alt="user.name || '用户头像'" />
+                    <div class="user-info-copy">
+                      <p class="record-title">{{ user.name || '未命名用户' }}</p>
+                      <p class="record-copy">ID {{ user.id }} · {{ user.phone || '-' }}</p>
+                      <p class="record-copy">{{ formatUserSex(user) }} / {{ formatUserAge(user) }}</p>
                     </div>
-                  </td>
-                  <td class="no-wrap">{{ formatUserSex(user) }} / {{ formatUserAge(user) }}</td>
-                  <td>{{ getUserTypeLabel(user.userType, user.userTypeLabel || '--') }}</td>
-                  <td class="status-cell"><span class="badge" :class="getUserStatusBadge(user.status)">{{ getUserStatusLabel(user.status, user.statusLabel || '--') }}</span></td>
-                  <td class="no-wrap">{{ getOrderCountValue(user) }} / {{ getCompletedOrderCountValue(user) }}</td>
-                  <td>
-                    <template v-if="isAttendantUser(user)">
-                      <p class="table-cell-title no-wrap">{{ getAttendantAuditStatus(user) }}</p>
-                      <p class="table-cell-copy">{{ getAttendantHospital(user) }}</p>
-                      <p class="table-cell-copy">{{ getAttendantField(user) }}</p>
-                    </template>
-                    <p v-else class="table-cell-copy">-</p>
-                  </td>
-                  <td class="time-cell">{{ formatDateTime(getUserRegisterTime(user)) }}</td>
-                  <td>
-                    <div class="table-actions">
-                      <button class="button button-secondary" type="button" @click="openUserDetail(user)">查看详情</button>
-                      <button class="button" :class="user.status === 1 ? 'button-danger' : 'button-primary'" type="button" @click="promptStatusChange(user)">
-                        {{ user.status === 1 ? '禁用' : '恢复' }}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                  <div class="record-chip-row">
+                    <span class="badge" :class="getUserStatusBadge(user.status)">{{ getUserStatusLabel(user.status, user.statusLabel || '--') }}</span>
+                  </div>
+                </div>
+
+                <div class="record-meta-grid">
+                  <div class="record-stat">
+                    <p class="record-label">账号类型</p>
+                    <p class="record-value">{{ getUserTypeLabel(user.userType, user.userTypeLabel || '--') }}</p>
+                    <p v-if="isAttendantUser(user)" class="record-note">{{ getAttendantAuditStatus(user) }}</p>
+                  </div>
+                  <div class="record-stat">
+                    <p class="record-label">订单摘要</p>
+                    <p class="record-value">{{ getOrderCountValue(user) }} 单</p>
+                    <p class="record-note">完成 {{ getCompletedOrderCountValue(user) }} 单</p>
+                  </div>
+                  <div class="record-stat">
+                    <p class="record-label">注册时间</p>
+                    <p class="record-value">{{ formatDateTime(getUserRegisterTime(user)) }}</p>
+                    <p class="record-note">下方可直接查看完整档案</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="record-side" @click.stop>
+                <button class="button button-secondary" type="button" @click="selectUser(user.id)">查看资料</button>
+                <button class="button" :class="user.status === 1 ? 'button-danger' : 'button-primary'" type="button" @click="promptStatusChange(user)">
+                  {{ user.status === 1 ? '禁用' : '恢复' }}
+                </button>
+              </div>
+            </article>
           </div>
           <div v-else class="empty-card">未查询到符合条件的用户。</div>
         </template>
@@ -104,103 +102,163 @@
           </div>
         </div>
       </section>
+
+      <section class="panel-card">
+        <div class="section-heading">
+          <div>
+            <h3 class="section-title">用户档案</h3>
+            <p class="section-copy">当前选中用户的完整资料与操作。</p>
+          </div>
+          <div v-if="selectedUserSummary" class="toolbar-group">
+            <span class="badge" :class="getUserStatusBadge(selectedUserSummary.status)">{{ getUserStatusLabel(selectedUserSummary.status, selectedUserSummary.statusLabel || '--') }}</span>
+            <button
+              class="button"
+              :class="selectedUserSummary.status === 1 ? 'button-danger' : 'button-primary'"
+              type="button"
+              :disabled="actionLoading"
+              @click="promptStatusChange(selectedUserSummary)"
+            >
+              {{ selectedUserSummary.status === 1 ? '禁用账号' : '恢复账号' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="detailLoading" class="skeleton"></div>
+        <template v-else-if="selectedUserDetail">
+          <div class="page-stack">
+            <section class="profile-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">基础信息</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">姓名</p>
+                  <p class="kv-value">{{ selectedUserDetail.user.name || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">手机号</p>
+                  <p class="kv-value">{{ selectedUserDetail.user.phone || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">性别 / 年龄</p>
+                  <p class="kv-value">{{ selectedUserDetail.user.sex || '未知' }} / {{ selectedUserDetail.user.age || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">角色</p>
+                  <p class="kv-value">{{ getUserTypeLabel(selectedUserDetail.user.userType, selectedUserDetail.user.userTypeLabel || '--') }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">账号状态</p>
+                  <p class="kv-value">{{ getUserStatusLabel(selectedUserDetail.user.status, selectedUserDetail.user.statusLabel || '--') }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">注册时间</p>
+                  <p class="kv-value">{{ formatDateTime(getUserRegisterTime(selectedUserDetail.user)) }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="profile-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">订单统计</h4>
+              </div>
+              <div class="amount-breakdown-grid">
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">总订单数</p>
+                  <p class="amount-breakdown-value">{{ selectedUserDetail.orderCount ?? 0 }}</p>
+                </div>
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">已完成订单</p>
+                  <p class="amount-breakdown-value">{{ selectedUserDetail.completedOrderCount ?? 0 }}</p>
+                </div>
+                <div v-if="selectedUserDetail.attendantProfile" class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">资质状态</p>
+                  <p class="amount-breakdown-value small-value">{{ getAttendantStatusLabel(selectedUserDetail.attendantProfile.status, selectedUserDetail.attendantProfile.statusLabel || '--') }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section v-if="selectedUserDetail.attendantProfile" class="profile-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">陪诊师资料</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">常驻医院</p>
+                  <p class="kv-value">{{ selectedUserDetail.attendantProfile.hospitalName || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">擅长领域</p>
+                  <p class="kv-value">{{ selectedUserDetail.attendantProfile.professionalField || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">从业年限</p>
+                  <p class="kv-value">{{ selectedUserDetail.attendantProfile.experienceYears || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">资质状态</p>
+                  <p class="kv-value">{{ getAttendantStatusLabel(selectedUserDetail.attendantProfile.status, selectedUserDetail.attendantProfile.statusLabel || '--') }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section v-if="selectedUserDetail.qualification" class="profile-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">资质资料</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">身份证正面</p>
+                  <p class="kv-value">{{ selectedUserDetail.qualification.idCardFrontFileUrl ? '已上传' : '未上传' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">身份证反面</p>
+                  <p class="kv-value">{{ selectedUserDetail.qualification.idCardBackFileUrl ? '已上传' : '未上传' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">执业证书</p>
+                  <p class="kv-value">{{ selectedUserDetail.qualification.practiceCertFileUrl ? '已上传' : '未上传' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">健康证</p>
+                  <p class="kv-value">{{ selectedUserDetail.qualification.healthCertFileUrl ? '已上传' : '未上传' }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="profile-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">最近订单</h4>
+              </div>
+              <div v-if="selectedUserDetail.recentOrders?.length" class="table-wrap inner-table-wrap">
+                <table class="table inner-table">
+                  <thead>
+                    <tr>
+                      <th>订单号</th>
+                      <th>医院</th>
+                      <th>服务时间</th>
+                      <th>金额</th>
+                      <th>状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="order in selectedUserDetail.recentOrders" :key="order.orderId">
+                      <td>{{ order.orderNo }}</td>
+                      <td>{{ order.hospital || '-' }}</td>
+                      <td>{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</td>
+                      <td>{{ formatMoney(order.orderAmount) }}</td>
+                      <td><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="empty-card inner-empty">暂无最近订单。</div>
+            </section>
+          </div>
+        </template>
+        <div v-else class="empty-card">当前页没有可展示的用户资料。</div>
+      </section>
     </div>
-
-    <BaseDialog v-model="detailOpen" title="用户详情" description="用户资料与最近订单。" width="860px">
-      <div v-if="detailLoading" class="skeleton"></div>
-      <div v-else-if="selectedUserDetail" class="page-stack">
-        <section class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h4 class="section-title">基础信息</h4>
-            </div>
-          </div>
-          <div class="kv-grid">
-            <div class="kv-item">
-              <p class="kv-label">姓名</p>
-              <p class="kv-value">{{ selectedUserDetail.user.name || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">手机号</p>
-              <p class="kv-value">{{ selectedUserDetail.user.phone || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">性别 / 年龄</p>
-              <p class="kv-value">{{ selectedUserDetail.user.sex || '未知' }} / {{ selectedUserDetail.user.age || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">账号状态</p>
-              <p class="kv-value">{{ getUserStatusLabel(selectedUserDetail.user.status, selectedUserDetail.user.statusLabel || '--') }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">总订单数</p>
-              <p class="kv-value">{{ selectedUserDetail.orderCount }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">已完成订单数</p>
-              <p class="kv-value">{{ selectedUserDetail.completedOrderCount }}</p>
-            </div>
-          </div>
-        </section>
-
-        <section v-if="selectedUserDetail.attendantProfile" class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h4 class="section-title">陪诊师附加资料</h4>
-            </div>
-          </div>
-          <div class="kv-grid">
-            <div class="kv-item">
-              <p class="kv-label">常驻医院</p>
-              <p class="kv-value">{{ selectedUserDetail.attendantProfile.hospitalName || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">擅长领域</p>
-              <p class="kv-value">{{ selectedUserDetail.attendantProfile.professionalField || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">从业年限</p>
-              <p class="kv-value">{{ selectedUserDetail.attendantProfile.experienceYears || '-' }}</p>
-            </div>
-            <div class="kv-item">
-              <p class="kv-label">资质状态</p>
-              <p class="kv-value">{{ getAttendantStatusLabel(selectedUserDetail.attendantProfile.status, selectedUserDetail.attendantProfile.statusLabel || '--') }}</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h4 class="section-title">最近订单</h4>
-            </div>
-          </div>
-          <div v-if="selectedUserDetail.recentOrders?.length" class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>订单号</th>
-                  <th>医院</th>
-                  <th>服务时间</th>
-                  <th>金额</th>
-                  <th>状态</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="order in selectedUserDetail.recentOrders" :key="order.orderId">
-                  <td>{{ order.orderNo }}</td>
-                  <td>{{ order.hospital || '-' }}</td>
-                  <td>{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</td>
-                  <td>{{ formatMoney(order.orderAmount) }}</td>
-                  <td><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div v-else class="empty-card">暂无最近订单。</div>
-        </section>
-      </div>
-    </BaseDialog>
 
     <BaseDialog
       v-model="confirmOpen"
@@ -220,7 +278,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import { useUiStore } from '../stores/ui'
@@ -243,7 +301,7 @@ const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
 
-const detailOpen = ref(false)
+const selectedUserId = ref(null)
 const detailLoading = ref(false)
 const selectedUserDetail = ref(null)
 const confirmOpen = ref(false)
@@ -281,13 +339,35 @@ const isAttendantUser = (user) => {
   if (user?.attendantProfile) return true
   const typeLabel = String(user?.userTypeLabel || '').toLowerCase()
   const typeValue = String(user?.userType || '').toLowerCase()
-  return typeLabel.includes('陪诊') || typeValue.includes('attendant') || typeValue === '2'
+  return typeLabel.includes('陪诊') || typeValue.includes('attendant') || typeValue === '2' || Number(user?.userType) === 1
 }
 
-const getAttendantProfile = (user) => user?.attendantProfile || {}
-const getAttendantAuditStatus = (user) => getAttendantStatusLabel(firstValidValue(getAttendantProfile(user), ['status', 'auditStatus']), firstValidValue(getAttendantProfile(user), ['statusLabel', 'auditStatusLabel']) || '--')
-const getAttendantHospital = (user) => firstValidValue(getAttendantProfile(user), ['hospitalName', 'residentHospital', 'permanentHospital']) || '-'
-const getAttendantField = (user) => firstValidValue(getAttendantProfile(user), ['professionalField', 'speciality', 'expertise', 'specialty']) || '-'
+const getAttendantProfile = (user) => user?.attendantProfile || user || {}
+const getAttendantAuditStatus = (user) => getAttendantStatusLabel(firstValidValue(getAttendantProfile(user), ['attendantAuditStatus', 'status', 'auditStatus']), firstValidValue(getAttendantProfile(user), ['attendantAuditStatusLabel', 'statusLabel', 'auditStatusLabel']) || '--')
+
+const selectedUserSummary = computed(() => users.value.find((user) => user.id === selectedUserId.value) || null)
+
+const resolveSelectedUserId = () => {
+  if (!users.value.length) return null
+  if (selectedUserId.value !== null && users.value.some((user) => user.id === selectedUserId.value)) return selectedUserId.value
+  return users.value[0].id
+}
+
+const loadSelectedUserDetail = async (userId) => {
+  if (!userId) {
+    selectedUserDetail.value = null
+    return
+  }
+  detailLoading.value = true
+  try {
+    selectedUserDetail.value = await fetchUserDetail(userId)
+  } catch (error) {
+    selectedUserDetail.value = null
+    uiStore.toast(error.message || '用户详情加载失败', 'error')
+  } finally {
+    detailLoading.value = false
+  }
+}
 
 const loadUsers = async () => {
   loading.value = true
@@ -302,7 +382,15 @@ const loadUsers = async () => {
     users.value = response.content || []
     total.value = response.totalElements || 0
     totalPages.value = Math.max(response.totalPages || 1, 1)
+
+    selectedUserId.value = resolveSelectedUserId()
+    await loadSelectedUserDetail(selectedUserId.value)
   } catch (error) {
+    users.value = []
+    selectedUserId.value = null
+    selectedUserDetail.value = null
+    total.value = 0
+    totalPages.value = 1
     uiStore.toast(error.message || '用户列表加载失败', 'error')
   } finally {
     loading.value = false
@@ -311,6 +399,7 @@ const loadUsers = async () => {
 
 const submitFilters = () => {
   page.value = 0
+  selectedUserId.value = null
   loadUsers()
 }
 
@@ -323,26 +412,20 @@ const resetFilters = () => {
 
 const changePage = (nextPage) => {
   page.value = nextPage
+  selectedUserId.value = null
   loadUsers()
 }
 
 const changePageSize = () => {
   page.value = 0
+  selectedUserId.value = null
   loadUsers()
 }
 
-const openUserDetail = async (user) => {
-  detailOpen.value = true
-  detailLoading.value = true
-  selectedUserDetail.value = null
-  try {
-    selectedUserDetail.value = await fetchUserDetail(user.id)
-  } catch (error) {
-    detailOpen.value = false
-    uiStore.toast(error.message || '用户详情加载失败', 'error')
-  } finally {
-    detailLoading.value = false
-  }
+const selectUser = async (userId) => {
+  if (!userId || selectedUserId.value === userId) return
+  selectedUserId.value = userId
+  await loadSelectedUserDetail(userId)
 }
 
 const promptStatusChange = (user) => {
@@ -358,9 +441,6 @@ const confirmStatusChange = async () => {
     uiStore.toast('用户状态更新成功', 'success')
     confirmOpen.value = false
     await loadUsers()
-    if (selectedUserDetail.value?.user?.id === confirmUser.value.id) {
-      selectedUserDetail.value = await fetchUserDetail(confirmUser.value.id)
-    }
   } catch (error) {
     uiStore.toast(error.message || '用户状态更新失败', 'error')
   } finally {
@@ -396,15 +476,118 @@ onMounted(loadUsers)
   flex-wrap: wrap;
 }
 
-.users-table {
-  min-width: 1380px;
+.selected-row {
+  border-color: rgba(42, 120, 255, 0.3);
+  background: linear-gradient(180deg, rgba(237, 244, 255, 0.98) 0%, rgba(248, 251, 255, 0.98) 100%);
+  box-shadow: 0 12px 28px rgba(42, 120, 255, 0.1);
+}
+
+.record-list {
+  display: grid;
+  gap: 12px;
+}
+
+.record-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.96);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.record-item:hover {
+  border-color: rgba(42, 120, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(33, 71, 126, 0.08);
+  transform: translateY(-1px);
+}
+
+.record-main,
+.record-summary,
+.record-meta-grid,
+.record-stat,
+.user-info-copy {
+  min-width: 0;
+}
+
+.record-main {
+  display: grid;
+  gap: 14px;
+}
+
+.record-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.record-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.record-title,
+.record-value {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.record-copy,
+.record-label,
+.record-note {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.record-copy + .record-copy,
+.record-label + .record-value,
+.record-value + .record-note {
+  margin-top: 4px;
+}
+
+.record-label {
+  font-size: 12px;
+}
+
+.record-note {
+  font-size: 13px;
+}
+
+.record-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.record-stat {
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 228, 242, 0.92);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.record-side {
+  display: grid;
+  align-content: center;
+  justify-items: stretch;
+  gap: 10px;
+  min-width: 128px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .user-avatar {
@@ -417,23 +600,62 @@ onMounted(loadUsers)
   background: #eef4fb;
 }
 
-.no-wrap {
-  white-space: nowrap;
+.profile-section {
+  display: grid;
+  gap: 12px;
 }
 
-.status-cell,
-.time-cell {
-  white-space: nowrap;
+.compact-heading {
+  margin-bottom: 0;
+}
+
+.inner-table-wrap {
+  border-radius: var(--radius-md);
+}
+
+.inner-table {
+  min-width: 720px;
+}
+
+.inner-empty {
+  padding: 18px;
+}
+
+.small-value {
+  font-size: 16px;
 }
 
 @media (max-width: 1080px) {
+  .record-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .record-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+  }
+
   .filter-fields-row {
     grid-template-columns: repeat(2, minmax(170px, 1fr));
   }
 }
 
 @media (max-width: 640px) {
+  .record-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .record-chip-row {
+    justify-content: flex-start;
+  }
+
+  .record-meta-grid,
   .filter-fields-row {
+    grid-template-columns: 1fr;
+  }
+
+  .record-side {
     grid-template-columns: 1fr;
   }
 }

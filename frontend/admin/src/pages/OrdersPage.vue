@@ -1,11 +1,11 @@
 <template>
-  <AppShell title="订单管理" subtitle="订单详情、取消与争议处理">
+  <AppShell title="订单管理" subtitle="订单定位与完整处理">
     <div class="page-stack">
       <section class="panel-card">
         <div class="section-heading">
           <div>
             <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">按订单状态、支付状态、时间区间检索订单。</p>
+            <p class="section-copy">按订单状态、支付状态、时间区间筛选订单。</p>
           </div>
         </div>
 
@@ -22,8 +22,8 @@
             <input v-model="filters.endDate" class="filter-input" type="date" />
           </div>
           <div class="toolbar-group filter-actions-row">
-            <button class="button button-primary" type="button" @click="submitFilters" :disabled="loading">查询</button>
-            <button class="button button-ghost" type="button" @click="resetFilters" :disabled="loading">重置</button>
+            <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
+            <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
           </div>
         </div>
       </section>
@@ -32,99 +32,60 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">订单列表</h3>
-            <p class="section-copy">查看订单详情，处理取消与争议。</p>
+            <p class="section-copy">定位订单并切换下方详情面板。</p>
           </div>
         </div>
 
         <div v-if="loading" class="skeleton"></div>
         <template v-else>
-          <div v-if="orders.length" class="table-wrap">
-            <table class="table orders-table">
-              <thead>
-                <tr>
-                  <th>订单号</th>
-                  <th>患者</th>
-                  <th>联系人</th>
-                  <th>陪诊师</th>
-                  <th>服务信息</th>
-                  <th>特殊需求</th>
-                  <th>金额</th>
-                  <th>支付时间</th>
-                  <th>接单 / 服务时间</th>
-                  <th>实际时长</th>
-                  <th>差额 / 退款 / 备注</th>
-                  <th class="status-cell">订单状态</th>
-                  <th class="payment-cell">支付状态</th>
-                  <th class="actions-cell">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="order in orders" :key="order.orderId">
-                  <td class="no-wrap">
-                    <p class="table-cell-title">{{ order.orderNo }}</p>
-                    <p class="table-cell-copy">创建：{{ formatDateTime(order.createTime) }}</p>
-                  </td>
-                  <td>
-                    <p class="table-cell-title">{{ getPatientName(order) }}</p>
-                    <p class="table-cell-copy">{{ formatPatientProfile(order) }}</p>
-                    <p class="table-cell-copy">{{ order.userPhone || '-' }}</p>
-                  </td>
-                  <td>
-                    <p class="table-cell-title">{{ getContactName(order) }}</p>
-                    <p class="table-cell-copy">{{ getContactPhone(order) }}</p>
-                  </td>
-                  <td>
-                    <p class="table-cell-title">{{ order.attendantName || '暂未接单' }}</p>
-                    <p class="table-cell-copy">{{ order.attendantPhone || '-' }}</p>
-                  </td>
-                  <td>
-                    <p class="table-cell-title">{{ order.hospital || '-' }}</p>
-                    <p class="table-cell-copy">{{ getServiceContent(order) }}</p>
-                    <p class="table-cell-copy">{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
-                  </td>
-                  <td><p class="summary-copy">{{ summarizeText(getSpecialRequirement(order)) }}</p></td>
-                  <td class="no-wrap">
-                    <p class="table-cell-title">{{ formatMoney(order.orderAmount) }}</p>
-                    <p class="table-cell-copy">实结：{{ formatMoney(getFinalAmount(order)) }}</p>
-                  </td>
-                  <td class="time-cell">{{ formatDateTime(getPaymentTime(order)) }}</td>
-                  <td class="time-cell">
-                    <p class="table-cell-copy">接单：{{ formatDateTime(getAcceptTime(order)) }}</p>
-                    <p class="table-cell-copy">开始：{{ formatDateTime(getServiceStartTime(order)) }}</p>
-                    <p class="table-cell-copy">结束：{{ formatDateTime(getServiceEndTime(order)) }}</p>
-                  </td>
-                  <td class="no-wrap">{{ formatDurationHour(getActualDuration(order)) }}</td>
-                  <td>
-                    <p class="table-cell-copy">差额：{{ formatMoney(getBalanceAmount(order)) }}</p>
-                    <p class="table-cell-copy">退款：{{ formatMoney(getRefundAmount(order)) }}</p>
-                    <p class="summary-copy">{{ summarizeText(getAdminRemark(order)) }}</p>
-                  </td>
-                  <td class="status-cell"><span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span></td>
-                  <td class="payment-cell"><span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span></td>
-                  <td class="actions-cell">
-                    <div class="table-actions">
-                      <button class="button button-secondary" type="button" @click="goToDetail(order.orderId)">查看详情</button>
-                      <button
-                        v-if="canCancel(order.orderStatus)"
-                        class="button button-danger"
-                        type="button"
-                        @click="openCancelDialog(order)"
-                      >
-                        取消订单
-                      </button>
-                      <button
-                        v-if="order.orderStatus === 5"
-                        class="button button-primary"
-                        type="button"
-                        @click="openDisputeDialog(order)"
-                      >
-                        处理争议
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div v-if="orders.length" class="record-list order-record-list">
+            <article
+              v-for="order in orders"
+              :key="order.orderId"
+              class="record-item order-record-item"
+              :class="{ 'selected-row': selectedOrderId === order.orderId }"
+              @click="selectOrder(order.orderId)"
+            >
+              <div class="record-main">
+                <div class="record-summary">
+                  <div class="record-summary-copy">
+                    <p class="record-title">{{ order.orderNo }}</p>
+                    <p class="record-copy">创建于 {{ formatDateTime(order.createTime) }}</p>
+                  </div>
+                  <div class="record-chip-row">
+                    <span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span>
+                    <span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span>
+                  </div>
+                </div>
+
+                <div class="record-meta-grid order-meta-grid">
+                  <div class="record-stat">
+                    <p class="record-label">患者与联系人</p>
+                    <p class="record-value">{{ getPatientName(order) }} / {{ formatPatientProfile(order) }}</p>
+                    <p class="record-note">{{ getContactName(order) }} / {{ getContactPhone(order) }}</p>
+                  </div>
+                  <div class="record-stat">
+                    <p class="record-label">陪诊师</p>
+                    <p class="record-value">{{ order.attendantName || '暂未接单' }}</p>
+                    <p class="record-note">{{ order.attendantPhone || '-' }}</p>
+                  </div>
+                  <div class="record-stat">
+                    <p class="record-label">服务安排</p>
+                    <p class="record-value">{{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
+                    <p class="record-note">{{ order.hospital || '-' }}</p>
+                  </div>
+                  <div class="record-stat">
+                    <p class="record-label">金额</p>
+                    <p class="record-value">{{ formatMoney(order.orderAmount) }}</p>
+                    <p class="record-note">支付：{{ formatDateTime(getPaymentTime(order)) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="record-side" @click.stop>
+                <button class="button button-secondary" type="button" @click="selectOrder(order.orderId)">查看记录</button>
+              </div>
+            </article>
           </div>
           <div v-else class="empty-card">未查询到符合条件的订单。</div>
         </template>
@@ -142,18 +103,174 @@
           </div>
         </div>
       </section>
+
+      <section class="panel-card">
+        <div class="section-heading">
+          <div>
+            <h3 class="section-title">订单详情</h3>
+            <p class="section-copy">当前选中订单的完整资料与处理操作。</p>
+          </div>
+          <div v-if="currentOrder" class="toolbar-group">
+            <span class="badge" :class="getOrderStatusBadge(currentOrder.orderStatus)">{{ getOrderStatusLabel(currentOrder.orderStatus, currentOrder.orderStatusLabel || '--') }}</span>
+            <span class="badge" :class="getPaymentStatusBadge(currentOrder.paymentStatus)">{{ getPaymentStatusLabel(currentOrder.paymentStatus, currentOrder.paymentStatusLabel || '--') }}</span>
+            <button v-if="canCancel(currentOrder.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog(currentOrder)">取消订单</button>
+            <button v-if="currentOrder.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog(currentOrder)">处理争议</button>
+            <button class="button button-ghost" type="button" @click="openStandaloneDetail">打开独立详情</button>
+          </div>
+        </div>
+
+        <div v-if="detailLoading" class="skeleton"></div>
+        <template v-else-if="selectedOrderDetail">
+          <div class="page-stack">
+            <section class="detail-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">订单基础信息</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">订单号</p>
+                  <p class="kv-value">{{ currentOrder.orderNo || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">创建时间</p>
+                  <p class="kv-value">{{ formatDateTime(currentOrder.createTime) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">支付时间</p>
+                  <p class="kv-value">{{ formatDateTime(getPaymentTime(currentOrder)) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">订单状态</p>
+                  <p class="kv-value">{{ getOrderStatusLabel(currentOrder.orderStatus, currentOrder.orderStatusLabel || '--') }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">支付状态</p>
+                  <p class="kv-value">{{ getPaymentStatusLabel(currentOrder.paymentStatus, currentOrder.paymentStatusLabel || '--') }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">服务医院</p>
+                  <p class="kv-value">{{ currentOrder.hospital || '-' }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">患者与联系人</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">患者</p>
+                  <p class="kv-value">{{ getPatientName(currentOrder) }} / {{ formatPatientProfile(currentOrder) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">联系人</p>
+                  <p class="kv-value">{{ getContactName(currentOrder) }} / {{ getContactPhone(currentOrder) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">下单用户</p>
+                  <p class="kv-value">{{ selectedOrderDetail.user?.name || currentOrder.userName || '-' }} / {{ selectedOrderDetail.user?.phone || currentOrder.userPhone || '-' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">陪诊师</p>
+                  <p class="kv-value">{{ selectedOrderDetail.attendant?.name || currentOrder.attendantName || '暂未接单' }} / {{ selectedOrderDetail.attendant?.phone || currentOrder.attendantPhone || '-' }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">服务信息</h4>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <p class="kv-label">服务内容</p>
+                  <p class="kv-value">{{ getServiceContent(currentOrder) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">服务时间</p>
+                  <p class="kv-value">{{ currentOrder.serviceDate || '-' }} {{ currentOrder.serviceTimeSlot || '' }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">特殊需求</p>
+                  <p class="kv-value">{{ getSpecialRequirement(currentOrder) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">接单时间</p>
+                  <p class="kv-value">{{ formatDateTime(getAcceptTime(currentOrder)) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">服务开始 / 结束</p>
+                  <p class="kv-value">{{ formatDateTime(getServiceStartTime(currentOrder)) }} / {{ formatDateTime(getServiceEndTime(currentOrder)) }}</p>
+                </div>
+                <div class="kv-item">
+                  <p class="kv-label">实际时长</p>
+                  <p class="kv-value">{{ formatDurationHour(getActualDuration(currentOrder)) }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">金额结算</h4>
+              </div>
+              <div class="amount-breakdown-grid">
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">订单金额</p>
+                  <p class="amount-breakdown-value">{{ formatMoney(currentOrder.orderAmount) }}</p>
+                </div>
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">最终金额</p>
+                  <p class="amount-breakdown-value">{{ formatMoney(getFinalAmount(currentOrder)) }}</p>
+                </div>
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">差额金额</p>
+                  <p class="amount-breakdown-value">{{ formatMoney(getBalanceAmount(currentOrder)) }}</p>
+                </div>
+                <div class="amount-breakdown-item">
+                  <p class="amount-breakdown-label">退款金额</p>
+                  <p class="amount-breakdown-value">{{ formatMoney(getRefundAmount(currentOrder)) }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-heading compact-heading">
+                <h4 class="section-title">后台处理记录</h4>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">争议说明</div>
+                <div class="detail-row-value">{{ getDisputeReason(currentOrder) }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">取消原因</div>
+                <div class="detail-row-value">{{ currentOrder.cancelReason || '-' }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">取消时间</div>
+                <div class="detail-row-value">{{ formatDateTime(currentOrder.cancelTime) }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">后台备注</div>
+                <div class="detail-row-value">{{ getAdminRemark(currentOrder) }}</div>
+              </div>
+            </section>
+          </div>
+        </template>
+        <div v-else class="empty-card">当前页没有可展示的订单详情。</div>
+      </section>
     </div>
 
     <BaseDialog v-model="cancelDialogOpen" title="取消订单" description="填写取消原因、退款金额与处理备注。" width="620px">
       <div class="page-stack">
-        <div class="kv-grid" v-if="selectedOrder">
+        <div class="kv-grid" v-if="currentOrder">
           <div class="kv-item">
             <p class="kv-label">订单号</p>
-            <p class="kv-value">{{ selectedOrder.orderNo }}</p>
+            <p class="kv-value">{{ currentOrder.orderNo }}</p>
           </div>
           <div class="kv-item">
             <p class="kv-label">当前订单金额</p>
-            <p class="kv-value">{{ formatMoney(selectedOrder.orderAmount) }}</p>
+            <p class="kv-value">{{ formatMoney(currentOrder.orderAmount) }}</p>
           </div>
         </div>
         <label class="login-field">
@@ -179,14 +296,14 @@
 
     <BaseDialog v-model="disputeDialogOpen" title="处理争议订单" description="确认最终时长和金额后，订单会从争议状态转为已完成。" width="620px">
       <div class="page-stack">
-        <div class="kv-grid" v-if="selectedOrder">
+        <div class="kv-grid" v-if="currentOrder">
           <div class="kv-item">
             <p class="kv-label">订单号</p>
-            <p class="kv-value">{{ selectedOrder.orderNo }}</p>
+            <p class="kv-value">{{ currentOrder.orderNo }}</p>
           </div>
           <div class="kv-item">
             <p class="kv-label">当前金额</p>
-            <p class="kv-value">{{ formatMoney(selectedOrder.orderAmount) }}</p>
+            <p class="kv-value">{{ formatMoney(currentOrder.orderAmount) }}</p>
           </div>
         </div>
         <label class="login-field">
@@ -213,12 +330,12 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import { useUiStore } from '../stores/ui'
-import { cancelOrder, fetchOrders, resolveDispute } from '../utils/admin-api'
+import { cancelOrder, fetchOrderDetail, fetchOrders, resolveDispute } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel, orderStatusOptions, paymentStatusOptions, toQueryValue } from '../utils/admin-view'
 import { formatDateTime, formatMoney } from '../utils/format'
 
@@ -236,14 +353,15 @@ const filters = reactive({
 
 const orders = ref([])
 const loading = ref(true)
+const detailLoading = ref(false)
 const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const selectedOrderId = ref(null)
+const selectedOrderDetail = ref(null)
 
-const selectedOrder = ref(null)
 const actionLoading = ref(false)
-
 const cancelDialogOpen = ref(false)
 const cancelForm = reactive({
   reason: '',
@@ -257,6 +375,8 @@ const disputeForm = reactive({
   finalOrderAmount: '',
   adminRemark: ''
 })
+
+const ignoreNextQueryWatch = ref(false)
 
 const firstValidValue = (payload, keys) => {
   for (const key of keys) {
@@ -279,10 +399,8 @@ const getPatientName = (order) => firstValidValue(order, ['patientName', 'userNa
 const getPatientSex = (order) => normalizeSex(firstValidValue(order, ['patientSex', 'sex', 'gender']))
 const getPatientAge = (order) => firstValidValue(order, ['patientAge', 'age', 'userAge']) || '-'
 const formatPatientProfile = (order) => `${getPatientSex(order)} / ${getPatientAge(order)}`
-
 const getContactName = (order) => firstValidValue(order, ['contactPerson', 'contactName', 'emergencyContact', 'userName']) || '-'
 const getContactPhone = (order) => firstValidValue(order, ['contactPhone', 'contactMobile', 'userPhone', 'phone']) || '-'
-
 const getServiceContent = (order) => firstValidValue(order, ['serviceContent', 'serviceTypeName', 'serviceType', 'serviceProject']) || '-'
 const getSpecialRequirement = (order) => firstValidValue(order, ['specialRequirements', 'customRequirement', 'remark', 'note']) || '-'
 const getPaymentTime = (order) => firstValidValue(order, ['paymentTime', 'payTime', 'paidTime'])
@@ -294,19 +412,15 @@ const getFinalAmount = (order) => firstValidValue(order, ['finalOrderAmount', 's
 const getBalanceAmount = (order) => firstValidValue(order, ['balanceAmount', 'differenceAmount'])
 const getRefundAmount = (order) => firstValidValue(order, ['refundAmount', 'refundFee'])
 const getAdminRemark = (order) => firstValidValue(order, ['adminRemark', 'remark', 'backendRemark']) || '-'
+const getDisputeReason = (order) => firstValidValue(order, ['timeDisputeReason', 'disputeReason', 'disputeRemark']) || '-'
+
+const currentOrder = computed(() => selectedOrderDetail.value?.order || orders.value.find((item) => item.orderId === selectedOrderId.value) || null)
 
 const formatDurationHour = (value) => {
   if (value === '' || value === null || value === undefined) return '-'
   const numericValue = Number(value)
   if (!Number.isFinite(numericValue)) return `${value}`
   return `${numericValue} 小时`
-}
-
-const summarizeText = (text, maxLength = 36) => {
-  const raw = String(text || '-').replace(/\s+/g, ' ').trim()
-  if (!raw) return '-'
-  if (raw.length <= maxLength) return raw
-  return `${raw.slice(0, maxLength)}...`
 }
 
 const readQueryValue = (queryValue) => (Array.isArray(queryValue) ? queryValue[0] : queryValue)
@@ -325,12 +439,20 @@ const formatLocalDate = (date) => {
   return `${year}-${month}-${day}`
 }
 
+const parseSelectedId = (value) => {
+  const raw = readQueryValue(value)
+  if (raw === '' || raw === undefined || raw === null) return null
+  const numericValue = Number(raw)
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
 const applyQueryFilters = (query) => {
   filters.keyword = typeof readQueryValue(query.keyword) === 'string' ? readQueryValue(query.keyword) : ''
   filters.orderStatus = toFilterValue(query.orderStatus)
   filters.paymentStatus = toFilterValue(query.paymentStatus)
   filters.startDate = typeof readQueryValue(query.startDate) === 'string' ? readQueryValue(query.startDate) : ''
   filters.endDate = typeof readQueryValue(query.endDate) === 'string' ? readQueryValue(query.endDate) : ''
+  selectedOrderId.value = parseSelectedId(query.selectedId)
 
   const quick = readQueryValue(query.quick)
   if (quick === 'today') {
@@ -343,7 +465,67 @@ const applyQueryFilters = (query) => {
   }
 }
 
+const buildQuery = (overrides = {}) => {
+  const query = {
+    page: String(page.value),
+    pageSize: String(pageSize.value)
+  }
+  if (filters.keyword) query.keyword = filters.keyword
+  if (filters.orderStatus !== '') query.orderStatus = String(filters.orderStatus)
+  if (filters.paymentStatus !== '') query.paymentStatus = String(filters.paymentStatus)
+  if (filters.startDate) query.startDate = filters.startDate
+  if (filters.endDate) query.endDate = filters.endDate
+  if (selectedOrderId.value !== null && selectedOrderId.value !== undefined) query.selectedId = String(selectedOrderId.value)
+
+  Object.entries(overrides).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      delete query[key]
+    } else {
+      query[key] = String(value)
+    }
+  })
+  return query
+}
+
+const isSameQuery = (nextQuery) => {
+  const current = route.query
+  const currentKeys = Object.keys(current)
+  const nextKeys = Object.keys(nextQuery)
+  if (currentKeys.length !== nextKeys.length) return false
+  return nextKeys.every((key) => String(readQueryValue(current[key]) ?? '') === String(nextQuery[key] ?? ''))
+}
+
+const syncQuery = async (overrides = {}) => {
+  const nextQuery = buildQuery(overrides)
+  if (isSameQuery(nextQuery)) return false
+  ignoreNextQueryWatch.value = true
+  await router.replace({ query: nextQuery })
+  return true
+}
+
 const canCancel = (status) => status !== 6 && status !== 7
+
+const loadSelectedOrderDetail = async (orderId) => {
+  if (!orderId) {
+    selectedOrderDetail.value = null
+    return
+  }
+  detailLoading.value = true
+  try {
+    selectedOrderDetail.value = await fetchOrderDetail(orderId)
+  } catch (error) {
+    selectedOrderDetail.value = null
+    uiStore.toast(error.message || '订单详情加载失败', 'error')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const resolveSelectedOrderId = () => {
+  if (!orders.value.length) return null
+  if (selectedOrderId.value !== null && orders.value.some((item) => item.orderId === selectedOrderId.value)) return selectedOrderId.value
+  return orders.value[0].orderId
+}
 
 const loadOrders = async () => {
   loading.value = true
@@ -360,47 +542,94 @@ const loadOrders = async () => {
     orders.value = response.content || []
     total.value = response.totalElements || 0
     totalPages.value = Math.max(response.totalPages || 1, 1)
+
+    const nextSelectedId = resolveSelectedOrderId()
+    const selectionChanged = nextSelectedId !== selectedOrderId.value
+    selectedOrderId.value = nextSelectedId
+    if (selectionChanged) {
+      await syncQuery({ selectedId: nextSelectedId })
+    }
+    await loadSelectedOrderDetail(selectedOrderId.value)
   } catch (error) {
+    orders.value = []
+    selectedOrderId.value = null
+    selectedOrderDetail.value = null
+    total.value = 0
+    totalPages.value = 1
     uiStore.toast(error.message || '订单列表加载失败', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const submitFilters = () => {
+const submitFilters = async () => {
   if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
     uiStore.toast('开始日期不能晚于结束日期', 'error')
     return
   }
   page.value = 0
-  loadOrders()
+  selectedOrderId.value = null
+  const changed = await syncQuery({ page: 0, selectedId: null })
+  if (!changed) {
+    await loadOrders()
+  }
 }
 
-const resetFilters = () => {
+const resetFilters = async () => {
   filters.keyword = ''
   filters.orderStatus = ''
   filters.paymentStatus = ''
   filters.startDate = ''
   filters.endDate = ''
-  submitFilters()
-}
-
-const changePage = (nextPage) => {
-  page.value = nextPage
-  loadOrders()
-}
-
-const changePageSize = () => {
   page.value = 0
-  loadOrders()
+  selectedOrderId.value = null
+  const changed = await syncQuery({
+    keyword: '',
+    orderStatus: '',
+    paymentStatus: '',
+    startDate: '',
+    endDate: '',
+    page: 0,
+    selectedId: null
+  })
+  if (!changed) {
+    await loadOrders()
+  }
 }
 
-const goToDetail = (id) => {
-  router.push(`/orders/${id}`)
+const changePage = async (nextPage) => {
+  page.value = nextPage
+  selectedOrderId.value = null
+  const changed = await syncQuery({ page: nextPage, selectedId: null })
+  if (!changed) {
+    await loadOrders()
+  }
+}
+
+const changePageSize = async () => {
+  page.value = 0
+  selectedOrderId.value = null
+  const changed = await syncQuery({ page: 0, pageSize: pageSize.value, selectedId: null })
+  if (!changed) {
+    await loadOrders()
+  }
+}
+
+const selectOrder = async (orderId) => {
+  selectedOrderId.value = orderId
+  const changed = await syncQuery({ selectedId: orderId })
+  if (!changed) {
+    await loadSelectedOrderDetail(orderId)
+  }
+}
+
+const openStandaloneDetail = () => {
+  if (!selectedOrderId.value) return
+  router.push(`/orders/${selectedOrderId.value}`)
 }
 
 const openCancelDialog = (order) => {
-  selectedOrder.value = order
+  selectedOrderId.value = order.orderId
   cancelForm.reason = ''
   cancelForm.refundAmount = order.orderAmount ? String(order.orderAmount) : ''
   cancelForm.adminRemark = ''
@@ -408,15 +637,19 @@ const openCancelDialog = (order) => {
 }
 
 const openDisputeDialog = (order) => {
-  selectedOrder.value = order
+  selectedOrderId.value = order.orderId
   disputeForm.finalDuration = ''
   disputeForm.finalOrderAmount = order.orderAmount ? String(order.orderAmount) : ''
   disputeForm.adminRemark = ''
   disputeDialogOpen.value = true
 }
 
+const refreshAfterAction = async () => {
+  await loadOrders()
+}
+
 const submitCancel = async () => {
-  if (!selectedOrder.value) return
+  if (!currentOrder.value) return
   if (!cancelForm.reason) {
     uiStore.toast('请填写取消原因', 'error')
     return
@@ -424,14 +657,14 @@ const submitCancel = async () => {
 
   actionLoading.value = true
   try {
-    await cancelOrder(selectedOrder.value.orderId, {
+    await cancelOrder(currentOrder.value.orderId, {
       reason: cancelForm.reason,
       refundAmount: cancelForm.refundAmount ? Number(cancelForm.refundAmount) : undefined,
       adminRemark: cancelForm.adminRemark
     })
     uiStore.toast('订单已取消', 'success')
     cancelDialogOpen.value = false
-    await loadOrders()
+    await refreshAfterAction()
   } catch (error) {
     uiStore.toast(error.message || '取消订单失败', 'error')
   } finally {
@@ -440,7 +673,7 @@ const submitCancel = async () => {
 }
 
 const submitDispute = async () => {
-  if (!selectedOrder.value) return
+  if (!currentOrder.value) return
   if (!disputeForm.finalDuration || !disputeForm.finalOrderAmount) {
     uiStore.toast('请填写最终时长和最终金额', 'error')
     return
@@ -448,14 +681,14 @@ const submitDispute = async () => {
 
   actionLoading.value = true
   try {
-    await resolveDispute(selectedOrder.value.orderId, {
+    await resolveDispute(currentOrder.value.orderId, {
       finalDuration: Number(disputeForm.finalDuration),
       finalOrderAmount: Number(disputeForm.finalOrderAmount),
       adminRemark: disputeForm.adminRemark
     })
     uiStore.toast('争议订单处理成功', 'success')
     disputeDialogOpen.value = false
-    await loadOrders()
+    await refreshAfterAction()
   } catch (error) {
     uiStore.toast(error.message || '争议处理失败', 'error')
   } finally {
@@ -465,10 +698,15 @@ const submitDispute = async () => {
 
 watch(
   () => route.query,
-  (query) => {
+  async (query) => {
+    if (ignoreNextQueryWatch.value) {
+      ignoreNextQueryWatch.value = false
+      return
+    }
     applyQueryFilters(query)
-    page.value = 0
-    loadOrders()
+    page.value = toFilterValue(query.page) || 0
+    pageSize.value = toFilterValue(query.pageSize) || 10
+    await loadOrders()
   },
   { immediate: true }
 )
@@ -500,45 +738,167 @@ watch(
   flex-wrap: wrap;
 }
 
-.orders-table {
-  min-width: 2280px;
+.selected-row {
+  border-color: rgba(42, 120, 255, 0.3);
+  background: linear-gradient(180deg, rgba(237, 244, 255, 0.98) 0%, rgba(248, 251, 255, 0.98) 100%);
+  box-shadow: 0 12px 28px rgba(42, 120, 255, 0.1);
 }
 
-.summary-copy {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.4;
-  max-width: 260px;
+.record-list {
+  display: grid;
+  gap: 12px;
+}
+
+.record-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.96);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.record-item:hover {
+  border-color: rgba(42, 120, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(33, 71, 126, 0.08);
+  transform: translateY(-1px);
+}
+
+.record-main,
+.record-summary,
+.record-summary-copy,
+.record-meta-grid,
+.record-stat {
+  min-width: 0;
+}
+
+.record-main {
+  display: grid;
+  gap: 14px;
+}
+
+.record-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.record-title,
+.record-value {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.45;
   word-break: break-word;
 }
 
-.status-cell,
-.payment-cell,
-.time-cell,
-.no-wrap {
-  white-space: nowrap;
+.record-copy,
+.record-label,
+.record-note {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+  word-break: break-word;
 }
 
-.actions-cell {
-  min-width: 180px;
+.record-copy + .record-copy,
+.record-label + .record-value,
+.record-value + .record-note {
+  margin-top: 4px;
+}
+
+.record-label {
+  font-size: 12px;
+}
+
+.record-note {
+  font-size: 13px;
+}
+
+.record-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.record-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.order-meta-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.record-stat {
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 228, 242, 0.92);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.record-side {
+  display: grid;
+  align-content: center;
+  justify-items: stretch;
+  gap: 10px;
+  min-width: 112px;
+}
+
+.detail-section {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-heading {
+  margin-bottom: 0;
+}
+
+.detail-row-value {
+  text-align: left;
 }
 
 @media (max-width: 1320px) {
+  .order-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .filter-fields-row {
     grid-template-columns: repeat(3, minmax(180px, 1fr));
   }
 }
 
 @media (max-width: 820px) {
+  .record-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .filter-fields-row {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
 }
 
 @media (max-width: 620px) {
+  .record-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .record-chip-row {
+    justify-content: flex-start;
+  }
+
+  .order-meta-grid,
   .filter-fields-row {
     grid-template-columns: 1fr;
+  }
+
+  .record-side {
+    min-width: 0;
   }
 }
 </style>
