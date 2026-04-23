@@ -8,15 +8,12 @@ import org.example.dao.UserMapper;
 import org.example.model.Attendant;
 import org.example.model.Order;
 import org.example.model.User;
-import org.example.model.request.AdminLoginRequest;
 import org.example.model.request.AdminOrderCancelRequest;
 import org.example.model.request.AdminOrderDisputeResolutionRequest;
 import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.*;
 import org.example.service.AdminService;
 import org.example.service.OrderService;
-import org.example.service.UserService;
-import org.example.unity.JwtUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,25 +28,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
-    private final UserService userService;
     private final UserMapper userMapper;
     private final AttendantMapper attendantMapper;
     private final AttendantQualificationMapper attendantQualificationMapper;
     private final OrderMapper orderMapper;
     private final OrderService orderService;
-    private final JwtUtil jwtUtil;
-
-    @Override
-    public AdminLoginResponse login(AdminLoginRequest request) {
-        User user = userService.login(request.getAccount(), request.getPassword());
-        if (user == null) {
-            throw new IllegalArgumentException("账号或密码错误");
-        }
-        if (user.getUserType() == null || user.getUserType() != 2) {
-            throw new IllegalArgumentException("当前账号不是管理员");
-        }
-        return new AdminLoginResponse(jwtUtil.generateToken(user.getId()), user);
-    }
 
     @Override
     public AdminDashboardOverviewResponse getDashboardOverview() {
@@ -122,9 +105,6 @@ public class AdminServiceImpl implements AdminService {
         requireUser(userId);
         if (status == null || (status != 0 && status != 1)) {
             throw new IllegalArgumentException("状态值不合法");
-        }
-        if (operatorId != null && operatorId.equals(userId) && status == 0) {
-            throw new IllegalArgumentException("不能禁用当前登录管理员");
         }
         User patch = new User();
         patch.setId(userId);

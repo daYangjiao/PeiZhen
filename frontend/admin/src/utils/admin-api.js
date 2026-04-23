@@ -15,3 +15,7 @@ export const fetchOrders = (params) => get('/api/admin/orders', params)
 export const fetchOrderDetail = (id) => get(`/api/admin/orders/${id}`)
 export const cancelOrder = (id, payload) => patch(`/api/admin/orders/${id}/cancel`, payload)
 export const resolveDispute = (id, payload) => patch(`/api/admin/orders/${id}/dispute-resolution`, payload)
+
+export const fetchAdminUsers = (params) => get('/api/admin/admin-users', params)
+export const createAdminUser = (payload) => post('/api/admin/admin-users', payload)
+export const updateAdminUserStatus = (id, status) => patch(`/api/admin/admin-users/${id}/status`, { status })

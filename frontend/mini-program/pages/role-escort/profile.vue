@@ -70,6 +70,7 @@
       </view>
     </view>
 
+    <exclusive-dispatch-popup />
     <escort-bottom-bar active="profile" />
   </view>
 </template>
@@ -78,6 +79,7 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onShow } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import EscortMenuCell from '@/components/escort-menu-cell.vue'
 import { useSessionStore } from '@/stores/session'

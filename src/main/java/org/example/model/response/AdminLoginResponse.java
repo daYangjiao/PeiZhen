@@ -2,7 +2,7 @@ package org.example.model.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.example.model.User;
+import org.example.entity.SysAdmin;
 
 @Data
 @AllArgsConstructor
@@ -10,5 +10,5 @@ public class AdminLoginResponse {
 
     private String token;
 
-    private User userInfo;
+    private SysAdmin userInfo;
 }

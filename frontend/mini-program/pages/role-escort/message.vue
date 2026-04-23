@@ -57,6 +57,7 @@
       </view>
     </scroll-view>
 
+    <exclusive-dispatch-popup />
     <escort-bottom-bar active="message" />
   </view>
 </template>
@@ -64,6 +65,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import { get } from '@/utils/api.js'
 import { addChatListener, connectChatSocket, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'

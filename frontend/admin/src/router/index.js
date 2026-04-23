@@ -1,12 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import LoginPage from '../pages/login-page.vue'
-import DashboardPage from '../pages/dashboard-page.vue'
-import UsersPage from '../pages/users-page.vue'
-import AttendantsPage from '../pages/attendants-page.vue'
-import AttendantDetailPage from '../pages/attendant-detail-page.vue'
-import OrdersPage from '../pages/orders-page.vue'
-import OrderDetailPage from '../pages/order-detail-page.vue'
+import LoginPage from '../pages/LoginPage.vue'
+import DashboardPage from '../pages/DashboardPage.vue'
+import UsersPage from '../pages/UsersPage.vue'
+import AttendantsPage from '../pages/AttendantsPage.vue'
+import AttendantDetailPage from '../pages/AttendantDetailPage.vue'
+import OrdersPage from '../pages/OrdersPage.vue'
+import OrderDetailPage from '../pages/OrderDetailPage.vue'
+import ServicePage from '../pages/ServicePage.vue'
+import SystemPage from '../pages/SystemPage.vue'
+
 
 const routes = [
   { path: '/login', name: 'login', component: LoginPage, meta: { guestOnly: true } },
@@ -16,8 +19,11 @@ const routes = [
   { path: '/attendants', name: 'attendants', component: AttendantsPage, meta: { requiresAuth: true } },
   { path: '/attendants/:id', name: 'attendant-detail', component: AttendantDetailPage, meta: { requiresAuth: true } },
   { path: '/orders', name: 'orders', component: OrdersPage, meta: { requiresAuth: true } },
-  { path: '/orders/:id', name: 'order-detail', component: OrderDetailPage, meta: { requiresAuth: true } }
+  { path: '/orders/:id', name: 'order-detail', component: OrderDetailPage, meta: { requiresAuth: true } },
+  { path: '/service', name: 'service', component: ServicePage, meta: { requiresAuth: true } },
+  { path: '/system', name: 'system', component: SystemPage, meta: { requiresAuth: true } }
 ]
+
 
 const router = createRouter({
   history: createWebHistory('/admin/'),

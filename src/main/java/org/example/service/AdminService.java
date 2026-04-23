@@ -1,11 +1,12 @@
 package org.example.service;
 
-import org.example.model.request.*;
+import org.example.model.request.AdminAttendantReviewRequest;
+import org.example.model.request.AdminAttendantStatusUpdateRequest;
+import org.example.model.request.AdminOrderCancelRequest;
+import org.example.model.request.AdminOrderDisputeResolutionRequest;
 import org.example.model.response.*;
 
 public interface AdminService {
-
-    AdminLoginResponse login(AdminLoginRequest request);
 
     AdminDashboardOverviewResponse getDashboardOverview();
 

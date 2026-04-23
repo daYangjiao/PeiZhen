@@ -46,7 +46,7 @@ public class AdminOrderController {
                                        @RequestBody(required = false) AdminOrderCancelRequest request,
                                        HttpServletRequest httpServletRequest) {
         try {
-            adminService.cancelOrder(AuthUtil.getCurrentUserId(httpServletRequest), orderId, request);
+            adminService.cancelOrder(AuthUtil.getCurrentAdminId(httpServletRequest), orderId, request);
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
@@ -58,7 +58,7 @@ public class AdminOrderController {
                                                @RequestBody(required = false) AdminOrderDisputeResolutionRequest request,
                                                HttpServletRequest httpServletRequest) {
         try {
-            adminService.resolveDispute(AuthUtil.getCurrentUserId(httpServletRequest), orderId, request);
+            adminService.resolveDispute(AuthUtil.getCurrentAdminId(httpServletRequest), orderId, request);
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);

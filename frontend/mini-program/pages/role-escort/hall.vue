@@ -121,6 +121,7 @@
 			</view>
 		</scroll-view>
 
+		<exclusive-dispatch-popup />
 		<escort-bottom-bar active="hall" />
 	</view>
 </template>
@@ -128,6 +129,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow, onHide } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import OrderCard from '@/components/order-card.vue'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get, post } from '@/utils/api.js'

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.SysAdminMapper">
+
+    <resultMap id="SysAdminResultMap" type="org.example.entity.SysAdmin">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="password" property="password"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+    </resultMap>
+
+    <select id="findById" resultMap="SysAdminResultMap">
+        SELECT *
+        FROM sys_admin
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByPhone" resultMap="SysAdminResultMap">
+        SELECT *
+        FROM sys_admin
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
+
+    <select id="countAdmins" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_admin
+        <where>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(id AS CHAR) = #{keyword}
+                    OR name LIKE CONCAT('%', #{keyword}, '%')
+                    OR phone LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="findAdmins" resultMap="SysAdminResultMap">
+        SELECT *
+        FROM sys_admin
+        <where>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CAST(id AS CHAR) = #{keyword}
+                    OR name LIKE CONCAT('%', #{keyword}, '%')
+                    OR phone LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <insert id="insert" parameterType="org.example.entity.SysAdmin" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_admin (name, phone, password, status, last_login_time)
+        VALUES (#{name}, #{phone}, #{password}, #{status}, #{lastLoginTime})
+    </insert>
+
+    <update id="update" parameterType="org.example.entity.SysAdmin">
+        UPDATE sys_admin
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -34,6 +34,10 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
             }
 
             Integer userId = jwtUtil.getUserIdFromToken(token);
+            if (userId == null) {
+                reject(response, "WebSocket认证失败");
+                return false;
+            }
             attributes.put("currentUserId", userId);
             attributes.put("currentUserToken", token);
             return true;

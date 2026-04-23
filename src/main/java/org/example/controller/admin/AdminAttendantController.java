@@ -43,7 +43,7 @@ public class AdminAttendantController {
                                              @RequestBody AdminAttendantStatusUpdateRequest request,
                                              HttpServletRequest httpServletRequest) {
         try {
-            adminService.updateAttendantStatus(AuthUtil.getCurrentUserId(httpServletRequest), userId, request.getStatus(), request.getReason());
+            adminService.updateAttendantStatus(AuthUtil.getCurrentAdminId(httpServletRequest), userId, request.getStatus(), request.getReason());
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
@@ -55,7 +55,7 @@ public class AdminAttendantController {
                                        @RequestBody AdminAttendantReviewRequest request,
                                        HttpServletRequest httpServletRequest) {
         try {
-            adminService.reviewAttendantQualification(AuthUtil.getCurrentUserId(httpServletRequest), userId, request.getAction(), request.getReason());
+            adminService.reviewAttendantQualification(AuthUtil.getCurrentAdminId(httpServletRequest), userId, request.getAction(), request.getReason());
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);

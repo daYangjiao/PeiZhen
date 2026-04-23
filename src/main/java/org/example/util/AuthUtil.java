@@ -26,22 +26,36 @@ public class AuthUtil {
      */
     public static Integer getCurrentUserId(HttpServletRequest request) {
         try {
-            // 从请求属性中获取（由拦截器设置）
             Object userIdObj = request.getAttribute("currentUserId");
             if (userIdObj != null) {
                 return (Integer) userIdObj;
             }
-            
-            // 如果拦截器未设置，尝试从Token解析
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                return jwtUtil.getUserIdFromToken(token);
-            }
-            
-            return null;
+
+            return resolveUserIdFromToken(request);
         } catch (Exception e) {
             logger.warn("获取用户ID失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    public static Integer getCurrentAdminId(HttpServletRequest request) {
+        try {
+            Object adminIdObj = request.getAttribute("currentAdminId");
+            if (adminIdObj != null) {
+                return (Integer) adminIdObj;
+            }
+
+            String token = extractBearerToken(request);
+            if (token == null) {
+                return null;
+            }
+            String principalType = jwtUtil.getPrincipalTypeFromToken(token);
+            if (!"admin".equals(principalType)) {
+                return null;
+            }
+            return jwtUtil.getAdminIdFromToken(token);
+        } catch (Exception e) {
+            logger.warn("获取管理员ID失败: {}", e.getMessage());
             return null;
         }
     }
@@ -72,5 +86,25 @@ public class AuthUtil {
             return false;
         }
         return currentUserId.equals(targetUserId);
+    }
+
+    private static Integer resolveUserIdFromToken(HttpServletRequest request) {
+        String token = extractBearerToken(request);
+        if (token == null) {
+            return null;
+        }
+        String principalType = jwtUtil.getPrincipalTypeFromToken(token);
+        if ("admin".equals(principalType)) {
+            return null;
+        }
+        return jwtUtil.getUserIdFromToken(token);
+    }
+
+    private static String extractBearerToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        return authHeader.substring(7);
     }
 }

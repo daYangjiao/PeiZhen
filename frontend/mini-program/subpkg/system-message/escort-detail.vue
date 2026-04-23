@@ -61,12 +61,15 @@
         </view>
       </view>
     </template>
+
+    <exclusive-dispatch-popup />
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import { get } from '@/utils/api.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 

@@ -1,8 +1,8 @@
 package org.example.interceptor;
 
 import lombok.RequiredArgsConstructor;
-import org.example.dao.UserMapper;
-import org.example.model.User;
+import org.example.dao.SysAdminMapper;
+import org.example.entity.SysAdmin;
 import org.example.unity.JwtUtil;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -16,7 +16,7 @@ import java.io.PrintWriter;
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
-    private final UserMapper userMapper;
+    private final SysAdminMapper sysAdminMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -30,28 +30,30 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Integer userId = jwtUtil.getUserIdFromToken(authHeader.substring(7));
-        if (userId == null) {
-            writeUnauthorized(response, "登录已失效");
-            return false;
-        }
-
-        User user = userMapper.findById(userId);
-        if (user == null) {
-            writeUnauthorized(response, "管理员不存在");
-            return false;
-        }
-        if (user.getStatus() != null && user.getStatus() == 0) {
-            writeUnauthorized(response, "管理员账号已禁用");
-            return false;
-        }
-        if (user.getUserType() == null || user.getUserType() != 2) {
+        String token = authHeader.substring(7);
+        if (!"admin".equals(jwtUtil.getPrincipalTypeFromToken(token))) {
             writeUnauthorized(response, "无管理员权限");
             return false;
         }
 
-        request.setAttribute("currentUserId", userId);
-        request.setAttribute("currentAdmin", user);
+        Integer adminId = jwtUtil.getAdminIdFromToken(token);
+        if (adminId == null) {
+            writeUnauthorized(response, "登录已失效");
+            return false;
+        }
+
+        SysAdmin admin = sysAdminMapper.findById(adminId);
+        if (admin == null) {
+            writeUnauthorized(response, "管理员不存在");
+            return false;
+        }
+        if (admin.getStatus() != null && admin.getStatus() == 0) {
+            writeUnauthorized(response, "管理员账号已禁用");
+            return false;
+        }
+
+        request.setAttribute("currentAdminId", adminId);
+        request.setAttribute("currentAdmin", admin);
         return true;
     }
 

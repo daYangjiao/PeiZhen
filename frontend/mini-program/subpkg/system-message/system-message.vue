@@ -52,12 +52,15 @@
         <text class="empty-text">暂无{{ tabs[currentTab] }}消息</text>
       </view>
     </scroll-view>
+
+    <exclusive-dispatch-popup v-if="isEscortRole" />
   </view>
 </template>
 
 <script setup>
 import { computed, onUnmounted, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import { get, post } from '@/utils/api.js'
 import { addChatListener, removeChatListener } from '@/utils/chat-websocket.js'
 import { useMessageStore } from '@/stores/message.js'

@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS `attendant_qualification`;
 DROP TABLE IF EXISTS `attendant`;
 DROP TABLE IF EXISTS `service_type_mapping`;
 DROP TABLE IF EXISTS `order`;
+DROP TABLE IF EXISTS `sys_admin`;
 DROP TABLE IF EXISTS `user`;
 
 CREATE TABLE `user` (
@@ -25,6 +26,19 @@ CREATE TABLE `user` (
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_phone` (`phone`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `sys_admin` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `password` varchar(100) NOT NULL,
+  `status` tinyint NOT NULL DEFAULT 1,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `last_login_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_sys_admin_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `attendant` (
@@ -252,6 +266,9 @@ INSERT INTO `user` (`id`, `password`, `name`, `phone`, `sex`, `age`, `avatar`, `
   (1, 'admin123', 'Admin', '13800000000', 'male', 30, '/static/uploads/user-avatar.jpg', 2, 1, NULL, NOW()),
   (2, '123456', 'Test User', '13800000001', 'female', 26, '/static/uploads/user-avatar.jpg', 0, 1, NULL, NOW()),
   (3, '123456', 'Test Attendant', '13800000002', 'female', 32, '/static/uploads/user-avatar.jpg', 1, 1, NULL, NOW());
+
+INSERT INTO `sys_admin` (`id`, `name`, `phone`, `password`, `status`, `create_time`, `update_time`, `last_login_time`) VALUES
+  (1, '本地管理员', '13800000000', 'admin123', 1, NOW(), NOW(), NULL);
 
 INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `service_count`, `create_time`, `update_time`) VALUES
   (3, 'CERT-20260325-001', 1, '', 'Experienced hospital escort with qualification review completed.', 'Registration, consultation, examination', 5.0, 6, 'Fujian Union Hospital', 12, NOW(), NOW());

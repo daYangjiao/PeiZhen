@@ -18,6 +18,11 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
+    private static final String CLAIM_PRINCIPAL_TYPE = "principalType";
+    private static final String CLAIM_USER_ID = "userId";
+    private static final String CLAIM_ADMIN_ID = "adminId";
+    private static final String PRINCIPAL_TYPE_USER = "user";
+    private static final String PRINCIPAL_TYPE_ADMIN = "admin";
 
     private final SecretKey secretKey;
     private final long expirationTime;
@@ -54,27 +59,38 @@ public class JwtUtil {
     }
 
     public String generateToken(Integer userId, Map<String, Object> additionalClaims, long customExpirationTime) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + customExpirationTime);
-        
-        // 构建基础声明
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        
-        // 添加额外声明
+        claims.put(CLAIM_PRINCIPAL_TYPE, PRINCIPAL_TYPE_USER);
+        claims.put(CLAIM_USER_ID, userId);
         if (additionalClaims != null) {
             claims.putAll(additionalClaims);
         }
-        
+        return buildToken(userId, claims, customExpirationTime);
+    }
+
+    public String generateAdminToken(Integer adminId, Map<String, Object> additionalClaims) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(CLAIM_PRINCIPAL_TYPE, PRINCIPAL_TYPE_ADMIN);
+        claims.put(CLAIM_ADMIN_ID, adminId);
+        if (additionalClaims != null) {
+            claims.putAll(additionalClaims);
+        }
+        return buildToken(adminId, claims, expirationTime);
+    }
+
+    private String buildToken(Integer subjectId, Map<String, Object> claims, long customExpirationTime) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + customExpirationTime);
+
         String token = Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userId.toString())
+                .setSubject(subjectId == null ? "" : subjectId.toString())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(secretKey)
                 .compact();
-        
-        logger.debug("为用户 {} 生成Token，过期时间: {}", userId, expiryDate);
+
+        logger.debug("为主体 {} 生成Token，过期时间: {}", subjectId, expiryDate);
         return token;
     }
 
@@ -86,12 +102,48 @@ public class JwtUtil {
      */
     public Integer getUserIdFromToken(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-            return Integer.parseInt(claims.getSubject());
+            Claims claims = parseClaims(token);
+            String principalType = normalizePrincipalType(claims);
+            if (PRINCIPAL_TYPE_ADMIN.equals(principalType)) {
+                return null;
+            }
+            Integer userId = toInteger(claims.get(CLAIM_USER_ID));
+            if (userId != null) {
+                return userId;
+            }
+            return toInteger(claims.getSubject());
+        } catch (ExpiredJwtException e) {
+            logger.warn("Token已过期");
+            throw new RuntimeException("Token已过期");
+        } catch (Exception e) {
+            logger.warn("Token解析失败: {}", e.getMessage());
+            throw new RuntimeException("无效的Token");
+        }
+    }
+
+    public Integer getAdminIdFromToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            if (!PRINCIPAL_TYPE_ADMIN.equals(normalizePrincipalType(claims))) {
+                return null;
+            }
+            Integer adminId = toInteger(claims.get(CLAIM_ADMIN_ID));
+            if (adminId != null) {
+                return adminId;
+            }
+            return toInteger(claims.getSubject());
+        } catch (ExpiredJwtException e) {
+            logger.warn("Token已过期");
+            throw new RuntimeException("Token已过期");
+        } catch (Exception e) {
+            logger.warn("Token解析失败: {}", e.getMessage());
+            throw new RuntimeException("无效的Token");
+        }
+    }
+
+    public String getPrincipalTypeFromToken(String token) {
+        try {
+            return normalizePrincipalType(parseClaims(token));
         } catch (ExpiredJwtException e) {
             logger.warn("Token已过期");
             throw new RuntimeException("Token已过期");
@@ -121,10 +173,36 @@ public class JwtUtil {
      * @return Claims对象
      */
     public Claims getAllClaimsFromToken(String token) {
+        return parseClaims(token);
+    }
+
+    private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    private String normalizePrincipalType(Claims claims) {
+        String principalType = claims.get(CLAIM_PRINCIPAL_TYPE, String.class);
+        return principalType == null || principalType.isBlank() ? PRINCIPAL_TYPE_USER : principalType;
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        return Integer.parseInt(text);
     }
 }

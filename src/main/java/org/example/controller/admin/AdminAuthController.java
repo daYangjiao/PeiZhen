@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.common.ResponseResult;
 import org.example.model.request.AdminLoginRequest;
 import org.example.model.response.AdminLoginResponse;
-import org.example.service.AdminService;
+import org.example.service.SysAdminService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -14,12 +14,12 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 public class AdminAuthController {
 
-    private final AdminService adminService;
+    private final SysAdminService sysAdminService;
 
     @PostMapping("/login")
     public ResponseResult<AdminLoginResponse> login(@Valid @RequestBody AdminLoginRequest request) {
         try {
-            return ResponseResult.success(adminService.login(request));
+            return ResponseResult.success(sysAdminService.login(request.getAccount(), request.getPassword()));
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
         }

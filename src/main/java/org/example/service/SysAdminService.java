@@ -1,14 +1,19 @@
 package org.example.service;
 
 import org.example.entity.SysAdmin;
-
-import java.util.List;
+import org.example.model.request.AdminCreateSysAdminRequest;
+import org.example.model.response.AdminLoginResponse;
+import org.example.model.response.PagedResponse;
 
 public interface SysAdminService {
 
-    SysAdmin login(String username, String password);
+    AdminLoginResponse login(String account, String password);
 
-    List<SysAdmin> list();
+    PagedResponse<SysAdmin> getAdmins(String keyword, Integer status, Integer page, Integer pageSize);
 
-    boolean updateById(SysAdmin admin);
+    SysAdmin createAdmin(Integer operatorId, AdminCreateSysAdminRequest request);
+
+    void updateStatus(Integer operatorId, Integer adminId, Integer status);
+
+    SysAdmin findById(Integer adminId);
 }

@@ -94,6 +94,7 @@
       </scroll-view>
     </view>
 
+    <exclusive-dispatch-popup />
     <escort-bottom-bar active="order" />
   </view>
 </template>
@@ -101,6 +102,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onShow, onHide } from '@dcloudio/uni-app'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import EscortBottomBar from '@/components/escort-bottom-bar.vue'
 import { get } from '@/utils/api.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket, isOrderSocketOpen } from '@/utils/order-websocket.js'

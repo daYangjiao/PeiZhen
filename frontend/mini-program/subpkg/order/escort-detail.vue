@@ -344,14 +344,21 @@
 		
 		<!-- 底部操作按钮 -->
 		<view class="bottom-actions" v-if="showActions">
-			<button class="action-btn secondary" @click="contactPatient">联系患者</button>
-			<!-- 待服务状态：扫码核销（未准备时点弹窗）、模拟扫码 -->
-			<template v-if="orderInfo.status === 'accepted'">
-				<button class="action-btn" :class="isPrepared ? 'primary' : 'disabled'" @click="onScanCodeClick">扫码核销</button>
-				<button class="action-btn" :class="isPrepared ? 'warning' : 'disabled'" @click="onSimulateScanClick">模拟扫码</button>
+			<template v-if="orderInfo.status === 'assigned_waiting'">
+				<button class="action-btn primary" :disabled="assignedAccepting" @click="handleAssignedAccept">
+					{{ assignedAccepting ? '接单中...' : '立即接单' }}
+				</button>
 			</template>
-			<!-- 服务中状态：显示结束服务 -->
-			<button v-else-if="orderInfo.status === 'in_progress'" class="action-btn primary" @click="handleEndServiceClick">结束服务</button>
+			<template v-else>
+				<button class="action-btn secondary" @click="contactPatient">联系患者</button>
+				<!-- 待服务状态：扫码核销（未准备时点弹窗）、模拟扫码 -->
+				<template v-if="orderInfo.status === 'accepted'">
+					<button class="action-btn" :class="isPrepared ? 'primary' : 'disabled'" @click="onScanCodeClick">扫码核销</button>
+					<button class="action-btn" :class="isPrepared ? 'warning' : 'disabled'" @click="onSimulateScanClick">模拟扫码</button>
+				</template>
+				<!-- 服务中状态：显示结束服务 -->
+				<button v-else-if="orderInfo.status === 'in_progress'" class="action-btn primary" @click="handleEndServiceClick">结束服务</button>
+			</template>
 		</view>
 
 		<!-- 去准备弹窗 -->
@@ -509,6 +516,8 @@
 				</view>
 			</view>
 		</view>
+
+		<exclusive-dispatch-popup />
 	</view>
 </template>
 
@@ -516,6 +525,8 @@
 import { get, post } from '@/utils/api.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 import { makePhoneCallWithGuard, scanCodeWithGuard } from '@/subpkg/common/runtime.js'
+import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
+import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
@@ -629,6 +640,9 @@ function buildEscortServiceRecords(order, status) {
 }
 
 export default {
+	components: {
+		ExclusiveDispatchPopup
+	},
 	data() {
 		return {
 			isLoading: true,
@@ -638,6 +652,7 @@ export default {
 			showEndServiceModal: false,
 			showPrepareModal: false,
 			showContactPatientModal: false,
+			assignedAccepting: false,
 			assignedCountdownTimer: null,
 			simulateQrContent: '',
 			pendingQrContent: '',
@@ -733,7 +748,7 @@ export default {
 			return descs[this.orderInfo.status] || ''
 		},
 		showActions() {
-			return ['accepted', 'in_progress'].includes(this.orderInfo.status)
+			return ['assigned_waiting', 'accepted', 'in_progress'].includes(this.orderInfo.status)
 		},
 		serviceProgressStep() {
 			if (this.orderInfo.status === 'accepted') return 1
@@ -1016,6 +1031,21 @@ export default {
 		},
 		openContactPatientModal() {
 			this.showContactPatientModal = true
+		},
+		async handleAssignedAccept() {
+			if (this.assignedAccepting || !this.orderInfo.id) return
+			this.assignedAccepting = true
+			try {
+				const store = useExclusiveDispatchStore()
+				const result = await store.acceptExclusiveOrder(this.orderInfo.id, { redirectToDetail: false })
+				if (result?.ok) {
+					await this.loadOrderDetail(result.orderId || this.orderInfo.id)
+				} else if (result?.terminal) {
+					await this.loadOrderDetail(this.orderInfo.id)
+				}
+			} finally {
+				this.assignedAccepting = false
+			}
 		},
 		handleContactPatientChoice(type) {
 			this.showContactPatientModal = false

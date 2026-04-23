@@ -43,7 +43,7 @@ public class AdminUserController {
                                              @RequestBody AdminUserStatusUpdateRequest request,
                                              HttpServletRequest httpServletRequest) {
         try {
-            adminService.updateUserStatus(AuthUtil.getCurrentUserId(httpServletRequest), userId, request.getStatus());
+            adminService.updateUserStatus(AuthUtil.getCurrentAdminId(httpServletRequest), userId, request.getStatus());
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
