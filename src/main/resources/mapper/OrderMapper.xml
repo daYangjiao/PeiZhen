@@ -106,7 +106,7 @@
                     TRIM(SUBSTRING_INDEX(service_time_slot, '-', 1))
                 ),
                 '%Y-%m-%d %H:%i'
-              ) <= #{now}
+              ) &lt;= #{now}
         ORDER BY service_date ASC, service_time_slot ASC, create_time ASC
     </select>
 
