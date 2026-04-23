@@ -1,11 +1,11 @@
 <template>
-  <AppShell title="系统设置" subtitle="管理员账号管理与系统说明">
+  <AppShell title="管理员账号" subtitle="管理员账号管理">
     <div class="page-stack">
       <section class="panel-card">
         <div class="section-heading">
           <div>
             <h3 class="section-title">管理员筛选</h3>
-            <p class="section-copy">支持按状态筛选，并可创建新管理员账号。</p>
+            <p class="section-copy">按状态筛选管理员账号。</p>
           </div>
         </div>
 
@@ -27,7 +27,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">管理员列表</h3>
-            <p class="section-copy">数据来自 `/api/admin/admin-users`，可直接启用/禁用管理员账号。</p>
+            <p class="section-copy">支持启用、禁用管理员账号。</p>
           </div>
         </div>
 
@@ -92,52 +92,12 @@
           </div>
         </div>
       </section>
-
-      <section class="readonly-card">
-        <div class="section-heading">
-          <div>
-            <span class="inline-tag">只读说明</span>
-            <h3 class="section-title">系统与联调信息</h3>
-            <p class="section-copy">以下区域仍保持只读，用于汇总后台形态和运维说明。</p>
-          </div>
-        </div>
-
-        <div class="kv-grid">
-          <div class="kv-item">
-            <p class="kv-label">当前后台形态</p>
-            <p class="kv-value">桌面端 Vue 3 + Vite 管理台，入口路径为 `/admin/`。</p>
-          </div>
-          <div class="kv-item">
-            <p class="kv-label">本地联调目标</p>
-            <p class="kv-value">默认代理到 `http://127.0.0.1:8081`，统一走 `/api`、`/uploads`、`/ws`。</p>
-          </div>
-          <div class="kv-item">
-            <p class="kv-label">登录态说明</p>
-            <p class="kv-value">通过 `/api/admin/auth/login` 获取 token，并在 401 时自动清理本地会话。</p>
-          </div>
-          <div class="kv-item">
-            <p class="kv-label">当前管理员</p>
-            <p class="kv-value">{{ adminName }}</p>
-          </div>
-        </div>
-
-        <div class="readonly-list">
-          <article class="readonly-item">
-            <h4 class="readonly-title">管理策略提醒</h4>
-            <p class="readonly-copy">管理员禁用会立即生效，建议至少保留一个可登录账号，避免后台无人可维护。</p>
-          </article>
-          <article class="readonly-item">
-            <h4 class="readonly-title">后续扩展建议</h4>
-            <p class="readonly-copy">系统公告、通知偏好、审计日志等能力可继续放在本页，待对应后端接口稳定后再逐步开放编辑。</p>
-          </article>
-        </div>
-      </section>
     </div>
 
     <BaseDialog
       v-model="createDialogOpen"
       title="新建管理员"
-      description="创建后可立即使用账号密码登录后台。"
+      description="填写管理员信息。"
       width="560px"
     >
       <div class="page-stack">
@@ -169,7 +129,7 @@
       :description="statusTarget ? `将管理员 ${statusTarget.name || statusTarget.phone || statusTarget.id} ${statusTarget.status === 1 ? '禁用' : '恢复'}。` : ''"
       width="520px"
     >
-      <p class="section-copy">状态变更会直接调用后台接口，并刷新当前列表。</p>
+      <p class="section-copy">确认后将更新该管理员状态。</p>
       <template #footer>
         <button class="button button-ghost" type="button" @click="statusDialogOpen = false">取消</button>
         <button
@@ -223,7 +183,6 @@ const statusDialogOpen = ref(false)
 const actionLoading = ref(false)
 const statusTarget = ref(null)
 
-const adminName = computed(() => authStore.user?.name || authStore.user?.account || '管理员')
 const currentAdminIdentity = computed(() => ({
   id: authStore.user?.id ?? authStore.user?.adminId ?? authStore.user?.userId ?? null,
   phone: authStore.user?.phone || '',

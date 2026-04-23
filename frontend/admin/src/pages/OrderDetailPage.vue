@@ -53,7 +53,7 @@
           <div class="section-heading">
             <div>
               <h3 class="section-title">金额拆分</h3>
-              <p class="section-copy">展示订单金额、退款与差额明细。</p>
+              <p class="section-copy">订单金额、退款与差额明细。</p>
             </div>
           </div>
           <div class="amount-breakdown-grid">
@@ -80,7 +80,7 @@
           <div class="section-heading">
             <div>
               <h3 class="section-title">订单进展</h3>
-              <p class="section-copy">优先展示真实字段，不再制造假的步骤时间线。</p>
+              <p class="section-copy">服务开始、结束与争议记录。</p>
             </div>
             <div class="toolbar-group">
               <button v-if="canCancel(detail.order.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog">取消订单</button>

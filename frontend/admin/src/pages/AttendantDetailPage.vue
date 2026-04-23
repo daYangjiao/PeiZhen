@@ -70,7 +70,7 @@
           <div class="section-heading">
             <div>
               <h3 class="section-title">资质文件</h3>
-              <p class="section-copy">点击缩略图可查看大图，未上传项会显示占位状态。</p>
+              <p class="section-copy">查看陪诊师资质材料。</p>
             </div>
           </div>
           <div class="qualification-grid">
@@ -149,7 +149,7 @@
     <BaseDialog
       v-model="previewDialogOpen"
       :title="previewTitle || '资质文件预览'"
-      description="仅展示后台返回的原始文件链接内容。"
+      description="资质材料预览。"
       width="760px"
     >
       <div class="qualification-preview">

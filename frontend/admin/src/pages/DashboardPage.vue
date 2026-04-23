@@ -1,61 +1,55 @@
 <template>
-  <AppShell title="首页概览" subtitle="核心数据与最近订单">
-    <div class="page-stack">
-      <div v-if="loading" class="overview-grid">
-        <div v-for="item in 4" :key="item" class="skeleton"></div>
-      </div>
+  <AppShell title="运营控制台" subtitle="指标与队列">
+    <div class="dashboard-console">
+      <section class="panel-card console-header">
+        <div>
+          <h3 class="section-title">运营总览</h3>
+          <p class="section-copy">实时状态</p>
+        </div>
+        <button class="button button-secondary" type="button" @click="loadDashboard" :disabled="reloading || loading">
+          {{ reloading ? '刷新中...' : '刷新' }}
+        </button>
+      </section>
+
+      <template v-if="loading">
+        <section class="overview-grid stats-grid">
+          <div v-for="item in 6" :key="item" class="skeleton stat-skeleton"></div>
+        </section>
+        <section class="quick-entry-grid">
+          <div v-for="item in 3" :key="`queue-${item}`" class="skeleton queue-skeleton"></div>
+        </section>
+        <section class="panel-card">
+          <div class="skeleton table-skeleton"></div>
+        </section>
+      </template>
 
       <template v-else>
-        <section class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h3 class="section-title">经营概览</h3>
-              <p class="section-copy">全部数据来自 `/api/admin/dashboard/overview`，不再展示模拟趋势图。</p>
-            </div>
-            <button class="button button-secondary" type="button" @click="loadDashboard" :disabled="reloading">
-              {{ reloading ? '刷新中...' : '刷新数据' }}
-            </button>
-          </div>
-
-          <div class="overview-grid">
-            <StatCard label="累计用户" :value="dashboard.totalUsers" hint="平台注册用户总量" badge="用户" tone="neutral" />
-            <StatCard label="累计陪诊师" :value="dashboard.totalAttendants" hint="已进入后台视图的陪诊师数量" badge="陪诊师" tone="success" />
-            <StatCard label="待审核陪诊师" :value="dashboard.pendingAttendantReviews" hint="待处理的资质审核数量" badge="审核" tone="warning" />
-            <StatCard label="累计订单" :value="dashboard.totalOrders" hint="全部历史订单" badge="订单" tone="neutral" />
-            <StatCard label="今日订单" :value="dashboard.todayOrders" hint="今日创建订单数量" badge="今日" tone="success" />
-            <StatCard label="争议订单" :value="dashboard.disputeOrders" hint="当前待处理争议订单数量" badge="争议" tone="danger" />
-          </div>
+        <section class="overview-grid stats-grid">
+          <StatCard label="用户总量" :value="dashboard.totalUsers" hint="用户" badge="用户" tone="neutral" />
+          <StatCard label="陪诊师总量" :value="dashboard.totalAttendants" hint="陪诊师" badge="陪诊师" tone="success" />
+          <StatCard label="待审陪诊师" :value="dashboard.pendingAttendantReviews" hint="待审核" badge="审核" tone="warning" />
+          <StatCard label="订单总量" :value="dashboard.totalOrders" hint="订单" badge="订单" tone="neutral" />
+          <StatCard label="今日订单" :value="dashboard.todayOrders" hint="今日" badge="今日" tone="success" />
+          <StatCard label="争议订单" :value="dashboard.disputeOrders" hint="争议" badge="争议" tone="danger" />
         </section>
 
-        <section class="panel-card">
-          <div class="section-heading">
-            <div>
-              <h3 class="section-title">待处理事项</h3>
-              <p class="section-copy">基于概览指标的一键入口，跳转后自动带入默认筛选条件。</p>
-            </div>
-          </div>
-
-          <div class="quick-entry-grid">
-            <button
-              v-for="entry in quickEntries"
-              :key="entry.key"
-              class="quick-entry-card"
-              type="button"
-              @click="jumpTo(entry.route)"
-            >
-              <p class="quick-entry-title">{{ entry.title }}</p>
-              <p class="quick-entry-count">{{ entry.count }}</p>
-              <p class="quick-entry-copy">{{ entry.copy }}</p>
-            </button>
-          </div>
+        <section class="quick-entry-grid">
+          <button
+            v-for="entry in quickEntries"
+            :key="entry.key"
+            class="quick-entry-card"
+            type="button"
+            @click="jumpTo(entry.route)"
+          >
+            <p class="quick-entry-title">{{ entry.title }}</p>
+            <p class="quick-entry-count">{{ entry.count }}</p>
+            <p class="quick-entry-copy">{{ entry.copy }}</p>
+          </button>
         </section>
 
-        <section class="panel-card">
+        <section class="panel-card recent-orders">
           <div class="section-heading">
-            <div>
-              <h3 class="section-title">最近订单</h3>
-              <p class="section-copy">用于后台快速确认最近服务动态与异常订单入口。</p>
-            </div>
+            <h3 class="section-title">最近订单</h3>
           </div>
 
           <div v-if="dashboard.recentOrders?.length" class="table-wrap">
@@ -95,10 +89,10 @@
               </tbody>
             </table>
           </div>
-          <div v-else class="empty-card">当前没有最近订单数据。</div>
+          <div v-else class="empty-card">暂无最近订单</div>
         </section>
 
-        <section v-if="errorMessage" class="empty-card">
+        <section v-if="errorMessage" class="empty-card error-card">
           {{ errorMessage }}
         </section>
       </template>
@@ -138,22 +132,22 @@ const quickEntries = computed(() => ([
     key: 'pending-attendant-review',
     title: '待审核陪诊师',
     count: dashboard.pendingAttendantReviews,
-    copy: '进入陪诊师管理并预置待审核筛选',
+    copy: '待处理',
     route: { name: 'attendants', query: { quick: 'pending-review', auditStatus: '0' } }
-  },
-  {
-    key: 'dispute-orders',
-    title: '争议处理中订单',
-    count: dashboard.disputeOrders,
-    copy: '进入订单管理并预置争议状态筛选',
-    route: { name: 'orders', query: { quick: 'dispute', orderStatus: '5' } }
   },
   {
     key: 'today-orders',
     title: '今日新订单',
     count: dashboard.todayOrders,
-    copy: '进入订单管理并筛选今日创建订单',
+    copy: '今日队列',
     route: { name: 'orders', query: { quick: 'today' } }
+  },
+  {
+    key: 'dispute-orders',
+    title: '争议处理中订单',
+    count: dashboard.disputeOrders,
+    copy: '优先处理',
+    route: { name: 'orders', query: { quick: 'dispute', orderStatus: '5' } }
   }
 ]))
 
@@ -184,17 +178,45 @@ onMounted(loadDashboard)
 </script>
 
 <style scoped>
+.dashboard-console {
+  display: grid;
+  gap: 14px;
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.console-header .section-title {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.console-header .section-copy {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .quick-entry-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .quick-entry-card {
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 14px;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
   text-align: left;
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -208,13 +230,13 @@ onMounted(loadDashboard)
 
 .quick-entry-title {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #475569;
 }
 
 .quick-entry-count {
-  margin: 8px 0 6px;
-  font-size: 1.6rem;
+  margin: 6px 0 4px;
+  font-size: 1.34rem;
   line-height: 1;
   font-weight: 700;
   color: #0f172a;
@@ -222,8 +244,40 @@ onMounted(loadDashboard)
 
 .quick-entry-copy {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   color: #64748b;
+}
+
+.recent-orders {
+  padding: 16px;
+}
+
+.recent-orders .section-heading {
+  margin-bottom: 12px;
+}
+
+.stat-skeleton {
+  min-height: 108px;
+}
+
+.queue-skeleton {
+  min-height: 92px;
+  border-radius: 8px;
+}
+
+.table-skeleton {
+  min-height: 220px;
+  border-radius: 8px;
+}
+
+.error-card {
+  border-color: rgba(228, 85, 85, 0.3);
+}
+
+@media (max-width: 1280px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1080px) {
@@ -233,7 +287,22 @@ onMounted(loadDashboard)
 }
 
 @media (max-width: 720px) {
+  .console-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .quick-entry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 }

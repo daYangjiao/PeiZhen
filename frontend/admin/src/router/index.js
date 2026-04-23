@@ -7,7 +7,6 @@ import AttendantsPage from '../pages/AttendantsPage.vue'
 import AttendantDetailPage from '../pages/AttendantDetailPage.vue'
 import OrdersPage from '../pages/OrdersPage.vue'
 import OrderDetailPage from '../pages/OrderDetailPage.vue'
-import ServicePage from '../pages/ServicePage.vue'
 import SystemPage from '../pages/SystemPage.vue'
 
 
@@ -20,7 +19,6 @@ const routes = [
   { path: '/attendants/:id', name: 'attendant-detail', component: AttendantDetailPage, meta: { requiresAuth: true } },
   { path: '/orders', name: 'orders', component: OrdersPage, meta: { requiresAuth: true } },
   { path: '/orders/:id', name: 'order-detail', component: OrderDetailPage, meta: { requiresAuth: true } },
-  { path: '/service', name: 'service', component: ServicePage, meta: { requiresAuth: true } },
   { path: '/system', name: 'system', component: SystemPage, meta: { requiresAuth: true } }
 ]
 

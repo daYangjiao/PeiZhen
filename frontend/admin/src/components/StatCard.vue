@@ -2,10 +2,10 @@
   <article class="overview-card">
     <div class="overview-meta">
       <p class="overview-label">{{ label }}</p>
-      <span class="overview-badge" :class="badgeClass">{{ badge }}</span>
+      <span v-if="badge" class="overview-badge" :class="badgeClass">{{ badge }}</span>
     </div>
     <div class="overview-value">{{ value }}</div>
-    <p class="overview-hint">{{ hint }}</p>
+    <p v-if="hint" class="overview-hint">{{ hint }}</p>
   </article>
 </template>
 
@@ -37,3 +37,35 @@ const props = defineProps({
 
 const badgeClass = computed(() => `tone-${props.tone}`)
 </script>
+
+<style scoped>
+.overview-card {
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 108px;
+}
+
+.overview-meta {
+  gap: 8px;
+}
+
+.overview-label {
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.overview-value {
+  margin-top: 10px;
+  font-size: 1.62rem;
+}
+
+.overview-hint {
+  margin-top: 6px;
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.overview-badge {
+  font-size: 0.68rem;
+}
+</style>

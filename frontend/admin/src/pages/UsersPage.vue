@@ -30,7 +30,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">用户列表</h3>
-            <p class="section-copy">当前只保留真实后端支持的查询、详情和启用禁用操作。</p>
+            <p class="section-copy">查看用户资料并管理账号状态。</p>
           </div>
         </div>
 
@@ -90,7 +90,7 @@
       </section>
     </div>
 
-    <BaseDialog v-model="detailOpen" title="用户详情" description="来自 `/api/admin/users/{id}` 的真实详情。" width="860px">
+    <BaseDialog v-model="detailOpen" title="用户详情" description="用户资料与最近订单。" width="860px">
       <div v-if="detailLoading" class="skeleton"></div>
       <div v-else-if="selectedUserDetail" class="page-stack">
         <section class="panel-card">
@@ -192,7 +192,7 @@
       :description="confirmUser ? `将用户 ${confirmUser.name || confirmUser.phone || confirmUser.id} ${confirmUser.status === 1 ? '禁用' : '恢复'}。` : ''"
       width="520px"
     >
-      <p class="section-copy">该操作会直接调用后台状态更新接口，并刷新列表结果。</p>
+      <p class="section-copy">确认后将更新用户状态。</p>
       <template #footer>
         <button class="button button-ghost" type="button" @click="confirmOpen = false">取消</button>
         <button class="button" :class="confirmUser?.status === 1 ? 'button-danger' : 'button-primary'" type="button" :disabled="actionLoading" @click="confirmStatusChange">

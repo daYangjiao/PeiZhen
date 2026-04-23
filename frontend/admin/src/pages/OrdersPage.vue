@@ -5,7 +5,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">按订单状态、支付状态、时间区间检索真实订单。</p>
+            <p class="section-copy">按订单状态、支付状态、时间区间检索订单。</p>
           </div>
         </div>
 
@@ -32,7 +32,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">订单列表</h3>
-            <p class="section-copy">移除导出、批量处理等假入口，仅保留真实后端支持的动作。</p>
+            <p class="section-copy">查看订单详情，处理取消与争议。</p>
           </div>
         </div>
 
@@ -115,7 +115,7 @@
       </section>
     </div>
 
-    <BaseDialog v-model="cancelDialogOpen" title="取消订单" description="确认后会调用后台取消接口，并记录退款金额与处理备注。" width="620px">
+    <BaseDialog v-model="cancelDialogOpen" title="取消订单" description="填写取消原因、退款金额与处理备注。" width="620px">
       <div class="page-stack">
         <div class="kv-grid" v-if="selectedOrder">
           <div class="kv-item">
@@ -137,7 +137,7 @@
         </label>
         <label class="login-field">
           <span>后台备注</span>
-          <textarea v-model.trim="cancelForm.adminRemark" class="filter-textarea" placeholder="可选，记录后台处理说明"></textarea>
+          <textarea v-model.trim="cancelForm.adminRemark" class="filter-textarea" placeholder="可选，记录后台处理备注"></textarea>
         </label>
       </div>
       <template #footer>

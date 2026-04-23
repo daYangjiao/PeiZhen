@@ -6,7 +6,7 @@
         <div>
           <p class="login-eyebrow">愈安伴后台</p>
           <h1>登录管理台</h1>
-          <p>接入本地真实接口，专注桌面端管理操作。</p>
+          <p>用户、陪诊师、订单与审核管理。</p>
         </div>
       </div>
 
@@ -28,8 +28,7 @@
       </form>
 
       <div class="login-footer">
-        <p>默认通过 `/api/admin/auth/login` 与本地后端联调。</p>
-        <p>登录后会自动恢复后台会话并接入 `/api/admin/*` 实际数据。</p>
+        <p>请输入管理员账号登录。</p>
       </div>
     </div>
   </div>
@@ -88,8 +87,8 @@ const handleSubmit = async () => {
 
 .login-card {
   width: min(100%, 460px);
-  padding: 30px;
-  border-radius: 24px;
+  padding: 28px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(220, 232, 251, 0.92);
   box-shadow: 0 24px 54px rgba(23, 68, 150, 0.12);
@@ -106,7 +105,7 @@ const handleSubmit = async () => {
 .login-badge {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   font-size: 28px;
@@ -123,7 +122,7 @@ const handleSubmit = async () => {
 
 .login-brand h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .login-brand p:last-child {
