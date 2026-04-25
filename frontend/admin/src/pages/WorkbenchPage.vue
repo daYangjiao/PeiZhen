@@ -1019,6 +1019,22 @@ onBeforeUnmount(() => {
   line-height: 1.55;
 }
 
+.reason-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 10px;
+}
+
+.reason-chip {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .mode-grid {
   align-items: center;
 }
