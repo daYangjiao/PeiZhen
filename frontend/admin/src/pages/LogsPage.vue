@@ -25,11 +25,11 @@
             </label>
             <label class="filter-field">
               <span>开始时间</span>
-              <input v-model="filters.startTime" class="filter-input" type="datetime-local" />
+              <BaseDateInput v-model="filters.startTime" mode="datetime" placeholder="开始时间" />
             </label>
             <label class="filter-field">
               <span>结束时间</span>
-              <input v-model="filters.endTime" class="filter-input" type="datetime-local" />
+              <BaseDateInput v-model="filters.endTime" mode="datetime" placeholder="结束时间" />
             </label>
           </div>
           <div class="filter-actions-row">
@@ -97,6 +97,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
+import BaseDateInput from '../components/BaseDateInput.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
 import { fetchOperationLogs } from '../utils/admin-api'

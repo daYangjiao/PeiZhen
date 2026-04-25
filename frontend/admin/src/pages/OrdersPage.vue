@@ -24,11 +24,11 @@
             </label>
             <label class="filter-field">
               <span>开始日期</span>
-              <input v-model="filters.startDate" class="filter-input" type="date" />
+              <BaseDateInput v-model="filters.startDate" placeholder="开始日期" />
             </label>
             <label class="filter-field">
               <span>结束日期</span>
-              <input v-model="filters.endDate" class="filter-input" type="date" />
+              <BaseDateInput v-model="filters.endDate" placeholder="结束日期" />
             </label>
           </div>
           <div class="filter-actions-row">
@@ -376,6 +376,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import BaseDateInput from '../components/BaseDateInput.vue'
 import BaseDrawer from '../components/BaseDrawer.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
