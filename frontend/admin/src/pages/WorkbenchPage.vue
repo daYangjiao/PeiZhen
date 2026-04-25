@@ -703,6 +703,16 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
+.workbench-queue .pagination {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(220, 232, 251, 0.72);
+}
+
+.workbench-queue .pagination-controls {
+  gap: 10px;
+}
+
 .task-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
