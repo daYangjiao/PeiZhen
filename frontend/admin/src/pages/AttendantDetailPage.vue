@@ -84,8 +84,8 @@
           </div>
           <div class="qualification-summary">
             <div class="summary-pill">
-              <span>材料完整度</span>
-              <strong>{{ qualificationCompleteness }}%</strong>
+              <span>材料核验</span>
+              <strong>{{ approveDisabledReason ? '需补充' : '人工判断' }}</strong>
             </div>
             <div class="summary-pill" :class="{ danger: qualificationExpired }">
               <span>证件有效期</span>
