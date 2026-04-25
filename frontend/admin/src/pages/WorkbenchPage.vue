@@ -73,120 +73,152 @@
           </div>
         </aside>
 
-        <main class="panel-card workbench-detail">
+        <main class="panel-card workbench-workspace">
           <template v-if="detailLoading">
             <div class="skeleton"></div>
           </template>
           <template v-else-if="currentType === ORDER_DISPUTE && order">
-            <div class="section-heading">
+            <div class="workspace-status">
               <div>
+                <p class="workspace-kicker">当前任务</p>
                 <h3 class="section-title">{{ order.orderNo || `订单 ${selectedTargetId}` }}</h3>
                 <p class="section-copy">{{ order.hospital || '-' }} · {{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
               </div>
-              <span class="badge badge-orange">争议处理中</span>
+              <div class="workspace-lock">
+                <span class="badge badge-orange">争议处理中</span>
+                <span class="lock-pill">{{ lockToken ? `系统保护 ${lockRemainingText}` : '系统自动分配' }}</span>
+              </div>
             </div>
 
-            <div class="evidence-grid">
-              <article class="evidence-card">
-                <p class="evidence-label">陪诊师提交</p>
-                <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
-                <span>建议金额 {{ formatMoney(attendantSuggestedAmount) }}</span>
-              </article>
-              <article class="evidence-card">
-                <p class="evidence-label">用户申诉</p>
-                <strong>{{ formatDurationHour(order.timeDisputeUserDuration) }}</strong>
-                <span>{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
-              </article>
-              <article class="evidence-card">
-                <p class="evidence-label">平台裁定预览</p>
-                <strong>{{ disputePreviewLabel }}</strong>
-                <span>{{ disputePreviewAmount }}</span>
-              </article>
-            </div>
+            <section class="action-panel">
+              <div>
+                <h3 class="section-title">裁定处理</h3>
+                <p class="section-copy auto-renew-copy">系统自动续期，离开页面或处理完成后释放。</p>
+              </div>
+              <div v-if="selectedTargetId && lockToken" class="action-form dispute-action-form">
+                <div class="mode-grid">
+                  <button class="button" :class="disputeMode === 'attendant' ? 'button-primary' : 'button-secondary'" type="button" @click="applyDisputeMode('attendant')">按陪诊师</button>
+                  <button class="button" :class="disputeMode === 'user' ? 'button-primary' : 'button-secondary'" type="button" @click="applyDisputeMode('user')">按用户</button>
+                  <button class="button" :class="disputeMode === 'custom' ? 'button-primary' : 'button-secondary'" type="button" @click="disputeMode = 'custom'">自定义</button>
+                </div>
+                <label class="login-field"><span>最终时长</span><input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" /></label>
+                <label class="login-field"><span>最终金额</span><input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0" step="0.01" /></label>
+                <label class="login-field action-remark"><span>处理备注</span><textarea v-model.trim="disputeForm.adminRemark" class="filter-textarea" placeholder="请输入处理依据和结果"></textarea></label>
+                <button class="button button-primary submit-action" type="button" :disabled="actionLoading" @click="confirmComplete">提交处理</button>
+              </div>
+              <div v-else class="empty-card inline-empty">当前任务正在分配，请稍候。</div>
+            </section>
 
-            <div class="kv-grid">
-              <div class="kv-item"><p class="kv-label">患者 / 联系人</p><p class="kv-value">{{ order.patientName || '-' }} / {{ order.contactPerson || order.userName || '-' }}</p></div>
-              <div class="kv-item"><p class="kv-label">联系电话</p><p class="kv-value">{{ order.contactPhone || order.userPhone || '-' }}</p></div>
-              <div class="kv-item"><p class="kv-label">陪诊师</p><p class="kv-value">{{ orderDetail?.attendant?.name || order.attendantName || '-' }}</p></div>
-              <div class="kv-item"><p class="kv-label">服务开始 / 结束</p><p class="kv-value">{{ formatDateTime(order.serviceStartTime) }} / {{ formatDateTime(order.serviceEndTime) }}</p></div>
-              <div class="kv-item"><p class="kv-label">当前订单金额</p><p class="kv-value">{{ formatMoney(order.orderAmount) }}</p></div>
-              <div class="kv-item"><p class="kv-label">当前差额</p><p class="kv-value">{{ formatMoney(order.balanceAmount) }}</p></div>
-            </div>
+            <section class="workspace-section">
+              <div class="section-heading compact-heading">
+                <div>
+                  <h3 class="section-title">争议证据</h3>
+                  <p class="section-copy">核对陪诊师提交、用户申诉与平台裁定结果。</p>
+                </div>
+              </div>
+              <div class="evidence-grid">
+                <article class="evidence-card">
+                  <p class="evidence-label">陪诊师提交</p>
+                  <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
+                  <span>建议金额 {{ formatMoney(attendantSuggestedAmount) }}</span>
+                </article>
+                <article class="evidence-card">
+                  <p class="evidence-label">用户申诉</p>
+                  <strong>{{ formatDurationHour(order.timeDisputeUserDuration) }}</strong>
+                  <span>{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
+                </article>
+                <article class="evidence-card">
+                  <p class="evidence-label">平台裁定预览</p>
+                  <strong>{{ disputePreviewLabel }}</strong>
+                  <span>{{ disputePreviewAmount }}</span>
+                </article>
+              </div>
+            </section>
+
+            <section class="workspace-section">
+              <div class="section-heading compact-heading">
+                <div>
+                  <h3 class="section-title">订单信息</h3>
+                </div>
+              </div>
+              <div class="kv-grid">
+                <div class="kv-item"><p class="kv-label">患者 / 联系人</p><p class="kv-value">{{ order.patientName || '-' }} / {{ order.contactPerson || order.userName || '-' }}</p></div>
+                <div class="kv-item"><p class="kv-label">联系电话</p><p class="kv-value">{{ order.contactPhone || order.userPhone || '-' }}</p></div>
+                <div class="kv-item"><p class="kv-label">陪诊师</p><p class="kv-value">{{ orderDetail?.attendant?.name || order.attendantName || '-' }}</p></div>
+                <div class="kv-item"><p class="kv-label">服务开始 / 结束</p><p class="kv-value">{{ formatDateTime(order.serviceStartTime) }} / {{ formatDateTime(order.serviceEndTime) }}</p></div>
+                <div class="kv-item"><p class="kv-label">当前订单金额</p><p class="kv-value">{{ formatMoney(order.orderAmount) }}</p></div>
+                <div class="kv-item"><p class="kv-label">当前差额</p><p class="kv-value">{{ formatMoney(order.balanceAmount) }}</p></div>
+              </div>
+            </section>
           </template>
 
           <template v-else-if="currentType === ATTENDANT_REVIEW && attendantDetail">
-            <div class="section-heading">
+            <div class="workspace-status">
               <div>
+                <p class="workspace-kicker">当前任务</p>
                 <h3 class="section-title">{{ attendantDetail.user?.name || attendantDetail.user?.phone || `陪诊师 ${selectedTargetId}` }}</h3>
                 <p class="section-copy">{{ attendantDetail.user?.phone || '-' }} · {{ attendantDetail.attendant?.hospitalName || '未填写常驻医院' }}</p>
               </div>
-              <span class="badge badge-orange">待审核</span>
+              <div class="workspace-lock">
+                <span class="badge badge-orange">待审核</span>
+                <span class="lock-pill">{{ lockToken ? `系统保护 ${lockRemainingText}` : '系统自动分配' }}</span>
+              </div>
             </div>
 
-            <div class="qualification-summary">
-              <div class="summary-pill"><span>材料完整度</span><strong>{{ qualificationCompleteness }}%</strong></div>
-              <div class="summary-pill" :class="{ danger: qualificationBlocked }"><span>审核结果</span><strong>{{ qualificationBlocked ? approveDisabledReason : '可通过' }}</strong></div>
-            </div>
+            <section class="action-panel">
+              <div>
+                <h3 class="section-title">审核处理</h3>
+                <p class="section-copy auto-renew-copy">系统自动保护当前任务，处理完成后进入下一条。</p>
+              </div>
+              <div v-if="selectedTargetId && lockToken" class="action-form review-action-form">
+                <button class="button button-primary approve-action" type="button" :disabled="qualificationBlocked || actionLoading" @click="completeAttendant('approve')">通过审核</button>
+                <div class="reason-chip-row">
+                  <button v-for="chip in rejectReasons" :key="chip" class="button button-secondary reason-chip" type="button" @click="reviewForm.reason = chip">{{ chip }}</button>
+                </div>
+                <label class="login-field action-remark"><span>驳回原因</span><textarea v-model.trim="reviewForm.reason" class="filter-textarea" placeholder="请输入驳回原因"></textarea></label>
+                <button class="button button-danger submit-action" type="button" :disabled="actionLoading" @click="completeAttendant('reject')">驳回审核</button>
+              </div>
+              <div v-else class="empty-card inline-empty">当前任务正在分配，请稍候。</div>
+            </section>
 
-            <div class="kv-grid">
-              <div class="kv-item"><p class="kv-label">擅长领域</p><p class="kv-value">{{ attendantDetail.attendant?.professionalField || '-' }}</p></div>
-              <div class="kv-item"><p class="kv-label">从业年限</p><p class="kv-value">{{ attendantDetail.attendant?.experienceYears || 0 }} 年</p></div>
-              <div class="kv-item"><p class="kv-label">服务单量</p><p class="kv-value">{{ attendantDetail.attendant?.serviceCount || 0 }} 单</p></div>
-              <div class="kv-item"><p class="kv-label">历史完成</p><p class="kv-value">{{ attendantDetail.completedOrderCount || 0 }} / {{ attendantDetail.totalOrderCount || 0 }}</p></div>
-            </div>
+            <section class="workspace-section">
+              <div class="qualification-summary">
+                <div class="summary-pill"><span>材料完整度</span><strong>{{ qualificationCompleteness }}%</strong></div>
+                <div class="summary-pill" :class="{ danger: qualificationBlocked }"><span>审核结果</span><strong>{{ qualificationBlocked ? approveDisabledReason : '可通过' }}</strong></div>
+              </div>
 
-            <div class="qualification-grid">
-              <article v-for="card in qualificationCards" :key="card.key" class="qualification-card">
-                <p class="qualification-title">{{ card.title }}</p>
-                <button v-if="card.url" class="qualification-thumb-button" type="button" @click="openPreview(card)">
-                  <img :src="card.url" :alt="card.title" class="qualification-thumb-image" />
-                </button>
-                <div v-else class="qualification-thumb-placeholder">未上传</div>
-                <p class="qualification-status" :class="card.url ? 'is-uploaded' : 'is-missing'">{{ card.url ? '已上传' : '缺失' }}</p>
-                <p v-if="card.expireDate" class="qualification-expire" :class="{ 'is-expired': card.expired }">有效期 {{ card.expireDate }}{{ card.expired ? '（已过期）' : '' }}</p>
-              </article>
-            </div>
+              <div class="kv-grid">
+                <div class="kv-item"><p class="kv-label">擅长领域</p><p class="kv-value">{{ attendantDetail.attendant?.professionalField || '-' }}</p></div>
+                <div class="kv-item"><p class="kv-label">从业年限</p><p class="kv-value">{{ attendantDetail.attendant?.experienceYears || 0 }} 年</p></div>
+                <div class="kv-item"><p class="kv-label">服务单量</p><p class="kv-value">{{ attendantDetail.attendant?.serviceCount || 0 }} 单</p></div>
+                <div class="kv-item"><p class="kv-label">历史完成</p><p class="kv-value">{{ attendantDetail.completedOrderCount || 0 }} / {{ attendantDetail.totalOrderCount || 0 }}</p></div>
+              </div>
+            </section>
+
+            <section class="workspace-section">
+              <div class="section-heading compact-heading">
+                <div>
+                  <h3 class="section-title">资质材料</h3>
+                </div>
+              </div>
+              <div class="qualification-grid">
+                <article v-for="card in qualificationCards" :key="card.key" class="qualification-card">
+                  <p class="qualification-title">{{ card.title }}</p>
+                  <button v-if="card.url" class="qualification-thumb-button" type="button" @click="openPreview(card)">
+                    <img :src="card.url" :alt="card.title" class="qualification-thumb-image" />
+                  </button>
+                  <div v-else class="qualification-thumb-placeholder">未上传</div>
+                  <p class="qualification-status" :class="card.url ? 'is-uploaded' : 'is-missing'">{{ card.url ? '已上传' : '缺失' }}</p>
+                  <p v-if="card.expireDate" class="qualification-expire" :class="{ 'is-expired': card.expired }">有效期 {{ card.expireDate }}{{ card.expired ? '（已过期）' : '' }}</p>
+                </article>
+              </div>
+            </section>
           </template>
 
           <template v-else>
             <div class="empty-card">请选择左侧任务开始处理。</div>
           </template>
         </main>
-
-        <aside class="panel-card action-panel">
-          <div class="section-heading">
-            <div>
-              <h3 class="section-title">处理区</h3>
-              <p class="section-copy">{{ lockToken ? `系统保护剩余 ${lockRemainingText}` : '选择任务后系统自动分配' }}</p>
-            </div>
-          </div>
-
-          <template v-if="selectedTargetId && lockToken">
-            <div v-if="currentType === ORDER_DISPUTE" class="page-stack">
-              <div class="mode-grid">
-                <button class="button" :class="disputeMode === 'attendant' ? 'button-primary' : 'button-secondary'" type="button" @click="applyDisputeMode('attendant')">按陪诊师</button>
-                <button class="button" :class="disputeMode === 'user' ? 'button-primary' : 'button-secondary'" type="button" @click="applyDisputeMode('user')">按用户</button>
-                <button class="button" :class="disputeMode === 'custom' ? 'button-primary' : 'button-secondary'" type="button" @click="disputeMode = 'custom'">自定义</button>
-              </div>
-              <label class="login-field"><span>最终时长</span><input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" /></label>
-              <label class="login-field"><span>最终金额</span><input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0" step="0.01" /></label>
-              <label class="login-field"><span>处理备注</span><textarea v-model.trim="disputeForm.adminRemark" class="filter-textarea" placeholder="请输入处理依据和结果"></textarea></label>
-              <button class="button button-primary" type="button" :disabled="actionLoading" @click="confirmComplete">提交处理</button>
-            </div>
-
-            <div v-else class="page-stack">
-              <button class="button button-primary" type="button" :disabled="qualificationBlocked || actionLoading" @click="completeAttendant('approve')">通过审核</button>
-              <div class="reason-chip-row">
-                <button v-for="chip in rejectReasons" :key="chip" class="button button-secondary reason-chip" type="button" @click="reviewForm.reason = chip">{{ chip }}</button>
-              </div>
-              <label class="login-field"><span>驳回原因</span><textarea v-model.trim="reviewForm.reason" class="filter-textarea" placeholder="请输入驳回原因"></textarea></label>
-              <button class="button button-danger" type="button" :disabled="actionLoading" @click="completeAttendant('reject')">驳回审核</button>
-            </div>
-
-            <p class="section-copy auto-renew-copy">系统会自动续期当前任务，离开页面或处理完成后自动释放。</p>
-          </template>
-          <div v-else class="empty-card">当前没有分配中的任务。</div>
-        </aside>
       </section>
     </div>
 
@@ -583,6 +615,7 @@ onBeforeUnmount(() => {
 .workbench-page {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .workbench-header {
@@ -590,6 +623,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   gap: 14px;
+  overflow: visible;
 }
 
 .workbench-tabs,
@@ -608,7 +642,9 @@ onBeforeUnmount(() => {
   color: var(--text);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  white-space: nowrap;
 }
 
 .workbench-tab.active {
@@ -620,15 +656,31 @@ onBeforeUnmount(() => {
 
 .workbench-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.45fr) minmax(280px, 0.82fr);
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 .workbench-queue,
-.workbench-detail,
-.action-panel {
-  min-height: 640px;
+.workbench-workspace {
+  min-height: 680px;
+}
+
+.workbench-queue {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+  max-height: calc(100vh - 42px);
+  overflow: auto;
+}
+
+.workbench-workspace {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .task-list {
@@ -638,19 +690,26 @@ onBeforeUnmount(() => {
 
 .task-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--border);
   border-radius: 18px;
   background: #fff;
   text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.task-item > .badge {
+  justify-self: start;
 }
 
 .task-item.active {
   border-color: rgba(42, 120, 255, 0.42);
   background: rgba(237, 244, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(42, 120, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .task-item.locked {
@@ -662,6 +721,7 @@ onBeforeUnmount(() => {
   color: var(--text);
   font-weight: 800;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .task-copy {
@@ -669,13 +729,65 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.workspace-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(173, 199, 232, 0.74);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.workspace-kicker {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workspace-lock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.lock-pill {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--primary-deep);
+  background: var(--primary-soft);
+  border: 1px solid rgba(42, 120, 255, 0.18);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.workspace-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.compact-heading {
+  margin-top: 2px;
 }
 
 .evidence-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .evidence-card {
@@ -683,12 +795,14 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--surface-soft);
+  min-width: 0;
 }
 
 .evidence-card strong,
 .evidence-card span {
   display: block;
   margin-top: 8px;
+  overflow-wrap: anywhere;
 }
 
 .evidence-label {
@@ -703,6 +817,57 @@ onBeforeUnmount(() => {
   background: rgba(228, 85, 85, 0.08);
 }
 
+.action-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(173, 199, 232, 0.8);
+  background: #f8fbff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.action-form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dispute-action-form {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+.review-action-form {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+.mode-grid {
+  align-items: center;
+}
+
+.mode-grid .button {
+  min-width: 86px;
+  white-space: nowrap;
+}
+
+.action-remark .filter-textarea {
+  min-height: 46px;
+  resize: vertical;
+}
+
+.submit-action,
+.approve-action {
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.inline-empty {
+  padding: 14px;
+  box-shadow: none;
+}
+
 .full-width {
   width: 100%;
 }
@@ -713,12 +878,13 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1280px) {
   .workbench-layout {
-    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   }
 
-  .action-panel {
-    grid-column: 1 / -1;
-    min-height: 0;
+  .evidence-grid,
+  .dispute-action-form,
+  .review-action-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -733,13 +899,27 @@ onBeforeUnmount(() => {
   }
 
   .workbench-queue,
-  .workbench-detail,
-  .action-panel {
+  .workbench-workspace {
     min-height: 0;
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 
-  .evidence-grid {
+  .workspace-status,
+  .evidence-grid,
+  .dispute-action-form,
+  .review-action-form {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-status {
+    display: grid;
+  }
+
+  .workspace-lock {
+    justify-content: flex-start;
+    min-width: 0;
   }
 }
 </style>
