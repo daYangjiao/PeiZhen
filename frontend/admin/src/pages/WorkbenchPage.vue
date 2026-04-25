@@ -170,13 +170,28 @@
                 <h3 class="section-title">审核处理</h3>
                 <p class="section-copy auto-renew-copy">系统自动保护当前任务，处理完成后进入下一条。</p>
               </div>
-              <div v-if="selectedTargetId && lockToken" class="action-form review-action-form">
-                <button class="button button-primary approve-action" type="button" :disabled="qualificationBlocked || actionLoading" @click="completeAttendant('approve')">通过审核</button>
-                <div class="reason-chip-row">
-                  <button v-for="chip in rejectReasons" :key="chip" class="button button-secondary reason-chip" type="button" @click="reviewForm.reason = chip">{{ chip }}</button>
-                </div>
-                <label class="login-field action-remark"><span>驳回原因</span><textarea v-model.trim="reviewForm.reason" class="filter-textarea" placeholder="请输入驳回原因"></textarea></label>
-                <button class="button button-danger submit-action" type="button" :disabled="actionLoading" @click="completeAttendant('reject')">驳回审核</button>
+              <div v-if="selectedTargetId && lockToken" class="review-decision-grid">
+                <article class="decision-card decision-card-approve" :class="{ disabled: qualificationBlocked }">
+                  <div>
+                    <p class="decision-label">通过入驻</p>
+                    <h4 class="decision-title">{{ qualificationBlocked ? '暂不能通过' : '材料合规，可以通过' }}</h4>
+                    <p class="decision-copy">{{ qualificationBlocked ? approveDisabledReason : '通过后陪诊师可正常展示并进入接单流程。' }}</p>
+                  </div>
+                  <button class="button button-primary approve-action" type="button" :disabled="qualificationBlocked || actionLoading" @click="completeAttendant('approve')">通过审核</button>
+                </article>
+
+                <article class="decision-card decision-card-reject">
+                  <div>
+                    <p class="decision-label">驳回补充</p>
+                    <h4 class="decision-title">选择原因或填写说明</h4>
+                    <p class="decision-copy">驳回后陪诊师端会看到原因，并按要求重新提交材料。</p>
+                  </div>
+                  <div class="reason-chip-row">
+                    <button v-for="chip in rejectReasons" :key="chip" class="button button-secondary reason-chip" type="button" @click="reviewForm.reason = chip">{{ chip }}</button>
+                  </div>
+                  <label class="login-field action-remark"><span>驳回原因</span><textarea v-model.trim="reviewForm.reason" class="filter-textarea" placeholder="请输入驳回原因"></textarea></label>
+                  <button class="button button-danger submit-action" type="button" :disabled="actionLoading" @click="completeAttendant('reject')">驳回审核</button>
+                </article>
               </div>
               <div v-else class="empty-card inline-empty">当前任务正在分配，请稍候。</div>
             </section>
@@ -843,6 +858,60 @@ onBeforeUnmount(() => {
   align-items: end;
 }
 
+.review-decision-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.decision-card {
+  display: grid;
+  gap: 14px;
+  align-content: space-between;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(184, 208, 246, 0.84);
+  background: #fff;
+}
+
+.decision-card-approve {
+  background: linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
+  border-color: rgba(42, 120, 255, 0.22);
+}
+
+.decision-card-approve.disabled {
+  background: linear-gradient(180deg, #fff 0%, rgba(228, 85, 85, 0.06) 100%);
+  border-color: rgba(228, 85, 85, 0.18);
+}
+
+.decision-card-reject {
+  background: linear-gradient(180deg, #fff 0%, #fff7f7 100%);
+  border-color: rgba(228, 85, 85, 0.16);
+}
+
+.decision-label {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.decision-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.decision-copy {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
 .mode-grid {
   align-items: center;
 }
@@ -861,6 +930,7 @@ onBeforeUnmount(() => {
 .approve-action {
   min-height: 46px;
   white-space: nowrap;
+  width: 100%;
 }
 
 .inline-empty {
@@ -883,7 +953,8 @@ onBeforeUnmount(() => {
 
   .evidence-grid,
   .dispute-action-form,
-  .review-action-form {
+  .review-action-form,
+  .review-decision-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -909,7 +980,8 @@ onBeforeUnmount(() => {
   .workspace-status,
   .evidence-grid,
   .dispute-action-form,
-  .review-action-form {
+  .review-action-form,
+  .review-decision-grid {
     grid-template-columns: 1fr;
   }
 
