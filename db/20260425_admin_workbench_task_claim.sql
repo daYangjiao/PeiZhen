@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `admin_task_claim` (
   `target_id` int NOT NULL,
   `operator_id` int NOT NULL,
   `operator_name` varchar(50) DEFAULT NULL,
-  `operator_role` varchar(20) DEFAULT NULL,
+  `operator_role` varchar(20) NOT NULL DEFAULT 'ADMIN',
   `lock_token` varchar(64) NOT NULL,
   `claimed_at` datetime NOT NULL,
   `expires_at` datetime NOT NULL,

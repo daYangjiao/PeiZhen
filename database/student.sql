@@ -50,7 +50,7 @@ CREATE TABLE `admin_operation_log` (
   `operator_id` int DEFAULT NULL,
   `operator_name` varchar(50) DEFAULT NULL,
   `operator_phone` varchar(20) DEFAULT NULL,
-  `operator_role` varchar(20) DEFAULT NULL,
+  `operator_role` varchar(20) NOT NULL DEFAULT 'ADMIN',
   `module` varchar(40) NOT NULL,
   `action` varchar(50) NOT NULL,
   `target_type` varchar(40) DEFAULT NULL,

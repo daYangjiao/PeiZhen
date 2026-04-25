@@ -16,7 +16,7 @@
           </button>
         </div>
         <div class="toolbar-group">
-          <span class="summary-pill">我的领取 <strong>{{ summary.myClaimCount || 0 }}</strong></span>
+          <span class="summary-pill">我的处理中 <strong>{{ summary.myClaimCount || 0 }}</strong></span>
           <button class="button button-secondary" type="button" :disabled="loading" @click="reloadAll">刷新</button>
         </div>
       </section>
@@ -57,7 +57,7 @@
                 <p class="task-title">{{ task.title || `#${task.targetId}` }}</p>
                 <p class="task-copy">{{ task.subtitle || '-' }}</p>
                 <p v-if="task.claimed" class="task-copy">
-                  {{ task.claimMine ? '我正在处理' : (authStore.isSuperAdmin && task.operatorName ? `${task.operatorName}处理中` : '处理中') }}
+                  {{ task.claimMine ? '系统已分配给我' : (authStore.isSuperAdmin && task.operatorName ? `${task.operatorName}处理中` : '处理中') }}
                 </p>
               </div>
               <span class="badge" :class="task.claimed && !task.claimMine ? 'badge-gray' : 'badge-orange'">{{ task.statusLabel || '待处理' }}</span>
@@ -157,7 +157,7 @@
           <div class="section-heading">
             <div>
               <h3 class="section-title">处理区</h3>
-              <p class="section-copy">{{ lockToken ? `锁定剩余 ${lockRemainingText}` : '选择任务后自动领取' }}</p>
+              <p class="section-copy">{{ lockToken ? `系统保护剩余 ${lockRemainingText}` : '选择任务后系统自动分配' }}</p>
             </div>
           </div>
 
@@ -183,9 +183,9 @@
               <button class="button button-danger" type="button" :disabled="actionLoading" @click="completeAttendant('reject')">驳回审核</button>
             </div>
 
-            <button class="button button-ghost full-width" type="button" :disabled="actionLoading" @click="renewClaim">续期领取</button>
+            <p class="section-copy auto-renew-copy">系统会自动续期当前任务，离开页面或处理完成后自动释放。</p>
           </template>
-          <div v-else class="empty-card">当前没有已领取任务。</div>
+          <div v-else class="empty-card">当前没有分配中的任务。</div>
         </aside>
       </section>
     </div>
@@ -252,6 +252,8 @@ const previewDialogOpen = ref(false)
 const previewImageUrl = ref('')
 const previewTitle = ref('')
 let timer = null
+let refreshTimer = null
+let autoRenewing = false
 
 const typeOptions = computed(() => [
   { label: '订单争议', value: ORDER_DISPUTE, count: summary.disputeOrderCount || 0 },
@@ -269,7 +271,7 @@ const lockRemainingText = computed(() => {
 const attendantSuggestedAmount = computed(() => Number(order.value?.orderAmount || 0) + Number(order.value?.balanceAmount || 0))
 const disputeBalancePreview = computed(() => Number(disputeForm.finalOrderAmount || 0) - Number(order.value?.orderAmount || 0))
 const disputePreviewLabel = computed(() => disputeBalancePreview.value > 0 ? '待用户补差额' : '直接完成')
-const disputePreviewAmount = computed(() => disputeBalancePreview.value > 0 ? `补差额 ${formatMoney(disputeBalancePreview.value)}` : `退款 ${formatMoney(Math.abs(Math.min(disputeBalancePreview.value, 0)))} `)
+const disputePreviewAmount = computed(() => disputeBalancePreview.value > 0 ? `补差额 ${formatMoney(disputeBalancePreview.value)}` : `退款 ${formatMoney(Math.abs(Math.min(disputeBalancePreview.value, 0)))}`)
 const confirmDescription = computed(() => `最终时长 ${disputeForm.finalDuration || '-'} 小时，最终金额 ${formatMoney(disputeForm.finalOrderAmount || 0)}。`)
 const qualificationCompleteness = computed(() => {
   const cards = qualificationCards.value
@@ -320,6 +322,13 @@ const loadTasks = async () => {
     tasks.value = response.content || []
     total.value = response.totalElements || 0
     totalPages.value = Math.max(response.totalPages || 1, 1)
+    if (selectedTargetId.value && !tasks.value.some((task) => task.targetId === selectedTargetId.value)) {
+      lockToken.value = ''
+      lockExpiresAt.value = null
+      selectedTargetId.value = null
+      orderDetail.value = null
+      attendantDetail.value = null
+    }
     if (!selectedTargetId.value && tasks.value.length) {
       const next = tasks.value.find((task) => !task.claimed || task.claimMine)
       if (next) {
@@ -340,6 +349,12 @@ const reloadAll = async () => {
 
 const selectTask = async (task) => {
   if (!task?.targetId) return
+  if (task.claimed && !task.claimMine) {
+    uiStore.toast('该任务正在处理中，系统会自动分配下一条', 'info')
+    const next = tasks.value.find((item) => item.targetId !== task.targetId && (!item.claimed || item.claimMine))
+    if (next) await selectTask(next)
+    return
+  }
   selectedTargetId.value = task.targetId
   syncQuery()
   await claimCurrentTask()
@@ -360,9 +375,34 @@ const claimCurrentTask = async () => {
   }
 }
 
-const renewClaim = async () => {
+const renewClaim = async (silent = false) => {
   await claimCurrentTask()
-  uiStore.toast('领取已续期', 'success')
+  if (!silent) {
+    uiStore.toast('任务保护已续期', 'success')
+  }
+}
+
+const autoRenewCurrentClaim = async () => {
+  if (!selectedTargetId.value || !lockToken.value || !lockExpiresAt.value || autoRenewing) return
+  const remaining = new Date(lockExpiresAt.value).getTime() - Date.now()
+  if (remaining <= 0) {
+    lockToken.value = ''
+    lockExpiresAt.value = null
+    await reloadAll()
+    return
+  }
+  if (remaining > 120000) return
+  autoRenewing = true
+  try {
+    await renewClaim(true)
+  } catch (error) {
+    lockToken.value = ''
+    lockExpiresAt.value = null
+    uiStore.toast(error.message || '任务保护已失效，系统将重新分配', 'error')
+    await reloadAll()
+  } finally {
+    autoRenewing = false
+  }
 }
 
 const releaseCurrentClaim = () => {
@@ -518,7 +558,13 @@ watch(
 onMounted(async () => {
   timer = window.setInterval(() => {
     now.value = Date.now()
+    autoRenewCurrentClaim()
   }, 1000)
+  refreshTimer = window.setInterval(() => {
+    if (!loading.value && !actionLoading.value) {
+      reloadAll()
+    }
+  }, 15000)
   await reloadAll()
   if (selectedTargetId.value) {
     await claimCurrentTask()
@@ -528,6 +574,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
+  if (refreshTimer) window.clearInterval(refreshTimer)
   releaseCurrentClaim()
 })
 </script>
@@ -658,6 +705,10 @@ onBeforeUnmount(() => {
 
 .full-width {
   width: 100%;
+}
+
+.auto-renew-copy {
+  margin: 2px 0 0;
 }
 
 @media (max-width: 1280px) {

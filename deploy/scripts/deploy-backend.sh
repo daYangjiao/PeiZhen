@@ -45,12 +45,18 @@ DB_NAME="$(
     | sed -nE 's#^jdbc:mysql://[^/]+/([^?]+).*$#\1#p'
 )"
 DB_NAME="${DB_NAME:-student}"
+MYSQL_ARGS=(-u"${DB_USERNAME:-root}")
+if [[ -n "${DB_PASSWORD:-}" ]]; then
+  MYSQL_ARGS+=(-p"${DB_PASSWORD}")
+fi
 if [[ -f database/sys_admin_role.sql ]]; then
-  MYSQL_ARGS=(-u"${DB_USERNAME:-root}")
-  if [[ -n "${DB_PASSWORD:-}" ]]; then
-    MYSQL_ARGS+=(-p"${DB_PASSWORD}")
-  fi
   mysql "${MYSQL_ARGS[@]}" "${DB_NAME}" < database/sys_admin_role.sql
+fi
+if compgen -G "db/*.sql" >/dev/null; then
+  for migration_file in $(find db -maxdepth 1 -type f -name '*.sql' | sort); do
+    echo "Applying database migration ${migration_file}"
+    mysql "${MYSQL_ARGS[@]}" "${DB_NAME}" < "${migration_file}"
+  done
 fi
 
 install -m 0644 deploy/systemd/pz-app.service "${SERVICE_FILE}"
