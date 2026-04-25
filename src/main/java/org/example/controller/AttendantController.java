@@ -253,9 +253,13 @@ public class AttendantController {
             qualification.setHealthCertUploaded(request.getHealthCertUploaded());
             qualification.setIdCardFileUrl(request.getIdCardFileUrl());
             qualification.setIdCardFrontFileUrl(request.getIdCardFrontFileUrl());
+            qualification.setIdCardFrontScanFileUrl(request.getIdCardFrontScanFileUrl());
             qualification.setIdCardBackFileUrl(request.getIdCardBackFileUrl());
+            qualification.setIdCardBackScanFileUrl(request.getIdCardBackScanFileUrl());
             qualification.setPracticeCertFileUrl(request.getPracticeCertFileUrl());
+            qualification.setPracticeCertScanFileUrl(request.getPracticeCertScanFileUrl());
             qualification.setHealthCertFileUrl(request.getHealthCertFileUrl());
+            qualification.setHealthCertScanFileUrl(request.getHealthCertScanFileUrl());
             qualification.setPracticeCertExpireDate(request.getPracticeCertExpireDate());
             qualification.setHealthCertExpireDate(request.getHealthCertExpireDate());
 

@@ -629,9 +629,13 @@ public class AdminServiceImpl implements AdminService {
         }
         return "{"
                 + "\"idCardFrontFileUrl\":\"" + escapeJson(AttendantQualificationPolicy.firstNonBlank(qualification.getIdCardFrontFileUrl(), qualification.getIdCardFileUrl())) + "\","
+                + "\"idCardFrontScanFileUrl\":\"" + escapeJson(qualification.getIdCardFrontScanFileUrl()) + "\","
                 + "\"idCardBackFileUrl\":\"" + escapeJson(qualification.getIdCardBackFileUrl()) + "\","
+                + "\"idCardBackScanFileUrl\":\"" + escapeJson(qualification.getIdCardBackScanFileUrl()) + "\","
                 + "\"practiceCertFileUrl\":\"" + escapeJson(qualification.getPracticeCertFileUrl()) + "\","
+                + "\"practiceCertScanFileUrl\":\"" + escapeJson(qualification.getPracticeCertScanFileUrl()) + "\","
                 + "\"healthCertFileUrl\":\"" + escapeJson(qualification.getHealthCertFileUrl()) + "\","
+                + "\"healthCertScanFileUrl\":\"" + escapeJson(qualification.getHealthCertScanFileUrl()) + "\","
                 + "\"practiceCertExpireDate\":\"" + escapeJson(qualification.getPracticeCertExpireDate()) + "\","
                 + "\"healthCertExpireDate\":\"" + escapeJson(qualification.getHealthCertExpireDate()) + "\""
                 + "}";

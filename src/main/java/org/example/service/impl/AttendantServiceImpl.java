@@ -159,9 +159,13 @@ public class AttendantServiceImpl implements AttendantService {
             response.setHealthCertUploaded(healthCertUploaded);
             response.setIdCardFileUrl(idCardFrontFileUrl);
             response.setIdCardFrontFileUrl(idCardFrontFileUrl);
+            response.setIdCardFrontScanFileUrl(firstNonBlank(qualification.getIdCardFrontScanFileUrl(), idCardFrontFileUrl));
             response.setIdCardBackFileUrl(idCardBackFileUrl);
+            response.setIdCardBackScanFileUrl(firstNonBlank(qualification.getIdCardBackScanFileUrl(), idCardBackFileUrl));
             response.setPracticeCertFileUrl(qualification.getPracticeCertFileUrl());
+            response.setPracticeCertScanFileUrl(firstNonBlank(qualification.getPracticeCertScanFileUrl(), qualification.getPracticeCertFileUrl()));
             response.setHealthCertFileUrl(qualification.getHealthCertFileUrl());
+            response.setHealthCertScanFileUrl(firstNonBlank(qualification.getHealthCertScanFileUrl(), qualification.getHealthCertFileUrl()));
             response.setPracticeCertExpireDate(qualification.getPracticeCertExpireDate());
             response.setHealthCertExpireDate(qualification.getHealthCertExpireDate());
             response.setPracticeCertExpired(AttendantQualificationPolicy.isExpired(qualification.getPracticeCertExpireDate()));
@@ -173,9 +177,13 @@ public class AttendantServiceImpl implements AttendantService {
             response.setHealthCertUploaded(false);
             response.setIdCardFileUrl("");
             response.setIdCardFrontFileUrl("");
+            response.setIdCardFrontScanFileUrl("");
             response.setIdCardBackFileUrl("");
+            response.setIdCardBackScanFileUrl("");
             response.setPracticeCertFileUrl("");
+            response.setPracticeCertScanFileUrl("");
             response.setHealthCertFileUrl("");
+            response.setHealthCertScanFileUrl("");
             response.setPracticeCertExpireDate("");
             response.setHealthCertExpireDate("");
             response.setPracticeCertExpired(false);
@@ -335,14 +343,26 @@ public class AttendantServiceImpl implements AttendantService {
                 target.setIdCardFileUrl(incoming.getIdCardFrontFileUrl());
             }
         }
+        if (incoming.getIdCardFrontScanFileUrl() != null) {
+            target.setIdCardFrontScanFileUrl(incoming.getIdCardFrontScanFileUrl());
+        }
         if (incoming.getIdCardBackFileUrl() != null) {
             target.setIdCardBackFileUrl(incoming.getIdCardBackFileUrl());
+        }
+        if (incoming.getIdCardBackScanFileUrl() != null) {
+            target.setIdCardBackScanFileUrl(incoming.getIdCardBackScanFileUrl());
         }
         if (incoming.getPracticeCertFileUrl() != null) {
             target.setPracticeCertFileUrl(incoming.getPracticeCertFileUrl());
         }
+        if (incoming.getPracticeCertScanFileUrl() != null) {
+            target.setPracticeCertScanFileUrl(incoming.getPracticeCertScanFileUrl());
+        }
         if (incoming.getHealthCertFileUrl() != null) {
             target.setHealthCertFileUrl(incoming.getHealthCertFileUrl());
+        }
+        if (incoming.getHealthCertScanFileUrl() != null) {
+            target.setHealthCertScanFileUrl(incoming.getHealthCertScanFileUrl());
         }
         if (incoming.getPracticeCertExpireDate() != null) {
             target.setPracticeCertExpireDate(incoming.getPracticeCertExpireDate());
@@ -397,9 +417,13 @@ public class AttendantServiceImpl implements AttendantService {
         }
         return "{"
                 + "\"idCardFrontFileUrl\":\"" + escapeJson(qualification.getIdCardFrontFileUrl()) + "\","
+                + "\"idCardFrontScanFileUrl\":\"" + escapeJson(qualification.getIdCardFrontScanFileUrl()) + "\","
                 + "\"idCardBackFileUrl\":\"" + escapeJson(qualification.getIdCardBackFileUrl()) + "\","
+                + "\"idCardBackScanFileUrl\":\"" + escapeJson(qualification.getIdCardBackScanFileUrl()) + "\","
                 + "\"practiceCertFileUrl\":\"" + escapeJson(qualification.getPracticeCertFileUrl()) + "\","
+                + "\"practiceCertScanFileUrl\":\"" + escapeJson(qualification.getPracticeCertScanFileUrl()) + "\","
                 + "\"healthCertFileUrl\":\"" + escapeJson(qualification.getHealthCertFileUrl()) + "\","
+                + "\"healthCertScanFileUrl\":\"" + escapeJson(qualification.getHealthCertScanFileUrl()) + "\","
                 + "\"practiceCertExpireDate\":\"" + escapeJson(qualification.getPracticeCertExpireDate()) + "\","
                 + "\"healthCertExpireDate\":\"" + escapeJson(qualification.getHealthCertExpireDate()) + "\""
                 + "}";

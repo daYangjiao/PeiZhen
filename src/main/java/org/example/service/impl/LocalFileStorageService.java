@@ -1,6 +1,7 @@
 package org.example.service.impl;
 
 import org.example.service.FileStorageService;
+import org.example.model.response.ImageUploadResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -37,6 +38,7 @@ public class LocalFileStorageService implements FileStorageService {
     private static final long MAX_AVATAR_SIZE = 10 * 1024 * 1024L;
     private static final int AVATAR_MAX_SIDE = 720;
     private static final float AVATAR_JPEG_QUALITY = 0.82f;
+    private static final float DOCUMENT_JPEG_QUALITY = 0.9f;
     private static final Set<String> SUPPORTED_IMAGE_EXTENSIONS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"))
     );
@@ -68,6 +70,45 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     @Override
+    public ImageUploadResponse storeDocumentImage(MultipartFile file) {
+        try {
+            validateImage(file, MAX_UPLOAD_SIZE, "图片大小不能超过5MB");
+            ensureUploadDirExists();
+
+            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            String originalExtension = getFileExtension(originalFilename);
+            if (originalExtension == null || originalExtension.isBlank()) {
+                originalExtension = ".jpg";
+            }
+            String originalFileName = generateUniqueFileName(originalExtension.toLowerCase(Locale.ROOT));
+            Path originalPath = Paths.get(getUploadDir(), originalFileName);
+            Files.copy(file.getInputStream(), originalPath);
+
+            ImageUploadResponse response = new ImageUploadResponse();
+            response.setOriginalUrl("/uploads/" + originalFileName);
+            response.setUrl(response.getOriginalUrl());
+            try {
+                BufferedImage sourceImage = ImageIO.read(originalPath.toFile());
+                if (sourceImage == null) {
+                    throw new IllegalArgumentException("图片解析失败");
+                }
+                BufferedImage enhanced = new DocumentScanImageProcessor().enhance(sourceImage);
+                String scanFileName = generateUniqueFileName("_scan.jpg");
+                Path scanPath = Paths.get(getUploadDir(), scanFileName);
+                writeJpeg(enhanced, scanPath, DOCUMENT_JPEG_QUALITY);
+                response.setScanUrl("/uploads/" + scanFileName);
+                response.setScanGenerated(true);
+            } catch (Exception scanError) {
+                response.setScanUrl(response.getOriginalUrl());
+                response.setScanGenerated(false);
+            }
+            return response;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("图片上传失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public String storeAvatar(MultipartFile file) {
         try {
             validateImage(file, MAX_AVATAR_SIZE, "头像大小不能超过10MB");
@@ -85,7 +126,7 @@ public class LocalFileStorageService implements FileStorageService {
             BufferedImage normalizedImage = normalizeAvatarImage(sourceImage);
             String fileName = generateUniqueFileName(".jpg");
             Path filePath = Paths.get(getUploadDir(), fileName);
-            writeJpeg(normalizedImage, filePath);
+            writeJpeg(normalizedImage, filePath, AVATAR_JPEG_QUALITY);
             return "/uploads/" + fileName;
         } catch (IOException e) {
             throw new IllegalArgumentException("头像上传失败: " + e.getMessage(), e);
@@ -207,7 +248,7 @@ public class LocalFileStorageService implements FileStorageService {
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     }
 
-    private void writeJpeg(BufferedImage image, Path filePath) throws IOException {
+    private void writeJpeg(BufferedImage image, Path filePath, float quality) throws IOException {
         Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
         if (!writers.hasNext()) {
             throw new IOException("JPEG writer not available");
@@ -220,7 +261,7 @@ public class LocalFileStorageService implements FileStorageService {
             ImageWriteParam writeParam = writer.getDefaultWriteParam();
             if (writeParam.canWriteCompressed()) {
                 writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                writeParam.setCompressionQuality(AVATAR_JPEG_QUALITY);
+                writeParam.setCompressionQuality(quality);
             }
             writer.write(null, new IIOImage(image, null, null), writeParam);
         } finally {

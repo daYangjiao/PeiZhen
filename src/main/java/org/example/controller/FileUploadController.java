@@ -7,6 +7,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.example.common.ResponseResult;
+import org.example.model.response.ImageUploadResponse;
 import org.example.service.FileStorageService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,11 +50,11 @@ public class FileUploadController {
             @ApiResponse(code = 400, message = "图片不合法"),
             @ApiResponse(code = 500, message = "上传失败")
     })
-    public ResponseResult<String> uploadImage(
+    public ResponseResult<ImageUploadResponse> uploadImage(
             @ApiParam(value = "图片文件", required = true)
             @RequestParam("file") MultipartFile file) {
         try {
-            return ResponseResult.success(fileStorageService.storeImage(file));
+            return ResponseResult.success(fileStorageService.storeDocumentImage(file));
         } catch (IllegalArgumentException e) {
             return ResponseResult.error(e.getMessage());
         } catch (Exception e) {

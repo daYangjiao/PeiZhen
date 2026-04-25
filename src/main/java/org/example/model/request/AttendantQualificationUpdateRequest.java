@@ -23,14 +23,26 @@ public class AttendantQualificationUpdateRequest {
     @ApiModelProperty(value = "身份证正面文件地址", example = "/uploads/qualification/id_card_front.jpg")
     private String idCardFrontFileUrl;
 
+    @ApiModelProperty(value = "身份证正面扫描预览地址", example = "/uploads/qualification/id_card_front_scan.jpg")
+    private String idCardFrontScanFileUrl;
+
     @ApiModelProperty(value = "身份证背面文件地址", example = "/uploads/qualification/id_card_back.jpg")
     private String idCardBackFileUrl;
+
+    @ApiModelProperty(value = "身份证背面扫描预览地址", example = "/uploads/qualification/id_card_back_scan.jpg")
+    private String idCardBackScanFileUrl;
 
     @ApiModelProperty(value = "执业证书文件地址", example = "/uploads/qualification/practice_cert.jpg")
     private String practiceCertFileUrl;
 
+    @ApiModelProperty(value = "执业证书扫描预览地址", example = "/uploads/qualification/practice_cert_scan.jpg")
+    private String practiceCertScanFileUrl;
+
     @ApiModelProperty(value = "健康证文件地址", example = "/uploads/qualification/health_cert.jpg")
     private String healthCertFileUrl;
+
+    @ApiModelProperty(value = "健康证扫描预览地址", example = "/uploads/qualification/health_cert_scan.jpg")
+    private String healthCertScanFileUrl;
 
     @ApiModelProperty(value = "执业证书有效期，格式 yyyy-MM-dd", example = "2027-12-31")
     private String practiceCertExpireDate;

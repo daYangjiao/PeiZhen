@@ -9,9 +9,13 @@
         <result column="health_cert_uploaded" property="healthCertUploaded"/>
         <result column="id_card_file_url" property="idCardFileUrl"/>
         <result column="id_card_front_file_url" property="idCardFrontFileUrl"/>
+        <result column="id_card_front_scan_file_url" property="idCardFrontScanFileUrl"/>
         <result column="id_card_back_file_url" property="idCardBackFileUrl"/>
+        <result column="id_card_back_scan_file_url" property="idCardBackScanFileUrl"/>
         <result column="practice_cert_file_url" property="practiceCertFileUrl"/>
+        <result column="practice_cert_scan_file_url" property="practiceCertScanFileUrl"/>
         <result column="health_cert_file_url" property="healthCertFileUrl"/>
+        <result column="health_cert_scan_file_url" property="healthCertScanFileUrl"/>
         <result column="practice_cert_expire_date" property="practiceCertExpireDate"/>
         <result column="health_cert_expire_date" property="healthCertExpireDate"/>
         <result column="create_time" property="createTime"/>
@@ -32,9 +36,13 @@
             health_cert_uploaded,
             id_card_file_url,
             id_card_front_file_url,
+            id_card_front_scan_file_url,
             id_card_back_file_url,
+            id_card_back_scan_file_url,
             practice_cert_file_url,
+            practice_cert_scan_file_url,
             health_cert_file_url,
+            health_cert_scan_file_url,
             practice_cert_expire_date,
             health_cert_expire_date
         ) VALUES (
@@ -44,9 +52,13 @@
             #{healthCertUploaded},
             #{idCardFileUrl},
             #{idCardFrontFileUrl},
+            #{idCardFrontScanFileUrl},
             #{idCardBackFileUrl},
+            #{idCardBackScanFileUrl},
             #{practiceCertFileUrl},
+            #{practiceCertScanFileUrl},
             #{healthCertFileUrl},
+            #{healthCertScanFileUrl},
             #{practiceCertExpireDate},
             #{healthCertExpireDate}
         )
@@ -60,9 +72,13 @@
             <if test="healthCertUploaded != null">health_cert_uploaded = #{healthCertUploaded},</if>
             <if test="idCardFileUrl != null">id_card_file_url = #{idCardFileUrl},</if>
             <if test="idCardFrontFileUrl != null">id_card_front_file_url = #{idCardFrontFileUrl},</if>
+            <if test="idCardFrontScanFileUrl != null">id_card_front_scan_file_url = #{idCardFrontScanFileUrl},</if>
             <if test="idCardBackFileUrl != null">id_card_back_file_url = #{idCardBackFileUrl},</if>
+            <if test="idCardBackScanFileUrl != null">id_card_back_scan_file_url = #{idCardBackScanFileUrl},</if>
             <if test="practiceCertFileUrl != null">practice_cert_file_url = #{practiceCertFileUrl},</if>
+            <if test="practiceCertScanFileUrl != null">practice_cert_scan_file_url = #{practiceCertScanFileUrl},</if>
             <if test="healthCertFileUrl != null">health_cert_file_url = #{healthCertFileUrl},</if>
+            <if test="healthCertScanFileUrl != null">health_cert_scan_file_url = #{healthCertScanFileUrl},</if>
             <if test="practiceCertExpireDate != null">practice_cert_expire_date = #{practiceCertExpireDate},</if>
             <if test="healthCertExpireDate != null">health_cert_expire_date = #{healthCertExpireDate},</if>
         </set>

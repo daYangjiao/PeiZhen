@@ -28,14 +28,26 @@ public class AttendantQualification {
     @ApiModelProperty(value = "身份证正面文件地址")
     private String idCardFrontFileUrl;
 
+    @ApiModelProperty(value = "身份证正面扫描预览地址")
+    private String idCardFrontScanFileUrl;
+
     @ApiModelProperty(value = "身份证背面文件地址")
     private String idCardBackFileUrl;
+
+    @ApiModelProperty(value = "身份证背面扫描预览地址")
+    private String idCardBackScanFileUrl;
 
     @ApiModelProperty(value = "执业证书文件地址")
     private String practiceCertFileUrl;
 
+    @ApiModelProperty(value = "执业证书扫描预览地址")
+    private String practiceCertScanFileUrl;
+
     @ApiModelProperty(value = "健康证文件地址")
     private String healthCertFileUrl;
+
+    @ApiModelProperty(value = "健康证扫描预览地址")
+    private String healthCertScanFileUrl;
 
     @ApiModelProperty(value = "执业证书有效期，格式 yyyy-MM-dd")
     private String practiceCertExpireDate;

@@ -206,7 +206,11 @@ export const upload = (url, filePath, formData = {}, name = 'file') => {
         try {
           const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
           if (data.code === 200 || data.code === 0) {
-            resolve({ ...data, url: data.data || data.url })
+            const uploadData = data.data
+            const resolvedUrl = uploadData && typeof uploadData === 'object'
+              ? (uploadData.url || uploadData.originalUrl || uploadData.scanUrl)
+              : (uploadData || data.url)
+            resolve({ ...data, url: resolvedUrl })
           } else {
             uni.showToast({ title: data.message || '上传失败', icon: 'none' })
             reject(data)

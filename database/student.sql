@@ -107,9 +107,13 @@ CREATE TABLE `attendant_qualification` (
   `health_cert_uploaded` tinyint(1) DEFAULT 0,
   `id_card_file_url` varchar(255) DEFAULT NULL,
   `id_card_front_file_url` varchar(255) DEFAULT NULL,
+  `id_card_front_scan_file_url` varchar(255) DEFAULT NULL,
   `id_card_back_file_url` varchar(255) DEFAULT NULL,
+  `id_card_back_scan_file_url` varchar(255) DEFAULT NULL,
   `practice_cert_file_url` varchar(255) DEFAULT NULL,
+  `practice_cert_scan_file_url` varchar(255) DEFAULT NULL,
   `health_cert_file_url` varchar(255) DEFAULT NULL,
+  `health_cert_scan_file_url` varchar(255) DEFAULT NULL,
   `practice_cert_expire_date` varchar(20) DEFAULT NULL,
   `health_cert_expire_date` varchar(20) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -336,8 +340,8 @@ INSERT INTO `sys_admin` (`id`, `name`, `phone`, `password`, `status`, `role`, `c
 INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `service_count`, `create_time`, `update_time`) VALUES
   (3, 'CERT-20260325-001', 1, '', 'Experienced hospital escort with qualification review completed.', 'Registration, consultation, examination', 5.0, 6, 'Fujian Union Hospital', 12, NOW(), NOW());
 
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `practice_cert_expire_date`, `health_cert_expire_date`, `create_time`, `update_time`) VALUES
-  (3, 1, 1, 1, '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-back.jpg', '/static/uploads/qualification/practice-cert.jpg', '/static/uploads/qualification/health-cert.jpg', DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), NOW(), NOW());
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_front_scan_file_url`, `id_card_back_file_url`, `id_card_back_scan_file_url`, `practice_cert_file_url`, `practice_cert_scan_file_url`, `health_cert_file_url`, `health_cert_scan_file_url`, `practice_cert_expire_date`, `health_cert_expire_date`, `create_time`, `update_time`) VALUES
+  (3, 1, 1, 1, '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-back.jpg', '/static/uploads/qualification/idcard-back.jpg', '/static/uploads/qualification/practice-cert.jpg', '/static/uploads/qualification/practice-cert.jpg', '/static/uploads/qualification/health-cert.jpg', '/static/uploads/qualification/health-cert.jpg', DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), NOW(), NOW());
 
 INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES
   (1, 1, 'Hospital Escort', 'Basic escort service', 80.00, 50.00, 1, NOW(), NOW()),

@@ -273,32 +273,15 @@ const { actionLoading, getActionMeta, getReasonChips, runAttendantAction } = use
 const actionMeta = computed(() => getActionMeta(actionType.value))
 const reasonChips = computed(() => getReasonChips(actionType.value))
 
-const qualificationCards = computed(() => [
-  {
-    key: 'id-front',
-    title: '身份证正面',
-    url: detail.value?.qualification?.idCardFrontFileUrl || ''
-  },
-  {
-    key: 'id-back',
-    title: '身份证反面',
-    url: detail.value?.qualification?.idCardBackFileUrl || ''
-  },
-  {
-    key: 'practice-cert',
-    title: '执业证书',
-    url: detail.value?.qualification?.practiceCertFileUrl || '',
-    expireDate: detail.value?.qualification?.practiceCertExpireDate || '',
-    expired: isExpiredDate(detail.value?.qualification?.practiceCertExpireDate)
-  },
-  {
-    key: 'health-cert',
-    title: '健康证',
-    url: detail.value?.qualification?.healthCertFileUrl || '',
-    expireDate: detail.value?.qualification?.healthCertExpireDate || '',
-    expired: isExpiredDate(detail.value?.qualification?.healthCertExpireDate)
-  }
-])
+const qualificationCards = computed(() => {
+  const q = detail.value?.qualification || {}
+  return [
+    buildQualificationCard('id-front', '身份证正面', q.idCardFrontScanFileUrl, q.idCardFrontFileUrl || q.idCardFileUrl),
+    buildQualificationCard('id-back', '身份证反面', q.idCardBackScanFileUrl, q.idCardBackFileUrl),
+    buildQualificationCard('practice-cert', '执业证书', q.practiceCertScanFileUrl, q.practiceCertFileUrl, q.practiceCertExpireDate, isExpiredDate(q.practiceCertExpireDate)),
+    buildQualificationCard('health-cert', '健康证', q.healthCertScanFileUrl, q.healthCertFileUrl, q.healthCertExpireDate, isExpiredDate(q.healthCertExpireDate))
+  ]
+})
 
 const qualificationLogs = computed(() => detail.value?.qualificationLogs || [])
 const qualificationCompleteness = computed(() => {
@@ -312,6 +295,15 @@ const qualificationCompleteness = computed(() => {
     q.healthCertExpireDate
   ]
   return Math.floor((fields.filter(Boolean).length * 100) / fields.length)
+})
+
+const buildQualificationCard = (key, title, scanUrl, originalUrl, expireDate = '', expired = false) => ({
+  key,
+  title,
+  url: scanUrl || originalUrl || '',
+  originalUrl: originalUrl || scanUrl || '',
+  expireDate,
+  expired
 })
 const qualificationExpired = computed(() => isExpiredDate(detail.value?.qualification?.practiceCertExpireDate) || isExpiredDate(detail.value?.qualification?.healthCertExpireDate))
 const approveDisabledReason = computed(() => {
@@ -566,7 +558,7 @@ const submitAction = async () => {
 const openPreview = (card) => {
   if (!card.url) return
   previewTitle.value = card.title
-  previewImageUrl.value = card.url
+  previewImageUrl.value = card.originalUrl || card.url
   previewDialogOpen.value = true
 }
 

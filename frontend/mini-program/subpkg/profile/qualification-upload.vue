@@ -183,6 +183,16 @@ const previewImage = (url) => {
   })
 }
 
+const normalizeUploadResult = (uploadRes = {}) => {
+  const data = uploadRes.data && typeof uploadRes.data === 'object' ? uploadRes.data : {}
+  const originalUrl = data.originalUrl || data.url || uploadRes.url || uploadRes.data || ''
+  const scanUrl = data.scanUrl || originalUrl
+  return {
+    originalUrl,
+    scanUrl,
+  }
+}
+
 const chooseCertFile = () =>
   new Promise((resolve, reject) => {
     uni.chooseImage({
@@ -215,24 +225,28 @@ const uploadByKey = async (key) => {
 
     saving.value = true
     const uploadRes = await upload('/api/common/upload-image', filePath)
-    const fileUrl = uploadRes.url || uploadRes.data || ''
-    if (!fileUrl) {
+    const { originalUrl, scanUrl } = normalizeUploadResult(uploadRes)
+    if (!originalUrl) {
       uni.showToast({ title: '上传返回异常', icon: 'none' })
       return
     }
 
     const payload = {}
     if (key === 'idCardFront') {
-      payload.idCardFrontFileUrl = fileUrl
-      payload.idCardFileUrl = fileUrl
+      payload.idCardFrontFileUrl = originalUrl
+      payload.idCardFrontScanFileUrl = scanUrl
+      payload.idCardFileUrl = originalUrl
     } else if (key === 'idCardBack') {
-      payload.idCardBackFileUrl = fileUrl
+      payload.idCardBackFileUrl = originalUrl
+      payload.idCardBackScanFileUrl = scanUrl
     } else if (key === 'practiceCert') {
-      payload.practiceCertFileUrl = fileUrl
+      payload.practiceCertFileUrl = originalUrl
+      payload.practiceCertScanFileUrl = scanUrl
       payload.practiceCertUploaded = 1
       if (practiceCertExpireDate.value) payload.practiceCertExpireDate = practiceCertExpireDate.value
     } else if (key === 'healthCert') {
-      payload.healthCertFileUrl = fileUrl
+      payload.healthCertFileUrl = originalUrl
+      payload.healthCertScanFileUrl = scanUrl
       payload.healthCertUploaded = 1
       if (healthCertExpireDate.value) payload.healthCertExpireDate = healthCertExpireDate.value
     }

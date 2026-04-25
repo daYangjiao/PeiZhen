@@ -347,10 +347,10 @@ const approveDisabledReason = computed(() => {
 const qualificationCards = computed(() => {
   const item = qualification.value || {}
   return [
-    { key: 'id-front', title: '身份证正面', url: item.idCardFrontFileUrl || item.idCardFileUrl },
-    { key: 'id-back', title: '身份证背面', url: item.idCardBackFileUrl },
-    { key: 'practice', title: '执业证', url: item.practiceCertFileUrl, expireDate: item.practiceCertExpireDate, expired: isExpired(item.practiceCertExpireDate) },
-    { key: 'health', title: '健康证', url: item.healthCertFileUrl, expireDate: item.healthCertExpireDate, expired: isExpired(item.healthCertExpireDate) }
+    buildQualificationCard('id-front', '身份证正面', item.idCardFrontScanFileUrl, item.idCardFrontFileUrl || item.idCardFileUrl),
+    buildQualificationCard('id-back', '身份证背面', item.idCardBackScanFileUrl, item.idCardBackFileUrl),
+    buildQualificationCard('practice', '执业证', item.practiceCertScanFileUrl, item.practiceCertFileUrl, item.practiceCertExpireDate, isExpired(item.practiceCertExpireDate)),
+    buildQualificationCard('health', '健康证', item.healthCertScanFileUrl, item.healthCertFileUrl, item.healthCertExpireDate, isExpired(item.healthCertExpireDate))
   ]
 })
 const activeQualificationCard = computed(() => {
@@ -395,6 +395,15 @@ const attendantInfoItems = computed(() => {
   ]
 })
 const rejectReasons = ['证件照片不清晰', '证件信息不完整', '证件已过期', '个人资料不完整']
+
+const buildQualificationCard = (key, title, scanUrl, originalUrl, expireDate = '', expired = false) => ({
+  key,
+  title,
+  url: scanUrl || originalUrl || '',
+  originalUrl: originalUrl || scanUrl || '',
+  expireDate,
+  expired
+})
 
 const getActualDuration = (item) => item?.actualDuration || item?.timeDisputeUserDuration || ''
 const formatDurationHour = (value) => value ? `${value} 小时` : '-'
@@ -638,7 +647,7 @@ const switchType = async (type) => {
 
 const openPreview = (card) => {
   previewTitle.value = card.title
-  previewImageUrl.value = card.url
+  previewImageUrl.value = card.originalUrl || card.url
   previewDialogOpen.value = true
 }
 

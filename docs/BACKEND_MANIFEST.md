@@ -64,7 +64,7 @@
 | ChatController | GET | `/api/chat/contacts` | 查询最近联系人 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:116` |
 | ChatController | POST | `/api/chat/read` | 标记已读 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:127` |
 | FileUploadController | POST | `/api/common/upload` | 上传文件 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:26` |
-| FileUploadController | POST | `/api/common/upload-image` | 上传图片 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:45` |
+| FileUploadController | POST | `/api/common/upload-image` | 上传图片并生成文稿扫描预览图，返回原图和扫描图地址 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:45` |
 | FileUploadController | POST | `/api/common/upload-avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/FileUploadController.java:64` |
 | OrderController | POST | `/api/orders` | 创建订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:32` |
 | OrderController | GET | `/api/orders/{orderId}` | 按 ID 查询订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:55` |
@@ -120,6 +120,11 @@
 - `/api/**`、`/attendant/**`、`/ai/medical/**` 默认需要用户 JWT，登录注册、微信登录绑定、部分上传、App 升级检查和 `/attendant/recommended` 公开。
 - `/ai/guide/**` 默认需要用户 JWT；预约创建、陪诊师匹配、订单创建/查询/支付状态、测试预约接口按当前拦截器配置公开。
 - `/user/attendants/**` 与 `/order-qr/**` 当前未被 MVC 鉴权拦截器覆盖，按公开接口记录。
+
+## 上传响应约定
+
+- `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`。
+- 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。
 
 ## 维护规则
 
