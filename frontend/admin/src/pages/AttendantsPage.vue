@@ -1,21 +1,26 @@
 <template>
   <AppShell title="陪诊师审核" subtitle="入驻资料审核">
     <div class="page-stack">
-      <section class="panel-card">
-        <div class="section-heading">
+      <section class="panel-card filter-card">
+        <div class="section-heading filter-heading">
           <div>
-            <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">按姓名、手机号、医院和审核状态筛选。</p>
+            <h3 class="section-title">审核筛选</h3>
           </div>
         </div>
-        <div class="toolbar filter-toolbar">
-          <div class="toolbar-group filter-fields-row">
-            <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="姓名、手机号或 ID" @keyup.enter="submitFilters" />
-            <select v-model="filters.auditStatus" class="filter-select">
-              <option v-for="option in attendantStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
+        <div class="filter-board">
+          <div class="filter-fields-row">
+            <label class="filter-field">
+              <span>关键词</span>
+              <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="姓名、手机号或 ID" @keyup.enter="submitFilters" />
+            </label>
+            <label class="filter-field">
+              <span>审核状态</span>
+              <select v-model="filters.auditStatus" class="filter-select">
+                <option v-for="option in attendantStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
           </div>
-          <div class="toolbar-group filter-actions-row">
+          <div class="filter-actions-row">
             <button class="button button-primary" type="button" :disabled="queueLoading" @click="submitFilters">查询</button>
             <button class="button button-ghost" type="button" :disabled="queueLoading" @click="resetFilters">重置</button>
           </div>
@@ -581,12 +586,6 @@ watch(
 </script>
 
 <style scoped>
-.filter-toolbar {
-  display: grid;
-  grid-template-rows: auto auto;
-  gap: 12px;
-}
-
 .qualification-summary {
   display: flex;
   flex-wrap: wrap;

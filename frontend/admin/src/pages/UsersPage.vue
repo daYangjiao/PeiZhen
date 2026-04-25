@@ -1,25 +1,33 @@
 <template>
   <AppShell title="用户管理" subtitle="用户档案与账号状态">
     <div class="page-stack">
-      <section class="panel-card">
-        <div class="section-heading">
+      <section class="panel-card filter-card">
+        <div class="section-heading filter-heading">
           <div>
-            <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">按关键词、角色和账号状态筛选用户。</p>
+            <h3 class="section-title">用户筛选</h3>
           </div>
         </div>
 
-        <div class="toolbar filter-toolbar">
-          <div class="toolbar-group filter-fields-row">
-            <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="姓名、手机号或 ID" @keyup.enter="submitFilters" />
-            <select v-model="filters.userType" class="filter-select">
-              <option v-for="option in userTypeOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
-            <select v-model="filters.status" class="filter-select">
-              <option v-for="option in userStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
+        <div class="filter-board">
+          <div class="filter-fields-row">
+            <label class="filter-field">
+              <span>关键词</span>
+              <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="姓名、手机号或 ID" @keyup.enter="submitFilters" />
+            </label>
+            <label class="filter-field">
+              <span>账号类型</span>
+              <select v-model="filters.userType" class="filter-select">
+                <option v-for="option in userTypeOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>账号状态</span>
+              <select v-model="filters.status" class="filter-select">
+                <option v-for="option in userStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
           </div>
-          <div class="toolbar-group filter-actions-row">
+          <div class="filter-actions-row">
             <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
             <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
           </div>
@@ -30,7 +38,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">用户列表</h3>
-            <p class="section-copy">定位用户并切换下方档案面板。</p>
+            <p class="section-copy">点击列表行或查看资料打开档案抽屉。</p>
           </div>
         </div>
 
@@ -42,7 +50,7 @@
               :key="user.id"
               class="record-item user-record-item"
               :class="{ 'selected-row': selectedUserId === user.id }"
-              @click="selectUser(user.id)"
+              @click="openUserDrawer(user.id)"
             >
               <div class="record-main">
                 <div class="record-summary">
@@ -73,13 +81,13 @@
                   <div class="record-stat">
                     <p class="record-label">注册时间</p>
                     <p class="record-value">{{ formatDateTime(getUserRegisterTime(user)) }}</p>
-                    <p class="record-note">下方可直接查看完整档案</p>
+                    <p class="record-note">点击打开完整档案</p>
                   </div>
                 </div>
               </div>
 
               <div class="record-side" @click.stop>
-                <button class="button button-secondary" type="button" @click="selectUser(user.id)">查看资料</button>
+                <button class="button button-secondary" type="button" @click="openUserDrawer(user.id)">查看资料</button>
                 <button class="button" :class="user.status === 1 ? 'button-danger' : 'button-primary'" type="button" @click="promptStatusChange(user)">
                   {{ user.status === 1 ? '禁用' : '恢复' }}
                 </button>
@@ -103,11 +111,15 @@
         </div>
       </section>
 
-      <section class="panel-card">
+      <BaseDrawer
+        v-model="detailDrawerOpen"
+        title="用户档案"
+        :description="selectedUserSummary ? `${selectedUserSummary.name || '未命名用户'} · ${selectedUserSummary.phone || '无手机号'}` : '完整资料与账号操作'"
+        width="880px"
+      >
         <div class="section-heading">
           <div>
-            <h3 class="section-title">用户档案</h3>
-            <p class="section-copy">当前选中用户的完整资料与操作。</p>
+            <h3 class="section-title">完整资料</h3>
           </div>
           <div v-if="selectedUserSummary" class="toolbar-group">
             <span class="badge" :class="getUserStatusBadge(selectedUserSummary.status)">{{ getUserStatusLabel(selectedUserSummary.status, selectedUserSummary.statusLabel || '--') }}</span>
@@ -257,7 +269,7 @@
           </div>
         </template>
         <div v-else class="empty-card">当前页没有可展示的用户资料。</div>
-      </section>
+      </BaseDrawer>
     </div>
 
     <BaseDialog
@@ -279,6 +291,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import BaseDrawer from '../components/BaseDrawer.vue'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import { useUiStore } from '../stores/ui'
@@ -302,6 +315,7 @@ const page = ref(0)
 const pageSize = ref(10)
 
 const selectedUserId = ref(null)
+const detailDrawerOpen = ref(false)
 const detailLoading = ref(false)
 const selectedUserDetail = ref(null)
 const confirmOpen = ref(false)
@@ -422,8 +436,10 @@ const changePageSize = () => {
   loadUsers()
 }
 
-const selectUser = async (userId) => {
-  if (!userId || selectedUserId.value === userId) return
+const openUserDrawer = async (userId) => {
+  if (!userId) return
+  detailDrawerOpen.value = true
+  if (selectedUserId.value === userId && selectedUserDetail.value) return
   selectedUserId.value = userId
   await loadSelectedUserDetail(userId)
 }
@@ -452,12 +468,6 @@ onMounted(loadUsers)
 </script>
 
 <style scoped>
-.filter-toolbar {
-  display: grid;
-  grid-template-rows: auto auto;
-  gap: 12px;
-}
-
 .filter-fields-row {
   display: grid;
   grid-template-columns: minmax(220px, 1.6fr) repeat(2, minmax(170px, 1fr));

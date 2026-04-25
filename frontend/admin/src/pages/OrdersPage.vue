@@ -1,27 +1,41 @@
 <template>
   <AppShell title="订单管理" subtitle="订单定位与完整处理">
     <div class="page-stack">
-      <section class="panel-card">
-        <div class="section-heading">
+      <section class="panel-card filter-card">
+        <div class="section-heading filter-heading">
           <div>
-            <h3 class="section-title">筛选条件</h3>
-            <p class="section-copy">按订单状态、支付状态、时间区间筛选订单。</p>
+            <h3 class="section-title">订单筛选</h3>
           </div>
         </div>
 
-        <div class="toolbar filter-toolbar">
-          <div class="toolbar-group filter-fields-row">
-            <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="订单号、用户、陪诊师、医院" @keyup.enter="submitFilters" />
-            <select v-model="filters.orderStatus" class="filter-select">
-              <option v-for="option in orderStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
-            <select v-model="filters.paymentStatus" class="filter-select">
-              <option v-for="option in paymentStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
-            <input v-model="filters.startDate" class="filter-input" type="date" />
-            <input v-model="filters.endDate" class="filter-input" type="date" />
+        <div class="filter-board">
+          <div class="filter-fields-row">
+            <label class="filter-field">
+              <span>关键词</span>
+              <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="订单号、用户、陪诊师、医院" @keyup.enter="submitFilters" />
+            </label>
+            <label class="filter-field">
+              <span>订单状态</span>
+              <select v-model="filters.orderStatus" class="filter-select">
+                <option v-for="option in orderStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>支付状态</span>
+              <select v-model="filters.paymentStatus" class="filter-select">
+                <option v-for="option in paymentStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>开始日期</span>
+              <input v-model="filters.startDate" class="filter-input" type="date" />
+            </label>
+            <label class="filter-field">
+              <span>结束日期</span>
+              <input v-model="filters.endDate" class="filter-input" type="date" />
+            </label>
           </div>
-          <div class="toolbar-group filter-actions-row">
+          <div class="filter-actions-row">
             <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
             <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
           </div>
@@ -32,7 +46,7 @@
         <div class="section-heading">
           <div>
             <h3 class="section-title">订单列表</h3>
-            <p class="section-copy">定位订单并切换下方详情面板。</p>
+            <p class="section-copy">点击列表行或查看记录打开处理抽屉。</p>
           </div>
         </div>
 
@@ -44,7 +58,7 @@
               :key="order.orderId"
               class="record-item order-record-item"
               :class="{ 'selected-row': selectedOrderId === order.orderId }"
-              @click="selectOrder(order.orderId)"
+              @click="openOrderDrawer(order.orderId)"
             >
               <div class="record-main">
                 <div class="record-summary">
@@ -83,7 +97,7 @@
               </div>
 
               <div class="record-side" @click.stop>
-                <button class="button button-secondary" type="button" @click="selectOrder(order.orderId)">查看记录</button>
+                <button class="button button-secondary" type="button" @click="openOrderDrawer(order.orderId)">查看记录</button>
               </div>
             </article>
           </div>
@@ -104,11 +118,15 @@
         </div>
       </section>
 
-      <section class="panel-card">
+      <BaseDrawer
+        v-model="detailDrawerOpen"
+        title="订单详情"
+        :description="currentOrder ? `${currentOrder.orderNo || '未命名订单'} · ${currentOrder.hospital || '未填写医院'}` : '完整订单资料与处理操作'"
+        width="940px"
+      >
         <div class="section-heading">
           <div>
-            <h3 class="section-title">订单详情</h3>
-            <p class="section-copy">当前选中订单的完整资料与处理操作。</p>
+            <h3 class="section-title">完整记录</h3>
           </div>
           <div v-if="currentOrder" class="toolbar-group">
             <span class="badge" :class="getOrderStatusBadge(currentOrder.orderStatus)">{{ getOrderStatusLabel(currentOrder.orderStatus, currentOrder.orderStatusLabel || '--') }}</span>
@@ -262,7 +280,7 @@
           </div>
         </template>
         <div v-else class="empty-card">当前页没有可展示的订单详情。</div>
-      </section>
+      </BaseDrawer>
     </div>
 
     <BaseDialog v-model="cancelDialogOpen" title="取消订单" description="填写取消原因、退款金额与处理备注。" width="620px">
@@ -354,6 +372,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import BaseDrawer from '../components/BaseDrawer.vue'
 import { useUiStore } from '../stores/ui'
 import { cancelOrder, fetchOrderDetail, fetchOrders, resolveDispute } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel, orderStatusOptions, paymentStatusOptions, toQueryValue } from '../utils/admin-view'
@@ -380,6 +399,7 @@ const page = ref(0)
 const pageSize = ref(10)
 const selectedOrderId = ref(null)
 const selectedOrderDetail = ref(null)
+const detailDrawerOpen = ref(false)
 
 const actionLoading = ref(false)
 const cancelDialogOpen = ref(false)
@@ -479,6 +499,7 @@ const applyQueryFilters = (query) => {
   filters.startDate = typeof readQueryValue(query.startDate) === 'string' ? readQueryValue(query.startDate) : ''
   filters.endDate = typeof readQueryValue(query.endDate) === 'string' ? readQueryValue(query.endDate) : ''
   selectedOrderId.value = parseSelectedId(query.selectedId)
+  detailDrawerOpen.value = selectedOrderId.value !== null
 
   const quick = readQueryValue(query.quick)
   if (quick === 'today') {
@@ -595,10 +616,8 @@ const submitFilters = async () => {
   }
   page.value = 0
   selectedOrderId.value = null
-  const changed = await syncQuery({ page: 0, selectedId: null })
-  if (!changed) {
-    await loadOrders()
-  }
+  await syncQuery({ page: 0, selectedId: null })
+  await loadOrders()
 }
 
 const resetFilters = async () => {
@@ -609,7 +628,7 @@ const resetFilters = async () => {
   filters.endDate = ''
   page.value = 0
   selectedOrderId.value = null
-  const changed = await syncQuery({
+  await syncQuery({
     keyword: '',
     orderStatus: '',
     paymentStatus: '',
@@ -618,33 +637,29 @@ const resetFilters = async () => {
     page: 0,
     selectedId: null
   })
-  if (!changed) {
-    await loadOrders()
-  }
+  await loadOrders()
 }
 
 const changePage = async (nextPage) => {
   page.value = nextPage
   selectedOrderId.value = null
-  const changed = await syncQuery({ page: nextPage, selectedId: null })
-  if (!changed) {
-    await loadOrders()
-  }
+  await syncQuery({ page: nextPage, selectedId: null })
+  await loadOrders()
 }
 
 const changePageSize = async () => {
   page.value = 0
   selectedOrderId.value = null
-  const changed = await syncQuery({ page: 0, pageSize: pageSize.value, selectedId: null })
-  if (!changed) {
-    await loadOrders()
-  }
+  await syncQuery({ page: 0, pageSize: pageSize.value, selectedId: null })
+  await loadOrders()
 }
 
-const selectOrder = async (orderId) => {
+const openOrderDrawer = async (orderId) => {
+  if (!orderId) return
+  detailDrawerOpen.value = true
   selectedOrderId.value = orderId
   const changed = await syncQuery({ selectedId: orderId })
-  if (!changed) {
+  if (!changed || selectedOrderDetail.value?.order?.orderId !== orderId) {
     await loadSelectedOrderDetail(orderId)
   }
 }
@@ -752,12 +767,6 @@ watch(
 </script>
 
 <style scoped>
-.filter-toolbar {
-  display: grid;
-  grid-template-rows: auto auto;
-  gap: 12px;
-}
-
 .filter-fields-row {
   display: grid;
   grid-template-columns: minmax(260px, 1.8fr) repeat(2, minmax(150px, 1fr)) repeat(2, minmax(160px, 1fr));

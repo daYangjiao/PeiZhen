@@ -1,32 +1,51 @@
 <template>
   <AppShell title="操作日志" subtitle="后台处理记录">
     <div class="page-stack">
-      <section class="panel-card">
-        <div class="section-heading">
+      <section class="panel-card filter-card">
+        <div class="section-heading filter-heading">
           <div>
-            <h3 class="section-title">筛选条件</h3>
+            <h3 class="section-title">日志筛选</h3>
           </div>
           <button class="button button-secondary" type="button" :disabled="loading" @click="loadLogs">刷新</button>
         </div>
 
-        <div class="toolbar log-filter-grid">
-          <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="管理员、对象、备注" @keyup.enter="submitFilters" />
-          <select v-model="filters.module" class="filter-select">
-            <option value="">全部模块</option>
-            <option value="USER">用户管理</option>
-            <option value="ATTENDANT">陪诊师审核</option>
-            <option value="ORDER">订单管理</option>
-            <option value="ADMIN_ACCOUNT">管理员账号</option>
-          </select>
-          <select v-model="filters.operatorRole" class="filter-select">
-            <option value="">全部账号类型</option>
-            <option value="SUPER_ADMIN">超级管理员</option>
-            <option value="ADMIN">管理员</option>
-          </select>
-          <input v-model="filters.startTime" class="filter-input" type="datetime-local" />
-          <input v-model="filters.endTime" class="filter-input" type="datetime-local" />
-          <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
-          <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
+        <div class="filter-board">
+          <div class="log-filter-grid">
+            <label class="filter-field">
+              <span>关键词</span>
+              <input v-model.trim="filters.keyword" class="field-inline" type="text" placeholder="管理员、对象、备注" @keyup.enter="submitFilters" />
+            </label>
+            <label class="filter-field">
+              <span>模块</span>
+              <select v-model="filters.module" class="filter-select">
+                <option value="">全部模块</option>
+                <option value="USER">用户管理</option>
+                <option value="ATTENDANT">陪诊师审核</option>
+                <option value="ORDER">订单管理</option>
+                <option value="ADMIN_ACCOUNT">管理员账号</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>账号类型</span>
+              <select v-model="filters.operatorRole" class="filter-select">
+                <option value="">全部账号类型</option>
+                <option value="SUPER_ADMIN">超级管理员</option>
+                <option value="ADMIN">管理员</option>
+              </select>
+            </label>
+            <label class="filter-field">
+              <span>开始时间</span>
+              <input v-model="filters.startTime" class="filter-input" type="datetime-local" />
+            </label>
+            <label class="filter-field">
+              <span>结束时间</span>
+              <input v-model="filters.endTime" class="filter-input" type="datetime-local" />
+            </label>
+          </div>
+          <div class="filter-actions-row">
+            <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
+            <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
+          </div>
         </div>
       </section>
 
@@ -198,9 +217,9 @@ onMounted(loadLogs)
 <style scoped>
 .log-filter-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) repeat(2, minmax(140px, 0.8fr)) repeat(2, minmax(190px, 1fr)) auto auto;
-  gap: 10px;
-  align-items: center;
+  grid-template-columns: minmax(220px, 1.3fr) repeat(2, minmax(140px, 0.8fr)) repeat(2, minmax(190px, 1fr));
+  gap: 12px;
+  width: 100%;
 }
 
 .log-filter-grid > * {
