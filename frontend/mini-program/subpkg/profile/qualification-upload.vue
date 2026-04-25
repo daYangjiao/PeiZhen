@@ -142,6 +142,7 @@ import { put, upload } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { resolveImageUrl } from '@/utils/media.js'
 import { pickFrameIdCardFile } from '@/utils/id-card-upload.js'
+import { getQualificationImageFields } from '@/utils/qualification.mjs'
 
 const userStore = useUserStore()
 const { attendantInfo } = storeToRefs(userStore)
@@ -156,10 +157,11 @@ const userId = () => {
   return userInfo && userInfo.id ? userInfo.id : null
 }
 
-const idCardFront = computed(() => attendantInfo.value.idCardFrontFileUrl || attendantInfo.value.idCardFileUrl || '')
-const idCardBack = computed(() => attendantInfo.value.idCardBackFileUrl || '')
-const practiceCertUrl = computed(() => attendantInfo.value.practiceCertFileUrl || '')
-const healthCertUrl = computed(() => attendantInfo.value.healthCertFileUrl || '')
+const qualificationImages = computed(() => getQualificationImageFields(attendantInfo.value))
+const idCardFront = computed(() => qualificationImages.value.idCardFront)
+const idCardBack = computed(() => qualificationImages.value.idCardBack)
+const practiceCertUrl = computed(() => qualificationImages.value.practiceCert)
+const healthCertUrl = computed(() => qualificationImages.value.healthCert)
 const idCardReady = computed(() => !!idCardFront.value && !!idCardBack.value)
 
 const toFullUrl = (url) => {

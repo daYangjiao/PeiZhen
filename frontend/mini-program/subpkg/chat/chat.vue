@@ -9,7 +9,7 @@
           <view class="header-title">
             <view class="title-row">
               <text class="title-text">{{ targetName }}</text>
-              <view class="online-dot"></view>
+              <text class="peer-pill">{{ headerMeta.peerLabel }}</text>
             </view>
             <text class="subtitle-text">{{ headerSubtitle }}</text>
           </view>
@@ -158,11 +158,12 @@ import {
 import { album, camera, emoji, emergency, keyboard, location, plus, userPlaceholder, voice } from '@/utils/assets.js'
 import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { buildChatHeaderMeta } from '@/utils/chat-ui.mjs'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
 const role = ref(uni.getStorageSync('role') || '')
-const targetName = ref(role.value === 'escort' ? '用户' : '陪诊师')
+const targetName = ref(buildChatHeaderMeta({ role: role.value }).peerLabel)
 const targetAvatar = ref(userPlaceholder)
 const messageStore = useMessageStore()
 const messages = ref([])
@@ -199,7 +200,8 @@ const getTimestamp = (value) => {
   return parsed ? parsed.getTime() : 0
 }
 
-const headerSubtitle = computed(() => (role.value === 'escort' ? '患者 · 在线沟通中' : '陪诊师 · 在线沟通中'))
+const headerMeta = computed(() => buildChatHeaderMeta({ role: role.value }))
+const headerSubtitle = computed(() => headerMeta.value.subtitle)
 const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'role-user'))
 
 onLoad((options) => {
@@ -207,7 +209,7 @@ onLoad((options) => {
   uni.stopPullDownRefresh()
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return }
   targetUserId.value = parseInt(options.userId || options.attendantId)
-  targetName.value = options.name ? decodeURIComponent(options.name) : (role.value === 'escort' ? '用户' : '陪诊师')
+  targetName.value = options.name ? decodeURIComponent(options.name) : headerMeta.value.peerLabel
   if (options.avatar) targetAvatar.value = resolveAvatarUrl(decodeURIComponent(options.avatar), userPlaceholder)
   connectChatSocket()
   loadHistory()
@@ -663,12 +665,20 @@ $text-main: #1f2937;
   white-space: nowrap;
 }
 
-.online-dot {
-  width: 12rpx;
-  height: 12rpx;
-  background: var(--chat-primary);
-  border-radius: 50%;
-  box-shadow: 0 0 0 6rpx rgba(102, 166, 255, 0.2);
+.peer-pill {
+  flex-shrink: 0;
+  max-width: 132rpx;
+  padding: 5rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(58, 123, 213, 0.09);
+  border: 1rpx solid rgba(58, 123, 213, 0.15);
+  color: var(--chat-primary-deep);
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subtitle-text {

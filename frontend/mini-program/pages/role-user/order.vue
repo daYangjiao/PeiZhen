@@ -11,7 +11,10 @@
               :class="{ active: activeStatus === tab.value }"
               @click="switchTab(tab.value)"
             >
-              <text class="tab-text">{{ tab.name }}</text>
+              <view class="tab-label">
+                <text class="tab-text">{{ tab.name }}</text>
+                <view v-if="shouldShowTabBadge(tab.value)" class="tab-red-dot"></view>
+              </view>
               <view class="active-line" v-if="activeStatus === tab.value"></view>
             </view>
           </view>
@@ -107,6 +110,7 @@ import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { isTimeoutClosedOrder, TIMEOUT_CLOSE_STATUS_TEXT } from '@/utils/order-timeout.js'
+import { shouldShowOrderTabBadge } from '@/utils/order-tab-badges.mjs'
 
 const statusBarHeight = ref(0)
 const clockNow = ref(Date.now())
@@ -204,6 +208,8 @@ const switchTab = (status) => {
   activeStatus.value = status
   loadOrders({ silent: orders.value.length > 0 })
 }
+
+const shouldShowTabBadge = (tabValue) => shouldShowOrderTabBadge(tabValue, orders.value)
 
 const isOrderListLoading = () => initialLoading.value || isRefreshing.value
 
@@ -519,15 +525,36 @@ onUnmounted(() => {
   position: relative;
   flex-shrink: 0;
 }
+.tab-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40rpx;
+}
 .tab-text {
   font-size: 28rpx;
   color: #666;
   transition: all 0.3s;
 }
+.tab-red-dot {
+  position: absolute;
+  top: -5rpx;
+  right: -15rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: #ff3b30;
+  box-shadow: 0 0 0 5rpx rgba(255, 59, 48, 0.12);
+}
 .tab-item.active .tab-text {
   color: #007AFF;
   font-weight: 600;
   font-size: 30rpx;
+}
+.tab-item.active .tab-red-dot {
+  background: #ff4d4f;
+  box-shadow: 0 0 0 5rpx rgba(255, 77, 79, 0.16);
 }
 .active-line {
   width: 40rpx;

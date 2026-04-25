@@ -70,6 +70,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { post } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
+import { getQualificationImageFields } from '@/utils/qualification.mjs'
 
 const userStore = useUserStore()
 const { attendantInfo } = storeToRefs(userStore)
@@ -104,11 +105,12 @@ const blockReason = computed(() => attendantInfo.value.qualificationBlockReason 
 const qualificationCompleteness = computed(() => Math.max(0, Math.min(100, Number(attendantInfo.value.qualificationCompleteness || 0))))
 const auditLogs = computed(() => attendantInfo.value.recentQualificationLogs || [])
 
-const idCardFront = computed(() => attendantInfo.value.idCardFrontFileUrl || attendantInfo.value.idCardFileUrl || '')
-const idCardBack = computed(() => attendantInfo.value.idCardBackFileUrl || '')
+const qualificationImages = computed(() => getQualificationImageFields(attendantInfo.value))
+const idCardFront = computed(() => qualificationImages.value.idCardFront)
+const idCardBack = computed(() => qualificationImages.value.idCardBack)
 const idCardReady = computed(() => !!idCardFront.value && !!idCardBack.value)
-const practiceReady = computed(() => !!attendantInfo.value.practiceCertFileUrl || !!attendantInfo.value.practiceCertUploaded)
-const healthReady = computed(() => !!attendantInfo.value.healthCertFileUrl || !!attendantInfo.value.healthCertUploaded)
+const practiceReady = computed(() => !!qualificationImages.value.practiceCert)
+const healthReady = computed(() => !!qualificationImages.value.healthCert)
 const practiceExpireReady = computed(() => !!attendantInfo.value.practiceCertExpireDate && !attendantInfo.value.practiceCertExpired)
 const healthExpireReady = computed(() => !!attendantInfo.value.healthCertExpireDate && !attendantInfo.value.healthCertExpired)
 

@@ -162,6 +162,7 @@ import { getAttendantById, getAttendantPublicReviews } from '@/api/attendant.js'
 import { defaultAvatar } from '@/utils/assets.js'
 import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
 import { formatRatingScore, getRatingStarCount } from '@/utils/rating.js'
+import { getQualificationImageFields, getQualificationPreviewUrls, normalizeQualificationStatus } from '@/utils/qualification.mjs'
 
 const loading = ref(true)
 const loadError = ref('')
@@ -202,6 +203,8 @@ const qualificationItems = computed(() => ([
   }
 ]))
 
+const qualificationImages = computed(() => getQualificationImageFields(profile.value))
+
 const normalizeTags = (raw) => String(raw || '')
   .split(',')
   .map((item) => item.trim())
@@ -220,7 +223,7 @@ const getReviewerInitial = (name = '') => {
 }
 
 const normalizeProfile = (payload = {}) => ({
-  ...payload,
+  ...normalizeQualificationStatus(payload),
   score: Number(payload.score || 0),
   experienceYears: Number(payload.experienceYears || 0),
   todayService: Number(payload.todayService || 0),
@@ -253,12 +256,13 @@ const bookService = () => {
 }
 
 const previewQualificationImages = () => {
-  const images = [
-    profile.value.idCardFrontFileUrl,
-    profile.value.idCardBackFileUrl,
-    profile.value.practiceCertFileUrl,
-    profile.value.healthCertFileUrl
-  ]
+  const images = getQualificationPreviewUrls({
+    ...profile.value,
+    idCardFrontFileUrl: qualificationImages.value.idCardFront,
+    idCardBackFileUrl: qualificationImages.value.idCardBack,
+    practiceCertFileUrl: qualificationImages.value.practiceCert,
+    healthCertFileUrl: qualificationImages.value.healthCert
+  })
     .map((item) => resolveImageUrl(item, ''))
     .filter(Boolean)
 

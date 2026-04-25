@@ -38,7 +38,7 @@
 | AiMedicalController | GET | `/ai/medical/qa/latest` | 获取最近一次 AI 导诊会话 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:76` |
 | AiMedicalController | GET | `/ai/medical/qa/thinking/{recordId}` | 兼容旧版思考过程查询 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:83` |
 | AppUpgradeController | POST | `/api/app-upgrade/check` | 检查 App 更新 | 公开 | `src/main/java/org/example/controller/AppUpgradeController.java:39` |
-| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
+| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
 | AttendantController | POST | `/attendant/profile/avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:185` |
@@ -124,7 +124,7 @@
 ## 上传响应约定
 
 - `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`。
-- 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。
+- 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。陪诊师资料响应中的上传状态必须与可展示图片一致：存在原图或扫描预览图才返回已上传。
 
 ## 维护规则
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/api.js'
 import { useMessageStore } from '@/stores/message'
+import { normalizeQualificationStatus } from '@/utils/qualification.mjs'
 
 const createDefaultAttendantInfo = () => ({
   id: null,
@@ -22,9 +23,13 @@ const createDefaultAttendantInfo = () => ({
   healthCertUploaded: false,
   idCardFileUrl: '',
   idCardFrontFileUrl: '',
+  idCardFrontScanFileUrl: '',
   idCardBackFileUrl: '',
+  idCardBackScanFileUrl: '',
   practiceCertFileUrl: '',
+  practiceCertScanFileUrl: '',
   healthCertFileUrl: '',
+  healthCertScanFileUrl: '',
   practiceCertExpireDate: '',
   healthCertExpireDate: '',
   practiceCertExpired: false,
@@ -185,16 +190,9 @@ export const useUserStore = defineStore('user', {
       next.qualificationStatusCode = Number(next.qualificationStatusCode || 0)
       next.qualificationStatusText = next.qualificationStatusText || '待审核'
       next.qualificationFailReason = next.qualificationFailReason || ''
-      next.idCardFileUrl = next.idCardFileUrl || ''
-      next.idCardFrontFileUrl = next.idCardFrontFileUrl || next.idCardFileUrl || ''
-      next.idCardBackFileUrl = next.idCardBackFileUrl || ''
-      next.practiceCertFileUrl = next.practiceCertFileUrl || ''
-      next.healthCertFileUrl = next.healthCertFileUrl || ''
+      Object.assign(next, normalizeQualificationStatus(next))
       next.practiceCertExpireDate = next.practiceCertExpireDate || ''
       next.healthCertExpireDate = next.healthCertExpireDate || ''
-      next.idCardUploaded = !!next.idCardFrontFileUrl && !!next.idCardBackFileUrl
-      next.practiceCertUploaded = !!next.practiceCertFileUrl || next.practiceCertUploaded === true || Number(next.practiceCertUploaded || 0) === 1
-      next.healthCertUploaded = !!next.healthCertFileUrl || next.healthCertUploaded === true || Number(next.healthCertUploaded || 0) === 1
       next.practiceCertExpired = next.practiceCertExpired === true || Number(next.practiceCertExpired || 0) === 1
       next.healthCertExpired = next.healthCertExpired === true || Number(next.healthCertExpired || 0) === 1
       next.qualificationCompleteness = Number(next.qualificationCompleteness || 0)

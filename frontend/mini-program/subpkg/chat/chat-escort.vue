@@ -2,17 +2,19 @@
   <view class="container">
     <view class="chat-header">
       <view class="header-content">
-        <view class="header-back" @click="navigateBack">
-          <text class="back-text">←</text>
+        <view class="header-back header-side" @click="navigateBack">
+          <image class="back-icon" src="/static/back.svg" mode="aspectFit"></image>
         </view>
-        <view class="header-title">
-          <view class="title-row">
-            <text class="title-text">{{ targetName }}</text>
-            <view class="online-dot"></view>
+        <view class="header-middle">
+          <view class="header-title">
+            <view class="title-row">
+              <text class="title-text">{{ targetName }}</text>
+              <text class="peer-pill">{{ headerMeta.peerLabel }}</text>
+            </view>
+            <text class="subtitle-text">{{ headerSubtitle }}</text>
           </view>
-          <text class="subtitle-text">{{ headerSubtitle }}</text>
         </view>
-        <view class="header-placeholder-right"></view>
+        <view class="header-side header-placeholder-right"></view>
       </view>
     </view>
     <view class="header-placeholder"></view>
@@ -187,10 +189,11 @@ import {
 import { album, call, camera, doctorAvatar, emoji, emergency, keyboard, location, plus, userPlaceholder, video, voice } from '@/utils/assets.js'
 import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { buildChatHeaderMeta } from '@/utils/chat-ui.mjs'
 
 const currentUserId = ref(uni.getStorageSync('userInfo')?.id || 0)
 const targetUserId = ref(null)
-const targetName = ref('陪诊师')
+const targetName = ref(buildChatHeaderMeta({ role: 'escort' }).peerLabel)
 const targetAvatar = ref(doctorAvatar)
 const messageStore = useMessageStore()
 const messages = ref([])
@@ -231,7 +234,8 @@ const getTimestamp = (value) => {
   return parsed ? parsed.getTime() : 0
 }
 
-const headerSubtitle = computed(() => '患者 · 在线沟通中')
+const headerMeta = computed(() => buildChatHeaderMeta({ role: 'escort' }))
+const headerSubtitle = computed(() => headerMeta.value.subtitle)
 
 onLoad((options) => {
   if (redirectPublicSafeToHome()) return
@@ -239,7 +243,7 @@ onLoad((options) => {
 
   if (!options.userId && !options.attendantId) { uni.navigateBack(); return; }
   targetUserId.value = parseInt(options.userId || options.attendantId)
-  targetName.value = options.name ? decodeURIComponent(options.name) : '陪诊师'
+  targetName.value = options.name ? decodeURIComponent(options.name) : headerMeta.value.peerLabel
   if (options.avatar) targetAvatar.value = resolveAvatarUrl(decodeURIComponent(options.avatar), doctorAvatar)
 
   connectChatSocket()
@@ -632,19 +636,126 @@ const formatTimeCenter = (time) => {
 
 <style lang="scss" scoped>
 @import '@/styles/escort-ui.scss';
-$primary-color: #007AFF; $bg-color: #F5F7FA; $text-main: #1F2937; $bubble-other: #FFF; $bubble-self: $primary-color;
+$primary-color: $escort-color-primary;
+$primary-deep: $escort-color-primary-deep;
+$bg-color: #f5f8fb;
+$text-main: #1f2937;
+$bubble-other: #fff;
+$bubble-self: $primary-color;
 
-.container { height: 100vh; background-color: $bg-color; display: flex; flex-direction: column; }
-.chat-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: linear-gradient(135deg, #69B2FF 0%, #007AFF 55%, #2563EB 100%); padding-top: var(--status-bar-height); box-shadow: 0 2rpx 12rpx rgba(102,166,255,0.2); }
-.header-content { height: 88rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; }
-.header-back { width: 60rpx; height: 60rpx; display: flex; align-items: center; .back-text { font-size: 44rpx; color: #fff; font-weight: 300; } }
-.header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 4rpx;
-  .title-row { display: flex; align-items: center; gap: 10rpx; }
-  .title-text { font-size: 32rpx; font-weight: 600; color: #fff; }
-  .online-dot { width: 12rpx; height: 12rpx; background: #d9f2ff; border-radius: 50%; box-shadow: 0 0 8rpx rgba(217,242,255,0.75); }
-  .subtitle-text { font-size: 22rpx; color: rgba(255,255,255,0.85); }
+.container {
+  height: 100vh;
+  background: linear-gradient(180deg, #eef7ff 0%, #f6fafc 150rpx, $bg-color 100%);
+  display: flex;
+  flex-direction: column;
 }
-.header-placeholder-right { width: 60rpx; }
+
+.chat-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8rpx);
+  padding-top: var(--status-bar-height);
+  border-bottom: 1rpx solid #e4edf5;
+}
+
+.header-content {
+  height: 88rpx;
+  display: grid;
+  grid-template-columns: 72rpx 1fr 72rpx;
+  align-items: center;
+  column-gap: 8rpx;
+  padding: 0 22rpx;
+}
+
+.header-side {
+  width: 72rpx;
+  min-width: 72rpx;
+  max-width: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-back {
+  height: 72rpx;
+  border-radius: 36rpx;
+  justify-self: start;
+}
+
+.back-icon {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.header-middle {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.header-title {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  text-align: center;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  max-width: 100%;
+  width: 100%;
+}
+
+.title-text {
+  font-size: 31rpx;
+  font-weight: 700;
+  color: $text-main;
+  max-width: 460rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peer-pill {
+  flex-shrink: 0;
+  max-width: 132rpx;
+  padding: 5rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 122, 255, 0.08);
+  border: 1rpx solid rgba(0, 122, 255, 0.14);
+  color: $primary-deep;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle-text {
+  font-size: 22rpx;
+  color: #8491a3;
+  max-width: 520rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-placeholder-right {
+  visibility: hidden;
+}
 .header-placeholder { width: 100%; height: calc(88rpx + var(--status-bar-height)); flex-shrink: 0; }
 
 .chat-list { flex: 1; width: 100%; box-sizing: border-box; padding: 24rpx; overflow-y: scroll; -webkit-overflow-scrolling: touch; }

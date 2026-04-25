@@ -148,11 +148,16 @@ public class AttendantServiceImpl implements AttendantService {
 
         AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
         if (qualification != null) {
-            String idCardFrontFileUrl = firstNonBlank(qualification.getIdCardFrontFileUrl(), qualification.getIdCardFileUrl());
-            String idCardBackFileUrl = qualification.getIdCardBackFileUrl();
+            String idCardFrontFileUrl = firstNonBlank(
+                    firstNonBlank(qualification.getIdCardFrontFileUrl(), qualification.getIdCardFileUrl()),
+                    qualification.getIdCardFrontScanFileUrl()
+            );
+            String idCardBackFileUrl = firstNonBlank(qualification.getIdCardBackFileUrl(), qualification.getIdCardBackScanFileUrl());
+            String practiceCertFileUrl = firstNonBlank(qualification.getPracticeCertFileUrl(), qualification.getPracticeCertScanFileUrl());
+            String healthCertFileUrl = firstNonBlank(qualification.getHealthCertFileUrl(), qualification.getHealthCertScanFileUrl());
             boolean idCardUploaded = hasText(idCardFrontFileUrl) && hasText(idCardBackFileUrl);
-            boolean practiceCertUploaded = toBoolean(qualification.getPracticeCertUploaded()) || hasText(qualification.getPracticeCertFileUrl());
-            boolean healthCertUploaded = toBoolean(qualification.getHealthCertUploaded()) || hasText(qualification.getHealthCertFileUrl());
+            boolean practiceCertUploaded = hasText(practiceCertFileUrl);
+            boolean healthCertUploaded = hasText(healthCertFileUrl);
 
             response.setIdCardUploaded(idCardUploaded);
             response.setPracticeCertUploaded(practiceCertUploaded);
@@ -162,10 +167,10 @@ public class AttendantServiceImpl implements AttendantService {
             response.setIdCardFrontScanFileUrl(firstNonBlank(qualification.getIdCardFrontScanFileUrl(), idCardFrontFileUrl));
             response.setIdCardBackFileUrl(idCardBackFileUrl);
             response.setIdCardBackScanFileUrl(firstNonBlank(qualification.getIdCardBackScanFileUrl(), idCardBackFileUrl));
-            response.setPracticeCertFileUrl(qualification.getPracticeCertFileUrl());
-            response.setPracticeCertScanFileUrl(firstNonBlank(qualification.getPracticeCertScanFileUrl(), qualification.getPracticeCertFileUrl()));
-            response.setHealthCertFileUrl(qualification.getHealthCertFileUrl());
-            response.setHealthCertScanFileUrl(firstNonBlank(qualification.getHealthCertScanFileUrl(), qualification.getHealthCertFileUrl()));
+            response.setPracticeCertFileUrl(practiceCertFileUrl);
+            response.setPracticeCertScanFileUrl(firstNonBlank(qualification.getPracticeCertScanFileUrl(), practiceCertFileUrl));
+            response.setHealthCertFileUrl(healthCertFileUrl);
+            response.setHealthCertScanFileUrl(firstNonBlank(qualification.getHealthCertScanFileUrl(), healthCertFileUrl));
             response.setPracticeCertExpireDate(qualification.getPracticeCertExpireDate());
             response.setHealthCertExpireDate(qualification.getHealthCertExpireDate());
             response.setPracticeCertExpired(AttendantQualificationPolicy.isExpired(qualification.getPracticeCertExpireDate()));
