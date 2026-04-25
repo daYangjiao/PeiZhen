@@ -90,6 +90,29 @@
               </div>
             </div>
 
+            <section class="workspace-section">
+              <div class="dispute-focus-grid">
+                <article class="dispute-focus-card attendant-side">
+                  <p class="dispute-focus-label">陪诊师提交</p>
+                  <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
+                  <span>提交金额 {{ formatMoney(attendantSuggestedAmount) }}</span>
+                  <p class="dispute-focus-copy">{{ order.adminRemark || '陪诊师提交实际服务时长后，用户未认可并发起申诉。' }}</p>
+                </article>
+                <article class="dispute-focus-card user-side">
+                  <p class="dispute-focus-label">用户申诉重点</p>
+                  <strong>{{ formatDurationHour(order.timeDisputeUserDuration) }}</strong>
+                  <span>{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
+                  <p class="dispute-focus-copy">请优先核对用户申诉原因、服务时间和双方金额差异。</p>
+                </article>
+                <article class="dispute-focus-card result-side">
+                  <p class="dispute-focus-label">裁定结果预览</p>
+                  <strong>{{ disputePreviewLabel }}</strong>
+                  <span>{{ disputePreviewAmount }}</span>
+                  <p class="dispute-focus-copy">最终金额高于已付金额时，订单进入待用户补差额。</p>
+                </article>
+              </div>
+            </section>
+
             <section class="action-panel">
               <div>
                 <h3 class="section-title">裁定处理</h3>
@@ -112,42 +135,17 @@
             <section class="workspace-section">
               <div class="section-heading compact-heading">
                 <div>
-                  <h3 class="section-title">争议证据</h3>
-                  <p class="section-copy">核对陪诊师提交、用户申诉与平台裁定结果。</p>
+                  <h3 class="section-title">订单完整信息</h3>
                 </div>
               </div>
-              <div class="evidence-grid">
-                <article class="evidence-card">
-                  <p class="evidence-label">陪诊师提交</p>
-                  <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
-                  <span>建议金额 {{ formatMoney(attendantSuggestedAmount) }}</span>
-                </article>
-                <article class="evidence-card">
-                  <p class="evidence-label">用户申诉</p>
-                  <strong>{{ formatDurationHour(order.timeDisputeUserDuration) }}</strong>
-                  <span>{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
-                </article>
-                <article class="evidence-card">
-                  <p class="evidence-label">平台裁定预览</p>
-                  <strong>{{ disputePreviewLabel }}</strong>
-                  <span>{{ disputePreviewAmount }}</span>
-                </article>
-              </div>
-            </section>
-
-            <section class="workspace-section">
-              <div class="section-heading compact-heading">
-                <div>
-                  <h3 class="section-title">订单信息</h3>
+              <div class="order-full-grid">
+                <div v-for="item in orderInfoItems" :key="item.label" class="kv-item">
+                  <p class="kv-label">{{ item.label }}</p>
+                  <p class="kv-value">{{ item.value }}</p>
                 </div>
-              </div>
-              <div class="kv-grid">
-                <div class="kv-item"><p class="kv-label">患者 / 联系人</p><p class="kv-value">{{ order.patientName || '-' }} / {{ order.contactPerson || order.userName || '-' }}</p></div>
-                <div class="kv-item"><p class="kv-label">联系电话</p><p class="kv-value">{{ order.contactPhone || order.userPhone || '-' }}</p></div>
-                <div class="kv-item"><p class="kv-label">陪诊师</p><p class="kv-value">{{ orderDetail?.attendant?.name || order.attendantName || '-' }}</p></div>
-                <div class="kv-item"><p class="kv-label">服务开始 / 结束</p><p class="kv-value">{{ formatDateTime(order.serviceStartTime) }} / {{ formatDateTime(order.serviceEndTime) }}</p></div>
                 <div class="kv-item"><p class="kv-label">当前订单金额</p><p class="kv-value">{{ formatMoney(order.orderAmount) }}</p></div>
                 <div class="kv-item"><p class="kv-label">当前差额</p><p class="kv-value">{{ formatMoney(order.balanceAmount) }}</p></div>
+                <div class="kv-item"><p class="kv-label">退款金额</p><p class="kv-value">{{ formatMoney(order.refundAmount) }}</p></div>
               </div>
             </section>
           </template>
@@ -167,15 +165,15 @@
 
             <section class="action-panel">
               <div>
-                <h3 class="section-title">审核处理</h3>
-                <p class="section-copy auto-renew-copy">系统自动保护当前任务，处理完成后进入下一条。</p>
+                <h3 class="section-title">人工审核</h3>
+                <p class="section-copy auto-renew-copy">先核对证件图片与个人资料，再选择通过或驳回。</p>
               </div>
               <div v-if="selectedTargetId && lockToken" class="review-decision-grid">
                 <article class="decision-card decision-card-approve" :class="{ disabled: qualificationBlocked }">
                   <div>
                     <p class="decision-label">通过入驻</p>
-                    <h4 class="decision-title">{{ qualificationBlocked ? '暂不能通过' : '材料合规，可以通过' }}</h4>
-                    <p class="decision-copy">{{ qualificationBlocked ? approveDisabledReason : '通过后陪诊师可正常展示并进入接单流程。' }}</p>
+                    <h4 class="decision-title">人工确认资料真实有效</h4>
+                    <p class="decision-copy">{{ qualificationBlocked ? `系统检测：${approveDisabledReason}` : '请人工核对姓名、医院、证件图片和有效期后再通过。' }}</p>
                   </div>
                   <button class="button button-primary approve-action" type="button" :disabled="qualificationBlocked || actionLoading" @click="completeAttendant('approve')">通过审核</button>
                 </article>
@@ -197,35 +195,32 @@
             </section>
 
             <section class="workspace-section">
-              <div class="qualification-summary">
-                <div class="summary-pill"><span>材料完整度</span><strong>{{ qualificationCompleteness }}%</strong></div>
-                <div class="summary-pill" :class="{ danger: qualificationBlocked }"><span>审核结果</span><strong>{{ qualificationBlocked ? approveDisabledReason : '可通过' }}</strong></div>
-              </div>
-
-              <div class="kv-grid">
-                <div class="kv-item"><p class="kv-label">擅长领域</p><p class="kv-value">{{ attendantDetail.attendant?.professionalField || '-' }}</p></div>
-                <div class="kv-item"><p class="kv-label">从业年限</p><p class="kv-value">{{ attendantDetail.attendant?.experienceYears || 0 }} 年</p></div>
-                <div class="kv-item"><p class="kv-label">服务单量</p><p class="kv-value">{{ attendantDetail.attendant?.serviceCount || 0 }} 单</p></div>
-                <div class="kv-item"><p class="kv-label">历史完成</p><p class="kv-value">{{ attendantDetail.completedOrderCount || 0 }} / {{ attendantDetail.totalOrderCount || 0 }}</p></div>
+              <div class="review-snapshot-grid">
+                <article v-for="card in qualificationCards" :key="card.key" class="review-snapshot-card" :class="{ missing: !card.url, expired: card.expired }">
+                  <div class="review-snapshot-head">
+                    <p>{{ card.title }}</p>
+                    <span>{{ card.url ? (card.expired ? '已过期' : '已上传') : '缺失' }}</span>
+                  </div>
+                  <button v-if="card.url" class="review-snapshot-image-button" type="button" @click="openPreview(card)">
+                    <img :src="card.url" :alt="card.title" class="review-snapshot-image" />
+                  </button>
+                  <div v-else class="review-snapshot-placeholder">未上传</div>
+                  <p v-if="card.expireDate" class="review-snapshot-date">有效期 {{ card.expireDate }}</p>
+                </article>
               </div>
             </section>
 
             <section class="workspace-section">
               <div class="section-heading compact-heading">
                 <div>
-                  <h3 class="section-title">资质材料</h3>
+                  <h3 class="section-title">陪诊师资料</h3>
                 </div>
               </div>
-              <div class="qualification-grid">
-                <article v-for="card in qualificationCards" :key="card.key" class="qualification-card">
-                  <p class="qualification-title">{{ card.title }}</p>
-                  <button v-if="card.url" class="qualification-thumb-button" type="button" @click="openPreview(card)">
-                    <img :src="card.url" :alt="card.title" class="qualification-thumb-image" />
-                  </button>
-                  <div v-else class="qualification-thumb-placeholder">未上传</div>
-                  <p class="qualification-status" :class="card.url ? 'is-uploaded' : 'is-missing'">{{ card.url ? '已上传' : '缺失' }}</p>
-                  <p v-if="card.expireDate" class="qualification-expire" :class="{ 'is-expired': card.expired }">有效期 {{ card.expireDate }}{{ card.expired ? '（已过期）' : '' }}</p>
-                </article>
+              <div class="order-full-grid">
+                <div v-for="item in attendantInfoItems" :key="item.label" class="kv-item">
+                  <p class="kv-label">{{ item.label }}</p>
+                  <p class="kv-value">{{ item.value }}</p>
+                </div>
               </div>
             </section>
           </template>
@@ -320,11 +315,6 @@ const disputeBalancePreview = computed(() => Number(disputeForm.finalOrderAmount
 const disputePreviewLabel = computed(() => disputeBalancePreview.value > 0 ? '待用户补差额' : '直接完成')
 const disputePreviewAmount = computed(() => disputeBalancePreview.value > 0 ? `补差额 ${formatMoney(disputeBalancePreview.value)}` : `退款 ${formatMoney(Math.abs(Math.min(disputeBalancePreview.value, 0)))}`)
 const confirmDescription = computed(() => `最终时长 ${disputeForm.finalDuration || '-'} 小时，最终金额 ${formatMoney(disputeForm.finalOrderAmount || 0)}。`)
-const qualificationCompleteness = computed(() => {
-  const cards = qualificationCards.value
-  if (!cards.length) return 0
-  return Math.round((cards.filter((card) => card.url && !card.expired).length / cards.length) * 100)
-})
 const qualificationBlocked = computed(() => Boolean(approveDisabledReason.value))
 const approveDisabledReason = computed(() => {
   const missing = qualificationCards.value.find((card) => !card.url)
@@ -340,6 +330,43 @@ const qualificationCards = computed(() => {
     { key: 'id-back', title: '身份证背面', url: item.idCardBackFileUrl },
     { key: 'practice', title: '执业证', url: item.practiceCertFileUrl, expireDate: item.practiceCertExpireDate, expired: isExpired(item.practiceCertExpireDate) },
     { key: 'health', title: '健康证', url: item.healthCertFileUrl, expireDate: item.healthCertExpireDate, expired: isExpired(item.healthCertExpireDate) }
+  ]
+})
+const orderInfoItems = computed(() => {
+  const item = order.value || {}
+  return [
+    { label: '订单编号', value: item.orderNo || '-' },
+    { label: '下单用户', value: `${orderDetail.value?.user?.name || item.userName || '-'} / ${orderDetail.value?.user?.phone || item.userPhone || '-'}` },
+    { label: '患者信息', value: `${item.patientName || '-'} / ${item.patientSex || '-'} / ${item.patientAge || '-'}` },
+    { label: '联系人', value: `${item.contactPerson || '-'} / ${item.contactPhone || '-'}` },
+    { label: '陪诊师', value: `${orderDetail.value?.attendant?.name || item.attendantName || '暂未接单'} / ${orderDetail.value?.attendant?.phone || item.attendantPhone || '-'}` },
+    { label: '医院', value: item.hospital || '-' },
+    { label: '服务内容', value: item.serviceContent || '-' },
+    { label: '服务日期', value: `${item.serviceDate || '-'} ${item.serviceTimeSlot || ''}` },
+    { label: '接单时间', value: formatDateTime(item.acceptTime) },
+    { label: '服务开始', value: formatDateTime(item.serviceStartTime) },
+    { label: '服务结束', value: formatDateTime(item.serviceEndTime) },
+    { label: '预估时长', value: formatDurationHour(item.estimatedDuration) },
+    { label: '实际时长', value: formatDurationHour(item.actualDuration) },
+    { label: '用户认可时长', value: formatDurationHour(item.timeDisputeUserDuration) },
+    { label: '支付时间', value: formatDateTime(item.paymentTime) },
+    { label: '特殊需求', value: item.specialRequirements || item.customRequirement || '-' },
+    { label: '后台备注', value: item.adminRemark || '-' },
+    { label: '争议处理时间', value: formatDateTime(item.disputeResolvedTime) }
+  ]
+})
+const attendantInfoItems = computed(() => {
+  const user = attendantDetail.value?.user || {}
+  const item = attendantDetail.value?.attendant || {}
+  return [
+    { label: '姓名 / 手机号', value: `${user.name || '-'} / ${user.phone || '-'}` },
+    { label: '常驻医院', value: item.hospitalName || '-' },
+    { label: '擅长领域', value: item.professionalField || '-' },
+    { label: '从业年限', value: `${item.experienceYears || 0} 年` },
+    { label: '服务单量', value: `${item.serviceCount || 0} 单` },
+    { label: '历史完成', value: `${attendantDetail.value?.completedOrderCount || 0} / ${attendantDetail.value?.totalOrderCount || 0}` },
+    { label: '评分', value: item.score || '-' },
+    { label: '简介', value: item.introduction || '-' }
   ]
 })
 const rejectReasons = ['证件照片不清晰', '证件信息不完整', '证件已过期', '个人资料不完整']
@@ -809,13 +836,15 @@ onBeforeUnmount(() => {
   margin-top: 2px;
 }
 
-.evidence-grid {
+.evidence-grid,
+.dispute-focus-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.evidence-card {
+.evidence-card,
+.dispute-focus-card {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -823,14 +852,55 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.dispute-focus-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 148px;
+}
+
+.dispute-focus-card.attendant-side {
+  border-color: rgba(42, 120, 255, 0.18);
+  background: linear-gradient(180deg, #fff 0%, #edf4ff 100%);
+}
+
+.dispute-focus-card.user-side {
+  border-color: rgba(228, 85, 85, 0.18);
+  background: linear-gradient(180deg, #fff 0%, #fff4f4 100%);
+}
+
+.dispute-focus-card.result-side {
+  border-color: rgba(26, 167, 114, 0.2);
+  background: linear-gradient(180deg, #fff 0%, rgba(26, 167, 114, 0.08) 100%);
+}
+
 .evidence-card strong,
-.evidence-card span {
+.evidence-card span,
+.dispute-focus-card strong,
+.dispute-focus-card span {
   display: block;
-  margin-top: 8px;
   overflow-wrap: anywhere;
 }
 
-.evidence-label {
+.dispute-focus-card strong {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.dispute-focus-card span {
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.dispute-focus-copy {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.evidence-label,
+.dispute-focus-label {
   margin: 0;
   color: var(--text-muted);
   font-size: 12px;
@@ -948,6 +1018,103 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
+.review-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.review-snapshot-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(184, 208, 246, 0.84);
+  background: #f8fbff;
+}
+
+.review-snapshot-card.missing,
+.review-snapshot-card.expired {
+  border-color: rgba(228, 85, 85, 0.22);
+  background: #fff8f8;
+}
+
+.review-snapshot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.review-snapshot-head p,
+.review-snapshot-date {
+  margin: 0;
+}
+
+.review-snapshot-head p {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.review-snapshot-head span {
+  flex: 0 0 auto;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: var(--success);
+  background: rgba(26, 167, 114, 0.1);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.review-snapshot-card.missing .review-snapshot-head span,
+.review-snapshot-card.expired .review-snapshot-head span {
+  color: var(--danger);
+  background: rgba(228, 85, 85, 0.1);
+}
+
+.review-snapshot-image-button,
+.review-snapshot-placeholder {
+  width: 100%;
+  height: 168px;
+  border: 1px solid rgba(184, 208, 246, 0.8);
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.review-snapshot-image-button {
+  padding: 0;
+}
+
+.review-snapshot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.review-snapshot-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.review-snapshot-date {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.order-full-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
 .full-width {
   width: 100%;
 }
@@ -962,9 +1129,14 @@ onBeforeUnmount(() => {
   }
 
   .evidence-grid,
+  .dispute-focus-grid,
   .dispute-action-form,
   .review-action-form,
   .review-decision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-snapshot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -989,9 +1161,11 @@ onBeforeUnmount(() => {
 
   .workspace-status,
   .evidence-grid,
+  .dispute-focus-grid,
   .dispute-action-form,
   .review-action-form,
-  .review-decision-grid {
+  .review-decision-grid,
+  .review-snapshot-grid {
     grid-template-columns: 1fr;
   }
 
