@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -150,6 +151,52 @@ class AttendantServiceImplTest {
         assertThat(profile.getIdCardBackFileUrl()).isEqualTo("back-scan.png");
         assertThat(profile.getPracticeCertFileUrl()).isEqualTo("practice-scan.png");
         assertThat(profile.getHealthCertFileUrl()).isEqualTo("health-scan.png");
+    }
+
+    @Test
+    void getProfileShouldHideRatingWhenThereAreNoEvaluations() {
+        User user = new User();
+        user.setId(11);
+        user.setName("陪诊师");
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(11);
+        attendant.setStatus(1);
+        attendant.setScore(new BigDecimal("5.0"));
+
+        when(userMapper.findById(11)).thenReturn(user);
+        when(attendantMapper.findByUserId(11)).thenReturn(attendant);
+        when(orderEvaluationMapper.countByAttendantId(11)).thenReturn(0);
+
+        AttendantProfileResponse profile = service.getProfile(11);
+
+        assertThat(profile.getScore()).isNull();
+        assertThat(profile.getEvaluationCount()).isZero();
+        assertThat(profile.getPraiseRate()).isZero();
+    }
+
+    @Test
+    void getProfileShouldUseEvaluationAverageAndGoodRate() {
+        User user = new User();
+        user.setId(11);
+        user.setName("陪诊师");
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(11);
+        attendant.setStatus(1);
+        attendant.setScore(new BigDecimal("5.0"));
+
+        when(userMapper.findById(11)).thenReturn(user);
+        when(attendantMapper.findByUserId(11)).thenReturn(attendant);
+        when(orderEvaluationMapper.countByAttendantId(11)).thenReturn(3);
+        when(orderEvaluationMapper.countGoodByAttendantId(11, 4)).thenReturn(2);
+        when(orderEvaluationMapper.averageRatingByAttendantId(11)).thenReturn(new BigDecimal("4.0"));
+
+        AttendantProfileResponse profile = service.getProfile(11);
+
+        assertThat(profile.getScore()).isEqualTo(4.0D);
+        assertThat(profile.getEvaluationCount()).isEqualTo(3);
+        assertThat(profile.getPraiseRate()).isEqualTo(67);
     }
 
     private AttendantQualification completeQualification() {

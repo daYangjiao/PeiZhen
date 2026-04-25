@@ -106,9 +106,9 @@ const pendingCount = computed(() => reviews.value.filter((item) => !item.attenda
 const repliedCount = computed(() => reviews.value.filter((item) => !!item.attendantReply).length)
 
 const avgRating = computed(() => {
-  if (!reviews.value.length) return formatRatingScore(0)
+  if (!reviews.value.length) return formatRatingScore(null, 0)
   const sum = reviews.value.reduce((acc, item) => acc + Number(item.rating || 0), 0)
-  return formatRatingScore(sum / reviews.value.length)
+  return formatRatingScore(sum / reviews.value.length, reviews.value.length)
 })
 
 const filteredReviews = computed(() => {

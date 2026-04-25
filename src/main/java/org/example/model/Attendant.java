@@ -71,6 +71,12 @@ public class Attendant {
     @ApiModelProperty(value = "已完成服务人次")
     private Integer serviceCount;
 
+    @ApiModelProperty(value = "评价总数")
+    private Integer evaluationCount;
+
+    @ApiModelProperty(value = "好评率")
+    private Integer praiseRate;
+
     @ApiModelProperty(value = "账号状态：1=正常, 0=禁用")
     private Integer userStatus;
     

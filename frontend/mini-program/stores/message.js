@@ -6,14 +6,9 @@ import {
   SYSTEM_MESSAGE_READ_EVENT,
   USER_MESSAGE_TAB_INDEX,
   formatBadgeText,
-  normalizeBadgeCount
+  normalizeBadgeCount,
+  resolveRealtimeUnreadTarget
 } from '@/utils/message-badge.mjs'
-
-const isReadReceiptMessage = (message = {}, payload = {}) => {
-  const type = String(message.type || payload.type || '')
-  const msgType = Number(message.msgType || payload.msgType || 0)
-  return type === 'READ_RECEIPT' || msgType === 99
-}
 
 export const useMessageStore = defineStore('message', {
   state: () => ({
@@ -94,52 +89,21 @@ export const useMessageStore = defineStore('message', {
       }
     },
     applyRealtimeUnreadFromMessage(message) {
-      if (!message) return
-
-      let payload = {}
-      if (message.data && typeof message.data === 'object') {
-        payload = message.data
-      } else if (typeof message.data === 'string') {
-        try {
-          payload = JSON.parse(message.data)
-        } catch (e) {
-          payload = {}
-        }
-      }
-
-      const msgType = Number(message.msgType || payload.msgType || 0)
-      if (isReadReceiptMessage(message, payload)) return
-
       const userInfo = uni.getStorageSync('userInfo') || {}
-      const currentUserId = Number(userInfo.id || userInfo.userId || 0)
-      const token = uni.getStorageSync('token')
-      const isLoggedIn = !!uni.getStorageSync('isLoggedIn')
-      if (!currentUserId || !token || !isLoggedIn) return
+      const target = resolveRealtimeUnreadTarget(message, {
+        currentUserId: Number(userInfo.id || userInfo.userId || 0),
+        token: uni.getStorageSync('token'),
+        isLoggedIn: !!uni.getStorageSync('isLoggedIn')
+      })
+      if (!target) return
 
-      const senderId = Number(message.senderId || payload.senderId || 0)
-      const receiverId = Number(message.receiverId || payload.receiverId || 0)
-      const isNormalChatMsg = [1, 2, 3, 4].includes(msgType)
-
-      // 自己发出的消息不计未读
-      if (senderId && senderId === currentUserId) return
-
-      // 系统消息（sender/receiver 包含 0）计入系统未读
-      if (senderId === 0 || receiverId === 0) {
+      if (target.type === 'system') {
         this.incrementSystemUnread(1)
         this.updateTabBarBadge()
         return
       }
 
-      if (!isNormalChatMsg) return
-
-      // 普通会话消息计入对应联系人
-      const contactId = senderId && senderId !== currentUserId
-        ? senderId
-        : (receiverId && receiverId !== currentUserId ? receiverId : 0)
-
-      if (!contactId) return
-
-      this.incrementUnread(contactId, 1)
+      this.incrementUnread(target.contactId, 1)
       this.updateTabBarBadge()
     },
     incrementUnread(contactId, count = 1) {

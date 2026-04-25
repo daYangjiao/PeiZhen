@@ -32,6 +32,12 @@ public class MatchedAttendantVO {
     @ApiModelProperty(value = "评分", example = "4.9")
     private Double score;
 
+    @ApiModelProperty(value = "评价总数", example = "36")
+    private Integer evaluationCount;
+
+    @ApiModelProperty(value = "好评率", example = "97")
+    private Integer praiseRate;
+
     @ApiModelProperty(value = "从业经验说明", example = "7年经验")
     private String experience;
 

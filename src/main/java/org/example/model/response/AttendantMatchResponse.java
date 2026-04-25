@@ -33,6 +33,12 @@ public class AttendantMatchResponse {
         @ApiModelProperty(value = "评分", example = "4.9")
         private Double score;
 
+        @ApiModelProperty(value = "评价总数", example = "36")
+        private Integer evaluationCount;
+
+        @ApiModelProperty(value = "好评率", example = "97")
+        private Integer praiseRate;
+
         @ApiModelProperty(value = "头像地址", example = "/uploads/attendant_21.png")
         private String photo;
 

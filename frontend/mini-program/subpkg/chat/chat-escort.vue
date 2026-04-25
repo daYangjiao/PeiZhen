@@ -11,7 +11,7 @@
               <text class="title-text">{{ targetName }}</text>
               <text class="peer-pill">{{ headerMeta.peerLabel }}</text>
             </view>
-            <text class="subtitle-text">{{ headerSubtitle }}</text>
+            <text v-if="headerSubtitle" class="subtitle-text">{{ headerSubtitle }}</text>
           </view>
         </view>
         <view class="header-side header-placeholder-right"></view>

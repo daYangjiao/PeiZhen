@@ -3,6 +3,7 @@ package org.example.service;
 import org.example.model.Attendant;
 import org.example.model.AttendantQualification;
 import org.example.model.response.AttendantProfileResponse;
+import org.example.model.response.AttendantRatingSummary;
 import org.example.model.User;
 import java.util.List;
 
@@ -40,6 +41,8 @@ public interface AttendantService {
      * AI 匹配候选陪诊师
      */
     List<Attendant> findAiCandidates(int limit);
+
+    AttendantRatingSummary getRatingSummary(Integer userId);
 
     /**
      * 获取陪诊师个人中心资料

@@ -48,7 +48,7 @@
           <view class="companion-body">
             <text class="companion-name">{{ companion.name }}</text>
             <text class="companion-meta">{{ companion.professionalField }}</text>
-            <text class="companion-meta">{{ companion.experienceYears }}年经验 · 评分 {{ companion.score }}</text>
+            <text class="companion-meta">{{ companion.experienceYears }}年经验 · 评分 {{ companion.scoreLabel }}</text>
           </view>
         </view>
       </view>
@@ -98,7 +98,8 @@ const getCategoryDescription = (name) => {
 
 const decorateCompanion = (companion = {}) => ({
   ...companion,
-  score: formatRatingScore(companion.score),
+  evaluationCount: Number(companion.evaluationCount || 0),
+  scoreLabel: formatRatingScore(companion.score, Number(companion.evaluationCount || 0)),
   displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar)
 })
 

@@ -10,7 +10,7 @@ const createDefaultAttendantInfo = () => ({
   avatarUrl: '',
   avatar: '',
   certificate: '',
-  score: 0,
+  score: null,
   introduction: '',
   professionalField: '',
   experienceYears: 0,
@@ -44,6 +44,7 @@ const createDefaultAttendantInfo = () => ({
   totalIncome: 0,
   totalEarnings: 0,
   praiseRate: 0,
+  evaluationCount: 0,
   balance: 0
 })
 
@@ -184,8 +185,9 @@ export const useUserStore = defineStore('user', {
       next.todayService = Number(next.todayService || 0)
       next.monthService = Number(next.monthService || 0)
       next.praiseRate = Number(next.praiseRate || 0)
+      next.evaluationCount = Number(next.evaluationCount || 0)
       next.balance = Number(next.balance || 0)
-      next.score = Number(next.score || 0)
+      next.score = next.score === null || next.score === undefined || next.score === '' ? null : Number(next.score)
       next.experienceYears = Number(next.experienceYears || 0)
       next.qualificationStatusCode = Number(next.qualificationStatusCode || 0)
       next.qualificationStatusText = next.qualificationStatusText || '待审核'

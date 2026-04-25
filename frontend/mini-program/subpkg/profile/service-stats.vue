@@ -26,7 +26,7 @@
       <view class="card"><text class="k">今日服务</text><text class="v">{{ todayService }}</text></view>
       <view class="card"><text class="k">本月服务</text><text class="v">{{ monthService }}</text></view>
       <view class="card"><text class="k">累计收入</text><text class="v">{{ formatMoney(totalIncome) }}</text></view>
-      <view class="card"><text class="k">好评率</text><text class="v">{{ praiseRate }}%</text></view>
+      <view class="card"><text class="k">好评率</text><text class="v">{{ displayPraiseRate }}</text></view>
     </view>
 
     <view class="panel slide-up delay-2">
@@ -85,9 +85,10 @@ import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { get } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
+import { formatPraiseRate } from '@/utils/rating.js'
 
 const userStore = useUserStore()
-const { todayService, monthService, totalIncome, praiseRate } = storeToRefs(userStore)
+const { attendantInfo, todayService, monthService, totalIncome, praiseRate } = storeToRefs(userStore)
 
 const rawRows = ref([])
 const activeRange = ref('all')
@@ -216,6 +217,7 @@ const dateStats = computed(() => buildDateStats(filteredRows.value))
 const trendWrapStyle = computed(() => ({
   minWidth: `${Math.max(trend.value.length, 1) * 110}rpx`
 }))
+const displayPraiseRate = computed(() => formatPraiseRate(praiseRate.value, attendantInfo.value.evaluationCount))
 
 const formatDateShort = (value) => value.slice(5)
 

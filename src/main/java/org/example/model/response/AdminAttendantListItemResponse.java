@@ -22,6 +22,10 @@ public class AdminAttendantListItemResponse {
 
     private BigDecimal score;
 
+    private Integer evaluationCount;
+
+    private Integer praiseRate;
+
     private Integer status;
 
     private String statusLabel;

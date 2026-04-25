@@ -12,6 +12,7 @@ import org.example.model.AttendantQualification;
 import org.example.model.User;
 import org.example.model.response.AttendantProfileResponse;
 import org.example.model.response.AttendantQualificationLogResponse;
+import org.example.model.response.AttendantRatingSummary;
 import org.example.service.AttendantService;
 import org.example.util.AttendantQualificationPolicy;
 import org.slf4j.Logger;
@@ -110,6 +111,22 @@ public class AttendantServiceImpl implements AttendantService {
     }
 
     @Override
+    public AttendantRatingSummary getRatingSummary(Integer userId) {
+        if (userId == null) {
+            return new AttendantRatingSummary(null, 0, 0);
+        }
+        Integer totalEvalCount = orderEvaluationMapper.countByAttendantId(userId);
+        int evaluationCount = totalEvalCount == null ? 0 : totalEvalCount;
+        if (evaluationCount <= 0) {
+            return new AttendantRatingSummary(null, 0, 0);
+        }
+        Integer goodEvalCount = orderEvaluationMapper.countGoodByAttendantId(userId, 4);
+        BigDecimal averageRating = orderEvaluationMapper.averageRatingByAttendantId(userId);
+        int praiseRate = (int) Math.round((goodEvalCount == null ? 0 : goodEvalCount) * 100.0 / evaluationCount);
+        return new AttendantRatingSummary(normalizeRatingScore(averageRating), evaluationCount, praiseRate);
+    }
+
+    @Override
     public AttendantProfileResponse getProfile(Integer userId) {
         User user = userMapper.findById(userId);
         if (user == null) {
@@ -122,10 +139,11 @@ public class AttendantServiceImpl implements AttendantService {
         response.setPhone(user.getPhone());
         response.setAvatarUrl(user.getAvatar());
 
-        Attendant attendant = applyActualRating(attendantMapper.findByUserId(userId));
+        AttendantRatingSummary ratingSummary = getRatingSummary(userId);
+        Attendant attendant = applyActualRating(attendantMapper.findByUserId(userId), ratingSummary);
         if (attendant != null) {
             response.setCertificate(attendant.getCertificate());
-            response.setScore(attendant.getScore() == null ? 0D : attendant.getScore());
+            response.setScore(attendant.getScore());
             response.setIntroduction(attendant.getIntroduction());
             response.setProfessionalField(attendant.getProfessionalField());
             response.setExperienceYears(attendant.getExperienceYears());
@@ -141,7 +159,7 @@ public class AttendantServiceImpl implements AttendantService {
                 );
             }
         } else {
-            response.setScore(0D);
+            response.setScore(null);
             response.setQualificationStatusCode(0);
             response.setQualificationStatusText(mapQualificationStatusText(0));
         }
@@ -209,13 +227,6 @@ public class AttendantServiceImpl implements AttendantService {
         Integer totalOrders = orderMapper.countTotalOrdersByAttendant(userId);
         Integer completedOrders = orderMapper.countCompletedOrdersByAttendant(userId);
 
-        Integer totalEvalCount = orderEvaluationMapper.countByAttendantId(userId);
-        Integer goodEvalCount = orderEvaluationMapper.countGoodByAttendantId(userId, 4);
-        int praiseRate = 0;
-        if (totalEvalCount != null && totalEvalCount > 0) {
-            praiseRate = (int) Math.round((goodEvalCount == null ? 0 : goodEvalCount) * 100.0 / totalEvalCount);
-        }
-
         BigDecimal normalizedIncome = totalIncome == null
                 ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
                 : totalIncome.setScale(2, RoundingMode.HALF_UP);
@@ -223,8 +234,8 @@ public class AttendantServiceImpl implements AttendantService {
         response.setTodayService(todayService == null ? 0 : todayService);
         response.setMonthService(monthService == null ? 0 : monthService);
         response.setTotalIncome(normalizedIncome);
-        response.setPraiseRate(praiseRate);
-        response.setEvaluationCount(totalEvalCount == null ? 0 : totalEvalCount);
+        response.setPraiseRate(ratingSummary.getPraiseRate());
+        response.setEvaluationCount(ratingSummary.getEvaluationCount());
 
         // 当前无提现流水表，余额按“已完成订单最终金额扣除平台服务费后的收入”口径返回。
         response.setBalance(normalizedIncome);
@@ -302,15 +313,22 @@ public class AttendantServiceImpl implements AttendantService {
     }
 
     private Attendant applyActualRating(Attendant attendant) {
+        return applyActualRating(attendant, attendant == null ? null : getRatingSummary(attendant.getUserId()));
+    }
+
+    private Attendant applyActualRating(Attendant attendant, AttendantRatingSummary summary) {
         if (attendant == null || attendant.getUserId() == null) {
             return attendant;
         }
-        attendant.setScore(normalizeRatingScore(orderEvaluationMapper.averageRatingByAttendantId(attendant.getUserId())));
+        AttendantRatingSummary ratingSummary = summary == null ? getRatingSummary(attendant.getUserId()) : summary;
+        attendant.setScore(ratingSummary.getScore());
+        attendant.setEvaluationCount(ratingSummary.getEvaluationCount());
+        attendant.setPraiseRate(ratingSummary.getPraiseRate());
         return attendant;
     }
 
     private BigDecimal normalizeRatingScore(BigDecimal score) {
-        return (score == null ? BigDecimal.ZERO : score).setScale(1, RoundingMode.HALF_UP);
+        return score == null ? null : score.setScale(1, RoundingMode.HALF_UP);
     }
 
     private boolean toBoolean(Integer flag) {

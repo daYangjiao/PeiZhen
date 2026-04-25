@@ -36,13 +36,16 @@ public class AttendantMatchAlgorithm {
                     matchedVO.setAttendantName(attendant.getName()); // 对应VO的attendantName
                     matchedVO.setAttendantPhone(Optional.ofNullable(attendant.getPhone()).orElse("")); // 对应VO的attendantPhone
                     matchedVO.setSpecialty(Optional.ofNullable(attendant.getProfessionalField()).orElse("通用陪诊")); // 对应VO的specialty
-                    matchedVO.setScore(calculateMatchScore(demandTags, attendant, emergencyLevel)); // 对应VO的score
+                    matchedVO.setScore(attendant.getScore());
+                    matchedVO.setEvaluationCount(attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
+                    matchedVO.setPraiseRate(attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
+                    matchedVO.setMatchScore((int) Math.round(calculateMatchScore(demandTags, attendant, emergencyLevel)));
                     matchedVO.setExperience(buildExperienceDesc(attendant)); // 对应VO的experience
 
                     return matchedVO;
                 })
-                // 2. 按匹配度（score）降序排序
-                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                // 2. 按匹配度降序排序
+                .sorted((a, b) -> Integer.compare(b.getMatchScore(), a.getMatchScore()))
                 .collect(Collectors.toList());
     }
 

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.dao.AttendantQualificationAuditLogMapper;
 import org.example.dao.AttendantMapper;
 import org.example.dao.AttendantQualificationMapper;
+import org.example.dao.OrderEvaluationMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.SysAdminMapper;
 import org.example.dao.UserMapper;
@@ -41,6 +42,7 @@ public class AdminServiceImpl implements AdminService {
     private final AttendantQualificationAuditLogMapper auditLogMapper;
     private final SysAdminMapper sysAdminMapper;
     private final OrderMapper orderMapper;
+    private final OrderEvaluationMapper orderEvaluationMapper;
     private final OrderService orderService;
 
     @Autowired(required = false)
@@ -124,7 +126,7 @@ public class AdminServiceImpl implements AdminService {
         response.setRecentOrders(loadRecentUserOrders(userId));
 
         if (user.getUserType() != null && user.getUserType() == 1) {
-            response.setAttendantProfile(attendantMapper.findByUserId(userId));
+            response.setAttendantProfile(applyRatingSummary(attendantMapper.findByUserId(userId)));
             response.setQualification(attendantQualificationMapper.findByUserId(userId));
         }
         return response;
@@ -154,6 +156,7 @@ public class AdminServiceImpl implements AdminService {
 
         List<AdminAttendantListItemResponse> items = new ArrayList<>();
         for (Attendant attendant : attendants) {
+            applyRatingSummary(attendant);
             AdminAttendantListItemResponse item = new AdminAttendantListItemResponse();
             item.setId(attendant.getUserId());
             item.setName(attendant.getName());
@@ -162,6 +165,8 @@ public class AdminServiceImpl implements AdminService {
             item.setProfessionalField(attendant.getProfessionalField());
             item.setExperienceYears(attendant.getExperienceYears());
             item.setScore(attendant.getScore() == null ? null : BigDecimal.valueOf(attendant.getScore()));
+            item.setEvaluationCount(attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
+            item.setPraiseRate(attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
             item.setStatus(attendant.getStatus());
             item.setStatusLabel(mapAttendantStatus(attendant.getStatus()));
             item.setUserStatus(attendant.getUserStatus());
@@ -187,7 +192,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminAttendantDetailResponse getAttendantDetail(Integer operatorId, Integer userId) {
         User user = requireUser(userId);
-        Attendant attendant = attendantMapper.findByUserId(userId);
+        Attendant attendant = applyRatingSummary(attendantMapper.findByUserId(userId));
         if (attendant == null) {
             throw new IllegalArgumentException("陪诊师不存在");
         }
@@ -690,6 +695,25 @@ public class AdminServiceImpl implements AdminService {
     private Attendant activeAttendantStub() {
         Attendant attendant = new Attendant();
         attendant.setStatus(1);
+        return attendant;
+    }
+
+    private Attendant applyRatingSummary(Attendant attendant) {
+        if (attendant == null || attendant.getUserId() == null) {
+            return attendant;
+        }
+        Integer totalEvalCount = orderEvaluationMapper.countByAttendantId(attendant.getUserId());
+        int evaluationCount = totalEvalCount == null ? 0 : totalEvalCount;
+        attendant.setEvaluationCount(evaluationCount);
+        if (evaluationCount <= 0) {
+            attendant.setScore(null);
+            attendant.setPraiseRate(0);
+            return attendant;
+        }
+        BigDecimal score = orderEvaluationMapper.averageRatingByAttendantId(attendant.getUserId());
+        Integer goodEvalCount = orderEvaluationMapper.countGoodByAttendantId(attendant.getUserId(), 4);
+        attendant.setScore(score == null ? null : score.setScale(1, RoundingMode.HALF_UP));
+        attendant.setPraiseRate((int) Math.round((goodEvalCount == null ? 0 : goodEvalCount) * 100.0 / evaluationCount));
         return attendant;
     }
 

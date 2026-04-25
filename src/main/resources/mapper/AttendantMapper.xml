@@ -60,7 +60,11 @@
         LEFT JOIN `order` o ON o.attendant_id = a.user_id
         WHERE a.status = 1
         GROUP BY a.user_id
-        ORDER BY service_count DESC, a.score DESC, a.experience_years DESC, a.update_time DESC
+        ORDER BY
+            service_count DESC,
+            (SELECT COALESCE(AVG(oe.rating), 0) FROM order_evaluation oe WHERE oe.attendant_id = a.user_id) DESC,
+            a.experience_years DESC,
+            a.update_time DESC
         LIMIT 10
     </select>
 
@@ -86,7 +90,7 @@
             a.create_time, a.update_time,
             u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
         ORDER BY
-            a.score DESC,
+            (SELECT COALESCE(AVG(oe.rating), 0) FROM order_evaluation oe WHERE oe.attendant_id = a.user_id) DESC,
             service_count DESC,
             a.experience_years DESC,
             a.update_time DESC

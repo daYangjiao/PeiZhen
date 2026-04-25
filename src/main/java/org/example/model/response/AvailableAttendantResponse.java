@@ -34,6 +34,12 @@ public class AvailableAttendantResponse {
     
     @ApiModelProperty(value = "评分", example = "4.8")
     private Double score;
+
+    @ApiModelProperty(value = "评价总数", example = "36")
+    private Integer evaluationCount;
+
+    @ApiModelProperty(value = "好评率", example = "97")
+    private Integer praiseRate;
     
     @ApiModelProperty(value = "所属医院", example = "人民医院")
     private String hospital;

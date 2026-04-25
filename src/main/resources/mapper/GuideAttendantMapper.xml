@@ -54,7 +54,10 @@
                 AND a.hospital_name LIKE CONCAT('%', #{hospitalName}, '%')
             </if>
         </where>
-        ORDER BY a.score DESC, a.experience_years DESC, a.update_time DESC
+        ORDER BY
+            (SELECT COALESCE(AVG(oe.rating), 0) FROM order_evaluation oe WHERE oe.attendant_id = a.user_id) DESC,
+            a.experience_years DESC,
+            a.update_time DESC
     </select>
 
     <select id="selectAttendantsByTags" resultMap="GuideAttendantResultMap">
@@ -69,7 +72,10 @@
                 )
             </if>
         </where>
-        ORDER BY a.score DESC, a.experience_years DESC, a.update_time DESC
+        ORDER BY
+            (SELECT COALESCE(AVG(oe.rating), 0) FROM order_evaluation oe WHERE oe.attendant_id = a.user_id) DESC,
+            a.experience_years DESC,
+            a.update_time DESC
     </select>
 
     <select id="selectById" resultMap="GuideAttendantResultMap">

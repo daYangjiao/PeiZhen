@@ -126,7 +126,7 @@
         </view>
         <view class="rating">
           <text class="star">⭐</text>
-          <text class="score">{{ formatRatingScore(order.attendantScore) }}</text>
+          <text class="score">{{ formatRatingScore(order.attendantScore, order.attendantEvaluationCount) }}</text>
         </view>
       </view>
       <text class="companion-entry-arrow">›</text>

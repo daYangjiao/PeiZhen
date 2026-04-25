@@ -290,6 +290,8 @@ public class AiGuideServiceImpl implements AiGuideService {
                 if (attendant.getScore() != null) {
                     response.setAttendantScore(BigDecimal.valueOf(attendant.getScore()));
                 }
+                response.setAttendantEvaluationCount(attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
+                response.setAttendantPraiseRate(attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
                 response.setProfessionalField(attendant.getProfessionalField());
                 response.setExperienceYears(attendant.getExperienceYears());
             }
@@ -423,7 +425,9 @@ public class AiGuideServiceImpl implements AiGuideService {
                 info.setId(user.getId());
                 info.setName(user.getName());
                 info.setPhoto(user.getAvatar());
-                info.setScore(att.getScore() != null ? att.getScore().doubleValue() : 0.0);
+                info.setScore(att.getScore());
+                info.setEvaluationCount(att.getEvaluationCount() == null ? 0 : att.getEvaluationCount());
+                info.setPraiseRate(att.getPraiseRate() == null ? 0 : att.getPraiseRate());
                 info.setExperienceYears(att.getExperienceYears());
                 info.setProfessionalField(att.getProfessionalField());
                 attendants.add(info);

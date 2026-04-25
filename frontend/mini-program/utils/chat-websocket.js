@@ -1,4 +1,5 @@
 import { config, getToken } from './api.js'
+import { useMessageStore } from '@/stores/message.js'
 
 let socketTask = null
 let reconnectTimer = null
@@ -62,6 +63,13 @@ export const connectChatSocket = () => {
   socketTask.onMessage((res) => {
     try {
       const message = JSON.parse(res.data)
+      try {
+        const messageStore = useMessageStore()
+        messageStore.applyRealtimeUnreadFromMessage(message)
+        messageStore.scheduleRefreshUnreadCounts(600)
+      } catch (e) {
+        console.warn('实时未读状态更新失败', e)
+      }
       listeners.forEach((listener) => listener(message))
       uni.$emit('chat:message', message)
       uni.$emit('websocket:message', { type: 'new_message', data: message })

@@ -3,6 +3,7 @@ package org.example.service.impl;
 import org.example.dao.AttendantMapper;
 import org.example.dao.AttendantQualificationAuditLogMapper;
 import org.example.dao.AttendantQualificationMapper;
+import org.example.dao.OrderEvaluationMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.SysAdminMapper;
 import org.example.dao.UserMapper;
@@ -51,11 +52,18 @@ class AdminServiceImplTest {
     @Mock
     private OrderMapper orderMapper;
     @Mock
+    private OrderEvaluationMapper orderEvaluationMapper;
+    @Mock
     private OrderService orderService;
+
+    private AdminServiceImpl newService() {
+        return new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper,
+                sysAdminMapper, orderMapper, orderEvaluationMapper, orderService);
+    }
 
     @Test
     void getAttendantsShouldIncludeQualificationCompleteness() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         Attendant attendant = new Attendant();
         attendant.setUserId(101);
@@ -75,16 +83,44 @@ class AdminServiceImplTest {
         when(attendantMapper.countAdminAttendants(null, null)).thenReturn(1);
         when(attendantMapper.findAdminAttendants(null, null, 0, 10)).thenReturn(List.of(attendant));
         when(attendantQualificationMapper.findByUserId(101)).thenReturn(qualification);
+        when(orderEvaluationMapper.countByAttendantId(101)).thenReturn(3);
+        when(orderEvaluationMapper.countGoodByAttendantId(101, 4)).thenReturn(2);
+        when(orderEvaluationMapper.averageRatingByAttendantId(101)).thenReturn(new BigDecimal("4.0"));
 
         PagedResponse<AdminAttendantListItemResponse> response = service.getAttendants(null, null, 0, 10);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getQualificationCompleteness()).isEqualTo(33);
+        assertThat(response.getContent().get(0).getScore()).isEqualByComparingTo("4.0");
+        assertThat(response.getContent().get(0).getEvaluationCount()).isEqualTo(3);
+        assertThat(response.getContent().get(0).getPraiseRate()).isEqualTo(67);
+    }
+
+    @Test
+    void getAttendantsShouldHideScoreWhenNoEvaluations() {
+        AdminServiceImpl service = newService();
+
+        Attendant attendant = new Attendant();
+        attendant.setUserId(102);
+        attendant.setName("陪诊师B");
+        attendant.setStatus(1);
+        attendant.setScore(new BigDecimal("5.0"));
+
+        when(attendantMapper.countAdminAttendants(null, null)).thenReturn(1);
+        when(attendantMapper.findAdminAttendants(null, null, 0, 10)).thenReturn(List.of(attendant));
+        when(orderEvaluationMapper.countByAttendantId(102)).thenReturn(0);
+
+        PagedResponse<AdminAttendantListItemResponse> response = service.getAttendants(null, null, 0, 10);
+
+        AdminAttendantListItemResponse item = response.getContent().get(0);
+        assertThat(item.getScore()).isNull();
+        assertThat(item.getEvaluationCount()).isZero();
+        assertThat(item.getPraiseRate()).isZero();
     }
 
     @Test
     void getNextPendingAttendantShouldReturnNullWhenNoPendingRecord() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
         when(attendantMapper.findNextPendingUserId(null)).thenReturn(null);
 
         AdminAttendantDetailResponse response = service.getNextPendingAttendant(1, null);
@@ -94,7 +130,7 @@ class AdminServiceImplTest {
 
     @Test
     void reviewAttendantQualificationShouldRejectUnsupportedAction() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         User user = new User();
         user.setId(201);
@@ -113,7 +149,7 @@ class AdminServiceImplTest {
 
     @Test
     void getUsersShouldIncludeCompletedOrderCountAndAttendantAuditFields() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         User user = new User();
         user.setId(301);
@@ -157,7 +193,7 @@ class AdminServiceImplTest {
 
     @Test
     void getOrdersShouldIncludeExtendedOrderFields() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         Order order = new Order();
         order.setOrderId(401);
@@ -221,7 +257,7 @@ class AdminServiceImplTest {
 
     @Test
     void reviewAttendantQualificationShouldRejectIncompleteQualificationBeforeApprove() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         User user = new User();
         user.setId(701);
@@ -243,7 +279,7 @@ class AdminServiceImplTest {
 
     @Test
     void reviewAttendantQualificationShouldWriteAdminAuditLog() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
 
         User user = new User();
         user.setId(702);
@@ -279,7 +315,7 @@ class AdminServiceImplTest {
 
     @Test
     void getAttendantQualificationLogsShouldHideOperatorForNormalAdmin() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
         SysAdmin admin = new SysAdmin();
         admin.setId(3);
         admin.setRole("ADMIN");
@@ -302,7 +338,7 @@ class AdminServiceImplTest {
 
     @Test
     void resolveDisputeShouldEnterBalancePaymentWhenFinalAmountGreaterThanPaid() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
         Order order = new Order();
         order.setOrderId(801);
         order.setOrderNo("ORD-801");
@@ -334,7 +370,7 @@ class AdminServiceImplTest {
 
     @Test
     void resolveDisputeShouldCompleteAndRefundWhenFinalAmountLowerThanPaid() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        AdminServiceImpl service = newService();
         Order order = new Order();
         order.setOrderId(802);
         order.setOrderNo("ORD-802");

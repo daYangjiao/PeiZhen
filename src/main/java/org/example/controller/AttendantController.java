@@ -802,6 +802,8 @@ public class AttendantController {
                     map.put("avatar", user.getAvatar());
                     map.put("professionalField", attendant.getProfessionalField());
                     map.put("score", attendant.getScore());
+                    map.put("evaluationCount", attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
+                    map.put("praiseRate", attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
                     map.put("experienceYears", attendant.getExperienceYears());
                     map.put("serviceCount", attendant.getServiceCount() == null ? 0 : attendant.getServiceCount());
                     result.add(map);

@@ -85,7 +85,15 @@
               <text class="companion-specialty">{{ companion.professionalField }}</text>
               <text class="companion-experience">{{ companion.experienceYears }}年经验</text>
               <view class="rating-section">
-                <text class="rating">★ {{ companion.score }}</text>
+                <view class="rating-stars">
+                  <text
+                    v-for="(state, starIndex) in companion.ratingStarStates"
+                    :key="starIndex"
+                    class="rating-star"
+                    :class="state"
+                  >★</text>
+                </view>
+                <text class="rating">{{ companion.scoreLabel }}</text>
                 <text class="service-count">{{ publicSafeMode ? '人物示例展示' : `已服务 ${companion.serviceCount || 0} 人次` }}</text>
               </view>
               <view v-if="showAvatarDiagnostics" class="avatar-diagnostic-card">
@@ -135,7 +143,7 @@ import { getLocalFirstImageUrl } from '@/utils/api.js'
 import { appointmentServiceLogos, brandLogo, ren1, wujiaoxin, xin, yvyue2 } from '@/utils/assets.js'
 import { navigateToAttendantDetail } from '@/utils/attendant-detail.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
-import { formatRatingScore } from '@/utils/rating.js'
+import { formatRatingScore, getRatingStarStates } from '@/utils/rating.js'
 import { PUBLIC_SAFE_LANDING_URL, PUBLIC_SAFE_NOTICE, isPublicSafeMode, showPublicSafeNotice } from '@/utils/site-mode.js'
 
 const publicSafeMode = isPublicSafeMode()
@@ -427,9 +435,12 @@ const runCompanionAvatarDiagnostics = async (companion) => {
 }
 
 const decorateCompanion = async (companion = {}) => {
+  const evaluationCount = Number(companion.evaluationCount || 0)
   const normalized = {
     ...companion,
-    score: formatRatingScore(companion.score),
+    evaluationCount,
+    scoreLabel: formatRatingScore(companion.score, evaluationCount),
+    ratingStarStates: getRatingStarStates(companion.score, evaluationCount),
     displayAvatar: resolveAvatarUrl(companion.avatar, defaultCompanionAvatar),
     avatarDiagnostic: {
       rawAvatar: companion.avatar || '',
@@ -828,6 +839,25 @@ if (typeof uni.onWindowResize === 'function') {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+.rating-stars {
+  display: flex;
+  gap: 2rpx;
+  margin-bottom: 3rpx;
+}
+.rating-star {
+  font-size: 20rpx;
+  line-height: 1;
+  color: #d7e0ec;
+}
+.rating-star.full {
+  color: #ffb200;
+}
+.rating-star.half {
+  color: transparent;
+  background: linear-gradient(90deg, #ffb200 50%, #d7e0ec 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 .rating {
   font-size: 20rpx;

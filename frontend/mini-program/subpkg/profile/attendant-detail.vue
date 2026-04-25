@@ -18,7 +18,12 @@
         <text class="hero-name">{{ profile.name || '陪诊师' }}</text>
         <view class="rating-row">
           <view class="stars">
-            <text v-for="n in 5" :key="n" class="star" :class="{ active: n <= roundedScore }">★</text>
+            <text
+              v-for="(state, index) in ratingStarStates"
+              :key="index"
+              class="star"
+              :class="state"
+            >★</text>
           </view>
           <text class="rating-score">{{ displayScore }}</text>
           <text class="rating-count" v-if="profile.evaluationCount">（{{ profile.evaluationCount }}条评价）</text>
@@ -37,7 +42,7 @@
           <text class="stat-label">已完成订单</text>
         </view>
         <view class="stat-item">
-          <text class="stat-value">{{ profile.praiseRate || 0 }}%</text>
+          <text class="stat-value">{{ displayPraiseRate }}</text>
           <text class="stat-label">好评率</text>
         </view>
         <view class="stat-item">
@@ -161,7 +166,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { getAttendantById, getAttendantPublicReviews } from '@/api/attendant.js'
 import { defaultAvatar } from '@/utils/assets.js'
 import { resolveAvatarUrl, resolveImageUrl } from '@/utils/media.js'
-import { formatRatingScore, getRatingStarCount } from '@/utils/rating.js'
+import { formatPraiseRate, formatRatingScore, getRatingStarStates } from '@/utils/rating.js'
 import { getQualificationImageFields, getQualificationPreviewUrls, normalizeQualificationStatus } from '@/utils/qualification.mjs'
 
 const loading = ref(true)
@@ -173,8 +178,9 @@ const reviewList = ref([])
 const defaultIntroduction = '该陪诊师已完成实名认证与资料补充，可提供院内陪诊、就诊流程协助与基础沟通支持。'
 
 const avatarUrl = computed(() => resolveAvatarUrl(profile.value.avatarUrl || '', defaultAvatar))
-const roundedScore = computed(() => getRatingStarCount(profile.value.score))
-const displayScore = computed(() => formatRatingScore(profile.value.score))
+const ratingStarStates = computed(() => getRatingStarStates(profile.value.score, profile.value.evaluationCount))
+const displayScore = computed(() => formatRatingScore(profile.value.score, profile.value.evaluationCount))
+const displayPraiseRate = computed(() => formatPraiseRate(profile.value.praiseRate, profile.value.evaluationCount))
 
 const specialtyTags = computed(() => {
   const raw = String(profile.value.professionalField || '')
@@ -224,7 +230,7 @@ const getReviewerInitial = (name = '') => {
 
 const normalizeProfile = (payload = {}) => ({
   ...normalizeQualificationStatus(payload),
-  score: Number(payload.score || 0),
+  score: payload.score === null || payload.score === undefined || payload.score === '' ? null : Number(payload.score),
   experienceYears: Number(payload.experienceYears || 0),
   todayService: Number(payload.todayService || 0),
   monthService: Number(payload.monthService || 0),
@@ -400,9 +406,16 @@ onLoad((options = {}) => {
   font-size: 28rpx;
 }
 
-.star.active,
+.star.full,
 .review-star.active {
   color: #ffb200;
+}
+
+.star.half {
+  color: transparent;
+  background: linear-gradient(90deg, #ffb200 50%, #d7e0ec 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .rating-score,

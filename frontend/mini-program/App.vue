@@ -29,7 +29,6 @@ const bindGlobalMessageSync = () => {
   uni.$on('chat:message', (message) => {
     if (!message) return
     if (String(message.type || '') === 'READ_RECEIPT' || Number(message.msgType || 0) === 99) return
-    messageStore.applyRealtimeUnreadFromMessage(message)
     refresh()
   })
 

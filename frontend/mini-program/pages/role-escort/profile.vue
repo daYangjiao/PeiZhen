@@ -90,6 +90,7 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 import { showCurrentVersionInfo } from '@/utils/app-version.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
+import { formatPraiseRate } from '@/utils/rating.js'
 import {
   escortRules,
   escortServiceCenter,
@@ -119,7 +120,7 @@ const dashboardCards = computed(() => [
   { key: 'todayService', label: '今日服务', value: `${todayService.value}` },
   { key: 'monthService', label: '本月服务', value: `${monthService.value}` },
   { key: 'totalIncome', label: '累计收入', value: `¥${formatAmount(totalIncome.value)}` },
-  { key: 'praiseRate', label: '好评率', value: `${praiseRate.value}%` }
+  { key: 'praiseRate', label: '好评率', value: formatPraiseRate(praiseRate.value, attendantInfo.value.evaluationCount) }
 ])
 
 const qualificationStatusType = computed(() => {

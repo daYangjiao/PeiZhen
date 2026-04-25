@@ -830,6 +830,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         payload.put("gender", item.getSex());
         payload.put("skills", item.getProfessionalField());
         payload.put("rating", item.getScore());
+        payload.put("evaluationCount", item.getEvaluationCount() == null ? 0 : item.getEvaluationCount());
+        payload.put("praiseRate", item.getPraiseRate() == null ? 0 : item.getPraiseRate());
         payload.put("completedOrders", item.getServiceCount() == null ? 0 : item.getServiceCount());
         payload.put("experienceYears", item.getExperienceYears());
         payload.put("introduction", item.getIntroduction());
@@ -857,6 +859,8 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         vo.setAttendantPhone(candidate.getPhone());
         vo.setSpecialty(candidate.getProfessionalField());
         vo.setScore(candidate.getScore());
+        vo.setEvaluationCount(candidate.getEvaluationCount() == null ? 0 : candidate.getEvaluationCount());
+        vo.setPraiseRate(candidate.getPraiseRate() == null ? 0 : candidate.getPraiseRate());
         vo.setExperience(candidate.getExperienceYears() == null ? "经验待完善" : candidate.getExperienceYears() + "年经验");
         vo.setExperienceYears(candidate.getExperienceYears());
         vo.setProfessionalField(candidate.getProfessionalField());

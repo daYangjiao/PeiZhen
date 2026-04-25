@@ -88,6 +88,12 @@ public class CompleteOrderInfoResponse {
     
     @ApiModelProperty(value = "陪诊师评分", example = "4.8")
     private BigDecimal attendantScore;
+
+    @ApiModelProperty(value = "陪诊师评价总数", example = "36")
+    private Integer attendantEvaluationCount;
+
+    @ApiModelProperty(value = "陪诊师好评率", example = "97")
+    private Integer attendantPraiseRate;
     
     @ApiModelProperty(value = "陪诊师专业领域", example = "儿科")
     private String professionalField;

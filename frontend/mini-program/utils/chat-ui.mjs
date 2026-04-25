@@ -3,12 +3,12 @@ export const buildChatHeaderMeta = ({ role = '' } = {}) => {
   if (normalizedRole === 'escort') {
     return {
       peerLabel: '用户',
-      subtitle: '服务沟通',
+      subtitle: '',
     }
   }
 
   return {
     peerLabel: '陪诊师',
-    subtitle: '陪诊沟通',
+    subtitle: '',
   }
 }

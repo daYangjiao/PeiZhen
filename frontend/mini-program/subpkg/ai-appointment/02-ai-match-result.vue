@@ -66,7 +66,7 @@
           </view>
 
           <view class="stats-row">
-            <text class="stat">评分 {{ formatScore(item.score) }}</text>
+            <text class="stat">评分 {{ formatScore(item.score, item.evaluationCount) }}</text>
             <text class="stat">{{ item.experienceYears || 0 }}年经验</text>
             <text class="stat">已服务 {{ item.completedOrders || 0 }} 单</text>
           </view>
