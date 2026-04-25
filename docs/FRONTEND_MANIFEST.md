@@ -88,5 +88,8 @@
 
 ## 维护规则
 
+- 本文件是可推送的前端页面和管理端路由清单；真实账号、密码、服务器连接信息不写入本文档。
+- 小程序页面数量按 `frontend/mini-program/pages.json` 中主包 `pages` 与 `subPackages[].pages` 合计统计。
+- 管理端路由页面数量按 `frontend/admin/src/router/index.js` 中实际页面组件路由统计，`/` 重定向不计入页面数量。
 - 修改 `pages.json`、新增/删除小程序页面、改变核心跳转或接口时，必须同步更新“小程序端页面”。
 - 修改 `frontend/admin/src/router/index.js`、`admin-api.js` 或管理端页面核心操作时，必须同步更新“管理端页面”。

@@ -19,6 +19,7 @@
 | `database/ai_appointment_persistence.sql` | AI 预约导诊持久化相关增量 |
 | `database/ai_medical_qa_user_history.sql` | AI 医疗问答用户历史增量 |
 | `database/chat_message_add_order_id.sql` | 聊天消息关联订单增量 |
+| `database/sys_admin_role.sql` | 历史管理员角色字段增量；当前完整基线和后续自动部署脚本已包含同等语义 |
 | `database/student.sql` | 当前完整建表和演示数据基线 |
 | `db/20260424_attendant_qualification_audit_gate.sql` | 陪诊师资质有效期、审核日志和 18650680037 超级管理员回填；列新增采用幂等检查，重复执行不应中断部署 |
 | `db/20260424_admin_operation_log_and_order_balance.sql` | 全局后台操作日志表；订单状态 5/9 争议与补差额语义同步 |
@@ -57,6 +58,8 @@
 
 ## 维护检查
 
+- `database/` 保留历史增量和完整初始化基线；新数据库变更优先写入 `db/YYYYMMDD_descriptive_name.sql`。
+- `SECRET_VAULT.md` 是唯一允许留在本地且不推送的密码/连接信息文件。
 - 新增表时：补充用途、关键字段、与现有表关系。
 - 新增列时：在对应表关键字段中补充；如果影响接口返回，也同步更新 `docs/BACKEND_MANIFEST.md`。
 - 数据库变更影响前端页面展示或表单时，同步更新 `docs/FRONTEND_MANIFEST.md`。
