@@ -8,6 +8,31 @@
           <text class="hero-desc">身份证需上传正反面，其他证件单独上传</text>
         </view>
       </view>
+
+      <view class="expire-form">
+        <view class="expire-row">
+          <view>
+            <text class="expire-label">执业证书有效期</text>
+            <text class="expire-desc">到期后需要重新提交审核</text>
+          </view>
+          <picker mode="date" :value="practiceCertExpireDate" @change="onExpireDateChange('practiceCert', $event)">
+            <view class="date-picker" :class="{ empty: !practiceCertExpireDate }">
+              {{ practiceCertExpireDate || '选择日期' }}
+            </view>
+          </picker>
+        </view>
+        <view class="expire-row">
+          <view>
+            <text class="expire-label">健康证有效期</text>
+            <text class="expire-desc">健康证必须在有效期内</text>
+          </view>
+          <picker mode="date" :value="healthCertExpireDate" @change="onExpireDateChange('healthCert', $event)">
+            <view class="date-picker" :class="{ empty: !healthCertExpireDate }">
+              {{ healthCertExpireDate || '选择日期' }}
+            </view>
+          </picker>
+        </view>
+      </view>
     </view>
 
     <view class="card slide-up delay-1">
@@ -122,6 +147,8 @@ const { attendantInfo } = storeToRefs(userStore)
 
 const focusType = ref('')
 const saving = ref(false)
+const practiceCertExpireDate = ref('')
+const healthCertExpireDate = ref('')
 
 const userId = () => {
   const userInfo = uni.getStorageSync('userInfo')
@@ -142,6 +169,8 @@ const loadProfile = async () => {
   const uid = userId()
   if (!uid) return
   await userStore.fetchAttendantProfile(uid)
+  practiceCertExpireDate.value = attendantInfo.value.practiceCertExpireDate || ''
+  healthCertExpireDate.value = attendantInfo.value.healthCertExpireDate || ''
 }
 
 const previewImage = (url) => {
@@ -186,9 +215,11 @@ const uploadByKey = (key) => {
         } else if (key === 'practiceCert') {
           payload.practiceCertFileUrl = fileUrl
           payload.practiceCertUploaded = 1
+          if (practiceCertExpireDate.value) payload.practiceCertExpireDate = practiceCertExpireDate.value
         } else if (key === 'healthCert') {
           payload.healthCertFileUrl = fileUrl
           payload.healthCertUploaded = 1
+          if (healthCertExpireDate.value) payload.healthCertExpireDate = healthCertExpireDate.value
         }
 
         await put(`/attendant/qualification/${uid}`, payload)
@@ -201,6 +232,32 @@ const uploadByKey = (key) => {
       }
     }
   })
+}
+
+const onExpireDateChange = async (type, event) => {
+  const value = event?.detail?.value || ''
+  if (!value || saving.value) return
+  if (type === 'practiceCert') practiceCertExpireDate.value = value
+  else healthCertExpireDate.value = value
+
+  const uid = userId()
+  if (!uid) {
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
+  }
+  saving.value = true
+  try {
+    const payload = {}
+    if (type === 'practiceCert') payload.practiceCertExpireDate = value
+    else payload.healthCertExpireDate = value
+    await put(`/attendant/qualification/${uid}`, payload)
+    await userStore.fetchAttendantProfile(uid)
+    uni.showToast({ title: '有效期已保存', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: error?.message || '保存失败', icon: 'none' })
+  } finally {
+    saving.value = false
+  }
 }
 
 const onCertCardTap = (key, url) => {
@@ -363,6 +420,57 @@ onMounted(loadProfile)
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14rpx;
+}
+
+.expire-form {
+  margin-top: 24rpx;
+  display: grid;
+  gap: 16rpx;
+}
+
+.expire-row {
+  min-height: 88rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #e5eefb;
+  border-radius: 24rpx;
+  background: #f8fbff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.expire-label {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.expire-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #8a97aa;
+}
+
+.date-picker {
+  min-width: 190rpx;
+  height: 64rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 1rpx solid #d8e6f5;
+  color: #1f2937;
+  font-size: 25rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker.empty {
+  color: $escort-color-primary;
+  font-weight: 700;
 }
 
 .cert-slot {

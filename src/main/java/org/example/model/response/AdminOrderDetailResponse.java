@@ -12,4 +12,10 @@ public class AdminOrderDetailResponse {
     private User user;
 
     private User attendant;
+
+    private String disputeResolverName;
+
+    private String disputeResolverPhoneMasked;
+
+    private String disputeResolverRole;
 }

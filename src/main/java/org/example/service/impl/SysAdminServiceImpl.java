@@ -8,6 +8,7 @@ import org.example.model.response.AdminLoginResponse;
 import org.example.model.response.PagedResponse;
 import org.example.service.SysAdminService;
 import org.example.unity.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,9 @@ public class SysAdminServiceImpl implements SysAdminService {
     private final SysAdminMapper sysAdminMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+
+    @Autowired(required = false)
+    private AdminOperationLogService operationLogService;
 
     @Override
     @Transactional
@@ -105,7 +109,9 @@ public class SysAdminServiceImpl implements SysAdminService {
         admin.setStatus(1);
         admin.setRole(normalizeCreateRole(request.getRole()));
         sysAdminMapper.insert(admin);
-        return sysAdminMapper.findById(admin.getId());
+        SysAdmin persisted = sysAdminMapper.findById(admin.getId());
+        recordOperation(operatorId, "CREATE_ADMIN", persisted, null, persisted == null ? null : persisted.getStatus(), "创建管理员账号");
+        return persisted;
     }
 
     @Override
@@ -131,6 +137,7 @@ public class SysAdminServiceImpl implements SysAdminService {
         patch.setId(adminId);
         patch.setStatus(status);
         sysAdminMapper.update(patch);
+        recordOperation(operatorId, status == 1 ? "ENABLE_ADMIN" : "DISABLE_ADMIN", current, current.getStatus(), status, null);
     }
 
     @Override
@@ -147,6 +154,7 @@ public class SysAdminServiceImpl implements SysAdminService {
             throw new IllegalArgumentException("至少保留一个启用状态的超级管理员");
         }
         sysAdminMapper.deleteById(adminId);
+        recordOperation(operatorId, "DELETE_ADMIN", current, current.getStatus(), null, "删除管理员账号");
     }
 
     @Override
@@ -208,5 +216,30 @@ public class SysAdminServiceImpl implements SysAdminService {
             return normalized;
         }
         throw new IllegalArgumentException("账号类型不合法");
+    }
+
+    private void recordOperation(Integer operatorId, String action, SysAdmin target, Integer fromStatus, Integer toStatus, String remark) {
+        if (operationLogService == null || target == null) {
+            return;
+        }
+        operationLogService.record(
+                operatorId,
+                "ADMIN_ACCOUNT",
+                action,
+                "SYS_ADMIN",
+                target.getId(),
+                target.getName(),
+                fromStatus,
+                toStatus,
+                remark,
+                "{\"phone\":\"" + escapeJson(target.getPhone()) + "\",\"role\":\"" + escapeJson(target.getRole()) + "\"}"
+        );
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

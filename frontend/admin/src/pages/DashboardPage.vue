@@ -31,6 +31,7 @@
           <StatCard label="订单总量" :value="dashboard.totalOrders" hint="订单" badge="订单" tone="neutral" />
           <StatCard label="今日订单" :value="dashboard.todayOrders" hint="今日" badge="今日" tone="success" />
           <StatCard label="争议订单" :value="dashboard.disputeOrders" hint="争议" badge="争议" tone="danger" />
+          <StatCard v-if="dashboard.recentOperationLogs?.length" label="今日处理" :value="dashboard.todayOperationCount" hint="后台操作" badge="日志" tone="neutral" />
         </section>
 
         <section class="quick-entry-grid">
@@ -45,6 +46,22 @@
             <p class="quick-entry-count">{{ entry.count }}</p>
             <p class="quick-entry-copy">{{ entry.copy }}</p>
           </button>
+        </section>
+
+        <section v-if="dashboard.recentOperationLogs?.length" class="panel-card recent-orders">
+          <div class="section-heading">
+            <h3 class="section-title">最近操作</h3>
+            <button class="button button-secondary" type="button" @click="jumpTo({ name: 'logs' })">查看日志</button>
+          </div>
+          <div class="operation-log-list">
+            <div v-for="log in dashboard.recentOperationLogs" :key="log.id" class="operation-log-item">
+              <div>
+                <p class="table-cell-title">{{ mapLogAction(log.action) }}</p>
+                <p class="table-cell-copy">{{ log.targetLabel || '-' }} · {{ formatDateTime(log.createTime) }}</p>
+              </div>
+              <span class="badge badge-blue">{{ mapLogModule(log.module) }}</span>
+            </div>
+          </div>
         </section>
 
         <section class="panel-card recent-orders">
@@ -120,7 +137,10 @@ const dashboard = reactive({
   totalOrders: 0,
   todayOrders: 0,
   disputeOrders: 0,
-  recentOrders: []
+  pendingDisputeOrders: 0,
+  todayOperationCount: 0,
+  recentOrders: [],
+  recentOperationLogs: []
 })
 
 const loading = ref(true)
@@ -154,6 +174,28 @@ const quickEntries = computed(() => ([
 const jumpTo = (route) => {
   router.push(route)
 }
+
+const mapLogModule = (module) => ({
+  USER: '用户',
+  ATTENDANT: '陪诊师',
+  ORDER: '订单',
+  ADMIN_ACCOUNT: '管理员'
+})[module] || module || '-'
+
+const mapLogAction = (action) => ({
+  ENABLE_USER: '启用用户',
+  DISABLE_USER: '禁用用户',
+  APPROVE: '通过审核',
+  REJECT: '驳回审核',
+  BAN: '封禁',
+  RESTORE: '恢复',
+  CANCEL_ORDER: '取消订单',
+  RESOLVE_DISPUTE: '处理争议',
+  CREATE_ADMIN: '创建管理员',
+  ENABLE_ADMIN: '启用管理员',
+  DISABLE_ADMIN: '禁用管理员',
+  DELETE_ADMIN: '删除管理员'
+})[action] || action || '-'
 
 const loadDashboard = async () => {
   const isFirstLoad = loading.value
@@ -202,7 +244,7 @@ onMounted(loadDashboard)
 }
 
 .stats-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 10px;
 }
 
@@ -246,6 +288,22 @@ onMounted(loadDashboard)
   margin: 0;
   font-size: 0.78rem;
   color: #64748b;
+}
+
+.operation-log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.operation-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
 }
 
 .recent-orders {

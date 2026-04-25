@@ -1,9 +1,13 @@
 package org.example.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.dao.AttendantMapper;
+import org.example.dao.AttendantQualificationMapper;
 import org.example.dao.ChatMessageMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
+import org.example.model.Attendant;
+import org.example.model.AttendantQualification;
 import org.example.handler.ChatWebSocketHandler;
 import org.example.handler.OrderWebSocketHandler;
 import org.example.model.ChatMessage;
@@ -13,6 +17,7 @@ import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.OrderListResponse;
 import org.example.model.response.PagedResponse;
 import org.example.service.OrderService;
+import org.example.util.AttendantQualificationPolicy;
 import org.example.util.OrderTimeoutCloseUtils;
 import org.example.unity.ServiceFeeCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +41,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private AttendantMapper attendantMapper;
+
+    @Autowired
+    private AttendantQualificationMapper attendantQualificationMapper;
 
     @Autowired
     private ChatMessageMapper chatMessageMapper;
@@ -122,6 +133,12 @@ public class OrderServiceImpl implements OrderService {
         // 如果是普通用户类型，记录警告但允许接单（测试环境）
         if (attendantUser.getUserType() == 0) {
             log.warn("普通用户尝试接单，允许测试: ID={}, Name={}", attendantId, attendantUser.getName());
+        }
+
+        String qualificationBlockReason = resolveAcceptBlockReason(attendantId, attendantUser);
+        if (qualificationBlockReason != null) {
+            log.warn("接单失败：资质门禁未通过，用户ID: {}, 原因: {}", attendantId, qualificationBlockReason);
+            return qualificationBlockReason;
         }
 
         // 先检查订单是否已经被其他陪诊师接单
@@ -413,31 +430,49 @@ try {
 
     @Override
     @Transactional
-    public String userConfirmTimeAndFee(Integer orderId) {
+    public String userConfirmTimeAndFee(Integer orderId, Integer currentUserId) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
-        if (order == null) return "订单不存在";
+        if (order == null) {
+            throw new IllegalArgumentException("订单不存在");
+        }
+        ensureOrderOwner(order, currentUserId);
         if (order.getOrderStatus() == null || order.getOrderStatus() != 4) {
-            return "当前状态不允许确认时长费用";
+            throw new IllegalArgumentException("当前状态不允许确认时长费用");
         }
 
         BigDecimal originalAmount = order.getOrderAmount() != null ? order.getOrderAmount() : BigDecimal.ZERO;
         BigDecimal balance = order.getBalanceAmount() != null ? order.getBalanceAmount() : BigDecimal.ZERO;
         BigDecimal finalAmount = originalAmount.add(balance).setScale(2, RoundingMode.HALF_UP);
 
-        // 更新订单金额与状态
-        order.setOrderAmount(finalAmount);
-        if (balance.compareTo(BigDecimal.ZERO) < 0) {
-            // 退款场景：记录退款金额（正数）
-            order.setRefundAmount(balance.abs());
+        Order patch = new Order();
+        patch.setOrderId(orderId);
+        patch.setBalanceAmount(balance.setScale(2, RoundingMode.HALF_UP));
+        if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            patch.setOrderAmount(finalAmount);
+            patch.setOrderStatus(9);
+            orderMapper.updateByPrimaryKeySelective(patch);
+            order.setOrderAmount(finalAmount);
+            order.setOrderStatus(9);
+            order.setBalanceAmount(patch.getBalanceAmount());
+            sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，请完成差额支付。", order.getOrderId());
+            sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，等待用户支付差额。", order.getOrderId());
+            publishOrderEvent(order, "BALANCE_PAYMENT_REQUIRED", null, null, true, true);
+            return "确认成功，请支付差额";
         }
-        order.setOrderStatus(6);
-        orderMapper.updateByPrimaryKeySelective(order);
 
-        // 消息通知
+        patch.setOrderAmount(finalAmount);
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            patch.setRefundAmount(balance.abs().setScale(2, RoundingMode.HALF_UP));
+        }
+        patch.setOrderStatus(6);
+        orderMapper.updateByPrimaryKeySelective(patch);
+        order.setOrderAmount(finalAmount);
+        order.setRefundAmount(patch.getRefundAmount());
+        order.setOrderStatus(6);
+
         sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，订单已完成。", order.getOrderId());
         sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，订单已完成。", order.getOrderId());
 
-        // 通过 WebSocket 推送订单状态变更（方便前端实时刷新列表和详情）
         publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         return "确认成功，订单已完成";
@@ -445,25 +480,70 @@ try {
 
     @Override
     @Transactional
-    public String userDisputeTimeAndFee(Integer orderId, BigDecimal userDuration, String reason) {
+    public String userDisputeTimeAndFee(Integer orderId, Integer currentUserId, BigDecimal userDuration, String reason) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
-        if (order == null) return "订单不存在";
+        if (order == null) {
+            throw new IllegalArgumentException("订单不存在");
+        }
+        ensureOrderOwner(order, currentUserId);
         if (order.getOrderStatus() == null || order.getOrderStatus() != 4) {
-            return "当前状态不允许发起申诉";
+            throw new IllegalArgumentException("当前状态不允许发起申诉");
+        }
+        if (userDuration == null || userDuration.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("用户认可时长必须大于0");
+        }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("申诉原因不能为空");
         }
 
-        order.setTimeDisputeUserDuration(userDuration);
-        order.setTimeDisputeReason(reason);
-        order.setOrderStatus(5); // 时长费用有争议
-        orderMapper.updateByPrimaryKeySelective(order);
+        Order patch = new Order();
+        patch.setOrderId(orderId);
+        patch.setTimeDisputeUserDuration(userDuration.setScale(2, RoundingMode.HALF_UP));
+        patch.setTimeDisputeReason(reason.trim());
+        patch.setOrderStatus(5);
+        orderMapper.updateByPrimaryKeySelective(patch);
+        order.setTimeDisputeUserDuration(patch.getTimeDisputeUserDuration());
+        order.setTimeDisputeReason(patch.getTimeDisputeReason());
+        order.setOrderStatus(5);
 
         sendSystemMessage(order.getAttendantId(),
                 "用户对订单 " + order.getOrderNo() + " 的服务时长与费用提出异议，请关注平台处理结果。");
 
-        // WebSocket 推送争议状态，前端可实时更新为“时长费用有争议”
         publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
         return "申诉已提交，等待平台处理";
+    }
+
+    @Override
+    @Transactional
+    public String userPayBalance(Integer orderId, Integer currentUserId) {
+        Order order = orderMapper.selectByPrimaryKey(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("订单不存在");
+        }
+        ensureOrderOwner(order, currentUserId);
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 9) {
+            throw new IllegalArgumentException("当前状态不允许支付差额");
+        }
+        BigDecimal balance = order.getBalanceAmount() == null ? BigDecimal.ZERO : order.getBalanceAmount();
+        if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("当前订单无需支付差额");
+        }
+
+        Order patch = new Order();
+        patch.setOrderId(orderId);
+        patch.setOrderStatus(6);
+        patch.setPaymentStatus(1);
+        patch.setPaymentTime(new Date());
+        orderMapper.updateByPrimaryKeySelective(patch);
+        order.setOrderStatus(6);
+        order.setPaymentStatus(1);
+        order.setPaymentTime(patch.getPaymentTime());
+
+        sendSystemMessage(order.getUserId(), "差额支付成功，订单已完成。", order.getOrderId());
+        sendSystemMessage(order.getAttendantId(), "订单 " + order.getOrderNo() + " 的差额已支付，订单已完成。", order.getOrderId());
+        publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+        return "差额支付成功，订单已完成";
     }
 
     @Override
@@ -591,6 +671,12 @@ try {
         }
     }
 
+    private void ensureOrderOwner(Order order, Integer currentUserId) {
+        if (currentUserId == null || order == null || order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
+            throw new IllegalArgumentException("无权限操作该订单");
+        }
+    }
+
     // 辅助方法：发送系统消息（写入 DB 并 WebSocket 推送，用户端可实时收到未读提示）
     private void sendSystemMessage(Integer receiverId, String content, Integer orderId) {
         try {
@@ -668,6 +754,20 @@ try {
     }
 
     @Override
+    public PagedResponse<OrderListResponse> getWaitingOrdersForAttendant(Integer attendantId, OrderListQueryRequest queryRequest) {
+        User user = attendantId == null ? null : userMapper.findById(attendantId);
+        String qualificationBlockReason = resolveAcceptBlockReason(attendantId, user);
+        if (qualificationBlockReason != null) {
+            throw new IllegalArgumentException("资质审核通过后才能查看接单大厅");
+        }
+        if (queryRequest == null) {
+            queryRequest = new OrderListQueryRequest();
+        }
+        queryRequest.setOrderStatus(1);
+        return getUserOrdersWithPagination(null, queryRequest);
+    }
+
+    @Override
     public PagedResponse<OrderListResponse> getAllOrdersWithPagination(OrderListQueryRequest queryRequest) {
         int totalCount = orderMapper.countAllOrders(queryRequest);
         int page = queryRequest.getPage() != null ? queryRequest.getPage() : 0;
@@ -719,5 +819,21 @@ try {
             responses.add(res);
         }
         return responses;
+    }
+
+    private String resolveAcceptBlockReason(Integer attendantId, User attendantUser) {
+        Attendant attendant = attendantId == null ? null : attendantMapper.findByUserId(attendantId);
+        AttendantQualification qualification = attendantId == null ? null : attendantQualificationMapper.findByUserId(attendantId);
+        String blockReason = AttendantQualificationPolicy.acceptBlockReason(attendantUser, attendant, qualification);
+        if (blockReason == null || blockReason.isEmpty()) {
+            return null;
+        }
+        if (attendant != null && Integer.valueOf(0).equals(attendant.getStatus())) {
+            return "资质审核通过后才能接单";
+        }
+        if (blockReason.contains("已过期")) {
+            return blockReason.replace("请重新上传", "请更新资质后重新提交审核");
+        }
+        return blockReason;
     }
 }

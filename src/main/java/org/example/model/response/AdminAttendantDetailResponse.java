@@ -21,4 +21,6 @@ public class AdminAttendantDetailResponse {
     private Long completedOrderCount;
 
     private List<AdminOrderListItemResponse> recentOrders;
+
+    private List<AdminAttendantQualificationLogResponse> qualificationLogs;
 }

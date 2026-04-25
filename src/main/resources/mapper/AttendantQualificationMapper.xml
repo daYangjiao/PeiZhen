@@ -12,6 +12,8 @@
         <result column="id_card_back_file_url" property="idCardBackFileUrl"/>
         <result column="practice_cert_file_url" property="practiceCertFileUrl"/>
         <result column="health_cert_file_url" property="healthCertFileUrl"/>
+        <result column="practice_cert_expire_date" property="practiceCertExpireDate"/>
+        <result column="health_cert_expire_date" property="healthCertExpireDate"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -32,7 +34,9 @@
             id_card_front_file_url,
             id_card_back_file_url,
             practice_cert_file_url,
-            health_cert_file_url
+            health_cert_file_url,
+            practice_cert_expire_date,
+            health_cert_expire_date
         ) VALUES (
             #{userId},
             #{idCardUploaded},
@@ -42,7 +46,9 @@
             #{idCardFrontFileUrl},
             #{idCardBackFileUrl},
             #{practiceCertFileUrl},
-            #{healthCertFileUrl}
+            #{healthCertFileUrl},
+            #{practiceCertExpireDate},
+            #{healthCertExpireDate}
         )
     </insert>
 
@@ -57,6 +63,8 @@
             <if test="idCardBackFileUrl != null">id_card_back_file_url = #{idCardBackFileUrl},</if>
             <if test="practiceCertFileUrl != null">practice_cert_file_url = #{practiceCertFileUrl},</if>
             <if test="healthCertFileUrl != null">health_cert_file_url = #{healthCertFileUrl},</if>
+            <if test="practiceCertExpireDate != null">practice_cert_expire_date = #{practiceCertExpireDate},</if>
+            <if test="healthCertExpireDate != null">health_cert_expire_date = #{healthCertExpireDate},</if>
         </set>
         WHERE user_id = #{userId}
     </update>

@@ -31,7 +31,7 @@ export const getAttendantStatusBadge = (status) => {
 export const getOrderStatusBadge = (status) => {
   if (status === 6) return 'badge-green'
   if (status === 7) return 'badge-red'
-  if (status === 5) return 'badge-orange'
+  if (status === 5 || status === 9) return 'badge-orange'
   if (status === 0) return 'badge-gray'
   return 'badge-blue'
 }

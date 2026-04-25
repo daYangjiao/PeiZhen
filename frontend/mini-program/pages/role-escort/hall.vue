@@ -1,6 +1,6 @@
 <template>
 	<view class="page-wrap">
-		<view class="header">
+		<view v-if="!qualificationGate.checked || qualificationGate.allowed" class="header">
 			<view class="header-module">
 				<view class="top-row">
 					<view class="search-box">
@@ -25,7 +25,7 @@
 			</view>
 		</view>
 
-		<view v-if="showFilterPopup" class="filter-mask" @click="closeFilterPopup">
+		<view v-if="showFilterPopup && qualificationGate.allowed" class="filter-mask" @click="closeFilterPopup">
 			<view class="filter-popup" @click.stop>
 				<view class="filter-popup-title">筛选条件</view>
 				<view class="filter-row" @click="toggleExpand('service')">
@@ -89,7 +89,20 @@
 			</view>
 		</view>
 
+		<view v-if="qualificationGate.checked && !qualificationGate.allowed" class="qualification-block">
+			<view class="block-card" :class="`state-${qualificationGate.state}`">
+				<view class="block-icon">{{ qualificationGate.state === 'pending' ? '审' : '!' }}</view>
+				<text class="block-title">{{ qualificationGate.title }}</text>
+				<text class="block-desc">{{ qualificationGate.message }}</text>
+				<view class="block-actions">
+					<button v-if="qualificationGate.state !== 'pending' && qualificationGate.state !== 'blocked'" class="block-btn primary" @click="goQualification">去资质管理</button>
+					<button class="block-btn" @click="checkHallGate({ showPopup: false })">刷新状态</button>
+				</view>
+			</view>
+		</view>
+
 		<scroll-view
+			v-else
 			class="order-list"
 			scroll-y="true"
 			@scrolltolower="loadMore"
@@ -121,10 +134,31 @@
 			</view>
 		</scroll-view>
 
-		<exclusive-dispatch-popup />
-		<escort-bottom-bar active="hall" />
-	</view>
-</template>
+			<exclusive-dispatch-popup />
+			<escort-bottom-bar active="hall" />
+			<view v-if="acceptConfirm.visible" class="accept-modal-mask" @click="closeAcceptConfirm">
+				<view class="accept-modal" @click.stop>
+					<view class="accept-mark">接</view>
+					<view class="accept-title">确认接单</view>
+					<view class="accept-desc">接单后订单会进入你的服务列表，请确认服务时间和医院信息后再继续。</view>
+					<view class="accept-summary">
+						<view class="accept-summary-row">
+							<text>服务医院</text>
+							<text>{{ acceptConfirm.order?.hospital || '-' }}</text>
+						</view>
+						<view class="accept-summary-row">
+							<text>服务时间</text>
+							<text>{{ acceptConfirm.order?.displayServiceTime || formatServiceTimeSlot(acceptConfirm.order || {}) }}</text>
+						</view>
+					</view>
+					<view class="accept-actions">
+						<button class="accept-btn secondary" @click="closeAcceptConfirm">取消</button>
+						<button class="accept-btn primary" :disabled="Boolean(acceptingOrderId)" @click="confirmAcceptOrder">确认接单</button>
+					</view>
+				</view>
+			</view>
+		</view>
+	</template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -138,6 +172,7 @@ import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
+import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -149,6 +184,17 @@ const pageSize = 10
 const hasMore = ref(true)
 const showFilterPopup = ref(false)
 const acceptingOrderId = ref('')
+const acceptConfirm = ref({
+	visible: false,
+	order: null
+})
+const qualificationGate = ref({
+	checked: false,
+	allowed: false,
+	state: 'pending',
+	title: '资质审核中',
+	message: '平台正在审核你的入驻资料，审核通过后即可查看接单大厅。'
+})
 
 const serviceTypeOptions = [
 	{ label: '全部', value: null },
@@ -231,6 +277,7 @@ const formatOrderData = (raw) => {
 }
 
 const loadOrders = async ({ reset = false, silent = false } = {}) => {
+	if (!qualificationGate.value.allowed) return
 	if (isLoading.value) {
 		if (reset && silent) queuedSilentRefresh = true
 		return
@@ -314,10 +361,15 @@ const onRefresh = async () => {
 }
 
 const refreshOrders = () => {
+	if (!qualificationGate.value.allowed) {
+		checkHallGate({ showPopup: qualificationGate.value.state !== 'pending' })
+		return
+	}
 	if (isLoading.value || isRefreshing.value) return
 	onRefresh()
 }
 const loadMore = () => {
+	if (!qualificationGate.value.allowed) return
 	if (isRefreshing.value || isLoading.value || !hasMore.value) return
 	loadOrders({})
 }
@@ -356,6 +408,10 @@ const goToDetail = async (orderData) => {
 }
 
 const handleAccept = (actionData) => {
+	if (!qualificationGate.value.allowed) {
+		checkHallGate({ showPopup: qualificationGate.value.state !== 'pending' })
+		return
+	}
 	const order = actionData.data || actionData
 	const currentOrderId = order.orderId || order.id
 	if (!currentOrderId) {
@@ -367,42 +423,74 @@ const handleAccept = (actionData) => {
 		uni.showToast({ title: '请先登录', icon: 'none' })
 		return
 	}
-	uni.showModal({
-		title: '确认接单',
-		content: '确定要接受该订单吗？',
-		success: async (res) => {
-			if (!res.confirm || acceptingOrderId.value) return
-			acceptingOrderId.value = String(currentOrderId)
-			uni.showLoading({ title: '接单中...', mask: true })
-			try {
-				const response = await post(`/attendant/orders/${currentOrderId}/accept?attendantId=${attendantInfo.id}`)
-				if (response.code === 200) {
-					uni.showToast({ title: '接单成功', icon: 'success' })
-					loadOrders({ reset: true, silent: true })
-					const acceptedOrderId = response?.data?.orderId || currentOrderId
-					acceptingOrderId.value = ''
-					uni.hideLoading()
-					setTimeout(async () => {
-						try {
-							await openEscortOrderDetail(acceptedOrderId)
-						} catch (error) {
-							console.error('接单后跳转详情失败:', error)
-							uni.showToast({ title: error?.message || '接单成功，请到我的订单查看', icon: 'none' })
-							uni.switchTab({ url: '/pages/role-escort/order' })
-						}
-					}, 300)
-				} else {
-					acceptingOrderId.value = ''
-					uni.hideLoading()
-					uni.showToast({ title: response.message || '接单失败', icon: 'none' })
-				}
-			} catch (e) {
-				acceptingOrderId.value = ''
-				uni.hideLoading()
-				uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
-			}
+	acceptConfirm.value = {
+		visible: true,
+		order: {
+			...order,
+			orderId: currentOrderId,
+			attendantId: attendantInfo.id
 		}
-	})
+	}
+}
+
+const closeAcceptConfirm = () => {
+	if (acceptingOrderId.value) return
+	acceptConfirm.value = { visible: false, order: null }
+}
+
+const confirmAcceptOrder = async () => {
+	const order = acceptConfirm.value.order || {}
+	const currentOrderId = order.orderId || order.id
+	const attendantId = order.attendantId
+	if (!currentOrderId || !attendantId || acceptingOrderId.value) return
+	acceptingOrderId.value = String(currentOrderId)
+	uni.showLoading({ title: '接单中...', mask: true })
+	try {
+		const response = await post(`/attendant/orders/${currentOrderId}/accept?attendantId=${attendantId}`)
+		if (response.code === 200) {
+			acceptConfirm.value = { visible: false, order: null }
+			uni.showToast({ title: '接单成功', icon: 'success' })
+			loadOrders({ reset: true, silent: true })
+			const acceptedOrderId = response?.data?.orderId || currentOrderId
+			acceptingOrderId.value = ''
+			uni.hideLoading()
+			setTimeout(async () => {
+				try {
+					await openEscortOrderDetail(acceptedOrderId)
+				} catch (error) {
+					console.error('接单后跳转详情失败:', error)
+					uni.showToast({ title: error?.message || '接单成功，请到我的订单查看', icon: 'none' })
+					uni.switchTab({ url: '/pages/role-escort/order' })
+				}
+			}, 300)
+		} else {
+			acceptingOrderId.value = ''
+			uni.hideLoading()
+			uni.showToast({ title: response.message || '接单失败', icon: 'none' })
+		}
+	} catch (e) {
+		acceptingOrderId.value = ''
+		uni.hideLoading()
+		uni.showToast({ title: e.message || '接单失败，请稍后重试', icon: 'none' })
+	}
+}
+
+const goQualification = () => {
+	uni.navigateTo({ url: '/subpkg/profile/qualification' })
+}
+
+const checkHallGate = async ({ showPopup = true } = {}) => {
+	const gate = await guardEscortHallAccess({ showPopup, redirectOnConfirm: true })
+	qualificationGate.value = { checked: true, ...gate }
+	if (!gate.allowed) {
+		orderList.value = []
+		hasMore.value = false
+		isLoading.value = false
+		isRefreshing.value = false
+		return gate
+	}
+	hasMore.value = true
+	return gate
 }
 
 const closeFilterPopup = () => {
@@ -430,7 +518,7 @@ const confirmFilter = () => {
 }
 
 const handleOrderSocketMessage = (message) => {
-	if (!pageActive || !message) return
+	if (!pageActive || !message || !qualificationGate.value.allowed) return
 	if (String(message.type || '').toUpperCase() !== 'WAITING_ORDER_UPDATED') return
 	setTimeout(() => {
 		loadOrders({ reset: true, silent: true })
@@ -439,9 +527,8 @@ const handleOrderSocketMessage = (message) => {
 
 onMounted(() => {
 	setupOrderSocketListener()
-	loadOrders({ reset: true })
 	localOrderUpdatedListener = (payload) => {
-		if (payload && payload.action === 'released') {
+		if (payload && payload.action === 'released' && qualificationGate.value.allowed) {
 			loadOrders({ reset: true, silent: true })
 		}
 	}
@@ -451,10 +538,11 @@ onShow(() => {
 	if (redirectPublicSafeToHome()) return
 	pageActive = true
 	ensureRole('escort')
-	connectOrderSocket()
-	if (orderList.value.length > 0) {
-		loadOrders({ reset: true, silent: true })
-	}
+	checkHallGate({ showPopup: true }).then((gate) => {
+		if (!gate.allowed) return
+		connectOrderSocket()
+		loadOrders({ reset: true, silent: orderList.value.length > 0 })
+	})
 })
 onHide(() => {
 	pageActive = false
@@ -495,6 +583,87 @@ const setupOrderSocketListener = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.qualification-block {
+  flex: 1;
+  padding: 120rpx 30rpx 180rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.block-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1rpx solid #e5eefb;
+  border-radius: 34rpx;
+  padding: 52rpx 34rpx;
+  box-shadow: 0 24rpx 60rpx rgba(46, 107, 184, 0.12);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.block-icon {
+  width: 88rpx;
+  height: 88rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 32rpx;
+  background: #eef6ff;
+  color: $escort-color-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  font-weight: 800;
+}
+
+.state-rejected .block-icon,
+.state-expired .block-icon,
+.state-incomplete .block-icon {
+  background: #fff2f0;
+  color: #ef4444;
+}
+
+.state-blocked .block-icon {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.block-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #162033;
+}
+
+.block-desc {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #667085;
+}
+
+.block-actions {
+  margin-top: 34rpx;
+  display: flex;
+  justify-content: center;
+  gap: 18rpx;
+}
+
+.block-btn {
+  height: 76rpx;
+  padding: 0 30rpx;
+  border-radius: 999rpx;
+  background: #f3f7fb;
+  color: #36506d;
+  font-size: 26rpx;
+}
+
+.block-btn.primary {
+  background: $escort-color-primary;
+  color: #ffffff;
 }
 
 .header {
@@ -588,13 +757,132 @@ const setupOrderSocketListener = () => {
   justify-content: center;
 }
 
-.filter-popup {
+	.filter-popup {
   width: 100%;
   background: #f5f7fa;
   border-radius: 24rpx 24rpx 0 0;
   padding: 32rpx 32rpx calc(env(safe-area-inset-bottom) + 30rpx);
   box-shadow: 0 -10rpx 36rpx rgba(31, 41, 55, 0.14);
-}
+	}
+
+	.accept-modal-mask {
+	  position: fixed;
+	  inset: 0;
+	  z-index: 2100;
+	  background: rgba(17, 24, 39, 0.42);
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  padding: 48rpx;
+	  box-sizing: border-box;
+	}
+
+	.accept-modal {
+	  width: 100%;
+	  max-width: 630rpx;
+	  padding: 46rpx 34rpx 32rpx;
+	  border-radius: 40rpx;
+	  background: #ffffff;
+	  box-shadow: 0 30rpx 90rpx rgba(25, 66, 128, 0.22);
+	  box-sizing: border-box;
+	  animation: acceptModalIn 180ms ease-out;
+	}
+
+	.accept-mark {
+	  width: 92rpx;
+	  height: 92rpx;
+	  margin: 0 auto 24rpx;
+	  border-radius: 32rpx;
+	  background: #eef6ff;
+	  color: $escort-color-primary;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  font-size: 38rpx;
+	  font-weight: 800;
+	}
+
+	.accept-title {
+	  text-align: center;
+	  font-size: 36rpx;
+	  line-height: 1.3;
+	  color: #172033;
+	  font-weight: 800;
+	}
+
+	.accept-desc {
+	  margin-top: 14rpx;
+	  color: #667085;
+	  font-size: 26rpx;
+	  line-height: 1.6;
+	  text-align: center;
+	}
+
+	.accept-summary {
+	  margin-top: 24rpx;
+	  padding: 20rpx 22rpx;
+	  border-radius: 26rpx;
+	  background: #f7faff;
+	}
+
+	.accept-summary-row {
+	  display: flex;
+	  align-items: flex-start;
+	  justify-content: space-between;
+	  gap: 18rpx;
+	  padding: 10rpx 0;
+	  color: #53627a;
+	  font-size: 26rpx;
+	}
+
+	.accept-summary-row text:last-child {
+	  flex: 1;
+	  text-align: right;
+	  color: #172033;
+	  font-weight: 700;
+	}
+
+	.accept-actions {
+	  margin-top: 30rpx;
+	  display: grid;
+	  grid-template-columns: 1fr 1.25fr;
+	  gap: 18rpx;
+	}
+
+	.accept-btn {
+	  height: 84rpx;
+	  line-height: 84rpx;
+	  border: none;
+	  border-radius: 999rpx;
+	  font-size: 28rpx;
+	  font-weight: 700;
+	}
+
+	.accept-btn.secondary {
+	  background: #f2f6fb;
+	  color: #53627a;
+	}
+
+	.accept-btn.primary {
+	  background: linear-gradient(135deg, #1777ff, #0f9ed8);
+	  color: #ffffff;
+	  box-shadow: 0 14rpx 30rpx rgba(23, 119, 255, 0.22);
+	}
+
+	.accept-btn[disabled] {
+	  opacity: 0.65;
+	}
+
+	@keyframes acceptModalIn {
+	  from {
+	    opacity: 0;
+	    transform: translateY(28rpx) scale(0.96);
+	  }
+	  to {
+	    opacity: 1;
+	    transform: translateY(0) scale(1);
+	  }
+	}
 
 .filter-popup-title {
   font-size: 34rpx;

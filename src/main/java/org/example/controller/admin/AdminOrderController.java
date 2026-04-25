@@ -33,9 +33,10 @@ public class AdminOrderController {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseResult<AdminOrderDetailResponse> detail(@PathVariable Integer orderId) {
+    public ResponseResult<AdminOrderDetailResponse> detail(@PathVariable Integer orderId,
+                                                           HttpServletRequest request) {
         try {
-            return ResponseResult.success(adminService.getOrderDetail(orderId));
+            return ResponseResult.success(adminService.getOrderDetail(AuthUtil.getCurrentAdminId(request), orderId));
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);
         }

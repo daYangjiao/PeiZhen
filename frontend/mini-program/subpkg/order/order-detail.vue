@@ -456,11 +456,11 @@
         />
       </view>
       <view class="dispute-row">
-        <text class="dispute-label">说明（选填）</text>
+        <text class="dispute-label">说明</text>
         <textarea
           class="dispute-textarea"
           v-model="disputeReason"
-          placeholder="简单说明不认可的原因，便于平台介入处理"
+          placeholder="请说明不认可的原因，便于平台介入处理"
         />
       </view>
       <view class="dispute-actions">
@@ -598,7 +598,7 @@ const confirmBtnText = computed(() => {
   }
   const b = Number(order.value.balanceAmount);
   if (b === 0) return '确认时长，完成订单';
-  if (b > 0) return `立即补付¥${formatAmount(b)}`;
+  if (b > 0) return `确认并补付¥${formatAmount(b)}`;
   // 自动退款场景：按钮文案尽量简短，避免在小屏幕被截断
   return '确认并自动退款';
 });
@@ -636,6 +636,10 @@ const primaryActionText = computed(() => {
   // 时长费用有争议：查看申诉进度
   if (status === 5) {
     return '查看申诉进度';
+  }
+
+  if (status === 9) {
+    return '支付差额';
   }
 
   // 已完成：优先评价，评价后展示再次下单
@@ -915,7 +919,21 @@ const serviceSteps = computed(() => {
       });
       steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
       steps.push({ title: '待确认时长', desc: '请确认实际服务时长与费用', time: endTime });
-      steps.push({ title: '待补款', desc: '时长费用存在差异，等待补款处理', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
+      steps.push({ title: '争议处理中', desc: '平台正在处理时长费用申诉', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
+      break;
+    case 9:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
+      steps.push({ title: '待补差额', desc: '请完成平台核定的差额支付', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
       break;
     case 6:
       steps.push({
@@ -1213,13 +1231,17 @@ const openDisputeModal = () => {
 const submitDispute = async () => {
   try {
     const dur = disputeDuration.value ? Number(disputeDuration.value) : null;
+    if (Number.isNaN(dur) || dur <= 0) {
+      uni.showToast({ title: '请输入有效时长', icon: 'none' });
+      return;
+    }
+    if (!String(disputeReason.value || '').trim()) {
+      uni.showToast({ title: '请填写申诉原因', icon: 'none' });
+      return;
+    }
     const query = [];
-    if (!Number.isNaN(dur) && dur > 0) {
-      query.push(`userDuration=${dur}`);
-    }
-    if (disputeReason.value) {
-      query.push(`reason=${encodeURIComponent(disputeReason.value)}`);
-    }
+    query.push(`userDuration=${dur}`);
+    query.push(`reason=${encodeURIComponent(disputeReason.value.trim())}`);
     const qs = query.length ? `?${query.join('&')}` : '';
     const response = await post(`/api/orders/${order.value.orderId}/dispute-time-fee${qs}`);
     if (response && response.code === 200) {
@@ -1257,25 +1279,18 @@ const doConfirmTimeAndFee = async () => {
 // 确认服务时长与费用：有补付时先弹出补付结果选择
 const confirmDuration = async () => {
   if (!order.value) return;
-  const b = Number(order.value.balanceAmount || 0);
-  if (!Number.isNaN(b) && b > 0) {
-    // 默认微信；若因异常没有选中值，则阻止继续
-    if (!balancePayMethod.value) {
-      uni.showToast({ title: '请选择支付方式', icon: 'none' });
-      return;
-    }
-    showBalancePayResultModal.value = true;
-    return;
-  }
   await doConfirmTimeAndFee();
+  if (Number(order.value.orderStatus) === 9 && Number(order.value.balanceAmount || 0) > 0) {
+    showBalancePayResultModal.value = true;
+  }
 };
 
-// 处理补付结果：已支付 -> 调用确认接口；未支付 -> 跳转支付失败页
+// 处理补付结果：已支付 -> 调用补差额支付接口；未支付 -> 跳转支付失败页
 const handleBalancePayResult = async (isPaid) => {
   showBalancePayResultModal.value = false;
   if (!order.value) return;
   if (isPaid) {
-    await doConfirmTimeAndFee();
+    await payBalance();
   } else {
     uni.navigateTo({
       url: `/subpkg/appointment-flow/06-payment-failed-page?orderNo=${encodeURIComponent(order.value.orderNo)}&scene=balance`
@@ -1324,6 +1339,11 @@ const handlePrimaryAction = () => {
     return;
   }
 
+  if (status === 9) {
+    showBalancePayResultModal.value = true;
+    return;
+  }
+
   // 已完成：去评价或再次下单
   if (status === 6) {
     if (!hasEvaluated.value) {
@@ -1351,15 +1371,13 @@ const handlePrimaryAction = () => {
 // 支付差价
 const payBalance = async () => {
   try {
-    const response = await post(`/orders/${order.value.orderId}/pay-balance`, {
-      userId: uni.getStorageSync('userId') // 从缓存获取用户ID
-    });
+    const response = await post(`/api/orders/${order.value.orderId}/pay-balance`);
     
-    if (response.data === '支付成功') {
+    if (response && response.code === 200) {
       uni.showToast({ title: '支付成功', icon: 'success' });
       await fetchOrderDetail(order.value.orderNo);
     } else {
-      uni.showToast({ title: response.data || '支付失败', icon: 'none' });
+      uni.showToast({ title: response.message || response.data || '支付失败', icon: 'none' });
     }
   } catch (error) {
     console.error('支付差价失败:', error);
@@ -1878,9 +1896,9 @@ onUnmounted(() => {
 /* 时长确认内容卡片 */
 .duration-confirm-section {
   background: white;
-  border-radius: 24rpx;
+  border-radius: 34rpx;
   padding: 36rpx;
-  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.18);
+  box-shadow: 0 24rpx 70rpx rgba(25, 66, 128, 0.18);
   max-height: calc(100dvh - 80rpx - env(safe-area-inset-bottom));
   overflow-y: auto;
   box-sizing: border-box;
@@ -2040,78 +2058,87 @@ onUnmounted(() => {
 /* 申诉弹窗 */
 .dispute-modal-overlay {
   position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(17, 24, 39, 0.44);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 48rpx;
+  box-sizing: border-box;
 }
 .dispute-modal {
-  width: 80%;
+  width: 100%;
+  max-width: 630rpx;
   background: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx;
+  border-radius: 40rpx;
+  padding: 42rpx 34rpx 32rpx;
+  box-shadow: 0 30rpx 90rpx rgba(25, 66, 128, 0.22);
+  box-sizing: border-box;
+  animation: userModalIn 180ms ease-out;
 }
 .dispute-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  margin-bottom: 16rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  margin-bottom: 24rpx;
   text-align: center;
+  color: #172033;
 }
 .dispute-row {
-  margin-bottom: 16rpx;
+  margin-bottom: 22rpx;
 }
 .dispute-label {
-  font-size: 26rpx;
-  color: #666;
-  margin-bottom: 8rpx;
+  font-size: 27rpx;
+  color: #53627a;
+  margin-bottom: 12rpx;
   display: block;
+  font-weight: 700;
 }
 .dispute-input {
   width: 100%;
-  border-radius: 8rpx;
-  border: 1rpx solid #e0e0e0;
-  padding: 8rpx 12rpx;
-  font-size: 26rpx;
+  height: 82rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid #dce8f6;
+  padding: 0 22rpx;
+  font-size: 28rpx;
+  color: #172033;
+  background: #f8fbff;
   box-sizing: border-box;
 }
 .dispute-textarea {
   width: 100%;
-  min-height: 120rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid #e0e0e0;
-  padding: 8rpx 12rpx;
-  font-size: 26rpx;
+  min-height: 170rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid #dce8f6;
+  padding: 20rpx 22rpx;
+  font-size: 28rpx;
+  color: #172033;
+  background: #f8fbff;
   box-sizing: border-box;
 }
 .dispute-actions {
-  margin-top: 16rpx;
-  display: flex;
-  gap: 16rpx;
+  margin-top: 28rpx;
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 18rpx;
 }
 .dispute-cancel,
 .dispute-submit {
-  flex: 1;
-  height: 72rpx;
-  border-radius: 36rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
+  font-weight: 700;
   border: none;
 }
 .dispute-cancel {
-  background: #f5f7fa;
-  color: #666;
+  background: #f2f6fb;
+  color: #53627a;
 }
 .dispute-submit {
-  background: #007AFF;
+  background: linear-gradient(135deg, #1777ff, #0f9ed8);
   color: #fff;
-  border: none;
-  border-radius: 40rpx;
-  font-size: 32rpx;
-  font-weight: bold;
+  box-shadow: 0 14rpx 30rpx rgba(23, 119, 255, 0.22);
 }
 
 /* 差价支付区域 */
@@ -2759,75 +2786,93 @@ onUnmounted(() => {
 .payment-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(17, 24, 39, 0.44);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1100;
-  padding: 20rpx;
+  padding: 48rpx;
   box-sizing: border-box;
 }
 
 .payment-modal-content {
-  background-color: white;
-  border-radius: 16rpx;
+  background: #ffffff;
+  border-radius: 40rpx;
   width: 100%;
-  max-width: 500rpx;
-  max-height: calc(100dvh - 40rpx - env(safe-area-inset-bottom));
+  max-width: 620rpx;
+  max-height: calc(100dvh - 96rpx - env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 30rpx 90rpx rgba(25, 66, 128, 0.22);
   overflow: hidden;
   box-sizing: border-box;
+  animation: userModalIn 180ms ease-out;
 }
 
 .payment-modal-header {
-  padding: 20rpx;
-  border-bottom: 1rpx solid #eee;
-  background-color: #f8f9fa;
+  padding: 40rpx 32rpx 8rpx;
   text-align: center;
 }
 
 .payment-modal-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #172033;
 }
 
 .payment-modal-body {
-  padding: 30rpx 24rpx;
+  padding: 20rpx 34rpx 8rpx;
   overflow-y: auto;
   min-height: 0;
+  text-align: center;
 }
 
 .payment-modal-text {
+  display: block;
+  padding: 22rpx 24rpx;
+  border-radius: 26rpx;
+  background: #f7faff;
   font-size: 28rpx;
-  color: #555;
+  color: #53627a;
+  line-height: 1.6;
 }
 
 .payment-modal-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 20rpx;
-  gap: 20rpx;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  padding: 30rpx 34rpx 34rpx;
+  gap: 18rpx;
 }
 
 .payment-modal-btn {
-  flex: 1;
-  padding: 20rpx 0;
-  border-radius: 40rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
   font-size: 28rpx;
+  font-weight: 700;
   border: none;
 }
 
 .payment-modal-btn.success-btn {
-  background-color: #52c41a;
-  color: white;
+  background: linear-gradient(135deg, #1777ff, #0f9ed8);
+  color: #ffffff;
+  box-shadow: 0 14rpx 30rpx rgba(23, 119, 255, 0.22);
 }
 
 .payment-modal-btn.fail-btn {
-  background-color: #fff1f0;
-  color: #f5222d;
+  background: #f2f6fb;
+  color: #53627a;
+}
+
+@keyframes userModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(28rpx) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* 联系陪诊师弹窗（与补付弹窗同一套现代风格） */

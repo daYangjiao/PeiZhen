@@ -231,10 +231,15 @@ public class AttendantController {
             @ApiParam(value = "陪诊师用户ID", required = true, example = "21")
             @PathVariable Integer userId,
             @ApiParam(value = "资质更新请求体", required = true)
-            @RequestBody AttendantQualificationUpdateRequest request) {
+            @RequestBody AttendantQualificationUpdateRequest request,
+            @ApiIgnore HttpServletRequest httpRequest) {
         try {
             if (request == null) {
                 return ResponseResult.error("请求参数不能为空");
+            }
+            Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+            if (currentUserId == null || !currentUserId.equals(userId)) {
+                return new ResponseResult<>(403, "无权修改他人资质", null);
             }
             User existUser = userService.findById(userId);
             if (existUser == null) {
@@ -251,6 +256,8 @@ public class AttendantController {
             qualification.setIdCardBackFileUrl(request.getIdCardBackFileUrl());
             qualification.setPracticeCertFileUrl(request.getPracticeCertFileUrl());
             qualification.setHealthCertFileUrl(request.getHealthCertFileUrl());
+            qualification.setPracticeCertExpireDate(request.getPracticeCertExpireDate());
+            qualification.setHealthCertExpireDate(request.getHealthCertExpireDate());
 
             attendantService.updateQualification(userId, qualification);
             return ResponseResult.success("资质信息更新成功");
@@ -273,8 +280,13 @@ public class AttendantController {
     })
     public ResponseResult<String> submitQualification(
             @ApiParam(value = "陪诊师用户ID", required = true, example = "21")
-            @PathVariable Integer userId) {
+            @PathVariable Integer userId,
+            @ApiIgnore HttpServletRequest httpRequest) {
         try {
+            Integer currentUserId = AuthUtil.getCurrentUserId(httpRequest);
+            if (currentUserId == null || !currentUserId.equals(userId)) {
+                return new ResponseResult<>(403, "无权提交他人资质", null);
+            }
             User existUser = userService.findById(userId);
             if (existUser == null) {
                 return ResponseResult.error("用户不存在");
@@ -303,18 +315,22 @@ public class AttendantController {
             @ApiParam(value = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer size,
             @ApiParam(value = "服务类型：1=普通陪诊，2=术后护理，3=急诊陪同，4=上门陪诊", example = "1") @RequestParam(required = false) Integer serviceType,
             @ApiParam(value = "预计时长下限，单位小时，例如 2 表示筛选大于等于 2 小时的订单", example = "2") @RequestParam(required = false) Integer expectedDurationMinHours,
-            @ApiParam(value = "基础费用上限，单位元", example = "80") @RequestParam(required = false) BigDecimal orderAmountMax) {
+            @ApiParam(value = "基础费用上限，单位元", example = "80") @RequestParam(required = false) BigDecimal orderAmountMax,
+            @ApiIgnore HttpServletRequest request) {
         OrderListQueryRequest queryRequest = new OrderListQueryRequest();
         queryRequest.setPage(page);
         queryRequest.setSize(size);
         queryRequest.setOrderStatus(1); // 1=待接单
-        if (serviceType != null) queryRequest.setServiceType(serviceType);
-        if (expectedDurationMinHours != null) queryRequest.setExpectedDurationMinHours(expectedDurationMinHours);
-        if (orderAmountMax != null) queryRequest.setOrderAmountMax(orderAmountMax);
+            if (serviceType != null) queryRequest.setServiceType(serviceType);
+            if (expectedDurationMinHours != null) queryRequest.setExpectedDurationMinHours(expectedDurationMinHours);
+            if (orderAmountMax != null) queryRequest.setOrderAmountMax(orderAmountMax);
         
         try {
-            PagedResponse<OrderListResponse> result = orderService.getUserOrdersWithPagination(null, queryRequest);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            PagedResponse<OrderListResponse> result = orderService.getWaitingOrdersForAttendant(currentUserId, queryRequest);
             return ResponseResult.success(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseResult.error(e.getMessage());
         } catch (Exception e) {
             log.error("获取待接单订单列表失败", e);
             return ResponseResult.error("获取订单列表失败");
@@ -333,8 +349,13 @@ public class AttendantController {
     })
     public ResponseResult<OrderAcceptResponse> acceptOrder(
             @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
-            @ApiParam(value = "陪诊师ID", required = true, example = "21") @RequestParam Integer attendantId) {
+            @ApiParam(value = "陪诊师ID", required = true, example = "21") @RequestParam Integer attendantId,
+            @ApiIgnore HttpServletRequest request) {
         try {
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            if (currentUserId == null || !currentUserId.equals(attendantId)) {
+                return new ResponseResult<>(403, "无权代替他人接单", null);
+            }
             String result = orderService.attendantAcceptOrder(orderId, attendantId);
             if ("接单成功".equals(result)) {
                 OrderAcceptResponse response = new OrderAcceptResponse();
@@ -545,10 +566,11 @@ public class AttendantController {
             case 2 -> "待服务";
             case 3 -> "服务中";
             case 4 -> "待确认时长";
-            case 5 -> "待补款";
+            case 5 -> "平台争议处理中";
             case 6 -> "已完成";
             case 7 -> "已取消";
             case 8 -> "专属派单待确认";
+            case 9 -> "待用户补差额";
             default -> "未知";
         };
     }

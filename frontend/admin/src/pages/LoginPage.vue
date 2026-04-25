@@ -2,7 +2,9 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-brand">
-        <div class="login-badge">元</div>
+        <div class="login-badge">
+          <img src="/brand-logo.png" alt="愈安伴" class="login-logo" />
+        </div>
         <div>
           <p class="login-eyebrow">愈安伴后台</p>
           <h1>登录管理台</h1>
@@ -108,10 +110,16 @@ const handleSubmit = async () => {
   border-radius: 18px;
   display: grid;
   place-items: center;
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #2479ff 0%, #52b0ff 100%);
+  background: #fff;
+  border: 1px solid rgba(220, 232, 251, 0.92);
+  box-shadow: 0 12px 28px rgba(23, 68, 150, 0.12);
+  overflow: hidden;
+}
+
+.login-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .login-eyebrow {

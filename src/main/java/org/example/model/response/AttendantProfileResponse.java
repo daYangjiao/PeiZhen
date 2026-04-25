@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @ApiModel(description = "陪诊师个人中心资料响应")
@@ -72,6 +73,33 @@ public class AttendantProfileResponse {
 
     @ApiModelProperty("健康证文件地址")
     private String healthCertFileUrl;
+
+    @ApiModelProperty("执业证书有效期，格式 yyyy-MM-dd")
+    private String practiceCertExpireDate;
+
+    @ApiModelProperty("健康证有效期，格式 yyyy-MM-dd")
+    private String healthCertExpireDate;
+
+    @ApiModelProperty("执业证书是否过期")
+    private Boolean practiceCertExpired;
+
+    @ApiModelProperty("健康证是否过期")
+    private Boolean healthCertExpired;
+
+    @ApiModelProperty("资质完整度百分比")
+    private Integer qualificationCompleteness;
+
+    @ApiModelProperty("是否可接单")
+    private Boolean canAcceptOrders;
+
+    @ApiModelProperty("接单阻断原因")
+    private String qualificationBlockReason;
+
+    @ApiModelProperty("是否需要弹窗提示")
+    private Boolean qualificationPopupRequired;
+
+    @ApiModelProperty("最近资质审核记录")
+    private List<AttendantQualificationLogResponse> recentQualificationLogs;
 
     @ApiModelProperty("今日服务次数")
     private Integer todayService;

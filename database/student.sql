@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS `order_evaluation`;
 DROP TABLE IF EXISTS `chat_message`;
 DROP TABLE IF EXISTS `guide_appointment`;
 DROP TABLE IF EXISTS `ai_medical_qa`;
+DROP TABLE IF EXISTS `admin_operation_log`;
+DROP TABLE IF EXISTS `attendant_qualification_audit_log`;
 DROP TABLE IF EXISTS `attendant_qualification`;
 DROP TABLE IF EXISTS `attendant`;
 DROP TABLE IF EXISTS `service_type_mapping`;
@@ -42,6 +44,29 @@ CREATE TABLE `sys_admin` (
   UNIQUE KEY `uk_sys_admin_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `admin_operation_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `operator_id` int DEFAULT NULL,
+  `operator_name` varchar(50) DEFAULT NULL,
+  `operator_phone` varchar(20) DEFAULT NULL,
+  `operator_role` varchar(20) DEFAULT NULL,
+  `module` varchar(40) NOT NULL,
+  `action` varchar(50) NOT NULL,
+  `target_type` varchar(40) DEFAULT NULL,
+  `target_id` int DEFAULT NULL,
+  `target_label` varchar(100) DEFAULT NULL,
+  `from_status` int DEFAULT NULL,
+  `to_status` int DEFAULT NULL,
+  `remark` varchar(255) DEFAULT NULL,
+  `snapshot_json` json DEFAULT NULL,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_operation_log_create_time` (`create_time`),
+  KEY `idx_admin_operation_log_operator` (`operator_id`, `operator_role`, `create_time`),
+  KEY `idx_admin_operation_log_module_action` (`module`, `action`, `create_time`),
+  KEY `idx_admin_operation_log_target` (`target_type`, `target_id`, `create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `attendant` (
   `user_id` int NOT NULL,
   `certificate` varchar(100) DEFAULT NULL,
@@ -69,10 +94,31 @@ CREATE TABLE `attendant_qualification` (
   `id_card_back_file_url` varchar(255) DEFAULT NULL,
   `practice_cert_file_url` varchar(255) DEFAULT NULL,
   `health_cert_file_url` varchar(255) DEFAULT NULL,
+  `practice_cert_expire_date` varchar(20) DEFAULT NULL,
+  `health_cert_expire_date` varchar(20) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_attendant_qualification_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `attendant_qualification_audit_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `actor_type` varchar(20) NOT NULL,
+  `actor_id` int DEFAULT NULL,
+  `actor_name` varchar(50) DEFAULT NULL,
+  `actor_phone` varchar(20) DEFAULT NULL,
+  `actor_role` varchar(20) DEFAULT NULL,
+  `action` varchar(30) NOT NULL,
+  `from_status` int DEFAULT NULL,
+  `to_status` int DEFAULT NULL,
+  `reason` varchar(255) DEFAULT NULL,
+  `snapshot_json` json DEFAULT NULL,
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_attendant_qualification_audit_user` (`user_id`, `create_time`),
+  CONSTRAINT `fk_attendant_qualification_audit_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `service_type_mapping` (
@@ -274,8 +320,8 @@ INSERT INTO `sys_admin` (`id`, `name`, `phone`, `password`, `status`, `role`, `c
 INSERT INTO `attendant` (`user_id`, `certificate`, `status`, `qualification_fail_reason`, `introduction`, `professional_field`, `score`, `experience_years`, `hospital_name`, `service_count`, `create_time`, `update_time`) VALUES
   (3, 'CERT-20260325-001', 1, '', 'Experienced hospital escort with qualification review completed.', 'Registration, consultation, examination', 5.0, 6, 'Fujian Union Hospital', 12, NOW(), NOW());
 
-INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `create_time`, `update_time`) VALUES
-  (3, 1, 1, 1, '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-back.jpg', '/static/uploads/qualification/practice-cert.jpg', '/static/uploads/qualification/health-cert.jpg', NOW(), NOW());
+INSERT INTO `attendant_qualification` (`user_id`, `id_card_uploaded`, `practice_cert_uploaded`, `health_cert_uploaded`, `id_card_file_url`, `id_card_front_file_url`, `id_card_back_file_url`, `practice_cert_file_url`, `health_cert_file_url`, `practice_cert_expire_date`, `health_cert_expire_date`, `create_time`, `update_time`) VALUES
+  (3, 1, 1, 1, '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-front.jpg', '/static/uploads/qualification/idcard-back.jpg', '/static/uploads/qualification/practice-cert.jpg', '/static/uploads/qualification/health-cert.jpg', DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 YEAR), '%Y-%m-%d'), NOW(), NOW());
 
 INSERT INTO `service_type_mapping` (`id`, `service_type_number`, `service_type_name`, `description`, `price_base`, `price_per_hour`, `is_active`, `create_time`, `update_time`) VALUES
   (1, 1, 'Hospital Escort', 'Basic escort service', 80.00, 50.00, 1, NOW(), NOW()),

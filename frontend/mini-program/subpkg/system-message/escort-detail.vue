@@ -91,9 +91,10 @@ const getEscortOrderStatusText = (order = {}) => {
     2: '待核销',
     3: '服务中',
     4: '待患者确认',
-    5: '待补款',
+    5: '争议处理中',
     6: '已完成',
-    7: '已取消'
+    7: '已取消',
+    9: '待用户补差额'
   }
   return map[status] || order?.orderStatusText || '--'
 }

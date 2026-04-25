@@ -521,10 +521,11 @@ public class AiGuideServiceImpl implements AiGuideService {
             case 2 -> "待服务";
             case 3 -> "服务中";
             case 4 -> "待确认时长";
-            case 5 -> "待补款";
+            case 5 -> "平台争议处理中";
             case 6 -> "已完成";
             case 7 -> "已取消";
             case 8 -> "专属派单待确认";
+            case 9 -> "待用户补差额";
             default -> "未知";
         };
     }

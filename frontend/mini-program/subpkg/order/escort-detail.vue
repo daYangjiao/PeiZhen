@@ -622,7 +622,10 @@ function buildEscortServiceRecords(order, status) {
 				pushRecord(endTime, '已提交服务时长与费用')
 			}
 			if (status === 'disputed') {
-				pushRecord(order.updateTime || endTime, '待补款')
+				pushRecord(order.updateTime || endTime, '争议处理中')
+			}
+			if (status === 'waiting_balance') {
+				pushRecord(order.updateTime || endTime, '待用户补差额')
 			}
 			if (status === 'completed') {
 				pushRecord(order.updateTime || order.serviceEndTime, '订单已完成')
@@ -956,6 +959,7 @@ export default {
 					else if (order.orderStatus === 4) status = 'waiting_confirm'
 					else if (order.orderStatus === 5) status = 'disputed'
 					else if (order.orderStatus === 8) status = 'assigned_waiting'
+					else if (order.orderStatus === 9) status = 'waiting_balance'
 					else if (order.orderStatus === 6) status = 'completed'
 					else if (order.orderStatus === 7) status = 'cancelled'
 

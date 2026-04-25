@@ -8,8 +8,9 @@
             <h3 class="dialog-title">{{ title }}</h3>
             <p v-if="description" class="dialog-description">{{ description }}</p>
           </div>
-          <button class="dialog-close" type="button" @click="emit('update:modelValue', false)">
-            ×
+          <button class="dialog-close" type="button" aria-label="关闭弹窗" @click="emit('update:modelValue', false)">
+            <span></span>
+            <span></span>
           </button>
         </header>
 

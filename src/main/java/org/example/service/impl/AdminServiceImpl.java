@@ -1,12 +1,16 @@
 package org.example.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.dao.AttendantQualificationAuditLogMapper;
 import org.example.dao.AttendantMapper;
 import org.example.dao.AttendantQualificationMapper;
 import org.example.dao.OrderMapper;
+import org.example.dao.SysAdminMapper;
 import org.example.dao.UserMapper;
+import org.example.entity.SysAdmin;
 import org.example.model.Attendant;
 import org.example.model.AttendantQualification;
+import org.example.model.AttendantQualificationAuditLog;
 import org.example.model.Order;
 import org.example.model.User;
 import org.example.model.request.AdminOrderCancelRequest;
@@ -15,6 +19,8 @@ import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.*;
 import org.example.service.AdminService;
 import org.example.service.OrderService;
+import org.example.util.AttendantQualificationPolicy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +38,16 @@ public class AdminServiceImpl implements AdminService {
     private final UserMapper userMapper;
     private final AttendantMapper attendantMapper;
     private final AttendantQualificationMapper attendantQualificationMapper;
+    private final AttendantQualificationAuditLogMapper auditLogMapper;
+    private final SysAdminMapper sysAdminMapper;
     private final OrderMapper orderMapper;
     private final OrderService orderService;
 
+    @Autowired(required = false)
+    private AdminOperationLogService operationLogService;
+
     @Override
-    public AdminDashboardOverviewResponse getDashboardOverview() {
+    public AdminDashboardOverviewResponse getDashboardOverview(Integer operatorId) {
         AdminDashboardOverviewResponse response = new AdminDashboardOverviewResponse();
         response.setTotalUsers(userMapper.countAdminUsers(null, null, null));
         response.setTotalAttendants(userMapper.countByUserType(1));
@@ -52,7 +63,12 @@ public class AdminServiceImpl implements AdminService {
         OrderListQueryRequest disputeQuery = new OrderListQueryRequest();
         disputeQuery.setOrderStatus(5);
         response.setDisputeOrders(orderMapper.countAllOrders(disputeQuery));
+        response.setPendingDisputeOrders(response.getDisputeOrders());
         response.setRecentOrders(getOrders(null, null, null, null, null, 0, 5).getContent());
+        if (operationLogService != null) {
+            response.setTodayOperationCount(operationLogService.countTodayLogs(operatorId, today));
+            response.setRecentOperationLogs(operationLogService.getDashboardRecentLogs(operatorId, 6));
+        }
         return response;
     }
 
@@ -117,7 +133,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void updateUserStatus(Integer operatorId, Integer userId, Integer status) {
-        requireUser(userId);
+        User user = requireUser(userId);
         if (status == null || (status != 0 && status != 1)) {
             throw new IllegalArgumentException("状态值不合法");
         }
@@ -125,6 +141,8 @@ public class AdminServiceImpl implements AdminService {
         patch.setId(userId);
         patch.setStatus(status);
         userMapper.update(patch);
+        recordOperation(operatorId, "USER", status == 1 ? "ENABLE_USER" : "DISABLE_USER", "USER",
+                userId, user.getName(), normalizeUserStatus(user.getStatus()), status, null, "{}");
     }
 
     @Override
@@ -158,16 +176,16 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public AdminAttendantDetailResponse getNextPendingAttendant(Integer excludeId) {
+    public AdminAttendantDetailResponse getNextPendingAttendant(Integer operatorId, Integer excludeId) {
         Integer userId = attendantMapper.findNextPendingUserId(excludeId);
         if (userId == null) {
             return null;
         }
-        return getAttendantDetail(userId);
+        return getAttendantDetail(operatorId, userId);
     }
 
     @Override
-    public AdminAttendantDetailResponse getAttendantDetail(Integer userId) {
+    public AdminAttendantDetailResponse getAttendantDetail(Integer operatorId, Integer userId) {
         User user = requireUser(userId);
         Attendant attendant = attendantMapper.findByUserId(userId);
         if (attendant == null) {
@@ -197,7 +215,34 @@ public class AdminServiceImpl implements AdminService {
             }
         }
         response.setRecentOrders(toAdminOrderItems(recentOrders));
+        response.setQualificationLogs(getAttendantQualificationLogs(operatorId, userId, 10));
         return response;
+    }
+
+    @Override
+    public List<AdminAttendantQualificationLogResponse> getAttendantQualificationLogs(Integer operatorId, Integer userId, Integer limit) {
+        SysAdmin operator = operatorId == null ? null : sysAdminMapper.findById(operatorId);
+        boolean showOperator = operator != null && "SUPER_ADMIN".equals(operator.getRole());
+        int safeLimit = limit == null || limit <= 0 ? 10 : Math.min(limit, 50);
+        List<AttendantQualificationAuditLog> logs = auditLogMapper.findLatestByUserId(userId, safeLimit);
+        List<AdminAttendantQualificationLogResponse> responses = new ArrayList<>();
+        for (AttendantQualificationAuditLog log : logs) {
+            AdminAttendantQualificationLogResponse item = new AdminAttendantQualificationLogResponse();
+            item.setId(log.getId());
+            item.setUserId(log.getUserId());
+            item.setAction(log.getAction());
+            item.setFromStatus(log.getFromStatus());
+            item.setToStatus(log.getToStatus());
+            item.setReason(log.getReason());
+            item.setCreateTime(log.getCreateTime());
+            if (showOperator) {
+                item.setOperatorName(log.getActorName());
+                item.setOperatorPhoneMasked(maskPhone(log.getActorPhone()));
+                item.setOperatorRole(log.getActorRole());
+            }
+            responses.add(item);
+        }
+        return responses;
     }
 
     @Override
@@ -211,11 +256,13 @@ public class AdminServiceImpl implements AdminService {
         if (status == null || (status != 1 && status != 2)) {
             throw new IllegalArgumentException("只支持设置为正常或封禁");
         }
+        Integer previousStatus = attendant.getStatus();
         Attendant patch = new Attendant();
         patch.setUserId(userId);
         patch.setStatus(status);
         patch.setQualificationFailReason(status == 1 ? "" : trim(reason));
         attendantMapper.update(patch);
+        writeAdminQualificationLog(operatorId, userId, status == 1 ? "RESTORE" : "BAN", previousStatus, status, reason);
     }
 
     @Override
@@ -231,6 +278,14 @@ public class AdminServiceImpl implements AdminService {
         patch.setUserId(userId);
         String normalizedAction = validateReviewAction(action, reason);
         if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
+            AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
+            if (!AttendantQualificationPolicy.isComplete(qualification)) {
+                throw new IllegalArgumentException("资质材料不完整，不能通过审核");
+            }
+            AttendantQualificationPolicy.requireSubmittable(qualification);
+        }
+        Integer previousStatus = attendant.getStatus();
+        if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
             patch.setStatus(1);
             patch.setQualificationFailReason("");
         } else if ("reject".equals(normalizedAction)) {
@@ -241,6 +296,7 @@ public class AdminServiceImpl implements AdminService {
             patch.setQualificationFailReason(trim(reason));
         }
         attendantMapper.update(patch);
+        writeAdminQualificationLog(operatorId, userId, normalizedAction.toUpperCase(), previousStatus, patch.getStatus(), reason);
     }
 
     @Override
@@ -263,12 +319,20 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public AdminOrderDetailResponse getOrderDetail(Integer orderId) {
+    public AdminOrderDetailResponse getOrderDetail(Integer operatorId, Integer orderId) {
         Order order = requireOrder(orderId);
         AdminOrderDetailResponse response = new AdminOrderDetailResponse();
         response.setOrder(order);
         response.setUser(order.getUserId() == null ? null : userMapper.findById(order.getUserId()));
         response.setAttendant(order.getAttendantId() == null ? null : userMapper.findById(order.getAttendantId()));
+        if (isSuperAdmin(operatorId) && order.getDisputeResolvedBy() != null) {
+            SysAdmin resolver = sysAdminMapper.findById(order.getDisputeResolvedBy());
+            if (resolver != null) {
+                response.setDisputeResolverName(resolver.getName());
+                response.setDisputeResolverPhoneMasked(maskPhone(resolver.getPhone()));
+                response.setDisputeResolverRole(resolver.getRole());
+            }
+        }
         return response;
     }
 
@@ -318,6 +382,8 @@ public class AdminServiceImpl implements AdminService {
         if (previousStatus != null && previousStatus == 1) {
             orderService.broadcastWaitingOrderUpdate(order);
         }
+        recordOperation(operatorId, "ORDER", "CANCEL_ORDER", "ORDER", orderId, order.getOrderNo(),
+                previousStatus, 7, reason, buildOrderSnapshot(order));
     }
 
     @Override
@@ -335,31 +401,51 @@ public class AdminServiceImpl implements AdminService {
         BigDecimal finalDuration = request != null && request.getFinalDuration() != null
                 ? request.getFinalDuration()
                 : (order.getTimeDisputeUserDuration() != null ? order.getTimeDisputeUserDuration() : order.getActualDuration());
+        if (finalDuration == null || finalDuration.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("最终服务时长必须大于0");
+        }
+        if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("最终订单金额不能小于0");
+        }
+        if (request == null || !hasText(request.getAdminRemark())) {
+            throw new IllegalArgumentException("处理备注不能为空");
+        }
 
+        BigDecimal normalizedFinalAmount = finalAmount.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal balance = normalizedFinalAmount.subtract(currentAmount).setScale(2, RoundingMode.HALF_UP);
+        Integer nextStatus = balance.compareTo(BigDecimal.ZERO) > 0 ? 9 : 6;
         Order patch = new Order();
         patch.setOrderId(orderId);
         patch.setActualDuration(finalDuration);
-        patch.setOrderAmount(finalAmount.setScale(2, RoundingMode.HALF_UP));
-        patch.setBalanceAmount(finalAmount.subtract(currentAmount).setScale(2, RoundingMode.HALF_UP));
-        patch.setOrderStatus(6);
+        patch.setOrderAmount(normalizedFinalAmount);
+        patch.setBalanceAmount(balance);
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            patch.setRefundAmount(balance.abs().setScale(2, RoundingMode.HALF_UP));
+        }
+        patch.setOrderStatus(nextStatus);
         patch.setDisputeResolvedBy(operatorId);
         patch.setDisputeResolvedTime(new Date());
-        if (request != null) {
-            patch.setAdminRemark(trim(request.getAdminRemark()));
-        }
+        patch.setAdminRemark(trim(request.getAdminRemark()));
         orderMapper.updateByPrimaryKeySelective(patch);
         order.setActualDuration(finalDuration);
-        order.setOrderAmount(finalAmount.setScale(2, RoundingMode.HALF_UP));
-        order.setBalanceAmount(finalAmount.subtract(currentAmount).setScale(2, RoundingMode.HALF_UP));
-        order.setOrderStatus(6);
+        order.setOrderAmount(normalizedFinalAmount);
+        order.setBalanceAmount(balance);
+        order.setRefundAmount(patch.getRefundAmount());
+        order.setOrderStatus(nextStatus);
+        String userMessage = nextStatus == 9
+                ? "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，请完成差额支付。"
+                : "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。";
+        String attendantMessage = nextStatus == 9
+                ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，等待用户支付差额。"
+                : "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。";
         orderService.notifyOrderParties(
                 order,
-                "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。",
-                order.getAttendantId() != null
-                        ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。"
-                        : null
+                userMessage,
+                order.getAttendantId() != null ? attendantMessage : null
         );
         orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+        recordOperation(operatorId, "ORDER", "RESOLVE_DISPUTE", "ORDER", orderId, order.getOrderNo(),
+                5, nextStatus, trim(request.getAdminRemark()), buildOrderSnapshot(order));
     }
 
     private List<AdminOrderListItemResponse> loadRecentUserOrders(Integer userId) {
@@ -491,38 +577,116 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private int calculateQualificationCompleteness(AttendantQualification qualification) {
-        if (qualification == null) {
-            return 0;
-        }
-        int completed = 0;
-        if (hasText(qualification.getIdCardFrontFileUrl())) {
-            completed++;
-        }
-        if (hasText(qualification.getIdCardBackFileUrl())) {
-            completed++;
-        }
-        if (hasText(qualification.getPracticeCertFileUrl())) {
-            completed++;
-        }
-        if (hasText(qualification.getHealthCertFileUrl())) {
-            completed++;
-        }
-        return completed * 100 / 4;
+        return AttendantQualificationPolicy.completeness(qualification);
     }
 
     private void applyQualificationSummary(AdminAttendantListItemResponse item, AttendantQualification qualification) {
-        boolean idCardFrontUploaded = qualification != null && hasText(qualification.getIdCardFrontFileUrl());
+        boolean idCardFrontUploaded = qualification != null && hasText(AttendantQualificationPolicy.firstNonBlank(qualification.getIdCardFrontFileUrl(), qualification.getIdCardFileUrl()));
         boolean idCardBackUploaded = qualification != null && hasText(qualification.getIdCardBackFileUrl());
         boolean practiceCertUploaded = qualification != null && hasText(qualification.getPracticeCertFileUrl());
         boolean healthCertUploaded = qualification != null && hasText(qualification.getHealthCertFileUrl());
+        boolean practiceExpired = qualification != null && AttendantQualificationPolicy.isExpired(qualification.getPracticeCertExpireDate());
+        boolean healthExpired = qualification != null && AttendantQualificationPolicy.isExpired(qualification.getHealthCertExpireDate());
 
         item.setIdCardFrontUploaded(idCardFrontUploaded);
         item.setIdCardBackUploaded(idCardBackUploaded);
         item.setIdCardUploaded(idCardFrontUploaded && idCardBackUploaded);
         item.setPracticeCertUploaded(practiceCertUploaded);
         item.setHealthCertUploaded(healthCertUploaded);
-        item.setQualificationComplete(idCardFrontUploaded && idCardBackUploaded && practiceCertUploaded && healthCertUploaded);
+        item.setQualificationComplete(AttendantQualificationPolicy.canAcceptOrders(activeUserStub(), activeAttendantStub(), qualification));
         item.setQualificationCompleteness(calculateQualificationCompleteness(qualification));
+        item.setPracticeCertExpireDate(qualification == null ? null : qualification.getPracticeCertExpireDate());
+        item.setHealthCertExpireDate(qualification == null ? null : qualification.getHealthCertExpireDate());
+        item.setPracticeCertExpired(practiceExpired);
+        item.setHealthCertExpired(healthExpired);
+    }
+
+    private void writeAdminQualificationLog(Integer operatorId, Integer userId, String action, Integer fromStatus, Integer toStatus, String reason) {
+        SysAdmin admin = operatorId == null ? null : sysAdminMapper.findById(operatorId);
+        AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
+        AttendantQualificationAuditLog log = new AttendantQualificationAuditLog();
+        log.setUserId(userId);
+        log.setActorType("ADMIN");
+        log.setActorId(operatorId);
+        if (admin != null) {
+            log.setActorName(admin.getName());
+            log.setActorPhone(admin.getPhone());
+            log.setActorRole(admin.getRole());
+        }
+        log.setAction(action);
+        log.setFromStatus(fromStatus);
+        log.setToStatus(toStatus);
+        log.setReason(trim(reason));
+        log.setSnapshotJson(buildQualificationSnapshot(qualification));
+        auditLogMapper.insert(log);
+        recordOperation(operatorId, "ATTENDANT", action, "ATTENDANT", userId, String.valueOf(userId),
+                fromStatus, toStatus, reason, log.getSnapshotJson());
+    }
+
+    private String buildQualificationSnapshot(AttendantQualification qualification) {
+        if (qualification == null) {
+            return "{}";
+        }
+        return "{"
+                + "\"idCardFrontFileUrl\":\"" + escapeJson(AttendantQualificationPolicy.firstNonBlank(qualification.getIdCardFrontFileUrl(), qualification.getIdCardFileUrl())) + "\","
+                + "\"idCardBackFileUrl\":\"" + escapeJson(qualification.getIdCardBackFileUrl()) + "\","
+                + "\"practiceCertFileUrl\":\"" + escapeJson(qualification.getPracticeCertFileUrl()) + "\","
+                + "\"healthCertFileUrl\":\"" + escapeJson(qualification.getHealthCertFileUrl()) + "\","
+                + "\"practiceCertExpireDate\":\"" + escapeJson(qualification.getPracticeCertExpireDate()) + "\","
+                + "\"healthCertExpireDate\":\"" + escapeJson(qualification.getHealthCertExpireDate()) + "\""
+                + "}";
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String maskPhone(String phone) {
+        if (!hasText(phone) || phone.length() < 7) {
+            return phone;
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    }
+
+    private boolean isSuperAdmin(Integer operatorId) {
+        SysAdmin operator = operatorId == null ? null : sysAdminMapper.findById(operatorId);
+        return operator != null && "SUPER_ADMIN".equals(operator.getRole());
+    }
+
+    private void recordOperation(Integer operatorId, String module, String action, String targetType, Integer targetId,
+                                 String targetLabel, Integer fromStatus, Integer toStatus, String remark, String snapshotJson) {
+        if (operationLogService == null) {
+            return;
+        }
+        operationLogService.record(operatorId, module, action, targetType, targetId, targetLabel,
+                fromStatus, toStatus, remark, snapshotJson);
+    }
+
+    private String buildOrderSnapshot(Order order) {
+        if (order == null) {
+            return "{}";
+        }
+        return "{"
+                + "\"orderNo\":\"" + escapeJson(order.getOrderNo()) + "\","
+                + "\"orderAmount\":\"" + escapeJson(order.getOrderAmount() == null ? null : order.getOrderAmount().toPlainString()) + "\","
+                + "\"balanceAmount\":\"" + escapeJson(order.getBalanceAmount() == null ? null : order.getBalanceAmount().toPlainString()) + "\","
+                + "\"refundAmount\":\"" + escapeJson(order.getRefundAmount() == null ? null : order.getRefundAmount().toPlainString()) + "\""
+                + "}";
+    }
+
+    private User activeUserStub() {
+        User user = new User();
+        user.setStatus(1);
+        return user;
+    }
+
+    private Attendant activeAttendantStub() {
+        Attendant attendant = new Attendant();
+        attendant.setStatus(1);
+        return attendant;
     }
 
     private String mapUserType(Integer userType) {
@@ -571,13 +735,17 @@ public class AdminServiceImpl implements AdminService {
             case 3:
                 return "服务中";
             case 4:
-                return "待确认时长";
+                return "待确认时长费用";
             case 5:
-                return "待补款";
+                return "平台争议处理中";
             case 6:
                 return "已完成";
             case 7:
                 return "已取消";
+            case 8:
+                return "专属派单待确认";
+            case 9:
+                return "待用户补差额";
             default:
                 return "未知";
         }

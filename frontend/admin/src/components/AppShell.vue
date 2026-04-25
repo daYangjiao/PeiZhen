@@ -2,7 +2,9 @@
   <div class="admin-shell">
     <aside class="admin-sidebar">
       <div class="brand-card">
-        <div class="brand-badge">元</div>
+        <div class="brand-badge">
+          <img src="/brand-logo.png" alt="愈安伴" class="brand-logo" />
+        </div>
         <div>
           <p class="brand-eyebrow">愈安伴</p>
           <h1 class="brand-title">管理后台</h1>
@@ -27,7 +29,7 @@
     <main class="admin-main">
       <header class="admin-topbar">
         <div>
-          <p class="page-eyebrow">{{ subtitle || '元伴陪诊运营管理' }}</p>
+          <p class="page-eyebrow">{{ subtitle || '愈安伴陪诊运营管理' }}</p>
           <h2 class="page-title">{{ title }}</h2>
         </div>
 
@@ -79,7 +81,8 @@ const allMenuItems = [
   { name: 'users', path: '/users', label: '用户管理', caption: '用户查询、状态管理与订单侧写' },
   { name: 'attendants', path: '/attendants', label: '陪诊师管理', caption: '资质审核、账号状态与服务能力' },
   { name: 'orders', path: '/orders', label: '订单管理', caption: '订单详情、取消与争议处理' },
-  { name: 'system', path: '/system', label: '管理员账号', caption: '账号创建、启用与禁用', superOnly: true }
+  { name: 'logs', path: '/logs', label: '操作日志', caption: '后台处理记录与审计', superOnly: true },
+  { name: 'system', path: '/system', label: '管理员账号', caption: '账号创建、启用与删除', superOnly: true }
 ]
 
 const menuItems = computed(() => allMenuItems.filter((item) => !item.superOnly || authStore.isSuperAdmin))

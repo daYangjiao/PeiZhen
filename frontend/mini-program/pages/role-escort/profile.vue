@@ -25,7 +25,7 @@
               <text class="name">{{ displayName }}</text>
               <text class="sub-info">工号 {{ attendantInfo.id || '--' }} | {{ attendantInfo.phone || '暂无电话' }}</text>
               <view class="status-wrap">
-                <text class="online-tag">在线接单</text>
+                <text class="online-tag" :class="{ muted: !attendantInfo.canAcceptOrders }">{{ attendantInfo.canAcceptOrders ? '在线接单' : qualificationStatusText }}</text>
               </view>
             </view>
           </view>
@@ -89,6 +89,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { showCurrentVersionInfo } from '@/utils/app-version.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import {
   escortRules,
   escortServiceCenter,
@@ -122,12 +123,19 @@ const dashboardCards = computed(() => [
 ])
 
 const qualificationStatusType = computed(() => {
+  if (attendantInfo.value.practiceCertExpired || attendantInfo.value.healthCertExpired) return 'failed'
   const code = Number(attendantInfo.value.qualificationStatusCode || 0)
   if (code === 1) return 'verified'
   if (code === 0) return 'pending'
   if (code === 3) return 'failed'
   if (code === 2) return 'blocked'
   return 'default'
+})
+
+const qualificationStatusText = computed(() => {
+  if (attendantInfo.value.canAcceptOrders) return '已通过'
+  if (attendantInfo.value.practiceCertExpired || attendantInfo.value.healthCertExpired) return '证件过期'
+  return attendantInfo.value.qualificationStatusText || '待审核'
 })
 
 const menuGroups = computed(() => [
@@ -143,7 +151,7 @@ const menuGroups = computed(() => [
       key: 'qualification',
       title: '资质管理',
       icon: ren1,
-      statusText: attendantInfo.value.qualificationStatusText || '待审核',
+      statusText: qualificationStatusText.value,
       statusType: qualificationStatusType.value,
       route: '/subpkg/profile/qualification'
     }
@@ -295,6 +303,7 @@ onShow(() => {
   if (redirectPublicSafeToHome()) return
   if (!ensureRole('escort')) return
   loadProfile()
+  guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
 })
 </script>
 
@@ -442,6 +451,17 @@ onShow(() => {
     border-radius: 50%;
     background: #52c41a;
     animation: pulse 1.8s infinite ease-in-out;
+  }
+}
+
+.online-tag.muted {
+  background: #eef2f7;
+  color: #667085;
+  border-color: #d9e2ec;
+
+  &::before {
+    background: #98a2b3;
+    animation: none;
   }
 }
 

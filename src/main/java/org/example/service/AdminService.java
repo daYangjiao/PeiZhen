@@ -8,7 +8,7 @@ import org.example.model.response.*;
 
 public interface AdminService {
 
-    AdminDashboardOverviewResponse getDashboardOverview();
+    AdminDashboardOverviewResponse getDashboardOverview(Integer operatorId);
 
     PagedResponse<AdminUserListItemResponse> getUsers(String keyword, Integer userType, Integer status, Integer page, Integer pageSize);
 
@@ -18,9 +18,11 @@ public interface AdminService {
 
     PagedResponse<AdminAttendantListItemResponse> getAttendants(String keyword, Integer auditStatus, Integer page, Integer pageSize);
 
-    AdminAttendantDetailResponse getNextPendingAttendant(Integer excludeId);
+    AdminAttendantDetailResponse getNextPendingAttendant(Integer operatorId, Integer excludeId);
 
-    AdminAttendantDetailResponse getAttendantDetail(Integer userId);
+    AdminAttendantDetailResponse getAttendantDetail(Integer operatorId, Integer userId);
+
+    java.util.List<AdminAttendantQualificationLogResponse> getAttendantQualificationLogs(Integer operatorId, Integer userId, Integer limit);
 
     void updateAttendantStatus(Integer operatorId, Integer userId, Integer status, String reason);
 
@@ -29,7 +31,7 @@ public interface AdminService {
     PagedResponse<AdminOrderListItemResponse> getOrders(String keyword, Integer orderStatus, Integer paymentStatus,
                                                         String startDate, String endDate, Integer page, Integer pageSize);
 
-    AdminOrderDetailResponse getOrderDetail(Integer orderId);
+    AdminOrderDetailResponse getOrderDetail(Integer operatorId, Integer orderId);
 
     void cancelOrder(Integer operatorId, Integer orderId, AdminOrderCancelRequest request);
 

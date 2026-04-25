@@ -37,6 +37,12 @@ public class AttendantQualification {
     @ApiModelProperty(value = "健康证文件地址")
     private String healthCertFileUrl;
 
+    @ApiModelProperty(value = "执业证书有效期，格式 yyyy-MM-dd")
+    private String practiceCertExpireDate;
+
+    @ApiModelProperty(value = "健康证有效期，格式 yyyy-MM-dd")
+    private String healthCertExpireDate;
+
     @ApiModelProperty(value = "创建时间")
     private Date createTime;
 

@@ -19,5 +19,11 @@ public class AdminDashboardOverviewResponse {
 
     private long disputeOrders;
 
+    private long pendingDisputeOrders;
+
+    private long todayOperationCount;
+
     private List<AdminOrderListItemResponse> recentOrders;
+
+    private List<AdminOperationLogResponse> recentOperationLogs;
 }

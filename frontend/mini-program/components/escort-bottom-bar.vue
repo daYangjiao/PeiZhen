@@ -29,6 +29,7 @@
         <text class="text" :class="{ active: active === 'profile' }">我的</text>
       </view>
     </view>
+    <escort-qualification-modal />
   </view>
 </template>
 
@@ -36,6 +37,8 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useMessageStore } from '@/stores/message.js'
 import { escortTabIcons } from '@/utils/assets.js'
+import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
+import EscortQualificationModal from '@/components/escort-qualification-modal.vue'
 
 defineProps({
   active: { type: String, default: 'hall' }
@@ -60,7 +63,11 @@ onUnmounted(() => {
   uni.$off('session:changed', refreshUnreadBadge)
 })
 
-const go = (url) => {
+const go = async (url) => {
+  if (url === '/pages/role-escort/hall') {
+    const gate = await guardEscortHallAccess({ showPopup: true, redirectOnConfirm: true })
+    if (!gate.allowed && gate.state !== 'pending') return
+  }
   // 陪诊师端不在微信 TabBar 内，统一使用 reLaunch 保证底部栏一致
   uni.reLaunch({ url })
 }

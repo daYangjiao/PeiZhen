@@ -28,8 +28,8 @@ public enum OrderStatusEnum {
     @ApiModelProperty(value = "待确认时长", example = "4")
     WAITING_CONFIRM_DURATION(4, "待确认时长"),
     
-    @ApiModelProperty(value = "待支付差价", example = "5")
-    WAITING_PAY_BALANCE(5, "待支付差价"),
+    @ApiModelProperty(value = "平台争议处理中", example = "5")
+    DISPUTE_PROCESSING(5, "平台争议处理中"),
     
     @ApiModelProperty(value = "已完成", example = "6")
     COMPLETED(6, "已完成"),
@@ -38,7 +38,10 @@ public enum OrderStatusEnum {
     CANCELLED(7, "已取消"),
 
     @ApiModelProperty(value = "专属派单待确认", example = "8")
-    ASSIGNED_WAITING_CONFIRM(8, "专属派单待确认");
+    ASSIGNED_WAITING_CONFIRM(8, "专属派单待确认"),
+
+    @ApiModelProperty(value = "待用户补差额", example = "9")
+    WAITING_PAY_BALANCE(9, "待用户补差额");
 
     private final Integer code;
     private final String description;

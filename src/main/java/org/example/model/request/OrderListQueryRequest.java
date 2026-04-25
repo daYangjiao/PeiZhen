@@ -25,7 +25,7 @@ public class OrderListQueryRequest {
     @ApiModelProperty(value = "排序方向（asc, desc）", example = "desc")
     private String sortDirection = "desc";
 
-    @ApiModelProperty(value = "订单状态筛选（0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长, 5=待补款, 6=已完成, 7=已取消）", example = "2")
+    @ApiModelProperty(value = "订单状态筛选（0=待支付, 1=待接单, 2=待服务, 3=服务中, 4=待确认时长费用, 5=平台争议处理中, 6=已完成, 7=已取消, 8=专属派单待确认, 9=待用户补差额）", example = "2")
     private Integer orderStatus;
 
     @ApiModelProperty(value = "支付状态筛选（0=待支付, 1=已支付）", example = "0")

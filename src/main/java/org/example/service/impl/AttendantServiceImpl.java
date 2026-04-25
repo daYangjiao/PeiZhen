@@ -1,15 +1,19 @@
 package org.example.service.impl;
 
 import org.example.dao.AttendantMapper;
+import org.example.dao.AttendantQualificationAuditLogMapper;
 import org.example.dao.AttendantQualificationMapper;
 import org.example.dao.OrderEvaluationMapper;
 import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
 import org.example.model.Attendant;
+import org.example.model.AttendantQualificationAuditLog;
 import org.example.model.AttendantQualification;
 import org.example.model.User;
 import org.example.model.response.AttendantProfileResponse;
+import org.example.model.response.AttendantQualificationLogResponse;
 import org.example.service.AttendantService;
+import org.example.util.AttendantQualificationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AttendantServiceImpl implements AttendantService {
@@ -33,6 +38,9 @@ public class AttendantServiceImpl implements AttendantService {
 
     @Autowired
     private AttendantQualificationMapper attendantQualificationMapper;
+
+    @Autowired
+    private AttendantQualificationAuditLogMapper auditLogMapper;
 
     @Autowired
     private OrderMapper orderMapper;
@@ -154,6 +162,11 @@ public class AttendantServiceImpl implements AttendantService {
             response.setIdCardBackFileUrl(idCardBackFileUrl);
             response.setPracticeCertFileUrl(qualification.getPracticeCertFileUrl());
             response.setHealthCertFileUrl(qualification.getHealthCertFileUrl());
+            response.setPracticeCertExpireDate(qualification.getPracticeCertExpireDate());
+            response.setHealthCertExpireDate(qualification.getHealthCertExpireDate());
+            response.setPracticeCertExpired(AttendantQualificationPolicy.isExpired(qualification.getPracticeCertExpireDate()));
+            response.setHealthCertExpired(AttendantQualificationPolicy.isExpired(qualification.getHealthCertExpireDate()));
+            response.setQualificationCompleteness(AttendantQualificationPolicy.completeness(qualification));
         } else {
             response.setIdCardUploaded(false);
             response.setPracticeCertUploaded(false);
@@ -163,7 +176,19 @@ public class AttendantServiceImpl implements AttendantService {
             response.setIdCardBackFileUrl("");
             response.setPracticeCertFileUrl("");
             response.setHealthCertFileUrl("");
+            response.setPracticeCertExpireDate("");
+            response.setHealthCertExpireDate("");
+            response.setPracticeCertExpired(false);
+            response.setHealthCertExpired(false);
+            response.setQualificationCompleteness(0);
         }
+
+        String blockReason = AttendantQualificationPolicy.acceptBlockReason(user, attendant, qualification);
+        response.setCanAcceptOrders(blockReason.isEmpty());
+        response.setQualificationBlockReason(blockReason);
+        response.setQualificationPopupRequired(attendant != null && attendant.getStatus() != null
+                && (attendant.getStatus() == 2 || attendant.getStatus() == 3));
+        response.setRecentQualificationLogs(toAttendantLogs(auditLogMapper.findLatestByUserId(userId, 5)));
 
         Integer todayService = orderMapper.countTodayCompletedService(userId);
         Integer monthService = orderMapper.countMonthCompletedService(userId);
@@ -206,22 +231,22 @@ public class AttendantServiceImpl implements AttendantService {
 
         mergeQualification(target, qualification);
 
+        Attendant attendant = attendantMapper.findByUserId(userId);
         if (existing == null) {
-            return attendantQualificationMapper.insert(target);
+            int rows = attendantQualificationMapper.insert(target);
+            writeAttendantLog(userId, "UPLOAD", attendant == null ? null : attendant.getStatus(), attendant == null ? null : attendant.getStatus(), "上传资质材料", target);
+            return rows;
         }
-        return attendantQualificationMapper.updateByUserId(target);
+        int rows = attendantQualificationMapper.updateByUserId(target);
+        writeAttendantLog(userId, "UPLOAD", attendant == null ? null : attendant.getStatus(), attendant == null ? null : attendant.getStatus(), "上传资质材料", target);
+        return rows;
     }
 
     @Override
     @Transactional
     public String submitQualification(Integer userId) {
         AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
-        if (qualification == null
-                || !isIdCardCompleted(qualification)
-                || !hasText(qualification.getPracticeCertFileUrl())
-                || !hasText(qualification.getHealthCertFileUrl())) {
-            throw new IllegalArgumentException("请先上传身份证、执业证书和健康证");
-        }
+        AttendantQualificationPolicy.requireSubmittable(qualification);
 
         Attendant attendant = attendantMapper.findByUserId(userId);
         if (attendant == null) {
@@ -233,6 +258,7 @@ public class AttendantServiceImpl implements AttendantService {
         update.setStatus(0);
         update.setQualificationFailReason("");
         attendantMapper.update(update);
+        writeAttendantLog(userId, "SUBMIT", attendant.getStatus(), 0, "提交资质审核", qualification);
         return "提交审核成功";
     }
 
@@ -318,6 +344,12 @@ public class AttendantServiceImpl implements AttendantService {
         if (incoming.getHealthCertFileUrl() != null) {
             target.setHealthCertFileUrl(incoming.getHealthCertFileUrl());
         }
+        if (incoming.getPracticeCertExpireDate() != null) {
+            target.setPracticeCertExpireDate(incoming.getPracticeCertExpireDate());
+        }
+        if (incoming.getHealthCertExpireDate() != null) {
+            target.setHealthCertExpireDate(incoming.getHealthCertExpireDate());
+        }
 
         target.setIdCardUploaded(isIdCardCompleted(target) ? 1 : 0);
         target.setPracticeCertUploaded((toBoolean(target.getPracticeCertUploaded()) || hasText(target.getPracticeCertFileUrl())) ? 1 : 0);
@@ -338,5 +370,60 @@ public class AttendantServiceImpl implements AttendantService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private void writeAttendantLog(Integer userId, String action, Integer fromStatus, Integer toStatus, String reason, AttendantQualification qualification) {
+        AttendantQualificationAuditLog log = new AttendantQualificationAuditLog();
+        log.setUserId(userId);
+        log.setActorType("ATTENDANT");
+        log.setActorId(userId);
+        User user = userMapper.findById(userId);
+        if (user != null) {
+            log.setActorName(user.getName());
+            log.setActorPhone(user.getPhone());
+        }
+        log.setActorRole("ATTENDANT");
+        log.setAction(action);
+        log.setFromStatus(fromStatus);
+        log.setToStatus(toStatus);
+        log.setReason(reason);
+        log.setSnapshotJson(buildQualificationSnapshot(qualification));
+        auditLogMapper.insert(log);
+    }
+
+    private String buildQualificationSnapshot(AttendantQualification qualification) {
+        if (qualification == null) {
+            return "{}";
+        }
+        return "{"
+                + "\"idCardFrontFileUrl\":\"" + escapeJson(qualification.getIdCardFrontFileUrl()) + "\","
+                + "\"idCardBackFileUrl\":\"" + escapeJson(qualification.getIdCardBackFileUrl()) + "\","
+                + "\"practiceCertFileUrl\":\"" + escapeJson(qualification.getPracticeCertFileUrl()) + "\","
+                + "\"healthCertFileUrl\":\"" + escapeJson(qualification.getHealthCertFileUrl()) + "\","
+                + "\"practiceCertExpireDate\":\"" + escapeJson(qualification.getPracticeCertExpireDate()) + "\","
+                + "\"healthCertExpireDate\":\"" + escapeJson(qualification.getHealthCertExpireDate()) + "\""
+                + "}";
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private List<AttendantQualificationLogResponse> toAttendantLogs(List<AttendantQualificationAuditLog> logs) {
+        if (logs == null || logs.isEmpty()) {
+            return List.of();
+        }
+        return logs.stream().map(log -> {
+            AttendantQualificationLogResponse response = new AttendantQualificationLogResponse();
+            response.setAction(log.getAction());
+            response.setFromStatus(log.getFromStatus());
+            response.setToStatus(log.getToStatus());
+            response.setReason(log.getReason());
+            response.setCreateTime(log.getCreateTime());
+            return response;
+        }).collect(Collectors.toList());
     }
 }

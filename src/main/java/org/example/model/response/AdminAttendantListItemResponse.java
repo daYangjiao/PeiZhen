@@ -46,6 +46,14 @@ public class AdminAttendantListItemResponse {
 
     private Boolean qualificationComplete;
 
+    private String practiceCertExpireDate;
+
+    private String healthCertExpireDate;
+
+    private Boolean practiceCertExpired;
+
+    private Boolean healthCertExpired;
+
     private Date createTime;
 
     private Date updateTime;

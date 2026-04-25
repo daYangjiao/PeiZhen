@@ -122,6 +122,10 @@
             <div class="detail-row-label">后台备注</div>
             <div class="detail-row-value">{{ getAdminRemark(order) }}</div>
           </div>
+          <div v-if="detail.disputeResolverName" class="detail-row">
+            <div class="detail-row-label">争议处理人</div>
+            <div class="detail-row-value">{{ detail.disputeResolverName }} / {{ mapAdminRole(detail.disputeResolverRole) }} / {{ detail.disputeResolverPhoneMasked || '-' }}</div>
+          </div>
         </section>
 
         <section class="panel-card">
@@ -199,8 +203,26 @@
       </template>
     </BaseDialog>
 
-    <BaseDialog v-model="disputeDialogOpen" title="处理争议订单" description="订单详情页可直接确认争议结果。" width="620px">
+    <BaseDialog v-model="disputeDialogOpen" title="处理争议订单" description="最终金额高于当前已付金额时，订单会进入待用户补差额。" width="620px">
       <div class="page-stack">
+        <div class="kv-grid">
+          <div class="kv-item">
+            <p class="kv-label">陪诊师提交时长</p>
+            <p class="kv-value">{{ formatDuration(getActualDuration(order)) }}</p>
+          </div>
+          <div class="kv-item">
+            <p class="kv-label">用户认可时长</p>
+            <p class="kv-value">{{ formatDuration(order.timeDisputeUserDuration) }}</p>
+          </div>
+          <div class="kv-item">
+            <p class="kv-label">当前金额</p>
+            <p class="kv-value">{{ formatMoney(order.orderAmount) }}</p>
+          </div>
+          <div class="kv-item">
+            <p class="kv-label">裁定后差额</p>
+            <p class="kv-value">{{ formatMoney(disputeBalancePreview) }}</p>
+          </div>
+        </div>
         <label class="login-field">
           <span>最终服务时长（小时）</span>
           <input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" />
@@ -260,6 +282,12 @@ const disputeForm = reactive({
 const order = computed(() => detail.value?.order || {})
 const orderStatusLabel = computed(() => getOrderStatusLabel(order.value?.orderStatus, '--'))
 const paymentStatusLabel = computed(() => getPaymentStatusLabel(order.value?.paymentStatus, '--'))
+const disputeBalancePreview = computed(() => {
+  const finalAmount = Number(disputeForm.finalOrderAmount)
+  const currentAmount = Number(order.value?.orderAmount || 0)
+  if (!Number.isFinite(finalAmount)) return ''
+  return finalAmount - currentAmount
+})
 
 const firstValidValue = (payload, keys) => {
   for (const key of keys) {
@@ -324,8 +352,8 @@ const openCancelDialog = () => {
 }
 
 const openDisputeDialog = () => {
-  disputeForm.finalDuration = detail.value?.order?.timeDisputeUserDuration ? String(detail.value.order.timeDisputeUserDuration) : ''
-  disputeForm.finalOrderAmount = detail.value?.order?.orderAmount ? String(detail.value.order.orderAmount) : ''
+  disputeForm.finalDuration = detail.value?.order?.timeDisputeUserDuration ? String(detail.value.order.timeDisputeUserDuration) : (getActualDuration(detail.value?.order) ? String(getActualDuration(detail.value.order)) : '')
+  disputeForm.finalOrderAmount = getSuggestedFinalAmount(detail.value?.order)
   disputeForm.adminRemark = ''
   disputeDialogOpen.value = true
 }
@@ -359,6 +387,10 @@ const submitDispute = async () => {
     uiStore.toast('请填写最终时长和金额', 'error')
     return
   }
+  if (!disputeForm.adminRemark) {
+    uiStore.toast('请填写争议处理备注', 'error')
+    return
+  }
   actionLoading.value = true
   try {
     await resolveDispute(detail.value.order.orderId, {
@@ -377,6 +409,15 @@ const submitDispute = async () => {
 }
 
 onMounted(loadDetail)
+
+const getSuggestedFinalAmount = (orderItem = {}) => {
+  const currentAmount = Number(orderItem.orderAmount || 0)
+  const balance = Number(orderItem.balanceAmount || 0)
+  const suggested = currentAmount + (Number.isFinite(balance) ? balance : 0)
+  return Number.isFinite(suggested) ? String(suggested.toFixed(2)) : ''
+}
+
+const mapAdminRole = (role) => (role === 'SUPER_ADMIN' ? '超级管理员' : role === 'ADMIN' ? '管理员' : '-')
 </script>
 
 <style scoped>

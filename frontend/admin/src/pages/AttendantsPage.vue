@@ -109,12 +109,24 @@
                 <p class="section-copy">审核入驻资料并处理账号状态。</p>
               </div>
               <div class="toolbar-group">
-                <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" @click="openActionDialog('approve')">通过审核</button>
+                <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('approve')">通过审核</button>
                 <button v-if="detail.attendant.status === 0" class="button button-danger" type="button" @click="openActionDialog('reject')">驳回审核</button>
                 <button v-if="detail.attendant.status === 1" class="button button-danger" type="button" @click="openActionDialog('ban')">封禁</button>
                 <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" @click="openActionDialog('restore-status')">恢复</button>
-                <button v-if="detail.attendant.status === 3" class="button button-primary" type="button" @click="openActionDialog('restore-review')">重新通过</button>
+                <button v-if="detail.attendant.status === 3" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">重新通过</button>
               </div>
+            </div>
+
+            <div class="qualification-summary">
+              <div class="summary-pill">
+                <span>材料完整度</span>
+                <strong>{{ qualificationCompleteness }}%</strong>
+              </div>
+              <div class="summary-pill" :class="{ danger: qualificationExpired }">
+                <span>证件有效期</span>
+                <strong>{{ qualificationExpired ? '存在过期' : '有效' }}</strong>
+              </div>
+              <div v-if="approveDisabledReason" class="summary-reason">{{ approveDisabledReason }}</div>
             </div>
 
             <div class="qualification-grid">
@@ -127,7 +139,23 @@
                 <p class="qualification-status" :class="card.url ? 'is-uploaded' : 'is-missing'">
                   {{ card.url ? '已上传' : '缺失' }}
                 </p>
+                <p v-if="card.expireDate" class="qualification-expire" :class="{ 'is-expired': card.expired }">
+                  有效期 {{ card.expireDate }}{{ card.expired ? '（已过期）' : '' }}
+                </p>
               </article>
+            </div>
+
+            <div class="audit-log-panel">
+              <h4 class="section-title">最近审核记录</h4>
+              <div v-if="qualificationLogs.length" class="audit-log-list">
+                <div v-for="log in qualificationLogs" :key="log.id || `${log.action}-${log.createTime}`" class="audit-log-item">
+                  <span class="badge badge-muted">{{ mapAuditAction(log.action) }}</span>
+                  <span v-if="log.operatorName" class="audit-operator">{{ log.operatorName }} · {{ mapOperatorRole(log.operatorRole) }}</span>
+                  <span class="audit-time">{{ formatDateTime(log.createTime) }}</span>
+                  <span v-if="log.reason" class="audit-reason">{{ log.reason }}</span>
+                </div>
+              </div>
+              <div v-else class="empty-card">暂无审核记录。</div>
             </div>
           </template>
           <template v-else>
@@ -243,14 +271,41 @@ const qualificationCards = computed(() => [
   {
     key: 'practice-cert',
     title: '执业证书',
-    url: detail.value?.qualification?.practiceCertFileUrl || ''
+    url: detail.value?.qualification?.practiceCertFileUrl || '',
+    expireDate: detail.value?.qualification?.practiceCertExpireDate || '',
+    expired: isExpiredDate(detail.value?.qualification?.practiceCertExpireDate)
   },
   {
     key: 'health-cert',
     title: '健康证',
-    url: detail.value?.qualification?.healthCertFileUrl || ''
+    url: detail.value?.qualification?.healthCertFileUrl || '',
+    expireDate: detail.value?.qualification?.healthCertExpireDate || '',
+    expired: isExpiredDate(detail.value?.qualification?.healthCertExpireDate)
   }
 ])
+
+const qualificationLogs = computed(() => detail.value?.qualificationLogs || [])
+const qualificationCompleteness = computed(() => {
+  const q = detail.value?.qualification || {}
+  const fields = [
+    q.idCardFrontFileUrl || q.idCardFileUrl,
+    q.idCardBackFileUrl,
+    q.practiceCertFileUrl,
+    q.healthCertFileUrl,
+    q.practiceCertExpireDate,
+    q.healthCertExpireDate
+  ]
+  return Math.floor((fields.filter(Boolean).length * 100) / fields.length)
+})
+const qualificationExpired = computed(() => isExpiredDate(detail.value?.qualification?.practiceCertExpireDate) || isExpiredDate(detail.value?.qualification?.healthCertExpireDate))
+const approveDisabledReason = computed(() => {
+  const q = detail.value?.qualification || {}
+  if (qualificationCompleteness.value < 100) return '材料或有效期未补全，不能通过审核'
+  if (isExpiredDate(q.practiceCertExpireDate)) return '执业证书已过期，不能通过审核'
+  if (isExpiredDate(q.healthCertExpireDate)) return '健康证已过期，不能通过审核'
+  return ''
+})
+const canApproveQualification = computed(() => !approveDisabledReason.value)
 
 const readQueryValue = (value) => (Array.isArray(value) ? value[0] : value)
 
@@ -495,6 +550,22 @@ const openPreview = (card) => {
   previewDialogOpen.value = true
 }
 
+const isExpiredDate = (value) => {
+  if (!value) return false
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return true
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date < today
+}
+
+const mapAuditAction = (action = '') => {
+  const map = { UPLOAD: '更新资料', SUBMIT: '提交审核', APPROVE: '审核通过', REJECT: '审核驳回', BAN: '封禁', RESTORE: '恢复' }
+  return map[String(action).toUpperCase()] || action || '记录'
+}
+
+const mapOperatorRole = (role = '') => (role === 'SUPER_ADMIN' ? '超级管理员' : role === 'ADMIN' ? '管理员' : role || '-')
+
 watch(
   () => route.query,
   async (query) => {
@@ -514,6 +585,82 @@ watch(
   display: grid;
   grid-template-rows: auto auto;
   gap: 12px;
+}
+
+.qualification-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.summary-pill {
+  min-height: 42px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #f3f8ff;
+  color: #4d647f;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-pill strong {
+  color: #0f63d8;
+}
+
+.summary-pill.danger {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.summary-reason {
+  color: #be123c;
+  font-size: 13px;
+}
+
+.qualification-expire {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.qualification-expire.is-expired {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.audit-log-panel {
+  margin-top: 18px;
+}
+
+.audit-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.audit-log-item {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f8fbff;
+  border: 1px solid #e6eef8;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audit-operator {
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+.audit-time,
+.audit-reason {
+  color: #667085;
+  font-size: 13px;
 }
 
 .filter-fields-row {

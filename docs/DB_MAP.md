@@ -1,6 +1,6 @@
 # Database Map
 
-更新时间: 2026-04-23
+更新时间: 2026-04-25
 
 本文件记录当前数据库结构、迁移脚本位置和以后数据库变更规则。当前基线主要来自 `database/student.sql`，历史增量来自 `database/*.sql`，后续新增变更统一写入根目录 `db/`。
 
@@ -20,6 +20,8 @@
 | `database/ai_medical_qa_user_history.sql` | AI 医疗问答用户历史增量 |
 | `database/chat_message_add_order_id.sql` | 聊天消息关联订单增量 |
 | `database/student.sql` | 当前完整建表和演示数据基线 |
+| `db/20260424_attendant_qualification_audit_gate.sql` | 陪诊师资质有效期、审核日志和 18650680037 超级管理员回填；列新增采用幂等检查，重复执行不应中断部署 |
+| `db/20260424_admin_operation_log_and_order_balance.sql` | 全局后台操作日志表；订单状态 5/9 争议与补差额语义同步 |
 | `db/.gitkeep` | 保留后续日期命名数据库脚本目录 |
 
 ## 表结构地图
@@ -29,10 +31,12 @@
 | `user` | 用户基础账号，区分普通用户和陪诊师登录身份。 | `id int`<br>`password varchar(100)`<br>`name varchar(50)`<br>`phone varchar(20)`<br>`sex varchar(10)`<br>`age int`<br>`avatar varchar(255)`<br>`user_type int`<br>`status tinyint`<br>`openid varchar(64)`<br>`create_time datetime` |
 | `sys_admin` | 管理端管理员账号，独立于普通用户体系。 | `id int`<br>`name varchar(50)`<br>`phone varchar(20)`<br>`password varchar(100)`<br>`status tinyint`<br>`role varchar(20)`<br>`create_time datetime`<br>`update_time datetime`<br>`last_login_time datetime` |
 | `attendant` | 陪诊师业务资料、状态、评分、医院和服务能力。 | `user_id int`<br>`certificate varchar(100)`<br>`status int`<br>`qualification_fail_reason varchar(255)`<br>`introduction text`<br>`professional_field varchar(255)`<br>`score decimal(2,1)`<br>`experience_years int`<br>`hospital_name varchar(100)`<br>`service_count int`<br>`create_time datetime`<br>`update_time datetime` |
-| `attendant_qualification` | 陪诊师身份证、执业证、健康证等资质材料上传状态和文件地址。 | `user_id int`<br>`id_card_uploaded tinyint(1)`<br>`practice_cert_uploaded tinyint(1)`<br>`health_cert_uploaded tinyint(1)`<br>`id_card_file_url varchar(255)`<br>`id_card_front_file_url varchar(255)`<br>`id_card_back_file_url varchar(255)`<br>`practice_cert_file_url varchar(255)`<br>`health_cert_file_url varchar(255)`<br>`create_time datetime`<br>`update_time datetime` |
+| `attendant_qualification` | 陪诊师身份证、执业证、健康证等资质材料上传状态、文件地址和证件有效期。 | `user_id int`<br>`id_card_uploaded tinyint(1)`<br>`practice_cert_uploaded tinyint(1)`<br>`health_cert_uploaded tinyint(1)`<br>`id_card_file_url varchar(255)`<br>`id_card_front_file_url varchar(255)`<br>`id_card_back_file_url varchar(255)`<br>`practice_cert_file_url varchar(255)`<br>`health_cert_file_url varchar(255)`<br>`practice_cert_expire_date varchar(20)`<br>`health_cert_expire_date varchar(20)`<br>`create_time datetime`<br>`update_time datetime` |
+| `attendant_qualification_audit_log` | 陪诊师资质上传、提交、审核、驳回、封禁和恢复操作日志。 | `id bigint`<br>`user_id int`<br>`actor_type varchar(20)`<br>`actor_id int`<br>`actor_name varchar(50)`<br>`actor_phone varchar(20)`<br>`actor_role varchar(20)`<br>`action varchar(30)`<br>`from_status int`<br>`to_status int`<br>`reason varchar(255)`<br>`snapshot_json json`<br>`create_time datetime` |
+| `admin_operation_log` | 全局管理端操作日志，供超级管理员按模块、动作、管理员角色、对象和时间审计。 | `id bigint`<br>`operator_id int`<br>`operator_name varchar(50)`<br>`operator_phone varchar(20)`<br>`operator_role varchar(20)`<br>`module varchar(40)`<br>`action varchar(50)`<br>`target_type varchar(40)`<br>`target_id int`<br>`target_label varchar(100)`<br>`from_status int`<br>`to_status int`<br>`remark varchar(255)`<br>`snapshot_json json`<br>`create_time datetime` |
 | `service_type_mapping` | 服务类型、基础价、小时价和启用状态。 | `id int`<br>`service_type_number int`<br>`service_type_name varchar(100)`<br>`description varchar(255)`<br>`price_base decimal(10,2)`<br>`price_per_hour decimal(10,2)`<br>`is_active tinyint(1)`<br>`create_time datetime`<br>`update_time datetime` |
 | `guide_appointment` | AI/普通导诊预约需求，保存患者、医院、症状、服务时间等。 | `id int`<br>`appointment_no varchar(64)`<br>`user_id int`<br>`patient_name varchar(50)`<br>`patient_phone varchar(20)`<br>`symptoms json`<br>`hospital_name varchar(100)`<br>`service_type_number int`<br>`service_date varchar(20)`<br>`service_start_time varchar(20)`<br>`service_end_time varchar(20)`<br>`other_requirement text`<br>`create_time datetime` |
-| `order` | 陪诊订单主表，保存用户、陪诊师、服务、支付、取消、争议、核销和结算字段。 | `order_id int`<br>`order_no varchar(64)`<br>`user_id int`<br>`attendant_id int`<br>`attendant_name varchar(50)`<br>`patient_name varchar(50)`<br>`patient_age int`<br>`patient_sex varchar(10)`<br>`contact_person varchar(50)`<br>`contact_phone varchar(20)`<br>`hospital varchar(100)`<br>`service_content varchar(100)`<br>`clinic_type int`<br>`service_date varchar(20)`<br>`service_time_slot varchar(50)`<br>`special_requirements text`<br>`custom_requirement text`<br>`order_amount decimal(10,2)`<br>... |
+| `order` | 陪诊订单主表，保存用户、陪诊师、服务、支付、取消、争议、核销和结算字段；状态 5 表示平台争议处理中，9 表示待用户补差额。 | `order_id int`<br>`order_no varchar(64)`<br>`user_id int`<br>`attendant_id int`<br>`attendant_name varchar(50)`<br>`patient_name varchar(50)`<br>`patient_age int`<br>`patient_sex varchar(10)`<br>`contact_person varchar(50)`<br>`contact_phone varchar(20)`<br>`hospital varchar(100)`<br>`service_content varchar(100)`<br>`clinic_type int`<br>`service_date varchar(20)`<br>`service_time_slot varchar(50)`<br>`special_requirements text`<br>`custom_requirement text`<br>`order_amount decimal(10,2)`<br>`balance_amount decimal(10,2)`<br>`refund_amount decimal(10,2)`<br>`dispute_resolved_by int`<br>`dispute_resolved_time datetime`<br>... |
 | `order_evaluation` | 订单评价和陪诊师回复。 | `id int`<br>`order_id int`<br>`order_no varchar(64)`<br>`user_id int`<br>`attendant_id int`<br>`rating int`<br>`tags varchar(255)`<br>`content text`<br>`attendant_reply text`<br>`reply_time datetime`<br>`create_time datetime`<br>`update_time datetime` |
 | `chat_message` | 用户与陪诊师聊天/系统消息记录，可关联订单。 | `id bigint`<br>`sender_id int`<br>`receiver_id int`<br>`content text`<br>`order_id int`<br>`msg_type int`<br>`is_read tinyint(1)`<br>`create_time datetime` |
 | `ai_medical_qa` | AI 医疗问答记录、会话、回答状态和思考过程。 | `id bigint`<br>`user_id int`<br>`conversation_id varchar(64)`<br>`question text`<br>`answer longtext`<br>`qa_status int`<br>`create_time datetime`<br>`update_time datetime`<br>`deleted tinyint(1)`<br>`thinking_process longtext` |
@@ -41,8 +45,8 @@
 
 ## 关键关系
 
-- `user.id` 是普通用户和陪诊师登录主体；陪诊师扩展资料使用 `attendant.user_id` 和 `attendant_qualification.user_id`。
-- `order.user_id` 关联下单用户，`order.attendant_id` 关联接单陪诊师，`order.guide_appointment_id` 关联导诊预约号/记录。
+- `user.id` 是普通用户和陪诊师登录主体；陪诊师扩展资料使用 `attendant.user_id`、`attendant_qualification.user_id` 和 `attendant_qualification_audit_log.user_id`。
+- `order.user_id` 关联下单用户，`order.attendant_id` 关联接单陪诊师，`order.guide_appointment_id` 关联导诊预约号/记录；后台订单取消和争议处理写入 `admin_operation_log`。
 - `order_evaluation.order_id`、`order_evaluation.order_no` 关联订单评价；`chat_message.order_id` 可将消息绑定到订单上下文。
 - `ai_appointment_session.session_id` 与 `ai_appointment_message.session_id` 组成 AI 预约导诊会话和消息明细。
 - `ai_medical_qa.conversation_id` 用于 AI 医疗问答会话聚合。

@@ -31,12 +31,17 @@ public interface OrderService {
     /**
      * 用户确认时长与费用（多退少补）
      */
-    String userConfirmTimeAndFee(Integer orderId);
+    String userConfirmTimeAndFee(Integer orderId, Integer currentUserId);
 
     /**
      * 用户不认可时长，提交申诉
      */
-    String userDisputeTimeAndFee(Integer orderId, BigDecimal userDuration, String reason);
+    String userDisputeTimeAndFee(Integer orderId, Integer currentUserId, BigDecimal userDuration, String reason);
+
+    /**
+     * 用户支付时长费用差额
+     */
+    String userPayBalance(Integer orderId, Integer currentUserId);
 
     /**
      * 更新订单服务进度（已到院/候诊中/检查中/就诊完成）
@@ -63,6 +68,8 @@ public interface OrderService {
     void broadcastWaitingOrderUpdate(Order order);
 
     PagedResponse<OrderListResponse> getUserOrdersWithPagination(Integer userId, OrderListQueryRequest queryRequest);
+
+    PagedResponse<OrderListResponse> getWaitingOrdersForAttendant(Integer attendantId, OrderListQueryRequest queryRequest);
 
     PagedResponse<OrderListResponse> getAllOrdersWithPagination(OrderListQueryRequest queryRequest);
 

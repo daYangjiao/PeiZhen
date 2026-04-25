@@ -57,13 +57,15 @@ public final class OrderTimeoutCloseUtils {
             case 4:
                 return "待确认时长";
             case 5:
-                return "待补款";
+                return "平台争议处理中";
             case 6:
                 return "已完成";
             case 7:
                 return "已取消";
             case 8:
                 return "专属派单待确认";
+            case 9:
+                return "待用户补差额";
             default:
                 return "未知";
         }

@@ -1,13 +1,13 @@
 # Backend Manifest
 
-更新时间: 2026-04-23
+更新时间: 2026-04-25
 
 本清单由 Spring Boot 控制器注解、Swagger 注解和拦截器配置整理。权限列按 `WebMvcConfig`、`AuthInterceptor`、`AdminAuthInterceptor` 推导。
 
 ## 摘要
 
-- 控制器数量: 17
-- HTTP 映射数量: 87
+- 控制器数量: 18
+- HTTP 映射数量: 92
 - 普通用户鉴权: `Authorization: Bearer <user-jwt>`
 - 管理员鉴权: `Authorization: Bearer <admin-jwt>`，且 JWT principalType 为 `admin`
 - WebSocket: `/ws/orders`、`/ws/chat` 通过 `WebSocketAuthHandshakeInterceptor` 鉴权。
@@ -42,9 +42,9 @@
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
 | AttendantController | POST | `/attendant/profile/avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:185` |
-| AttendantController | PUT | `/attendant/qualification/{userId}` | 更新资质 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:222` |
-| AttendantController | POST | `/attendant/qualification/{userId}/submit` | 提交资质审核 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:266` |
-| AttendantController | GET | `/attendant/orders/waiting` | 查询待接订单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:295` |
+| AttendantController | PUT | `/attendant/qualification/{userId}` | 更新资质和证件有效期 | 用户 JWT，仅本人 | `src/main/java/org/example/controller/AttendantController.java:222` |
+| AttendantController | POST | `/attendant/qualification/{userId}/submit` | 提交资质审核，校验证件完整和有效期 | 用户 JWT，仅本人 | `src/main/java/org/example/controller/AttendantController.java:266` |
+| AttendantController | GET | `/attendant/orders/waiting` | 查询待接订单，需资质通过且证件有效 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:295` |
 | AttendantController | POST | `/attendant/orders/{orderId}/accept` | 接单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:327` |
 | AttendantController | POST | `/attendant/orders/{orderId}/reject-assigned` | 拒绝专属派单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:353` |
 | AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:375` |
@@ -71,8 +71,9 @@
 | OrderController | PUT | `/api/orders/{orderId}` | 更新订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:76` |
 | OrderController | POST | `/api/orders/{orderId}/confirm-time-fee` | 确认时长费用 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:93` |
 | OrderController | POST | `/api/orders/{orderId}/dispute-time-fee` | 申诉时长费用 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:115` |
-| OrderController | GET | `/api/orders/user-orders` | 查询当前用户订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:141` |
-| OrderController | PUT | `/api/orders/{orderId}/cancel` | 取消订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:171` |
+| OrderController | POST | `/api/orders/{orderId}/pay-balance` | 支付时长费用差额，成功后完成订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:147` |
+| OrderController | GET | `/api/orders/user-orders` | 查询当前用户订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:163` |
+| OrderController | PUT | `/api/orders/{orderId}/cancel` | 取消订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:193` |
 | OrderEvaluationController | GET | `/api/orders/{orderId}/evaluation` | 查询评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:31` |
 | OrderEvaluationController | POST | `/api/orders/{orderId}/evaluation` | 提交评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:60` |
 | PublicQrCodeController | GET | `/order-qr/{orderId}.png` | 获取订单服务核销二维码图片 | 公开 | `src/main/java/org/example/controller/PublicQrCodeController.java:28` |
@@ -90,16 +91,20 @@
 | AdminAdminUserController | GET | `/api/admin/admin-users` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAdminUserController.java:23` |
 | AdminAdminUserController | POST | `/api/admin/admin-users` | 创建 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAdminUserController.java:32` |
 | AdminAdminUserController | PATCH | `/api/admin/admin-users/{adminId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAdminUserController.java:42` |
+| AdminAdminUserController | DELETE | `/api/admin/admin-users/{adminId}` | 删除管理员账号 | 管理员 JWT，仅超级管理员可操作 | `src/main/java/org/example/controller/admin/AdminAdminUserController.java:60` |
 | AdminAttendantController | GET | `/api/admin/attendants` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:23` |
+| AdminAttendantController | GET | `/api/admin/attendants/next-pending` | 查询下一条待审核陪诊师 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:33` |
 | AdminAttendantController | GET | `/api/admin/attendants/{userId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:32` |
+| AdminAttendantController | GET | `/api/admin/attendants/{userId}/qualification-logs` | 查询资质审核记录，超级管理员返回审核人字段 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:49` |
 | AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:41` |
 | AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/qualification-review` | 审核资质 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:53` |
 | AdminAuthController | POST | `/api/admin/auth/login` | 登录 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java:19` |
-| AdminDashboardController | GET | `/api/admin/dashboard/overview` | 查询概览 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminDashboardController.java:18` |
+| AdminDashboardController | GET | `/api/admin/dashboard/overview` | 查询概览，超级管理员额外返回今日处理量和最近操作日志摘要 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminDashboardController.java:18` |
 | AdminOrderController | GET | `/api/admin/orders` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:23` |
 | AdminOrderController | GET | `/api/admin/orders/{orderId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:35` |
 | AdminOrderController | PATCH | `/api/admin/orders/{orderId}/cancel` | cancel | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:44` |
 | AdminOrderController | PATCH | `/api/admin/orders/{orderId}/dispute-resolution` | 处理争议 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:56` |
+| AdminOperationLogController | GET | `/api/admin/operation-logs` | 查询后台操作日志，支持模块、动作、角色、关键词和时间筛选 | 管理员 JWT，仅超级管理员可用 | `src/main/java/org/example/controller/admin/AdminOperationLogController.java:23` |
 | AdminUserController | GET | `/api/admin/users` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:22` |
 | AdminUserController | GET | `/api/admin/users/{userId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:32` |
 | AdminUserController | PATCH | `/api/admin/users/{userId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:41` |

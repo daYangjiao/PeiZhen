@@ -128,7 +128,8 @@ const statusText = computed(() => {
 		2: '待服务',
 		3: '服务中',
 		4: '待确认时长',
-		5: '待补款',
+		5: '争议处理中',
+		9: '待补差额',
 		6: '已完成',
 		7: '已取消'
 	}
@@ -138,7 +139,8 @@ const statusText = computed(() => {
 			accepted: '待服务',
 			in_progress: '服务中',
 			waiting_confirm: '待确认时长',
-			disputed: '待补款',
+			disputed: '争议处理中',
+			waiting_balance: '待补差额',
 			completed: '已完成',
 			cancelled: '已取消'
 		}

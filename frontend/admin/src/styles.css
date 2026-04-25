@@ -94,8 +94,13 @@ img {
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.16);
-  font-size: 20px;
-  font-weight: 700;
+  overflow: hidden;
+}
+
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .brand-eyebrow,
@@ -722,7 +727,8 @@ img {
 .dialog-mask {
   position: fixed;
   inset: 0;
-  background: rgba(29, 43, 69, 0.34);
+  background: rgba(16, 31, 56, 0.38);
+  backdrop-filter: blur(8px);
   display: grid;
   place-items: center;
   z-index: 1000;
@@ -735,23 +741,27 @@ img {
   max-height: calc(100vh - 48px);
   overflow: auto;
   background: #fff;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(220, 232, 251, 0.9);
-  box-shadow: 0 24px 56px rgba(29, 43, 69, 0.18);
-  animation: dialogIn 220ms ease both;
+  border-radius: 22px;
+  border: 1px solid rgba(210, 226, 248, 0.95);
+  box-shadow: 0 30px 80px rgba(27, 68, 132, 0.2);
+  animation: dialogIn 200ms ease both;
 }
 
 .dialog-header {
-  padding: 22px 22px 16px;
+  padding: 24px 24px 18px;
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid rgba(220, 232, 251, 0.9);
+  border-bottom: 1px solid rgba(224, 234, 249, 0.92);
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 }
 
 .dialog-title {
   margin: 0;
-  font-size: 20px;
+  color: #12213a;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 800;
 }
 
 .dialog-description {
@@ -762,23 +772,49 @@ img {
 
 .dialog-close {
   border: none;
-  background: rgba(107, 122, 150, 0.1);
+  background: #edf4ff;
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  font-size: 22px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.dialog-close:hover {
+  background: #dfeeff;
+  transform: translateY(-1px);
+}
+
+.dialog-close span {
+  position: absolute;
+  width: 15px;
+  height: 2px;
+  border-radius: 999px;
+  background: #51657f;
+}
+
+.dialog-close span:first-child {
+  transform: rotate(45deg);
+}
+
+.dialog-close span:last-child {
+  transform: rotate(-45deg);
 }
 
 .dialog-body {
-  padding: 22px;
+  padding: 24px;
 }
 
 .dialog-footer {
-  padding: 0 22px 22px;
+  padding: 0 24px 24px;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+  border-top: 1px solid rgba(235, 241, 250, 0.86);
+  padding-top: 18px;
 }
 
 .toast-viewport {
@@ -871,7 +907,7 @@ img {
 @keyframes dialogIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.985);
+    transform: translateY(18px) scale(0.975);
   }
   to {
     opacity: 1;

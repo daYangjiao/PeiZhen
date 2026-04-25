@@ -31,4 +31,10 @@ public class AttendantQualificationUpdateRequest {
 
     @ApiModelProperty(value = "健康证文件地址", example = "/uploads/qualification/health_cert.jpg")
     private String healthCertFileUrl;
+
+    @ApiModelProperty(value = "执业证书有效期，格式 yyyy-MM-dd", example = "2027-12-31")
+    private String practiceCertExpireDate;
+
+    @ApiModelProperty(value = "健康证有效期，格式 yyyy-MM-dd", example = "2027-12-31")
+    private String healthCertExpireDate;
 }

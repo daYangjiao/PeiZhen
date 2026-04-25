@@ -99,13 +99,16 @@ public class OrderController {
     })
     public ResponseResult<String> confirmTimeAndFee(
             @ApiParam(value = "订单ID", required = true, example = "62")
-            @PathVariable Integer orderId) {
+            @PathVariable Integer orderId,
+            @ApiIgnore HttpServletRequest request) {
         try {
-            String result = orderService.userConfirmTimeAndFee(orderId);
+            String result = orderService.userConfirmTimeAndFee(orderId, AuthUtil.getCurrentUserId(request));
             if (result.startsWith("确认成功")) {
                 return ResponseResult.success(result);
             }
             return ResponseResult.error(result);
+        } catch (IllegalArgumentException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
         } catch (Exception e) {
             log.error("确认时长与费用失败，orderId={}", orderId, e);
             return ResponseResult.error("确认时长与费用失败");
@@ -125,16 +128,35 @@ public class OrderController {
             @ApiParam(value = "用户认可的实际服务时长，单位小时", example = "2.5")
             @RequestParam(required = false) java.math.BigDecimal userDuration,
             @ApiParam(value = "争议原因说明", example = "陪诊师登记时长偏长，实际服务只有 2.5 小时")
-            @RequestParam(required = false) String reason) {
+            @RequestParam(required = false) String reason,
+            @ApiIgnore HttpServletRequest request) {
         try {
-            String result = orderService.userDisputeTimeAndFee(orderId, userDuration, reason);
+            String result = orderService.userDisputeTimeAndFee(orderId, AuthUtil.getCurrentUserId(request), userDuration, reason);
             if (result.startsWith("申诉已提交")) {
                 return ResponseResult.success(result);
             }
             return ResponseResult.error(result);
+        } catch (IllegalArgumentException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
         } catch (Exception e) {
             log.error("提交时长费用申诉失败，orderId={}", orderId, e);
             return ResponseResult.error("提交申诉失败");
+        }
+    }
+
+    @PostMapping("/{orderId}/pay-balance")
+    @ApiOperation(value = "用户支付时长费用差额", notes = "用户确认或平台裁定后，若订单进入待补差额状态，可模拟支付差额并完成订单。")
+    public ResponseResult<String> payBalance(
+            @ApiParam(value = "订单ID", required = true, example = "62")
+            @PathVariable Integer orderId,
+            @ApiIgnore HttpServletRequest request) {
+        try {
+            return ResponseResult.success(orderService.userPayBalance(orderId, AuthUtil.getCurrentUserId(request)));
+        } catch (IllegalArgumentException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("支付订单差额失败，orderId={}", orderId, e);
+            return ResponseResult.error("支付差额失败");
         }
     }
 
@@ -146,7 +168,7 @@ public class OrderController {
             @ApiResponse(code = 500, message = "查询失败")
     })
     public ResponseResult<PagedResponse<OrderListResponse>> getCurrentUserOrders(
-            @ApiParam(value = "订单状态筛选：1=待接单，2=待服务，3=服务中，4=待确认时长，5=待补款，6=已完成，7=已取消", example = "6")
+            @ApiParam(value = "订单状态筛选：1=待接单，2=待服务，3=服务中，4=待确认时长费用，5=平台争议处理中，6=已完成，7=已取消，9=待用户补差额", example = "6")
             @RequestParam(required = false) Integer status,
             @ApiParam(value = "页码，从 0 开始", example = "0")
             @RequestParam(defaultValue = "0") Integer page,

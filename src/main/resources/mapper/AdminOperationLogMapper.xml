@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.AdminOperationLogMapper">
+
+    <resultMap id="AdminOperationLogResultMap" type="org.example.model.AdminOperationLog">
+        <id column="id" property="id"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="operator_phone" property="operatorPhone"/>
+        <result column="operator_role" property="operatorRole"/>
+        <result column="module" property="module"/>
+        <result column="action" property="action"/>
+        <result column="target_type" property="targetType"/>
+        <result column="target_id" property="targetId"/>
+        <result column="target_label" property="targetLabel"/>
+        <result column="from_status" property="fromStatus"/>
+        <result column="to_status" property="toStatus"/>
+        <result column="remark" property="remark"/>
+        <result column="snapshot_json" property="snapshotJson"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="org.example.model.AdminOperationLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_operation_log (
+            operator_id, operator_name, operator_phone, operator_role,
+            module, action, target_type, target_id, target_label,
+            from_status, to_status, remark, snapshot_json, create_time
+        ) VALUES (
+            #{operatorId}, #{operatorName}, #{operatorPhone}, #{operatorRole},
+            #{module}, #{action}, #{targetType}, #{targetId}, #{targetLabel},
+            #{fromStatus}, #{toStatus}, #{remark}, #{snapshotJson}, #{createTime}
+        )
+    </insert>
+
+    <sql id="filterCondition">
+        <where>
+            <if test="module != null and module != ''">AND module = #{module}</if>
+            <if test="action != null and action != ''">AND action = #{action}</if>
+            <if test="operatorRole != null and operatorRole != ''">AND operator_role = #{operatorRole}</if>
+            <if test="startTime != null and startTime != ''">AND create_time &gt;= #{startTime}</if>
+            <if test="endTime != null and endTime != ''">AND create_time &lt;= #{endTime}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    operator_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR operator_phone LIKE CONCAT('%', #{keyword}, '%')
+                    OR target_label LIKE CONCAT('%', #{keyword}, '%')
+                    OR remark LIKE CONCAT('%', #{keyword}, '%')
+                    OR CAST(target_id AS CHAR) = #{keyword}
+                )
+            </if>
+        </where>
+    </sql>
+
+    <select id="countLogs" resultType="int">
+        SELECT COUNT(*)
+        FROM admin_operation_log
+        <include refid="filterCondition"/>
+    </select>
+
+    <select id="findLogs" resultMap="AdminOperationLogResultMap">
+        SELECT *
+        FROM admin_operation_log
+        <include refid="filterCondition"/>
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+</mapper>

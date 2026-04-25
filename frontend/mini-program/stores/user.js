@@ -25,6 +25,15 @@ const createDefaultAttendantInfo = () => ({
   idCardBackFileUrl: '',
   practiceCertFileUrl: '',
   healthCertFileUrl: '',
+  practiceCertExpireDate: '',
+  healthCertExpireDate: '',
+  practiceCertExpired: false,
+  healthCertExpired: false,
+  qualificationCompleteness: 0,
+  canAcceptOrders: false,
+  qualificationBlockReason: '',
+  qualificationPopupRequired: false,
+  recentQualificationLogs: [],
   todayService: 0,
   monthService: 0,
   totalIncome: 0,
@@ -181,9 +190,18 @@ export const useUserStore = defineStore('user', {
       next.idCardBackFileUrl = next.idCardBackFileUrl || ''
       next.practiceCertFileUrl = next.practiceCertFileUrl || ''
       next.healthCertFileUrl = next.healthCertFileUrl || ''
+      next.practiceCertExpireDate = next.practiceCertExpireDate || ''
+      next.healthCertExpireDate = next.healthCertExpireDate || ''
       next.idCardUploaded = !!next.idCardFrontFileUrl && !!next.idCardBackFileUrl
       next.practiceCertUploaded = !!next.practiceCertFileUrl || next.practiceCertUploaded === true || Number(next.practiceCertUploaded || 0) === 1
       next.healthCertUploaded = !!next.healthCertFileUrl || next.healthCertUploaded === true || Number(next.healthCertUploaded || 0) === 1
+      next.practiceCertExpired = next.practiceCertExpired === true || Number(next.practiceCertExpired || 0) === 1
+      next.healthCertExpired = next.healthCertExpired === true || Number(next.healthCertExpired || 0) === 1
+      next.qualificationCompleteness = Number(next.qualificationCompleteness || 0)
+      next.canAcceptOrders = next.canAcceptOrders === true || Number(next.canAcceptOrders || 0) === 1
+      next.qualificationBlockReason = next.qualificationBlockReason || ''
+      next.qualificationPopupRequired = next.qualificationPopupRequired === true || Number(next.qualificationPopupRequired || 0) === 1
+      next.recentQualificationLogs = Array.isArray(next.recentQualificationLogs) ? next.recentQualificationLogs : []
       return next
     },
 

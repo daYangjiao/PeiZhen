@@ -111,6 +111,7 @@ import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
+import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 
 const searchKeyword = ref('')
 
@@ -119,6 +120,8 @@ const statusTabs = ref([
   { name: '待核销', value: 2 },
   { name: '服务中', value: 3 },
   { name: '待患者确认', value: 4 },
+  { name: '争议中', value: 5 },
+  { name: '待补差额', value: 9 },
   { name: '已完成', value: 6 },
   { name: '已取消', value: 7 }
 ])
@@ -159,6 +162,7 @@ onShow(() => {
   if (redirectPublicSafeToHome()) return
   pageActive = true
   if (ensureRole('escort')) {
+    guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
     connectOrderSocket()
     loadOrders({ silent: orders.value.length > 0 })
     startPolling()
@@ -234,7 +238,7 @@ const normalizeStatus = (status) => {
     accepted: 2,
     in_progress: 3,
     waiting_confirm: 4,
-    waiting_balance: 5,
+    waiting_balance: 9,
     completed: 6,
     cancelled: 7
   }
@@ -262,11 +266,11 @@ const formatAmount = (amount) => (amount ? Number(amount).toFixed(2) : '0.00')
 const getAttendantIncome = (orderAmount) => Number(orderAmount || 0) * 0.9
 
 const getStatusText = (status) => {
-  const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '待补款', 6: '已完成', 7: '已取消' }
+  const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '争议处理中', 6: '已完成', 7: '已取消', 9: '待用户补差额' }
   return map[status] || '未知'
 }
 const getStatusClass = (status) => {
-  const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled' }
+  const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 5: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled', 9: 'status-confirm' }
   return map[status] || 'status-default'
 }
 
@@ -333,7 +337,7 @@ const startPolling = () => {
   stopPolling()
   pollTimer = setInterval(() => {
     if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
-    const shouldPoll = orders.value.some((order) => [2, 3, 4, 5, 8].includes(normalizeStatus(order.orderStatus)))
+    const shouldPoll = orders.value.some((order) => [2, 3, 4, 5, 8, 9].includes(normalizeStatus(order.orderStatus)))
     if (shouldPoll) {
       loadOrders({ silent: true })
     }

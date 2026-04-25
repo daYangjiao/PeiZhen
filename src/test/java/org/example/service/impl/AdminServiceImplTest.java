@@ -1,10 +1,14 @@
 package org.example.service.impl;
 
 import org.example.dao.AttendantMapper;
+import org.example.dao.AttendantQualificationAuditLogMapper;
 import org.example.dao.AttendantQualificationMapper;
 import org.example.dao.OrderMapper;
+import org.example.dao.SysAdminMapper;
 import org.example.dao.UserMapper;
+import org.example.entity.SysAdmin;
 import org.example.model.Attendant;
+import org.example.model.AttendantQualificationAuditLog;
 import org.example.model.AttendantQualification;
 import org.example.model.Order;
 import org.example.model.User;
@@ -28,6 +32,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,13 +45,17 @@ class AdminServiceImplTest {
     @Mock
     private AttendantQualificationMapper attendantQualificationMapper;
     @Mock
+    private AttendantQualificationAuditLogMapper auditLogMapper;
+    @Mock
+    private SysAdminMapper sysAdminMapper;
+    @Mock
     private OrderMapper orderMapper;
     @Mock
     private OrderService orderService;
 
     @Test
     void getAttendantsShouldIncludeQualificationCompleteness() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, orderMapper, orderService);
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
 
         Attendant attendant = new Attendant();
         attendant.setUserId(101);
@@ -70,22 +79,22 @@ class AdminServiceImplTest {
         PagedResponse<AdminAttendantListItemResponse> response = service.getAttendants(null, null, 0, 10);
 
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).getQualificationCompleteness()).isEqualTo(50);
+        assertThat(response.getContent().get(0).getQualificationCompleteness()).isEqualTo(33);
     }
 
     @Test
     void getNextPendingAttendantShouldReturnNullWhenNoPendingRecord() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, orderMapper, orderService);
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
         when(attendantMapper.findNextPendingUserId(null)).thenReturn(null);
 
-        AdminAttendantDetailResponse response = service.getNextPendingAttendant(null);
+        AdminAttendantDetailResponse response = service.getNextPendingAttendant(1, null);
 
         assertThat(response).isNull();
     }
 
     @Test
     void reviewAttendantQualificationShouldRejectUnsupportedAction() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, orderMapper, orderService);
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
 
         User user = new User();
         user.setId(201);
@@ -104,7 +113,7 @@ class AdminServiceImplTest {
 
     @Test
     void getUsersShouldIncludeCompletedOrderCountAndAttendantAuditFields() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, orderMapper, orderService);
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
 
         User user = new User();
         user.setId(301);
@@ -143,12 +152,12 @@ class AdminServiceImplTest {
         assertThat(item.getAttendantAuditStatus()).isEqualTo(3);
         assertThat(item.getAttendantAuditStatusLabel()).isEqualTo("审核驳回");
         assertThat(item.getAttendantProfileCompleted()).isTrue();
-        assertThat(item.getQualificationCompleteness()).isEqualTo(75);
+        assertThat(item.getQualificationCompleteness()).isEqualTo(50);
     }
 
     @Test
     void getOrdersShouldIncludeExtendedOrderFields() {
-        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, orderMapper, orderService);
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
 
         Order order = new Order();
         order.setOrderId(401);
@@ -208,5 +217,158 @@ class AdminServiceImplTest {
         assertThat(item.getBalanceAmount()).isEqualByComparingTo("88.00");
         assertThat(item.getRefundAmount()).isEqualByComparingTo("20.00");
         assertThat(item.getAdminRemark()).isEqualTo("管理员备注");
+    }
+
+    @Test
+    void reviewAttendantQualificationShouldRejectIncompleteQualificationBeforeApprove() {
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+
+        User user = new User();
+        user.setId(701);
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(701);
+        attendant.setStatus(0);
+        AttendantQualification qualification = new AttendantQualification();
+        qualification.setIdCardFrontFileUrl("front.png");
+
+        when(userMapper.findById(701)).thenReturn(user);
+        when(attendantMapper.findByUserId(701)).thenReturn(attendant);
+        when(attendantQualificationMapper.findByUserId(701)).thenReturn(qualification);
+
+        assertThatThrownBy(() -> service.reviewAttendantQualification(1, 701, "approve", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("资质材料不完整，不能通过审核");
+    }
+
+    @Test
+    void reviewAttendantQualificationShouldWriteAdminAuditLog() {
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+
+        User user = new User();
+        user.setId(702);
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(702);
+        attendant.setStatus(0);
+        AttendantQualification qualification = completeQualification();
+        SysAdmin admin = new SysAdmin();
+        admin.setId(2);
+        admin.setName("审核员");
+        admin.setPhone("18650680037");
+        admin.setRole("SUPER_ADMIN");
+
+        when(userMapper.findById(702)).thenReturn(user);
+        when(attendantMapper.findByUserId(702)).thenReturn(attendant);
+        when(attendantQualificationMapper.findByUserId(702)).thenReturn(qualification);
+        when(sysAdminMapper.findById(2)).thenReturn(admin);
+
+        service.reviewAttendantQualification(2, 702, "approve", null);
+
+        verify(auditLogMapper).insert(ArgumentMatchers.argThat(log ->
+                Integer.valueOf(702).equals(log.getUserId())
+                        && "ADMIN".equals(log.getActorType())
+                        && Integer.valueOf(2).equals(log.getActorId())
+                        && "审核员".equals(log.getActorName())
+                        && "SUPER_ADMIN".equals(log.getActorRole())
+                        && "APPROVE".equals(log.getAction())
+                        && Integer.valueOf(0).equals(log.getFromStatus())
+                        && Integer.valueOf(1).equals(log.getToStatus())
+        ));
+    }
+
+    @Test
+    void getAttendantQualificationLogsShouldHideOperatorForNormalAdmin() {
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        SysAdmin admin = new SysAdmin();
+        admin.setId(3);
+        admin.setRole("ADMIN");
+        AttendantQualificationAuditLog log = new AttendantQualificationAuditLog();
+        log.setUserId(703);
+        log.setActorName("普通管理员");
+        log.setActorPhone("13800000000");
+        log.setActorRole("ADMIN");
+        log.setAction("REJECT");
+
+        when(sysAdminMapper.findById(3)).thenReturn(admin);
+        when(auditLogMapper.findLatestByUserId(703, 20)).thenReturn(List.of(log));
+
+        var logs = service.getAttendantQualificationLogs(3, 703, 20);
+
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).getOperatorName()).isNull();
+        assertThat(logs.get(0).getOperatorRole()).isNull();
+    }
+
+    @Test
+    void resolveDisputeShouldEnterBalancePaymentWhenFinalAmountGreaterThanPaid() {
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        Order order = new Order();
+        order.setOrderId(801);
+        order.setOrderNo("ORD-801");
+        order.setUserId(11);
+        order.setAttendantId(12);
+        order.setOrderStatus(5);
+        order.setOrderAmount(new BigDecimal("170.00"));
+        order.setBalanceAmount(new BigDecimal("20.00"));
+
+        org.example.model.request.AdminOrderDisputeResolutionRequest request = new org.example.model.request.AdminOrderDisputeResolutionRequest();
+        request.setFinalDuration(new BigDecimal("3.5"));
+        request.setFinalOrderAmount(new BigDecimal("230.00"));
+        request.setAdminRemark("平台核定补差额");
+
+        when(orderMapper.selectByPrimaryKey(801)).thenReturn(order);
+
+        service.resolveDispute(2, 801, request);
+
+        verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(801).equals(patch.getOrderId())
+                        && Integer.valueOf(9).equals(patch.getOrderStatus())
+                        && new BigDecimal("230.00").compareTo(patch.getOrderAmount()) == 0
+                        && new BigDecimal("60.00").compareTo(patch.getBalanceAmount()) == 0
+                        && Integer.valueOf(2).equals(patch.getDisputeResolvedBy())
+                        && patch.getDisputeResolvedTime() != null
+                        && "平台核定补差额".equals(patch.getAdminRemark())
+        ));
+    }
+
+    @Test
+    void resolveDisputeShouldCompleteAndRefundWhenFinalAmountLowerThanPaid() {
+        AdminServiceImpl service = new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper, sysAdminMapper, orderMapper, orderService);
+        Order order = new Order();
+        order.setOrderId(802);
+        order.setOrderNo("ORD-802");
+        order.setUserId(11);
+        order.setAttendantId(12);
+        order.setOrderStatus(5);
+        order.setOrderAmount(new BigDecimal("230.00"));
+
+        org.example.model.request.AdminOrderDisputeResolutionRequest request = new org.example.model.request.AdminOrderDisputeResolutionRequest();
+        request.setFinalDuration(new BigDecimal("2.0"));
+        request.setFinalOrderAmount(new BigDecimal("170.00"));
+        request.setAdminRemark("平台核定退款");
+
+        when(orderMapper.selectByPrimaryKey(802)).thenReturn(order);
+
+        service.resolveDispute(2, 802, request);
+
+        verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(802).equals(patch.getOrderId())
+                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && new BigDecimal("170.00").compareTo(patch.getOrderAmount()) == 0
+                        && new BigDecimal("-60.00").compareTo(patch.getBalanceAmount()) == 0
+                        && new BigDecimal("60.00").compareTo(patch.getRefundAmount()) == 0
+        ));
+    }
+
+    private AttendantQualification completeQualification() {
+        AttendantQualification qualification = new AttendantQualification();
+        qualification.setIdCardFrontFileUrl("front.png");
+        qualification.setIdCardBackFileUrl("back.png");
+        qualification.setPracticeCertFileUrl("practice.png");
+        qualification.setHealthCertFileUrl("health.png");
+        qualification.setPracticeCertExpireDate(java.time.LocalDate.now().plusYears(1).toString());
+        qualification.setHealthCertExpireDate(java.time.LocalDate.now().plusYears(1).toString());
+        return qualification;
     }
 }
