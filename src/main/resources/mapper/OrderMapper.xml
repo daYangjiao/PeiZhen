@@ -313,7 +313,7 @@
     </select>
 
     <select id="sumCompletedIncome" resultType="java.math.BigDecimal">
-        SELECT COALESCE(SUM(order_amount + COALESCE(balance_amount, 0)), 0)
+        SELECT COALESCE(SUM(order_amount * 0.9), 0)
         FROM `order`
         WHERE attendant_id = #{attendantId}
           AND order_status = 6

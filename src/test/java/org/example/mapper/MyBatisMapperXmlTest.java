@@ -10,8 +10,10 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MyBatisMapperXmlTest {
 
@@ -24,6 +26,25 @@ class MyBatisMapperXmlTest {
                     .as(resource.getFilename())
                     .doesNotThrowAnyException();
         }
+    }
+
+    @Test
+    void completedAttendantIncomeShouldUsePostCommissionFinalOrderAmount() throws Exception {
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        Resource resource = resolver.getResource("classpath:mapper/OrderMapper.xml");
+        String xml;
+        try (InputStream inputStream = resource.getInputStream()) {
+            xml = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        int start = xml.indexOf("<select id=\"sumCompletedIncome\"");
+        int end = xml.indexOf("</select>", start);
+        assertThat(start).isGreaterThanOrEqualTo(0);
+        assertThat(end).isGreaterThan(start);
+        String selectSql = xml.substring(start, end);
+
+        assertThat(selectSql).contains("order_amount * 0.9");
+        assertThat(selectSql).doesNotContain("order_amount + COALESCE(balance_amount, 0)");
     }
 
     private static Document parseXml(Resource resource) throws Exception {

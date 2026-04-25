@@ -106,6 +106,7 @@ import { storeToRefs } from 'pinia'
 import { get, post } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import { calculateAttendantIncome } from '@/utils/settlement.mjs'
 
 const userStore = useUserStore()
 const { balance } = storeToRefs(userStore)
@@ -160,11 +161,11 @@ const normalizedIncome = computed(() => {
     const serviceName = item.serviceTypeName || item.serviceContent || '服务收入'
     const serviceDate = item.serviceDate || '--'
     const timeText = item.createTime ? String(item.createTime).slice(0, 16).replace('T', ' ') : serviceDate
-    const amountValue = Number(item.orderAmount || 0) + Number(item.balanceAmount || 0)
+    const amountValue = calculateAttendantIncome(item)
     return {
       id: `income-${item.orderId || orderNo}`,
       title: `${serviceName} (订单 ${orderNo})`,
-      sub: `${timeText} · 基础费+超时费`,
+      sub: `${timeText} · 已扣平台服务费`,
       amount: amountValue,
       sortTime: parseTime(item.createTime) || parseTime(serviceDate)
     }

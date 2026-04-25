@@ -53,7 +53,7 @@
 | `subpkg/profile/id-card-crop` | 身份证框选 | 身份证正反面上传前的自定义框选页，按身份证比例裁切并输出清晰审核图。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/edit-escort` | 编辑资料 | 陪诊师编辑个人资料、擅长领域、医院和简介。 | `/attendant/profile/{...}` |
 | `subpkg/profile/withdraw-center` | 提现中心 | 提现中心入口，跳转钱包明细的提现 Tab。 | 无直接接口调用/通过封装模块调用 |
-| `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，统计收入、提现记录并保留提现申请入口。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
+| `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，按最终订单金额扣除平台服务费后展示真实收入，统计提现记录并保留提现申请入口。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
 | `subpkg/profile/qualification` | 资质管理 | 陪诊师资质管理，查看审核进度、材料完整度、证件有效期、驳回原因和最近审核记录，并提交审核。 | `/attendant/profile/{...}`<br>`/attendant/qualification/{...}/submit` |
 | `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期；身份证正反面先进入自定义框选页，图片上传后同时保存原图和后端生成的扫描预览图。 | `/attendant/qualification/{...}`<br>`/api/common/upload-image` |
 | `subpkg/profile/reviews` | 我的评价 | 陪诊师评价列表，查看订单评价并回复用户评价。 | `/attendant/orders`<br>`/attendant/orders/` |

@@ -221,7 +221,7 @@ public class AttendantServiceImpl implements AttendantService {
         response.setPraiseRate(praiseRate);
         response.setEvaluationCount(totalEvalCount == null ? 0 : totalEvalCount);
 
-        // 当前无提现流水表，余额按“已完成订单收入（含差价结算）”口径返回。
+        // 当前无提现流水表，余额按“已完成订单最终金额扣除平台服务费后的收入”口径返回。
         response.setBalance(normalizedIncome);
 
         // 兼容旧版字段，避免前端灰度期间出现空值
