@@ -1,8 +1,14 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/api.js'
+import {
+  MESSAGE_BADGE_STORAGE_KEY,
+  MESSAGE_BADGE_UPDATED_EVENT,
+  SYSTEM_MESSAGE_READ_EVENT,
+  USER_MESSAGE_TAB_INDEX,
+  formatBadgeText,
+  normalizeBadgeCount
+} from '@/utils/message-badge.mjs'
 
-const TABBAR_MESSAGE_BADGE_KEY = 'tabbar_message_badge'
-const TABBAR_BADGE_UPDATED_EVENT = 'message:badge-updated'
 const isReadReceiptMessage = (message = {}, payload = {}) => {
   const type = String(message.type || payload.type || '')
   const msgType = Number(message.msgType || payload.msgType || 0)
@@ -20,7 +26,7 @@ export const useMessageStore = defineStore('message', {
     pendingRefresh: false
   }),
   getters: {
-    totalUnreadCount: (state) => state.systemUnreadCount + state.unreadTotal,
+    totalUnreadCount: (state) => normalizeBadgeCount(state.systemUnreadCount + state.unreadTotal),
     getContactUnreadCount: (state) => (contactId) => state.contactUnreadMap[contactId] || 0,
     hasUnreadMessages: (state) => (state.systemUnreadCount + state.unreadTotal) > 0
   },
@@ -66,13 +72,13 @@ export const useMessageStore = defineStore('message', {
                 ? Number(contact.receiverId)
                 : Number(contact.senderId)
               if (!contactId) return
-              const count = contact.unreadCount || 0
+              const count = normalizeBadgeCount(contact.unreadCount)
               contactUnreadMap[contactId] = count
               totalUnread += count
             }
           })
-          this.unreadTotal = totalUnread
-          this.systemUnreadCount = systemUnread
+          this.unreadTotal = normalizeBadgeCount(totalUnread)
+          this.systemUnreadCount = normalizeBadgeCount(systemUnread)
           this.contactUnreadMap = contactUnreadMap
           this.lastUpdateTime = Date.now()
           this.updateTabBarBadge()
@@ -148,10 +154,10 @@ export const useMessageStore = defineStore('message', {
       this.recalculateTotal()
     },
     incrementSystemUnread(count = 1) {
-      this.systemUnreadCount += count
+      this.systemUnreadCount = normalizeBadgeCount(this.systemUnreadCount + count)
     },
     recalculateTotal() {
-      this.unreadTotal = Object.values(this.contactUnreadMap).reduce((sum, c) => sum + c, 0)
+      this.unreadTotal = Object.values(this.contactUnreadMap).reduce((sum, c) => sum + normalizeBadgeCount(c), 0)
     },
     clearAllUnread() {
       this.unreadTotal = 0
@@ -164,19 +170,43 @@ export const useMessageStore = defineStore('message', {
         this.refreshTimer = null
       }
     },
+    setSystemUnreadCount(count) {
+      this.systemUnreadCount = normalizeBadgeCount(count)
+      this.updateTabBarBadge()
+    },
     resetSystemUnread() {
+      this.setSystemUnreadCount(0)
+    },
+    clearSystemUnread(options = {}) {
       this.systemUnreadCount = 0
+      this.updateTabBarBadge()
+      if (options.emitReadEvent !== false) {
+        try {
+          uni.$emit(SYSTEM_MESSAGE_READ_EVENT, { messageId: 0 })
+        } catch (e) {}
+      }
     },
     updateContactUnread(contactId, count) {
       if (!contactId && contactId !== 0) return
-      this.contactUnreadMap[contactId] = Number(count) || 0
+      this.contactUnreadMap[contactId] = normalizeBadgeCount(count)
       this.recalculateTotal()
     },
     updateTabBarBadge() {
-      const total = this.systemUnreadCount + this.unreadTotal
+      const total = normalizeBadgeCount(this.systemUnreadCount + this.unreadTotal)
       try {
-        uni.setStorageSync(TABBAR_MESSAGE_BADGE_KEY, total)
-        uni.$emit(TABBAR_BADGE_UPDATED_EVENT, total)
+        uni.setStorageSync(MESSAGE_BADGE_STORAGE_KEY, total)
+        uni.$emit(MESSAGE_BADGE_UPDATED_EVENT, total)
+      } catch (e) {}
+      try {
+        if (typeof uni.setTabBarBadge !== 'function' || typeof uni.removeTabBarBadge !== 'function') return
+        if (total > 0) {
+          uni.setTabBarBadge({
+            index: USER_MESSAGE_TAB_INDEX,
+            text: formatBadgeText(total)
+          })
+        } else {
+          uni.removeTabBarBadge({ index: USER_MESSAGE_TAB_INDEX })
+        }
       } catch (e) {}
     }
   }

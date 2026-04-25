@@ -110,6 +110,9 @@ public class ChatServiceImpl implements ChatService {
     public void markAsRead(Integer senderId, Integer receiverId) {
         // 更新数据库中的已读状态
         chatMessageMapper.markAsRead(senderId, receiverId);
+        if (Integer.valueOf(0).equals(senderId)) {
+            return;
+        }
         Long lastReadMessageId = chatMessageMapper.findLatestReadMessageId(senderId, receiverId);
         
         // 通过WebSocket通知发送方消息已被阅读

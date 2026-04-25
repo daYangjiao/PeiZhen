@@ -91,8 +91,12 @@ let isRefreshing = false
 let refreshTimeout = null
 let processedMessages = new Set()
 
-const loadContacts = async () => {
-  if (isRefreshing) return
+const loadContacts = async ({ force = false } = {}) => {
+  if (isRefreshing && !force) return
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout)
+    refreshTimeout = null
+  }
   isRefreshing = true
   try {
     const res = await get('/api/chat/contacts')
@@ -102,21 +106,24 @@ const loadContacts = async () => {
       const normalContacts = allContacts.filter(c => c.senderId !== 0 && c.receiverId !== 0)
       if (sysMsg) {
         lastSystemMsg.value = sysMsg
-        messageStore.systemUnreadCount = sysMsg.unreadCount || 0
+        messageStore.setSystemUnreadCount(sysMsg.unreadCount || 0)
       } else {
         lastSystemMsg.value = {}
-        messageStore.systemUnreadCount = 0
+        messageStore.setSystemUnreadCount(0)
       }
       contacts.value = await Promise.all(normalContacts.map(decorateContact))
       updateContactUnreadMap(normalContacts)
-      messageStore.updateTabBarBadge()
     }
   } finally {
-    clearTimeout(refreshTimeout)
     refreshTimeout = setTimeout(() => {
       isRefreshing = false
-    }, 1000)
+      refreshTimeout = null
+    }, force ? 0 : 1000)
   }
+}
+
+const forceReloadContacts = () => {
+  loadContacts({ force: true })
 }
 
 const handleNewMessage = (msg) => {
@@ -216,6 +223,7 @@ onMounted(async () => {
   connectChatSocket()
   addChatListener(handleNewMessage)
   uni.$on('chat:return', loadContacts)
+  uni.$on('system-message:read', forceReloadContacts)
 })
 
 onShow(() => {
@@ -235,6 +243,7 @@ onShow(() => {
 onUnmounted(() => {
   removeChatListener(handleNewMessage)
   uni.$off('chat:return', loadContacts)
+  uni.$off('system-message:read', forceReloadContacts)
   if (cleanupTimer) {
     clearInterval(cleanupTimer)
     cleanupTimer = null

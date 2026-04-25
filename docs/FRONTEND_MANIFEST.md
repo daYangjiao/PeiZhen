@@ -18,18 +18,18 @@
 | --- | --- | --- | --- |
 | `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流，登录后按角色进入对应 Tab。 | `/api/users/login` |
 | `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
-| `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，跳转聊天或系统消息详情。 | `/api/chat/contacts` |
+| `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口。 | 无直接接口调用/通过封装模块调用 |
 | `pages/ai-triage/01-appointment-selection` | 预约类型选择 | 预约类型选择，承接首页/AI 分流，进入普通预约或 AI 导诊。 | 无直接接口调用/通过封装模块调用 |
 | `pages/role-escort/hall` | 陪诊接单大厅 | 陪诊师接单大厅，先检查资质门禁；未通过、驳回、封禁、过期或资料不完整时不请求待接订单，待审核显示审核中状态。 | `/attendant/profile/{...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/waiting` |
 | `pages/role-escort/order` | 陪诊师订单 | 陪诊师订单列表，按状态查看历史和服务订单；审核失败进入时弹窗提示但不阻断历史订单。 | `/attendant/profile/{...}`<br>`/attendant/orders` |
-| `pages/role-escort/message` | 消息中心 | 陪诊师消息中心，加载联系人和系统消息；审核失败进入时弹窗提示。 | `/attendant/profile/{...}`<br>`/api/chat/contacts` |
+| `pages/role-escort/message` | 消息中心 | 陪诊师消息中心，加载联系人和系统消息；审核失败进入时弹窗提示；监听系统消息已读并同步自定义底栏红点。 | `/attendant/profile/{...}`<br>`/api/chat/contacts` |
 | `pages/role-escort/profile` | 我的 | 陪诊师个人中心，展示资料、收入、资质门禁状态和服务统计入口。 | `/attendant/profile/{...}` |
 | `pages/role-user/home` | 陪诊服务 | 用户首页，推荐陪诊师、服务入口、AI 助手/AI 导诊入口和陪诊师详情跳转。 | 无直接接口调用/通过封装模块调用 |
 | `pages/public/index` | 愈安陪诊 | 公开落地页/角色入口，按登录状态和角色引导进入用户端或陪诊师端。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/chat/chat` | 聊天 | 用户侧聊天页，加载历史消息、发送文本/图片/语音并同步已读。 | `/api/chat/history?targetUserId={...}&page=1&pageSize={...}`<br>`/api/chat/history?targetUserId={...}&page={...}&pageSize={...}`<br>`/api/chat/read?senderId={...}`<br>`/api/chat/send`<br>`/api/common/upload` |
 | `subpkg/chat/chat-escort` | 聊天 | 陪诊师侧聊天页，加载历史消息、发送文本/图片/语音并同步已读。 | `/api/chat/history?targetUserId={...}&page=1&pageSize={...}`<br>`/api/chat/history?targetUserId={...}&page={...}&pageSize={...}`<br>`/api/chat/read?senderId={...}`<br>`/api/chat/send`<br>`/api/common/upload` |
-| `subpkg/system-message/system-message` | 系统消息 | 系统消息列表，读取消息、按消息动作跳转订单详情/评价/接单处理。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/chat/system/{...}`<br>`/attendant/orders/{...}`<br>`/api/orders/{...}`<br>`/api/chat/system`<br>`/api/chat/read?senderId=0` |
+| `subpkg/system-message/system-message` | 系统消息 | 系统消息列表，进入后批量标记系统通知已读并同步用户/陪诊师底部消息红点，按消息动作跳转订单详情/评价/接单处理。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/chat/system/{...}`<br>`/attendant/orders/{...}`<br>`/api/orders/{...}`<br>`/api/chat/system`<br>`/api/chat/read?senderId=0` |
 | `subpkg/system-message/escort-detail` | 系统消息详情 | 陪诊师系统消息详情，查看派单/订单相关消息并跳转订单。 | `/attendant/orders/{...}`<br>`/api/chat/system/{...}` |
 | `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
 | `subpkg/order/escort-detail` | 订单详情（陪诊师端） | 陪诊师订单详情，接单后执行开始服务、结束服务、取消、扫码核销、评价查看等。 | `/attendant/orders/{...}/evaluation`<br>`/attendant/orders/{...}/evaluation/reply`<br>`/attendant/orders/{...}/service-progress?step={...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/scan-qr?qrCodeContent={...}`<br>`/attendant/orders/{...}/cancel` |

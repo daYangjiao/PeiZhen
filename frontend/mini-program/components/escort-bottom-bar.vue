@@ -52,15 +52,21 @@ const refreshUnreadBadge = () => {
   messageStore.scheduleRefreshUnreadCounts(120)
 }
 
+const syncLocalBadge = () => {
+  messageStore.updateTabBarBadge()
+}
+
 onMounted(() => {
   refreshUnreadBadge()
   uni.$on('chat:message', refreshUnreadBadge)
   uni.$on('session:changed', refreshUnreadBadge)
+  uni.$on('system-message:read', syncLocalBadge)
 })
 
 onUnmounted(() => {
   uni.$off('chat:message', refreshUnreadBadge)
   uni.$off('session:changed', refreshUnreadBadge)
+  uni.$off('system-message:read', syncLocalBadge)
 })
 
 const go = async (url) => {

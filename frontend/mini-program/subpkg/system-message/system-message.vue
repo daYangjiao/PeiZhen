@@ -74,6 +74,8 @@ const roleClass = computed(() => (role.value === 'escort' ? 'role-escort' : 'rol
 const isEscortRole = computed(() => role.value === 'escort')
 const messageStore = useMessageStore()
 const actionLoadingKey = ref('')
+let systemSyncing = false
+let pendingSystemSync = false
 
 const inferType = (content = '') => {
   if (!content) return '平台公告'
@@ -212,29 +214,37 @@ const loadSystemMessages = async () => {
     action: inferAction(msg.content)
   }))
   systemMessages.value = apiData
-  if (isEscortRole.value) {
-    messageStore.systemUnreadCount = apiData.filter((item) => !item.isRead).length
-    messageStore.updateTabBarBadge()
-  }
+  messageStore.setSystemUnreadCount(apiData.filter((item) => !item.isRead).length)
 }
 
 const markSystemMessagesRead = async () => {
   try {
     await post('/api/chat/read?senderId=0')
   } catch {}
-  messageStore.resetSystemUnread()
-  messageStore.updateTabBarBadge()
+  systemMessages.value = systemMessages.value.map((item) => ({ ...item, isRead: true }))
+  messageStore.clearSystemUnread({ emitReadEvent: true })
 }
 
 const syncSystemMessages = async () => {
-  await loadSystemMessages()
-  if (!isEscortRole.value && systemMessages.value.length > 0) {
-    await markSystemMessagesRead()
+  if (systemSyncing) {
+    pendingSystemSync = true
     return
   }
-  if (!isEscortRole.value) {
-    messageStore.resetSystemUnread()
-    messageStore.updateTabBarBadge()
+  systemSyncing = true
+  try {
+    await loadSystemMessages()
+    const unreadCount = systemMessages.value.filter((item) => !item.isRead).length
+    if (unreadCount > 0) {
+      await markSystemMessagesRead()
+      return
+    }
+    messageStore.clearSystemUnread({ emitReadEvent: false })
+  } finally {
+    systemSyncing = false
+    if (pendingSystemSync) {
+      pendingSystemSync = false
+      setTimeout(() => syncSystemMessages(), 80)
+    }
   }
 }
 
@@ -314,7 +324,8 @@ const handleNewMessage = () => {
 
 const handleSystemMessageRead = ({ messageId } = {}) => {
   if (!messageId) {
-    syncSystemMessages()
+    systemMessages.value = systemMessages.value.map((item) => ({ ...item, isRead: true }))
+    messageStore.clearSystemUnread({ emitReadEvent: false })
     return
   }
 
@@ -323,8 +334,7 @@ const handleSystemMessageRead = ({ messageId } = {}) => {
       ? { ...item, isRead: true }
       : item
   )
-  messageStore.systemUnreadCount = systemMessages.value.filter((item) => !item.isRead).length
-  messageStore.updateTabBarBadge()
+  messageStore.setSystemUnreadCount(systemMessages.value.filter((item) => !item.isRead).length)
 }
 
 const formatTime = (timeStr) => {
