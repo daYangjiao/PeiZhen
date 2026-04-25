@@ -231,6 +231,15 @@
           }
         },
         {
+          "path": "profile/id-card-crop",
+          "style": {
+            "navigationBarTitleText": "身份证框选",
+            "navigationBarBackgroundColor": "#f5f7fa",
+            "backgroundColor": "#f5f7fa",
+            "disableScroll": true
+          }
+        },
+        {
           "path": "profile/edit-escort",
           "style": {
             "navigationBarTitleText": "编辑资料",

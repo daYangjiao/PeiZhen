@@ -163,6 +163,42 @@
               </div>
             </div>
 
+            <section class="workspace-section qualification-review-stage">
+              <div class="qualification-main-viewer" :class="{ missing: !activeQualificationCard?.url, expired: activeQualificationCard?.expired }">
+                <div class="qualification-main-head">
+                  <div>
+                    <p class="workspace-kicker">证件核验</p>
+                    <h3 class="section-title">{{ activeQualificationCard?.title || '资质图片' }}</h3>
+                    <p v-if="activeQualificationCard?.expireDate" class="section-copy">有效期 {{ activeQualificationCard.expireDate }}</p>
+                  </div>
+                  <button v-if="activeQualificationCard?.url" class="button button-secondary" type="button" @click="openPreview(activeQualificationCard)">放大查看</button>
+                </div>
+                <button v-if="activeQualificationCard?.url" class="qualification-main-image-button" type="button" @click="openPreview(activeQualificationCard)">
+                  <img :src="activeQualificationCard.url" :alt="activeQualificationCard.title" class="qualification-main-image" />
+                </button>
+                <div v-else class="qualification-main-placeholder">请选择已上传的证件图片</div>
+              </div>
+
+              <div class="review-snapshot-grid">
+                <article
+                  v-for="card in qualificationCards"
+                  :key="card.key"
+                  class="review-snapshot-card"
+                  :class="{ active: activeQualificationCard?.key === card.key, missing: !card.url, expired: card.expired }"
+                >
+                  <div class="review-snapshot-head">
+                    <p>{{ card.title }}</p>
+                    <span>{{ card.url ? (card.expired ? '已过期' : '已上传') : '缺失' }}</span>
+                  </div>
+                  <button v-if="card.url" class="review-snapshot-image-button" type="button" @click="activeQualificationKey = card.key">
+                    <img :src="card.url" :alt="card.title" class="review-snapshot-image" />
+                  </button>
+                  <div v-else class="review-snapshot-placeholder">未上传</div>
+                  <p v-if="card.expireDate" class="review-snapshot-date">有效期 {{ card.expireDate }}</p>
+                </article>
+              </div>
+            </section>
+
             <section class="action-panel">
               <div>
                 <h3 class="section-title">人工审核</h3>
@@ -192,22 +228,6 @@
                 </article>
               </div>
               <div v-else class="empty-card inline-empty">当前任务正在分配，请稍候。</div>
-            </section>
-
-            <section class="workspace-section">
-              <div class="review-snapshot-grid">
-                <article v-for="card in qualificationCards" :key="card.key" class="review-snapshot-card" :class="{ missing: !card.url, expired: card.expired }">
-                  <div class="review-snapshot-head">
-                    <p>{{ card.title }}</p>
-                    <span>{{ card.url ? (card.expired ? '已过期' : '已上传') : '缺失' }}</span>
-                  </div>
-                  <button v-if="card.url" class="review-snapshot-image-button" type="button" @click="openPreview(card)">
-                    <img :src="card.url" :alt="card.title" class="review-snapshot-image" />
-                  </button>
-                  <div v-else class="review-snapshot-placeholder">未上传</div>
-                  <p v-if="card.expireDate" class="review-snapshot-date">有效期 {{ card.expireDate }}</p>
-                </article>
-              </div>
             </section>
 
             <section class="workspace-section">
@@ -293,6 +313,7 @@ const confirmDialogOpen = ref(false)
 const previewDialogOpen = ref(false)
 const previewImageUrl = ref('')
 const previewTitle = ref('')
+const activeQualificationKey = ref('id-front')
 let timer = null
 let refreshTimer = null
 let autoRenewing = false
@@ -331,6 +352,10 @@ const qualificationCards = computed(() => {
     { key: 'practice', title: '执业证', url: item.practiceCertFileUrl, expireDate: item.practiceCertExpireDate, expired: isExpired(item.practiceCertExpireDate) },
     { key: 'health', title: '健康证', url: item.healthCertFileUrl, expireDate: item.healthCertExpireDate, expired: isExpired(item.healthCertExpireDate) }
   ]
+})
+const activeQualificationCard = computed(() => {
+  const cards = qualificationCards.value || []
+  return cards.find((card) => card.key === activeQualificationKey.value && card.url) || cards.find((card) => card.url) || cards[0] || null
 })
 const orderInfoItems = computed(() => {
   const item = order.value || {}
@@ -495,6 +520,8 @@ const loadDetail = async () => {
     } else {
       attendantDetail.value = await fetchAttendantDetail(selectedTargetId.value)
       orderDetail.value = null
+      const firstUploaded = qualificationCards.value.find((card) => card.url)
+      activeQualificationKey.value = firstUploaded?.key || 'id-front'
     }
   } catch (error) {
     uiStore.toast(error.message || '详情加载失败', 'error')
@@ -1018,6 +1045,75 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
+.qualification-review-stage {
+  display: grid;
+  gap: 14px;
+}
+
+.qualification-main-viewer {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(184, 208, 246, 0.88);
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.qualification-main-viewer.missing,
+.qualification-main-viewer.expired {
+  border-color: rgba(228, 85, 85, 0.24);
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+}
+
+.qualification-main-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.qualification-main-head .button {
+  flex: 0 0 auto;
+}
+
+.qualification-main-image-button,
+.qualification-main-placeholder {
+  width: 100%;
+  height: clamp(320px, 38vw, 520px);
+  border: 1px solid rgba(184, 208, 246, 0.78);
+  border-radius: 18px;
+  background:
+    linear-gradient(45deg, rgba(226, 238, 255, 0.5) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(226, 238, 255, 0.5) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(226, 238, 255, 0.5) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(226, 238, 255, 0.5) 75%),
+    #fff;
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  overflow: hidden;
+}
+
+.qualification-main-image-button {
+  padding: 0;
+  cursor: zoom-in;
+}
+
+.qualification-main-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qualification-main-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-weight: 800;
+  border-style: dashed;
+}
+
 .review-snapshot-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1032,6 +1128,13 @@ onBeforeUnmount(() => {
   border-radius: 18px;
   border: 1px solid rgba(184, 208, 246, 0.84);
   background: #f8fbff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.review-snapshot-card.active {
+  border-color: rgba(37, 99, 235, 0.52);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
 }
 
 .review-snapshot-card.missing,
@@ -1078,7 +1181,7 @@ onBeforeUnmount(() => {
 .review-snapshot-image-button,
 .review-snapshot-placeholder {
   width: 100%;
-  height: 168px;
+  height: 118px;
   border: 1px solid rgba(184, 208, 246, 0.8);
   border-radius: 16px;
   background: #fff;
@@ -1087,6 +1190,7 @@ onBeforeUnmount(() => {
 
 .review-snapshot-image-button {
   padding: 0;
+  cursor: pointer;
 }
 
 .review-snapshot-image {
@@ -1171,6 +1275,20 @@ onBeforeUnmount(() => {
 
   .workspace-status {
     display: grid;
+  }
+
+  .qualification-main-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .qualification-main-head .button {
+    width: 100%;
+  }
+
+  .qualification-main-image-button,
+  .qualification-main-placeholder {
+    height: 260px;
   }
 
   .workspace-lock {

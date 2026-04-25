@@ -6,7 +6,7 @@
 
 ## 摘要
 
-- 小程序页面数量: 45
+- 小程序页面数量: 46
 - 管理端路由页面数量: 11
 - 小程序主包: `frontend/mini-program/pages/**`
 - 小程序分包: `frontend/mini-program/subpkg/**`
@@ -50,11 +50,12 @@
 | `subpkg/profile/attendant-detail` | 陪诊师主页 | 陪诊师主页，展示公开资料/评分/资质，引导指定 TA 预约或普通预约。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/edit-profile` | 编辑个人资料 | 用户编辑个人资料和头像。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/avatar-crop` | 裁剪头像 | 头像裁剪工具页，裁剪后返回上传流程。 | 无直接接口调用/通过封装模块调用 |
+| `subpkg/profile/id-card-crop` | 身份证框选 | 身份证正反面上传前的自定义框选页，按身份证比例裁切并输出清晰审核图。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/edit-escort` | 编辑资料 | 陪诊师编辑个人资料、擅长领域、医院和简介。 | `/attendant/profile/{...}` |
 | `subpkg/profile/withdraw-center` | 提现中心 | 提现中心入口，跳转钱包明细的提现 Tab。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，统计收入、提现记录并保留提现申请入口。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
 | `subpkg/profile/qualification` | 资质管理 | 陪诊师资质管理，查看审核进度、材料完整度、证件有效期、驳回原因和最近审核记录，并提交审核。 | `/attendant/profile/{...}`<br>`/attendant/qualification/{...}/submit` |
-| `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期。 | `/attendant/qualification/{...}`<br>`/api/common/upload-image` |
+| `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期；身份证正反面先进入自定义框选页，避免审核图边缘过多或内容裁切。 | `/attendant/qualification/{...}`<br>`/api/common/upload-image` |
 | `subpkg/profile/reviews` | 我的评价 | 陪诊师评价列表，查看订单评价并回复用户评价。 | `/attendant/orders`<br>`/attendant/orders/` |
 | `subpkg/profile/service-stats` | 服务统计 | 陪诊师服务统计，汇总已完成订单、收入和评分。 | `/attendant/orders` |
 | `subpkg/profile/platform-rules` | 平台规则 | 平台规则说明页。 | 无直接接口调用/通过封装模块调用 |

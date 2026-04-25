@@ -44,7 +44,7 @@
       </view>
       <view class="id-grid">
         <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardFront')">
-          <image v-if="idCardFront" class="preview" :src="toFullUrl(idCardFront)" mode="aspectFill"></image>
+          <image v-if="idCardFront" class="preview" :src="toFullUrl(idCardFront)" mode="aspectFit"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传身份证正面</text>
@@ -52,7 +52,7 @@
           <text class="slot-label">正面</text>
         </view>
         <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardBack')">
-          <image v-if="idCardBack" class="preview" :src="toFullUrl(idCardBack)" mode="aspectFill"></image>
+          <image v-if="idCardBack" class="preview" :src="toFullUrl(idCardBack)" mode="aspectFit"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传身份证背面</text>
@@ -73,7 +73,7 @@
 
       <view class="cert-grid">
         <view class="cert-slot" :class="{ focused: focusType === 'practiceCert' }" @click="onCertCardTap('practiceCert', practiceCertUrl)">
-          <image v-if="practiceCertUrl" class="preview" :src="toFullUrl(practiceCertUrl)" mode="aspectFill"></image>
+          <image v-if="practiceCertUrl" class="preview" :src="toFullUrl(practiceCertUrl)" mode="aspectFit"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传执业证书</text>
@@ -100,7 +100,7 @@
         </view>
 
         <view class="cert-slot" :class="{ focused: focusType === 'healthCert' }" @click="onCertCardTap('healthCert', healthCertUrl)">
-          <image v-if="healthCertUrl" class="preview" :src="toFullUrl(healthCertUrl)" mode="aspectFill"></image>
+          <image v-if="healthCertUrl" class="preview" :src="toFullUrl(healthCertUrl)" mode="aspectFit"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传健康证</text>
@@ -141,6 +141,7 @@ import { storeToRefs } from 'pinia'
 import { put, upload } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { resolveImageUrl } from '@/utils/media.js'
+import { pickFrameIdCardFile } from '@/utils/id-card-upload.js'
 
 const userStore = useUserStore()
 const { attendantInfo } = storeToRefs(userStore)
@@ -182,56 +183,70 @@ const previewImage = (url) => {
   })
 }
 
-const uploadByKey = (key) => {
-  if (saving.value) return
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const uid = userId()
-      if (!uid) {
-        uni.showToast({ title: '请先登录', icon: 'none' })
-        return
-      }
-      const filePath = res.tempFilePaths && res.tempFilePaths[0]
-      if (!filePath) return
-
-      saving.value = true
-      try {
-        const uploadRes = await upload('/api/common/upload-image', filePath)
-        const fileUrl = uploadRes.url || uploadRes.data || ''
-        if (!fileUrl) {
-          uni.showToast({ title: '上传返回异常', icon: 'none' })
-          return
-        }
-
-        const payload = {}
-        if (key === 'idCardFront') {
-          payload.idCardFrontFileUrl = fileUrl
-          payload.idCardFileUrl = fileUrl
-        } else if (key === 'idCardBack') {
-          payload.idCardBackFileUrl = fileUrl
-        } else if (key === 'practiceCert') {
-          payload.practiceCertFileUrl = fileUrl
-          payload.practiceCertUploaded = 1
-          if (practiceCertExpireDate.value) payload.practiceCertExpireDate = practiceCertExpireDate.value
-        } else if (key === 'healthCert') {
-          payload.healthCertFileUrl = fileUrl
-          payload.healthCertUploaded = 1
-          if (healthCertExpireDate.value) payload.healthCertExpireDate = healthCertExpireDate.value
-        }
-
-        await put(`/attendant/qualification/${uid}`, payload)
-        await userStore.fetchAttendantProfile(uid)
-        uni.showToast({ title: '上传成功', icon: 'success' })
-      } catch (error) {
-        uni.showToast({ title: '上传失败', icon: 'none' })
-      } finally {
-        saving.value = false
-      }
-    }
+const chooseCertFile = () =>
+  new Promise((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const filePath = res.tempFilePaths && res.tempFilePaths[0]
+        filePath ? resolve(filePath) : reject(new Error('未选择图片'))
+      },
+      fail: reject
+    })
   })
+
+const uploadByKey = async (key) => {
+  if (saving.value) return
+  const uid = userId()
+  if (!uid) {
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
+  }
+
+  try {
+    const filePath = key === 'idCardFront'
+      ? await pickFrameIdCardFile('front')
+      : key === 'idCardBack'
+        ? await pickFrameIdCardFile('back')
+        : await chooseCertFile()
+    if (!filePath) return
+
+    saving.value = true
+    const uploadRes = await upload('/api/common/upload-image', filePath)
+    const fileUrl = uploadRes.url || uploadRes.data || ''
+    if (!fileUrl) {
+      uni.showToast({ title: '上传返回异常', icon: 'none' })
+      return
+    }
+
+    const payload = {}
+    if (key === 'idCardFront') {
+      payload.idCardFrontFileUrl = fileUrl
+      payload.idCardFileUrl = fileUrl
+    } else if (key === 'idCardBack') {
+      payload.idCardBackFileUrl = fileUrl
+    } else if (key === 'practiceCert') {
+      payload.practiceCertFileUrl = fileUrl
+      payload.practiceCertUploaded = 1
+      if (practiceCertExpireDate.value) payload.practiceCertExpireDate = practiceCertExpireDate.value
+    } else if (key === 'healthCert') {
+      payload.healthCertFileUrl = fileUrl
+      payload.healthCertUploaded = 1
+      if (healthCertExpireDate.value) payload.healthCertExpireDate = healthCertExpireDate.value
+    }
+
+    await put(`/attendant/qualification/${uid}`, payload)
+    await userStore.fetchAttendantProfile(uid)
+    uni.showToast({ title: '上传成功', icon: 'success' })
+  } catch (error) {
+    if (error?.message !== 'cancel' && !String(error?.errMsg || '').includes('cancel')) {
+      uni.showToast({ title: error?.message || '上传失败', icon: 'none' })
+    }
+  } finally {
+    saving.value = false
+  }
 }
 
 const onExpireDateChange = async (type, event) => {
@@ -377,6 +392,7 @@ onMounted(loadProfile)
 .preview {
   width: 100%;
   height: 190rpx;
+  background: #ffffff;
 }
 
 .placeholder {
