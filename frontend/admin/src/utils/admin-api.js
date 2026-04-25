@@ -19,6 +19,12 @@ export const cancelOrder = (id, payload) => patch(`/api/admin/orders/${id}/cance
 export const resolveDispute = (id, payload) => patch(`/api/admin/orders/${id}/dispute-resolution`, payload)
 export const fetchOperationLogs = (params) => get('/api/admin/operation-logs', params)
 
+export const fetchWorkbenchSummary = () => get('/api/admin/workbench/summary')
+export const fetchWorkbenchTasks = (params) => get('/api/admin/workbench/tasks', params)
+export const claimWorkbenchTask = (type, targetId) => post(`/api/admin/workbench/tasks/${type}/${targetId}/claim`)
+export const completeWorkbenchTask = (type, targetId, payload) => post(`/api/admin/workbench/tasks/${type}/${targetId}/complete`, payload)
+export const releaseWorkbenchTask = (type, targetId) => del(`/api/admin/workbench/tasks/${type}/${targetId}/claim`)
+
 export const fetchAdminUsers = (params) => get('/api/admin/admin-users', params)
 export const createAdminUser = (payload) => post('/api/admin/admin-users', payload)
 export const updateAdminUserStatus = (id, status) => patch(`/api/admin/admin-users/${id}/status`, { status })

@@ -6,8 +6,8 @@
 
 ## 摘要
 
-- 控制器数量: 18
-- HTTP 映射数量: 92
+- 控制器数量: 19
+- HTTP 映射数量: 97
 - 普通用户鉴权: `Authorization: Bearer <user-jwt>`
 - 管理员鉴权: `Authorization: Bearer <admin-jwt>`，且 JWT principalType 为 `admin`
 - WebSocket: `/ws/orders`、`/ws/chat` 通过 `WebSocketAuthHandshakeInterceptor` 鉴权。
@@ -108,6 +108,11 @@
 | AdminUserController | GET | `/api/admin/users` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:22` |
 | AdminUserController | GET | `/api/admin/users/{userId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:32` |
 | AdminUserController | PATCH | `/api/admin/users/{userId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:41` |
+| AdminWorkbenchController | GET | `/api/admin/workbench/summary` | 查询处理工作台争议、待审和当前管理员领取数 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminWorkbenchController.java:21` |
+| AdminWorkbenchController | GET | `/api/admin/workbench/tasks` | 查询处理工作台待办队列，超级管理员可见领取人身份 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminWorkbenchController.java:26` |
+| AdminWorkbenchController | POST | `/api/admin/workbench/tasks/{type}/{targetId}/claim` | 领取或续期处理工作台任务，未过期他人领取返回冲突 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminWorkbenchController.java:40` |
+| AdminWorkbenchController | POST | `/api/admin/workbench/tasks/{type}/{targetId}/complete` | 提交工作台任务处理，校验领取锁和业务状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminWorkbenchController.java:56` |
+| AdminWorkbenchController | DELETE | `/api/admin/workbench/tasks/{type}/{targetId}/claim` | 释放当前管理员自己的任务领取锁 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminWorkbenchController.java:73` |
 
 ## 权限规则
 

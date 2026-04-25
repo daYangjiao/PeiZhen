@@ -63,7 +63,7 @@
             </div>
             <div class="toolbar-group">
               <button v-if="canCancel(order.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog">取消订单</button>
-              <button v-if="order.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog">处理争议</button>
+              <button v-if="order.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeWorkbench">进入工作台处理</button>
             </div>
           </div>
 
@@ -362,6 +362,12 @@ const openDisputeDialog = () => {
   disputeForm.finalOrderAmount = getSuggestedFinalAmount(detail.value?.order)
   disputeForm.adminRemark = ''
   disputeDialogOpen.value = true
+}
+
+const openDisputeWorkbench = () => {
+  const orderId = detail.value?.order?.orderId
+  if (!orderId) return
+  router.push({ name: 'workbench', query: { type: 'ORDER_DISPUTE', targetId: String(orderId) } })
 }
 
 const submitCancel = async () => {

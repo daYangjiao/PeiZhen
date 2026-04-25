@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import LoginPage from '../pages/LoginPage.vue'
 import DashboardPage from '../pages/DashboardPage.vue'
+import WorkbenchPage from '../pages/WorkbenchPage.vue'
 import UsersPage from '../pages/UsersPage.vue'
 import AttendantsPage from '../pages/AttendantsPage.vue'
 import AttendantDetailPage from '../pages/AttendantDetailPage.vue'
@@ -15,6 +16,7 @@ const routes = [
   { path: '/login', name: 'login', component: LoginPage, meta: { guestOnly: true } },
   { path: '/', redirect: '/dashboard' },
   { path: '/dashboard', name: 'dashboard', component: DashboardPage, meta: { requiresAuth: true } },
+  { path: '/workbench', name: 'workbench', component: WorkbenchPage, meta: { requiresAuth: true } },
   { path: '/users', name: 'users', component: UsersPage, meta: { requiresAuth: true } },
   { path: '/attendants', name: 'attendants', component: AttendantsPage, meta: { requiresAuth: true } },
   { path: '/attendants/:id', name: 'attendant-detail', component: AttendantDetailPage, meta: { requiresAuth: true } },

@@ -153,7 +153,7 @@ const quickEntries = computed(() => ([
     title: '待审核陪诊师',
     count: dashboard.pendingAttendantReviews,
     copy: '待处理',
-    route: { name: 'attendants', query: { quick: 'pending-review', auditStatus: '0' } }
+    route: { name: 'workbench', query: { type: 'ATTENDANT_REVIEW' } }
   },
   {
     key: 'today-orders',
@@ -167,7 +167,7 @@ const quickEntries = computed(() => ([
     title: '争议处理中订单',
     count: dashboard.disputeOrders,
     copy: '优先处理',
-    route: { name: 'orders', query: { quick: 'dispute', orderStatus: '5' } }
+    route: { name: 'workbench', query: { type: 'ORDER_DISPUTE' } }
   }
 ]))
 

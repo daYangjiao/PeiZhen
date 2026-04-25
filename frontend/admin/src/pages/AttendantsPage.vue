@@ -120,8 +120,7 @@
                 <p class="section-copy">审核入驻资料并处理账号状态。</p>
               </div>
               <div class="toolbar-group">
-                <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('approve')">通过审核</button>
-                <button v-if="detail.attendant.status === 0" class="button button-danger" type="button" @click="openActionDialog('reject')">驳回审核</button>
+                <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" @click="openReviewWorkbench(detail.user.id)">进入工作台处理</button>
                 <button v-if="detail.attendant.status === 1" class="button button-danger" type="button" @click="openActionDialog('ban')">封禁</button>
                 <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" @click="openActionDialog('restore-status')">恢复</button>
                 <button v-if="detail.attendant.status === 3" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">重新通过</button>
@@ -514,6 +513,10 @@ const changePageSize = async () => {
 
 const openFullDetail = (id) => {
   router.push(`/attendants/${id}`)
+}
+
+const openReviewWorkbench = (id) => {
+  router.push({ name: 'workbench', query: { type: 'ATTENDANT_REVIEW', targetId: String(id) } })
 }
 
 const openActionDialog = (type) => {

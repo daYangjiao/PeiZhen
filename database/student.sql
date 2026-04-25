@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS `order_evaluation`;
 DROP TABLE IF EXISTS `chat_message`;
 DROP TABLE IF EXISTS `guide_appointment`;
 DROP TABLE IF EXISTS `ai_medical_qa`;
+DROP TABLE IF EXISTS `admin_task_claim`;
 DROP TABLE IF EXISTS `admin_operation_log`;
 DROP TABLE IF EXISTS `attendant_qualification_audit_log`;
 DROP TABLE IF EXISTS `attendant_qualification`;
@@ -65,6 +66,21 @@ CREATE TABLE `admin_operation_log` (
   KEY `idx_admin_operation_log_operator` (`operator_id`, `operator_role`, `create_time`),
   KEY `idx_admin_operation_log_module_action` (`module`, `action`, `create_time`),
   KEY `idx_admin_operation_log_target` (`target_type`, `target_id`, `create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `admin_task_claim` (
+  `task_type` varchar(40) NOT NULL,
+  `target_id` int NOT NULL,
+  `operator_id` int NOT NULL,
+  `operator_name` varchar(50) DEFAULT NULL,
+  `operator_role` varchar(20) DEFAULT NULL,
+  `lock_token` varchar(64) NOT NULL,
+  `claimed_at` datetime NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`task_type`, `target_id`),
+  KEY `idx_admin_task_claim_operator` (`operator_id`, `expires_at`),
+  KEY `idx_admin_task_claim_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `attendant` (

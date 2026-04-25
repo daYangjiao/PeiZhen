@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.AdminTaskClaimMapper">
+
+    <resultMap id="AdminTaskClaimResultMap" type="org.example.model.AdminTaskClaim">
+        <id column="task_type" property="taskType"/>
+        <id column="target_id" property="targetId"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="operator_role" property="operatorRole"/>
+        <result column="lock_token" property="lockToken"/>
+        <result column="claimed_at" property="claimedAt"/>
+        <result column="expires_at" property="expiresAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByTask" resultMap="AdminTaskClaimResultMap">
+        SELECT *
+        FROM admin_task_claim
+        WHERE task_type = #{taskType}
+          AND target_id = #{targetId}
+        LIMIT 1
+    </select>
+
+    <insert id="tryClaim">
+        INSERT INTO admin_task_claim (
+            task_type, target_id, operator_id, operator_name, operator_role,
+            lock_token, claimed_at, expires_at, updated_at
+        ) VALUES (
+            #{claim.taskType}, #{claim.targetId}, #{claim.operatorId}, #{claim.operatorName}, #{claim.operatorRole},
+            #{claim.lockToken}, #{claim.claimedAt}, #{claim.expiresAt}, #{claim.updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            operator_id = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(operator_id), operator_id),
+            operator_name = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(operator_name), operator_name),
+            operator_role = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(operator_role), operator_role),
+            lock_token = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(lock_token), lock_token),
+            claimed_at = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(claimed_at), claimed_at),
+            expires_at = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(expires_at), expires_at),
+            updated_at = IF(expires_at &lt;= #{now} OR operator_id = #{claim.operatorId}, VALUES(updated_at), updated_at)
+    </insert>
+
+    <select id="countActiveByOperator" resultType="int">
+        SELECT COUNT(*)
+        FROM admin_task_claim
+        WHERE operator_id = #{operatorId}
+          AND expires_at &gt; #{now}
+    </select>
+
+    <delete id="releaseByOwner">
+        DELETE FROM admin_task_claim
+        WHERE task_type = #{taskType}
+          AND target_id = #{targetId}
+          AND operator_id = #{operatorId}
+    </delete>
+
+    <delete id="deleteByTask">
+        DELETE FROM admin_task_claim
+        WHERE task_type = #{taskType}
+          AND target_id = #{targetId}
+    </delete>
+</mapper>

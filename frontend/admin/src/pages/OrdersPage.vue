@@ -136,7 +136,7 @@
               <span class="badge" :class="getPaymentStatusBadge(currentOrder.paymentStatus)">{{ getPaymentStatusLabel(currentOrder.paymentStatus, currentOrder.paymentStatusLabel || '--') }}</span>
             </span>
             <button v-if="canCancel(currentOrder.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog(currentOrder)">取消订单</button>
-            <button v-if="currentOrder.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog(currentOrder)">处理争议</button>
+            <button v-if="currentOrder.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeWorkbench(currentOrder.orderId)">进入工作台处理</button>
             <button class="button button-ghost" type="button" @click="openStandaloneDetail">打开独立详情</button>
           </div>
         </div>
@@ -678,6 +678,11 @@ const openOrderDrawer = async (orderId) => {
 const openStandaloneDetail = () => {
   if (!selectedOrderId.value) return
   router.push(`/orders/${selectedOrderId.value}`)
+}
+
+const openDisputeWorkbench = (orderId) => {
+  if (!orderId) return
+  router.push({ name: 'workbench', query: { type: 'ORDER_DISPUTE', targetId: String(orderId) } })
 }
 
 const openCancelDialog = (order) => {
