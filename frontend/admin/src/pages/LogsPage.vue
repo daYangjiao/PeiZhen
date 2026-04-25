@@ -17,21 +17,11 @@
             </label>
             <label class="filter-field">
               <span>模块</span>
-              <select v-model="filters.module" class="filter-select">
-                <option value="">全部模块</option>
-                <option value="USER">用户管理</option>
-                <option value="ATTENDANT">陪诊师审核</option>
-                <option value="ORDER">订单管理</option>
-                <option value="ADMIN_ACCOUNT">管理员账号</option>
-              </select>
+              <BaseSelect v-model="filters.module" :options="moduleOptions" />
             </label>
             <label class="filter-field">
               <span>账号类型</span>
-              <select v-model="filters.operatorRole" class="filter-select">
-                <option value="">全部账号类型</option>
-                <option value="SUPER_ADMIN">超级管理员</option>
-                <option value="ADMIN">管理员</option>
-              </select>
+              <BaseSelect v-model="filters.operatorRole" :options="operatorRoleOptions" />
             </label>
             <label class="filter-field">
               <span>开始时间</span>
@@ -94,12 +84,7 @@
         <div class="pagination">
           <p class="pagination-copy">共 {{ total }} 条，当前第 {{ page + 1 }} / {{ totalPages }} 页</p>
           <div class="pagination-controls">
-            <select v-model.number="pageSize" class="filter-select" @change="changePageSize">
-              <option :value="10">10 条 / 页</option>
-              <option :value="20">20 条 / 页</option>
-              <option :value="50">50 条 / 页</option>
-              <option :value="100">100 条 / 页</option>
-            </select>
+            <BaseSelect v-model="pageSize" :options="pageSizeOptions" @change="changePageSize" />
             <button class="button button-ghost" type="button" :disabled="page === 0 || loading" @click="changePage(page - 1)">上一页</button>
             <button class="button button-ghost" type="button" :disabled="page + 1 >= totalPages || loading" @click="changePage(page + 1)">下一页</button>
           </div>
@@ -112,6 +97,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
+import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
 import { fetchOperationLogs } from '../utils/admin-api'
 import { formatDateTime } from '../utils/format'
@@ -132,6 +118,24 @@ const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const pageSizeOptions = [
+  { label: '10 条 / 页', value: 10 },
+  { label: '20 条 / 页', value: 20 },
+  { label: '50 条 / 页', value: 50 },
+  { label: '100 条 / 页', value: 100 }
+]
+const moduleOptions = [
+  { label: '全部模块', value: '' },
+  { label: '用户管理', value: 'USER' },
+  { label: '陪诊师审核', value: 'ATTENDANT' },
+  { label: '订单管理', value: 'ORDER' },
+  { label: '管理员账号', value: 'ADMIN_ACCOUNT' }
+]
+const operatorRoleOptions = [
+  { label: '全部账号类型', value: '' },
+  { label: '超级管理员', value: 'SUPER_ADMIN' },
+  { label: '管理员', value: 'ADMIN' }
+]
 
 const normalizeDateTime = (value) => (value ? value.replace('T', ' ') + ':00' : '')
 

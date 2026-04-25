@@ -1,21 +1,21 @@
 <template>
   <AppShell title="管理员账号" subtitle="管理员账号管理">
     <div class="page-stack">
-      <section class="panel-card">
-        <div class="section-heading">
+      <section class="panel-card filter-card">
+        <div class="section-heading filter-heading">
           <div>
             <h3 class="section-title">管理员筛选</h3>
-            <p class="section-copy">按状态筛选管理员账号。</p>
           </div>
         </div>
 
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <select v-model="filters.status" class="filter-select">
-              <option v-for="option in userStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-            </select>
+        <div class="filter-board">
+          <div class="filter-fields-row">
+            <label class="filter-field">
+              <span>账号状态</span>
+              <BaseSelect v-model="filters.status" :options="userStatusOptions" />
+            </label>
           </div>
-          <div class="toolbar-group">
+          <div class="filter-actions-row">
             <button class="button button-primary" type="button" :disabled="loading" @click="submitFilters">查询</button>
             <button class="button button-ghost" type="button" :disabled="loading" @click="resetFilters">重置</button>
             <button class="button button-secondary" type="button" @click="openCreateDialog">新建管理员</button>
@@ -92,11 +92,7 @@
         <div class="pagination">
           <p class="pagination-copy">共 {{ total }} 条，当前第 {{ page + 1 }} / {{ totalPages }} 页</p>
           <div class="pagination-controls">
-            <select v-model.number="pageSize" class="filter-select" @change="changePageSize">
-              <option :value="10">10 条 / 页</option>
-              <option :value="20">20 条 / 页</option>
-              <option :value="50">50 条 / 页</option>
-            </select>
+            <BaseSelect v-model="pageSize" :options="pageSizeOptions" @change="changePageSize" />
             <button class="button button-ghost" type="button" :disabled="page === 0 || loading" @click="changePage(page - 1)">上一页</button>
             <button class="button button-ghost" type="button" :disabled="page + 1 >= totalPages || loading" @click="changePage(page + 1)">下一页</button>
           </div>
@@ -125,10 +121,7 @@
         </label>
         <label class="login-field">
           <span>账号类型</span>
-          <select v-model="createForm.role" class="field">
-            <option value="ADMIN">管理员</option>
-            <option value="SUPER_ADMIN">超级管理员</option>
-          </select>
+          <BaseSelect v-model="createForm.role" :options="adminRoleOptions" />
         </label>
       </div>
 
@@ -187,6 +180,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import BaseSelect from '../components/BaseSelect.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUiStore } from '../stores/ui'
 import { createAdminUser, deleteAdminUser, fetchAdminUsers, updateAdminUserStatus } from '../utils/admin-api'
@@ -207,6 +201,15 @@ const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const pageSizeOptions = [
+  { label: '10 条 / 页', value: 10 },
+  { label: '20 条 / 页', value: 20 },
+  { label: '50 条 / 页', value: 50 }
+]
+const adminRoleOptions = [
+  { label: '管理员', value: 'ADMIN' },
+  { label: '超级管理员', value: 'SUPER_ADMIN' }
+]
 
 const createDialogOpen = ref(false)
 const createLoading = ref(false)

@@ -16,15 +16,11 @@
             </label>
             <label class="filter-field">
               <span>账号类型</span>
-              <select v-model="filters.userType" class="filter-select">
-                <option v-for="option in userTypeOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-              </select>
+              <BaseSelect v-model="filters.userType" :options="userTypeOptions" />
             </label>
             <label class="filter-field">
               <span>账号状态</span>
-              <select v-model="filters.status" class="filter-select">
-                <option v-for="option in userStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-              </select>
+              <BaseSelect v-model="filters.status" :options="userStatusOptions" />
             </label>
           </div>
           <div class="filter-actions-row">
@@ -71,7 +67,7 @@
                   <div class="record-stat">
                     <p class="record-label">账号类型</p>
                     <p class="record-value">{{ getUserTypeLabel(user.userType, user.userTypeLabel || '--') }}</p>
-                    <p v-if="isAttendantUser(user)" class="record-note">{{ getAttendantAuditStatus(user) }}</p>
+                    <p v-if="isAttendantUser(user)" class="record-note">陪诊资质：{{ getAttendantAuditStatus(user) }}</p>
                   </div>
                   <div class="record-stat">
                     <p class="record-label">订单摘要</p>
@@ -100,11 +96,7 @@
         <div class="pagination">
           <p class="pagination-copy">共 {{ total }} 条，当前第 {{ page + 1 }} / {{ totalPages }} 页</p>
           <div class="pagination-controls">
-            <select v-model.number="pageSize" class="filter-select" @change="changePageSize">
-              <option :value="10">10 条 / 页</option>
-              <option :value="20">20 条 / 页</option>
-              <option :value="50">50 条 / 页</option>
-            </select>
+            <BaseSelect v-model="pageSize" :options="pageSizeOptions" @change="changePageSize" />
             <button class="button button-ghost" type="button" :disabled="page === 0 || loading" @click="changePage(page - 1)">上一页</button>
             <button class="button button-ghost" type="button" :disabled="page + 1 >= totalPages || loading" @click="changePage(page + 1)">下一页</button>
           </div>
@@ -294,6 +286,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import BaseDrawer from '../components/BaseDrawer.vue'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
 import { fetchUserDetail, fetchUsers, updateUserStatus } from '../utils/admin-api'
 import { getAttendantStatusLabel, getOrderStatusBadge, getOrderStatusLabel, getUserStatusBadge, getUserStatusLabel, getUserTypeLabel, toQueryValue, userStatusOptions, userTypeOptions } from '../utils/admin-view'
@@ -313,6 +306,11 @@ const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const pageSizeOptions = [
+  { label: '10 条 / 页', value: 10 },
+  { label: '20 条 / 页', value: 20 },
+  { label: '50 条 / 页', value: 50 }
+]
 
 const selectedUserId = ref(null)
 const detailDrawerOpen = ref(false)

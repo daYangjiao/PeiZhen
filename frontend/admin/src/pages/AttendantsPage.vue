@@ -15,9 +15,7 @@
             </label>
             <label class="filter-field">
               <span>审核状态</span>
-              <select v-model="filters.auditStatus" class="filter-select">
-                <option v-for="option in attendantStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-              </select>
+              <BaseSelect v-model="filters.auditStatus" :options="attendantStatusOptions" />
             </label>
           </div>
           <div class="filter-actions-row">
@@ -52,8 +50,14 @@
                 <p class="queue-copy">ID {{ item.id }} · 更新时间 {{ formatDateTime(item.updateTime || item.createTime) }}</p>
               </div>
               <div class="queue-item-statuses">
-                <span class="badge" :class="getAttendantStatusBadge(item.status)">{{ getAttendantStatusLabel(item.status, item.statusLabel || '--') }}</span>
-                <span class="badge" :class="getUserStatusBadge(item.userStatus)">{{ getUserStatusLabel(item.userStatus, item.userStatusLabel || '--') }}</span>
+                <span class="status-badge">
+                  <span class="status-badge-label">资质</span>
+                  <span class="badge" :class="getAttendantStatusBadge(item.status)">{{ getAttendantStatusLabel(item.status, item.statusLabel || '--') }}</span>
+                </span>
+                <span class="status-badge">
+                  <span class="status-badge-label">账号</span>
+                  <span class="badge" :class="getUserStatusBadge(item.userStatus)">{{ getUserStatusLabel(item.userStatus, item.userStatusLabel || '--') }}</span>
+                </span>
               </div>
             </button>
           </div>
@@ -61,11 +65,7 @@
 
           <div class="pagination">
             <div class="pagination-controls">
-              <select v-model.number="pageSize" class="filter-select" @change="changePageSize">
-                <option :value="10">10 条 / 页</option>
-                <option :value="20">20 条 / 页</option>
-                <option :value="50">50 条 / 页</option>
-              </select>
+              <BaseSelect v-model="pageSize" :options="pageSizeOptions" @change="changePageSize" />
               <button class="button button-ghost" type="button" :disabled="page === 0 || queueLoading" @click="changePage(page - 1)">上一页</button>
               <button class="button button-ghost" type="button" :disabled="page + 1 >= totalPages || queueLoading" @click="changePage(page + 1)">下一页</button>
             </div>
@@ -83,8 +83,14 @@
                 <p class="section-copy">{{ detail.user.phone || '-' }} · {{ detail.user.sex || '未知' }} · {{ detail.user.age || '-' }} 岁</p>
               </div>
               <div class="toolbar-group">
-                <span class="badge" :class="getAttendantStatusBadge(detail.attendant.status)">{{ getAttendantStatusLabel(detail.attendant.status, '--') }}</span>
-                <span class="badge" :class="getUserStatusBadge(detail.user.status)">{{ getUserStatusLabel(detail.user.status, '--') }}</span>
+                <span class="status-badge">
+                  <span class="status-badge-label">资质</span>
+                  <span class="badge" :class="getAttendantStatusBadge(detail.attendant.status)">{{ getAttendantStatusLabel(detail.attendant.status, '--') }}</span>
+                </span>
+                <span class="status-badge">
+                  <span class="status-badge-label">账号</span>
+                  <span class="badge" :class="getUserStatusBadge(detail.user.status)">{{ getUserStatusLabel(detail.user.status, '--') }}</span>
+                </span>
                 <button class="button button-secondary" type="button" @click="openFullDetail(detail.user.id)">完整详情</button>
               </div>
             </div>
@@ -223,6 +229,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import BaseSelect from '../components/BaseSelect.vue'
 import { useAttendantReviewActions } from '../composables/useAttendantReviewActions'
 import { useUiStore } from '../stores/ui'
 import { fetchAttendantDetail, fetchAttendants } from '../utils/admin-api'
@@ -243,6 +250,11 @@ const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const pageSizeOptions = [
+  { label: '10 条 / 页', value: 10 },
+  { label: '20 条 / 页', value: 20 },
+  { label: '50 条 / 页', value: 50 }
+]
 const selectedId = ref(null)
 const queueLoading = ref(true)
 const detailLoading = ref(false)
@@ -744,6 +756,10 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.queue-item-statuses .status-badge {
+  justify-items: start;
 }
 
 .queue-heading {

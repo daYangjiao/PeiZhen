@@ -16,15 +16,11 @@
             </label>
             <label class="filter-field">
               <span>订单状态</span>
-              <select v-model="filters.orderStatus" class="filter-select">
-                <option v-for="option in orderStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-              </select>
+              <BaseSelect v-model="filters.orderStatus" :options="orderStatusOptions" />
             </label>
             <label class="filter-field">
               <span>支付状态</span>
-              <select v-model="filters.paymentStatus" class="filter-select">
-                <option v-for="option in paymentStatusOptions" :key="option.label" :value="option.value">{{ option.label }}</option>
-              </select>
+              <BaseSelect v-model="filters.paymentStatus" :options="paymentStatusOptions" />
             </label>
             <label class="filter-field">
               <span>开始日期</span>
@@ -66,9 +62,15 @@
                     <p class="record-title">{{ order.orderNo }}</p>
                     <p class="record-copy">创建于 {{ formatDateTime(order.createTime) }}</p>
                   </div>
-                  <div class="record-chip-row">
-                    <span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span>
-                    <span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span>
+                  <div class="record-chip-row status-badge-group">
+                    <span class="status-badge">
+                      <span class="status-badge-label">订单</span>
+                      <span class="badge" :class="getOrderStatusBadge(order.orderStatus)">{{ getOrderStatusLabel(order.orderStatus, order.orderStatusLabel || '--') }}</span>
+                    </span>
+                    <span class="status-badge">
+                      <span class="status-badge-label">支付</span>
+                      <span class="badge" :class="getPaymentStatusBadge(order.paymentStatus)">{{ getPaymentStatusLabel(order.paymentStatus, order.paymentStatusLabel || '--') }}</span>
+                    </span>
                   </div>
                 </div>
 
@@ -107,11 +109,7 @@
         <div class="pagination">
           <p class="pagination-copy">共 {{ total }} 条，当前第 {{ page + 1 }} / {{ totalPages }} 页</p>
           <div class="pagination-controls">
-            <select v-model.number="pageSize" class="filter-select" @change="changePageSize">
-              <option :value="10">10 条 / 页</option>
-              <option :value="20">20 条 / 页</option>
-              <option :value="50">50 条 / 页</option>
-            </select>
+            <BaseSelect v-model="pageSize" :options="pageSizeOptions" @change="changePageSize" />
             <button class="button button-ghost" type="button" :disabled="page === 0 || loading" @click="changePage(page - 1)">上一页</button>
             <button class="button button-ghost" type="button" :disabled="page + 1 >= totalPages || loading" @click="changePage(page + 1)">下一页</button>
           </div>
@@ -129,8 +127,14 @@
             <h3 class="section-title">完整记录</h3>
           </div>
           <div v-if="currentOrder" class="toolbar-group">
-            <span class="badge" :class="getOrderStatusBadge(currentOrder.orderStatus)">{{ getOrderStatusLabel(currentOrder.orderStatus, currentOrder.orderStatusLabel || '--') }}</span>
-            <span class="badge" :class="getPaymentStatusBadge(currentOrder.paymentStatus)">{{ getPaymentStatusLabel(currentOrder.paymentStatus, currentOrder.paymentStatusLabel || '--') }}</span>
+            <span class="status-badge">
+              <span class="status-badge-label">订单</span>
+              <span class="badge" :class="getOrderStatusBadge(currentOrder.orderStatus)">{{ getOrderStatusLabel(currentOrder.orderStatus, currentOrder.orderStatusLabel || '--') }}</span>
+            </span>
+            <span class="status-badge">
+              <span class="status-badge-label">支付</span>
+              <span class="badge" :class="getPaymentStatusBadge(currentOrder.paymentStatus)">{{ getPaymentStatusLabel(currentOrder.paymentStatus, currentOrder.paymentStatusLabel || '--') }}</span>
+            </span>
             <button v-if="canCancel(currentOrder.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog(currentOrder)">取消订单</button>
             <button v-if="currentOrder.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeDialog(currentOrder)">处理争议</button>
             <button class="button button-ghost" type="button" @click="openStandaloneDetail">打开独立详情</button>
@@ -373,6 +377,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/AppShell.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import BaseDrawer from '../components/BaseDrawer.vue'
+import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
 import { cancelOrder, fetchOrderDetail, fetchOrders, resolveDispute } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel, orderStatusOptions, paymentStatusOptions, toQueryValue } from '../utils/admin-view'
@@ -397,6 +402,11 @@ const total = ref(0)
 const totalPages = ref(1)
 const page = ref(0)
 const pageSize = ref(10)
+const pageSizeOptions = [
+  { label: '10 条 / 页', value: 10 },
+  { label: '20 条 / 页', value: 20 },
+  { label: '50 条 / 页', value: 50 }
+]
 const selectedOrderId = ref(null)
 const selectedOrderDetail = ref(null)
 const detailDrawerOpen = ref(false)

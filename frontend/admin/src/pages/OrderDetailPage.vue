@@ -11,8 +11,14 @@
               <p class="section-copy">{{ order.hospital || '-' }} · {{ order.serviceDate || '-' }} {{ order.serviceTimeSlot || '' }}</p>
             </div>
             <div class="toolbar-group">
-              <span class="badge no-wrap" :class="getOrderStatusBadge(order.orderStatus)">{{ orderStatusLabel }}</span>
-              <span class="badge no-wrap" :class="getPaymentStatusBadge(order.paymentStatus)">{{ paymentStatusLabel }}</span>
+              <span class="status-badge">
+                <span class="status-badge-label">订单</span>
+                <span class="badge no-wrap" :class="getOrderStatusBadge(order.orderStatus)">{{ orderStatusLabel }}</span>
+              </span>
+              <span class="status-badge">
+                <span class="status-badge-label">支付</span>
+                <span class="badge no-wrap" :class="getPaymentStatusBadge(order.paymentStatus)">{{ paymentStatusLabel }}</span>
+              </span>
               <button class="button button-ghost" type="button" @click="router.push('/orders')">返回列表</button>
             </div>
           </div>

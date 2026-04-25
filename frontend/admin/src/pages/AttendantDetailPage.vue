@@ -11,8 +11,14 @@
               <p class="section-copy">{{ detail.user.phone || '-' }} · {{ detail.user.sex || '未知' }} · {{ detail.user.age || '-' }} 岁</p>
             </div>
             <div class="toolbar-group">
-              <span class="badge" :class="getAttendantStatusBadge(detail.attendant.status)">{{ attendantStatusLabel }}</span>
-              <span class="badge" :class="getUserStatusBadge(detail.user.status)">{{ getUserStatusLabel(detail.user.status, '--') }}</span>
+              <span class="status-badge">
+                <span class="status-badge-label">资质</span>
+                <span class="badge" :class="getAttendantStatusBadge(detail.attendant.status)">{{ attendantStatusLabel }}</span>
+              </span>
+              <span class="status-badge">
+                <span class="status-badge-label">账号</span>
+                <span class="badge" :class="getUserStatusBadge(detail.user.status)">{{ getUserStatusLabel(detail.user.status, '--') }}</span>
+              </span>
               <button class="button button-ghost" type="button" @click="router.push({ path: '/attendants', query: { selectedId: String(detail.user.id) } })">返回列表</button>
             </div>
           </div>
