@@ -38,6 +38,7 @@
 | AiMedicalController | GET | `/ai/medical/qa/latest` | 获取最近一次 AI 导诊会话 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:76` |
 | AiMedicalController | GET | `/ai/medical/qa/thinking/{recordId}` | 兼容旧版思考过程查询 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:83` |
 | AppUpgradeController | POST | `/api/app-upgrade/check` | 检查 App 更新 | 公开 | `src/main/java/org/example/controller/AppUpgradeController.java:39` |
+| UserAttendantController | GET | `/user/attendants/{attendantId}` | 用户端查询陪诊师详情，评分、评价数、好评率按 `order_evaluation.rating` 聚合返回，兼容旧入口 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
 | AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
@@ -129,6 +130,7 @@
 ## 评价评分口径
 
 - 陪诊师评分、评价总数和好评率统一以 `order_evaluation.rating` 实时聚合为准；`rating >= 4` 计入好评。
+- 用户订单详情中的陪诊师星级展示平均分，用户端陪诊师主页和陪诊师个人首页中的好评率展示好评占比；二者不是同一个数值，但都必须使用同一组 `order_evaluation.rating` 和评价总数。
 - 没有评价时，接口返回 `score = null`、`evaluationCount = 0`、`praiseRate = 0`，前端展示为“暂无评分/暂无评价”。
 - `attendant.score` 仅作为兼容缓存字段保留，不作为用户端、陪诊师端或管理端展示依据。
 

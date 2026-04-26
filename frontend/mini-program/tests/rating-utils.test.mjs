@@ -21,4 +21,5 @@ test('getRatingStarStates renders half stars for decimal average ratings', () =>
 test('formatPraiseRate shows percentage only when evaluation count exists', () => {
   assert.equal(formatPraiseRate(67, 3), '67%')
   assert.equal(formatPraiseRate(null, 1), '0%')
+  assert.equal(formatPraiseRate(100, undefined), '暂无评价')
 })

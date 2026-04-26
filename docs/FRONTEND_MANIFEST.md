@@ -31,7 +31,7 @@
 | `subpkg/chat/chat-escort` | 聊天 | 陪诊师侧聊天页，加载历史消息、发送文本/图片/语音并同步已读；聊天头部不展示静态在线状态和说明型副标题，只保留对象名称与身份标签。 | `/api/chat/history?targetUserId={...}&page=1&pageSize={...}`<br>`/api/chat/history?targetUserId={...}&page={...}&pageSize={...}`<br>`/api/chat/read?senderId={...}`<br>`/api/chat/send`<br>`/api/common/upload` |
 | `subpkg/system-message/system-message` | 系统消息 | 系统消息列表，进入后批量标记系统通知已读并同步用户/陪诊师底部消息红点，按消息动作跳转订单详情/评价/接单处理。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/chat/system/{...}`<br>`/attendant/orders/{...}`<br>`/api/orders/{...}`<br>`/api/chat/system`<br>`/api/chat/read?senderId=0` |
 | `subpkg/system-message/escort-detail` | 系统消息详情 | 陪诊师系统消息详情，查看派单/订单相关消息并跳转订单。 | `/attendant/orders/{...}`<br>`/api/chat/system/{...}` |
-| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；陪诊师评分按评价聚合口径展示。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
+| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；陪诊师星级展示平均评分，按 `attendantScore + attendantEvaluationCount` 判断，无评价显示“暂无评分”。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
 | `subpkg/order/escort-detail` | 订单详情（陪诊师端） | 陪诊师订单详情，接单后执行开始服务、结束服务、取消、扫码核销、评价查看等。 | `/attendant/orders/{...}/evaluation`<br>`/attendant/orders/{...}/evaluation/reply`<br>`/attendant/orders/{...}/service-progress?step={...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/scan-qr?qrCodeContent={...}`<br>`/attendant/orders/{...}/cancel` |
 | `subpkg/order/prepare` | 服务前准备清单 | 服务前准备清单，展示陪诊服务前注意事项。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/order/submit-time-fee` | 提交时长与费用 | 陪诊师提交实际服务时长和费用，驱动用户确认或争议流程。 | `/attendant/orders/{...}`<br>`/attendant/orders/{...}/end?actualDuration={...}` |
@@ -81,6 +81,7 @@
 ## 导航和鉴权
 
 - 小程序使用原生 Tab/分包跳转，登录态由 `stores/session.js`、`stores/user.js` 和请求封装维护。APP-PLUS Android 在 `App.vue` 的 `onLaunch` 和 `onShow` 自动调用 `/api/app-upgrade/check`，发现 `101` WGT 更新后下载、安装并重启；H5/非 APP 环境不会执行安装。
+- 评分展示统一通过 `utils/rating.js`：平均星级必须同时传入 `score` 和 `evaluationCount`，好评率必须同时传入 `praiseRate` 和 `evaluationCount`；缺少评价数或评价数为 0 时统一显示“暂无评分/暂无评价”，避免把旧缓存或缺省值显示成 100%。
 - 管理端使用 Vue Router，`meta.requiresAuth` 路由必须存在管理端 token；401 响应会清理会话并跳转 `/admin/login`。
 - 管理端侧栏入口在 `frontend/admin/src/components/AppShell.vue` 中维护。
 - 管理端浏览器标题为“愈安伴后台管理”，登录页、侧栏和 favicon 统一使用 `frontend/admin/public/brand-logo.png`。

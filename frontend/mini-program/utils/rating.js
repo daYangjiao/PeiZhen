@@ -9,9 +9,7 @@ const normalizeRating = (value) => {
   return Math.min(MAX_RATING, Math.max(MIN_RATING, numeric))
 }
 
-const hasEvaluationCount = (evaluationCount) => evaluationCount !== undefined && evaluationCount !== null
-
-const hasEvaluations = (evaluationCount) => !hasEvaluationCount(evaluationCount) || Number(evaluationCount || 0) > 0
+const hasEvaluations = (evaluationCount) => Number(evaluationCount || 0) > 0
 
 export const formatRatingScore = (value, evaluationCount) => {
   if (!hasEvaluations(evaluationCount)) {

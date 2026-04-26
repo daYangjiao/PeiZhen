@@ -64,6 +64,8 @@ public class UserAttendantController {
             if (attendant != null) {
                 detail.put("certificate", attendant.getCertificate());
                 detail.put("score", attendant.getScore());
+                detail.put("evaluationCount", attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
+                detail.put("praiseRate", attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
                 detail.put("introduction", attendant.getIntroduction());
                 detail.put("professionalField", attendant.getProfessionalField());
                 detail.put("experienceYears", attendant.getExperienceYears());
