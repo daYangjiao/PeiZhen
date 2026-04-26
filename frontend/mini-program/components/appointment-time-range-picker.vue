@@ -9,16 +9,20 @@
 		
 		<view class="time-picker-row">
 			<view class="time-picker" @click="showStartTimePicker">
-				<text class="time-label">开始时间</text>
+				<view class="time-picker-head">
+					<text class="time-label">开始时间</text>
+					<text class="time-arrow">▼</text>
+				</view>
 				<text class="time-value" v-if="startTimeModel">{{ startTimeModel }}</text>
 				<text class="time-placeholder" v-else>请选择</text>
-				<text class="time-arrow">▼</text>
 			</view>
 			<view class="time-picker" @click="showEndTimePicker">
-				<text class="time-label">结束时间</text>
+				<view class="time-picker-head">
+					<text class="time-label">结束时间</text>
+					<text class="time-arrow">▼</text>
+				</view>
 				<text :class="['time-value', { 'time-value-compact': isNextDaySelectedEndTime() }]" v-if="endTimeModel">{{ formatSelectedEndTimeDisplay() }}</text>
 				<text class="time-placeholder" v-else>请选择</text>
-				<text class="time-arrow">▼</text>
 			</view>
 		</view>
 		<text class="time-inline-tip">今天的开始时间会随当前时间变化，请尽快确认预约</text>
@@ -96,6 +100,12 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import {
+	calculateSlotDurationMinutes,
+	formatSelectedEndTimeDisplay as formatAppointmentEndTimeDisplay,
+	isCrossDayEndTime,
+	parseTimeToMinutes
+} from '@/utils/appointment-form.mjs'
 
 const props = defineProps({
 	selectedDate: {
@@ -165,32 +175,6 @@ const formatMinutesToTime = (minutes) => {
 	const hour = Math.floor(safeMinutes / 60)
 	const minute = safeMinutes % 60
 	return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-}
-
-const parseTimeToMinutes = (timeValue) => {
-	const normalizedTime = String(timeValue || '').trim()
-	if (!normalizedTime) return NaN
-	const startSegment = normalizedTime.includes('-') ? normalizedTime.split('-')[0].trim() : normalizedTime
-	const match = startSegment.match(/^(\d{1,2}):(\d{2})$/)
-	if (!match) return NaN
-	const hour = Number(match[1])
-	const minute = Number(match[2])
-	if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return NaN
-	return hour * 60 + minute
-}
-
-const calculateSlotDurationMinutes = (startValue, endValue) => {
-	const startMinutes = parseTimeToMinutes(startValue)
-	const endMinutes = parseTimeToMinutes(endValue)
-	if (Number.isNaN(startMinutes) || Number.isNaN(endMinutes)) {
-		return NaN
-	}
-	if (endMinutes === startMinutes) {
-		return 0
-	}
-	return endMinutes > startMinutes
-		? endMinutes - startMinutes
-		: 24 * 60 - startMinutes + endMinutes
 }
 
 const createTimeOption = (timeStr, isNextDay = false, relativeOrder = 0) => {
@@ -324,22 +308,11 @@ const isSelectedTimeOption = (option) => {
 }
 
 const formatSelectedEndTimeDisplay = () => {
-	if (!endTimeModel.value) return ''
-	if (!startTimeModel.value) return endTimeModel.value
-	const durationMinutes = calculateSlotDurationMinutes(startTimeModel.value, endTimeModel.value)
-	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
-		return endTimeModel.value
-	}
-	return parseTimeToMinutes(endTimeModel.value) < parseTimeToMinutes(startTimeModel.value)
-		? `次日${endTimeModel.value}`
-		: endTimeModel.value
+	return formatAppointmentEndTimeDisplay(startTimeModel.value, endTimeModel.value)
 }
 
 const isNextDaySelectedEndTime = () => {
-	if (!startTimeModel.value || !endTimeModel.value) return false
-	const durationMinutes = calculateSlotDurationMinutes(startTimeModel.value, endTimeModel.value)
-	if (Number.isNaN(durationMinutes) || durationMinutes <= 0) return false
-	return parseTimeToMinutes(endTimeModel.value) < parseTimeToMinutes(startTimeModel.value)
+	return isCrossDayEndTime(startTimeModel.value, endTimeModel.value)
 }
 
 const toggleTimeGroup = (groupKey) => {
@@ -499,9 +472,9 @@ const createSafeDate = (dateStr) => {
 }
 
 .time-picker-row {
-	display: flex;
-	gap: 30rpx;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20rpx;
 	width: 100%;
 	max-width: 100%;
 }
@@ -515,45 +488,62 @@ const createSafeDate = (dateStr) => {
 }
 
 .time-picker {
-	flex: 1;
 	min-width: 0;
 	background-color: #f8f9fa;
-	border-radius: 15rpx;
-	padding: 26rpx 16rpx;
+	border-radius: 24rpx;
+	padding: 22rpx 22rpx 20rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: space-between;
+	gap: 16rpx;
+	border: 2rpx solid #e9ecef;
+	box-sizing: border-box;
+	min-height: 126rpx;
+	overflow: hidden;
+}
+
+.time-picker-head {
 	display: flex;
 	align-items: center;
-	gap: 10rpx;
-	border: 2rpx solid #e9ecef;
+	justify-content: space-between;
+	gap: 12rpx;
+	min-width: 0;
 }
 
 .time-label {
-	font-size: 26rpx;
+	font-size: 24rpx;
 	color: #666;
+	line-height: 1.2;
 	flex-shrink: 0;
 }
 
 .time-value {
-	font-size: 26rpx;
+	display: block;
+	font-size: 34rpx;
 	color: #333;
-	font-weight: 600;
-	flex: 1;
+	font-weight: 700;
 	min-width: 0;
-	text-align: right;
+	width: 100%;
+	text-align: left;
 	white-space: nowrap;
 	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .time-value-compact {
-	font-size: 22rpx;
-	letter-spacing: -0.5rpx;
+	font-size: 30rpx;
+	letter-spacing: 0;
 }
 
 .time-placeholder {
-	font-size: 26rpx;
+	display: block;
+	font-size: 32rpx;
 	color: #999;
-	flex: 1;
 	min-width: 0;
-	text-align: right;
+	width: 100%;
+	text-align: left;
 	white-space: nowrap;
 	line-height: 1.2;
 }
@@ -562,6 +552,25 @@ const createSafeDate = (dateStr) => {
 	font-size: 24rpx;
 	color: #999;
 	flex-shrink: 0;
+}
+
+@media (max-width: 360px) {
+	.time-picker-row {
+		gap: 16rpx;
+	}
+
+	.time-picker {
+		padding: 20rpx 18rpx 18rpx;
+		min-height: 120rpx;
+	}
+
+	.time-value {
+		font-size: 30rpx;
+	}
+
+	.time-value-compact {
+		font-size: 27rpx;
+	}
 }
 
 .modal-overlay {

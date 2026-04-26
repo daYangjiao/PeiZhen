@@ -313,6 +313,10 @@ import { post, get } from '@/utils/api.js' // 👈 现在同时导入 post 和 g
 import { appointmentServiceLogos } from '@/utils/assets.js'
 import { HOSPITAL_OPTIONS } from '@/utils/hospital-options.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
+import {
+	normalizeContactName,
+	normalizeContactPhone
+} from '@/utils/appointment-form.mjs'
 import AppointmentTimeRangePicker from '@/components/appointment-time-range-picker.vue'
 
 // --- 接收页面参数 ---
@@ -901,17 +905,21 @@ const validatePhone = () => {
 const getInputValue = (event) => String(event?.detail?.value ?? event?.target?.value ?? '')
 
 const handlePatientNameInput = (event) => {
-	patientName.value = getInputValue(event).trimStart()
+	const nextValue = normalizeContactName(getInputValue(event))
+	patientName.value = nextValue
+	return nextValue
 }
 
 const handlePhoneInput = (event) => {
-	phoneNumber.value = getInputValue(event).replace(/\D/g, '').slice(0, 11)
+	const nextValue = normalizeContactPhone(getInputValue(event))
+	phoneNumber.value = nextValue
 	if (!phoneNumber.value || phoneNumber.value.length === 11) {
 		validatePhone()
 	} else {
 		phoneError.value = ''
 		isPhoneValid.value = false
 	}
+	return nextValue
 }
 
 const isValidPhone = computed(() => {
@@ -1199,6 +1207,7 @@ onMounted(async () => {
 			// 填充电话
 			if (userData.phone && !phoneNumber.value) {
 				phoneNumber.value = userData.phone
+				validatePhone()
 			}
 			
 			console.log('自动填充完成 - 姓名:', patientName.value, '电话:', phoneNumber.value)
@@ -1446,7 +1455,7 @@ onMounted(async () => {
 
 .time-value-compact {
 	font-size: 22rpx;
-	letter-spacing: -0.5rpx;
+	letter-spacing: 0;
 }
 
 .time-placeholder {
@@ -1600,17 +1609,26 @@ onMounted(async () => {
   padding: 5rpx 20rpx; /* 与地址输入区域一致的内边距 */
   border: 2rpx solid #e9ecef; /* 与地址输入区域一致的边框 */
   margin-bottom: 20rpx; 
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 
 .contact-input {
+  display: block;
   width: 100%;
+  min-width: 0;
+  height: 86rpx;
   padding: 25rpx 0; /* 与地址输入框一致的上下内边距 */
+  line-height: 36rpx;
   font-size: 28rpx;
   color: #333;
   background: transparent;
   border: none;
   outline: none;
+  box-sizing: border-box;
+  caret-color: #007AFF;
   /* 如果需要，可以设置字体粗细 */
   /* font-weight: normal; */
 }
