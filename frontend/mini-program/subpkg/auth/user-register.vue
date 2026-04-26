@@ -70,6 +70,16 @@
         已有账号？<text class="link-text">立即登录</text>
       </view>
     </view>
+
+    <view v-if="successSheetVisible" class="success-mask" @click="goLogin">
+      <view class="success-sheet" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="success-mark">✓</view>
+        <text class="success-title">账号已创建</text>
+        <text class="success-desc">请使用刚才填写的手机号和密码登录，登录后即可预约陪诊、查看订单和接收消息。</text>
+        <button class="sheet-btn primary" @click="goLogin">去登录</button>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -96,6 +106,7 @@ const confirmPassword = ref('')
 const agreed = ref(false)
 const loading = ref(false)
 const sexIndex = ref(-1)
+const successSheetVisible = ref(false)
 
 const onCheckChange = (e) => {
   agreed.value = e.detail.value.length > 0
@@ -160,12 +171,7 @@ const handleRegister = async () => {
     })
     uni.hideLoading()
     if (res.code === 200) {
-      uni.showModal({
-        title: '注册成功',
-        content: '账号已创建成功，请使用手机号和密码登录。',
-        showCancel: false,
-        success: goLogin
-      })
+      successSheetVisible.value = true
       return
     }
     uni.showToast({ title: res.message || '注册失败', icon: 'none' })
@@ -349,5 +355,85 @@ const handleRegister = async () => {
 .link-text {
   color: #007aff;
   font-weight: 600;
+}
+
+.success-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(15, 23, 42, 0.34);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.success-sheet {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 18rpx 34rpx 34rpx;
+  border-radius: 36rpx 36rpx 28rpx 28rpx;
+  background: #fff;
+  box-shadow: 0 -18rpx 44rpx rgba(30, 78, 140, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.sheet-handle {
+  width: 84rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: #d8e5f6;
+  margin-bottom: 26rpx;
+}
+
+.success-mark {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4ea5ff, #1677ff);
+  color: #fff;
+  font-size: 48rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-weight: 800;
+  margin-bottom: 22rpx;
+}
+
+.success-title {
+  font-size: 36rpx;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #10233f;
+}
+
+.success-desc {
+  margin-top: 16rpx;
+  color: #66768f;
+  font-size: 27rpx;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.sheet-btn {
+  width: 100%;
+  min-height: 88rpx;
+  border-radius: 999rpx;
+  margin-top: 30rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet-btn.primary {
+  color: #fff;
+  background: linear-gradient(135deg, #4ea5ff, #1677ff);
+  box-shadow: 0 14rpx 28rpx rgba(22, 119, 255, 0.22);
 }
 </style>

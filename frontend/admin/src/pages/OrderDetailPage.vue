@@ -235,7 +235,7 @@
         </div>
         <label class="login-field">
           <span>最终服务时长（小时）</span>
-          <input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" />
+          <input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" @input="recalculateDisputeAmount" />
         </label>
         <label class="login-field">
           <span>最终订单金额</span>
@@ -264,6 +264,7 @@ import BaseDialog from '../components/BaseDialog.vue'
 import { useUiStore } from '../stores/ui'
 import { cancelOrder, fetchOrderDetail, resolveDispute } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel } from '../utils/admin-view'
+import { suggestDisputeFinalAmount } from '../utils/dispute-settlement'
 import { formatDateTime, formatMoney } from '../utils/format'
 
 const route = useRoute()
@@ -363,9 +364,14 @@ const openCancelDialog = () => {
 
 const openDisputeDialog = () => {
   disputeForm.finalDuration = detail.value?.order?.timeDisputeUserDuration ? String(detail.value.order.timeDisputeUserDuration) : (getActualDuration(detail.value?.order) ? String(getActualDuration(detail.value.order)) : '')
-  disputeForm.finalOrderAmount = getSuggestedFinalAmount(detail.value?.order)
+  disputeForm.finalOrderAmount = getSuggestedFinalAmount(detail.value?.order, disputeForm.finalDuration)
   disputeForm.adminRemark = ''
   disputeDialogOpen.value = true
+}
+
+const recalculateDisputeAmount = () => {
+  if (!detail.value?.order || !disputeForm.finalDuration) return
+  disputeForm.finalOrderAmount = getSuggestedFinalAmount(detail.value.order, disputeForm.finalDuration)
 }
 
 const openDisputeWorkbench = () => {
@@ -426,12 +432,7 @@ const submitDispute = async () => {
 
 onMounted(loadDetail)
 
-const getSuggestedFinalAmount = (orderItem = {}) => {
-  const currentAmount = Number(orderItem.orderAmount || 0)
-  const balance = Number(orderItem.balanceAmount || 0)
-  const suggested = currentAmount + (Number.isFinite(balance) ? balance : 0)
-  return Number.isFinite(suggested) ? String(suggested.toFixed(2)) : ''
-}
+const getSuggestedFinalAmount = (orderItem = {}, duration = getActualDuration(orderItem)) => suggestDisputeFinalAmount(orderItem, duration)
 
 const mapAdminRole = (role) => (role === 'SUPER_ADMIN' ? '超级管理员' : role === 'ADMIN' ? '管理员' : '-')
 </script>

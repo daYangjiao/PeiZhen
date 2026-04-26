@@ -20,6 +20,7 @@ import org.example.model.request.OrderListQueryRequest;
 import org.example.model.response.*;
 import org.example.service.AdminService;
 import org.example.service.OrderService;
+import org.example.unity.ServiceFeeCalculator;
 import org.example.util.AttendantQualificationPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -399,16 +400,16 @@ public class AdminServiceImpl implements AdminService {
             throw new IllegalArgumentException("只有争议订单才能处理");
         }
 
-        BigDecimal currentAmount = order.getOrderAmount() == null ? BigDecimal.ZERO : order.getOrderAmount();
-        BigDecimal finalAmount = request != null && request.getFinalOrderAmount() != null
-                ? request.getFinalOrderAmount()
-                : currentAmount.add(order.getBalanceAmount() == null ? BigDecimal.ZERO : order.getBalanceAmount());
         BigDecimal finalDuration = request != null && request.getFinalDuration() != null
                 ? request.getFinalDuration()
                 : (order.getTimeDisputeUserDuration() != null ? order.getTimeDisputeUserDuration() : order.getActualDuration());
         if (finalDuration == null || finalDuration.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("最终服务时长必须大于0");
         }
+        BigDecimal currentAmount = order.getOrderAmount() == null ? BigDecimal.ZERO : order.getOrderAmount();
+        BigDecimal finalAmount = request != null && request.getFinalOrderAmount() != null
+                ? request.getFinalOrderAmount()
+                : calculateFinalAmountByDuration(order, finalDuration, currentAmount);
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("最终订单金额不能小于0");
         }
@@ -451,6 +452,18 @@ public class AdminServiceImpl implements AdminService {
         orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
         recordOperation(operatorId, "ORDER", "RESOLVE_DISPUTE", "ORDER", orderId, order.getOrderNo(),
                 5, nextStatus, trim(request.getAdminRemark()), buildOrderSnapshot(order));
+    }
+
+    private BigDecimal calculateFinalAmountByDuration(Order order, BigDecimal finalDuration, BigDecimal fallbackAmount) {
+        try {
+            int serviceType = order.getClinicType() != null ? order.getClinicType() : 1;
+            ServiceFeeCalculator.FeeCalculationResult result =
+                    ServiceFeeCalculator.calculateFee(serviceType, finalDuration.doubleValue(), false);
+            return result.getTotalFee();
+        } catch (Exception e) {
+            BigDecimal currentBalance = order.getBalanceAmount() == null ? BigDecimal.ZERO : order.getBalanceAmount();
+            return fallbackAmount.add(currentBalance);
+        }
     }
 
     private List<AdminOrderListItemResponse> loadRecentUserOrders(Integer userId) {

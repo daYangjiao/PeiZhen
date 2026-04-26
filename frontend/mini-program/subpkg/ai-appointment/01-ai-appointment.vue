@@ -231,6 +231,31 @@
       </view>
     </view>
 
+    <view v-if="showOptionPickerSheet" class="sheet-overlay" @click="closeOptionPicker">
+      <view class="sheet-panel option-sheet-panel" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="sheet-head">
+          <view>
+            <text class="sheet-title">{{ optionPickerTitle }}</text>
+            <text class="sheet-subtitle">请选择一项继续完善预约信息</text>
+          </view>
+        </view>
+        <scroll-view class="option-sheet-list" scroll-y>
+          <view
+            v-for="item in optionPickerItems"
+            :key="item"
+            class="option-sheet-item"
+            @click="selectOptionPickerItem(item)"
+          >
+            <text>{{ item }}</text>
+          </view>
+        </scroll-view>
+        <view class="sheet-actions">
+          <button class="summary-secondary-btn" @click="closeOptionPicker">取消</button>
+        </view>
+      </view>
+    </view>
+
     <view v-if="showContinueSessionDialog" class="continue-session-overlay" @click="chooseContinueSession(false)">
       <view class="continue-session-panel" @click.stop>
         <view class="continue-session-mark">
@@ -298,6 +323,10 @@ const structuredDemand = ref(createEmptyStructuredDemand())
 const readyToMatch = ref(false)
 const introExpanded = ref(true)
 const showTimePickerSheet = ref(false)
+const showOptionPickerSheet = ref(false)
+const optionPickerTitle = ref('请选择')
+const optionPickerMode = ref('')
+const optionPickerItems = ref([])
 const pickerStartTime = ref('')
 const pickerEndTime = ref('')
 const currentTimeProposal = ref(null)
@@ -1554,30 +1583,40 @@ const openStructuredPicker = (fieldKey) => {
     return
   }
   if (fieldKey === 'serviceDate' || activeFollowUpType.value === 'date_picker') {
-    const itemList = [
+    optionPickerItems.value = [
       formatDateKey(new Date()),
       formatDateKey(addDays(new Date(), 1)),
       formatDateKey(addDays(new Date(), 2))
     ]
-    uni.showActionSheet({
-      itemList,
-      success: ({ tapIndex }) => {
-        const selected = itemList[tapIndex]
-        submitStructuredSelection('serviceDate', selected, selected)
-      }
-    })
+    optionPickerTitle.value = '选择就诊日期'
+    optionPickerMode.value = 'serviceDate'
+    showOptionPickerSheet.value = true
     return
   }
 
   const itemList = activeOptions.value.length ? activeOptions.value : []
   if (!itemList.length) return
-  uni.showActionSheet({
-    itemList,
-    success: ({ tapIndex }) => {
-      const selected = itemList[tapIndex]
-      handleChipClick(selected)
-    }
-  })
+  optionPickerItems.value = itemList
+  optionPickerTitle.value = `选择${getQuestionLabel(fieldKey)}`
+  optionPickerMode.value = 'option'
+  showOptionPickerSheet.value = true
+}
+
+const closeOptionPicker = () => {
+  showOptionPickerSheet.value = false
+  optionPickerItems.value = []
+  optionPickerMode.value = ''
+}
+
+const selectOptionPickerItem = (selected) => {
+  if (!selected) return
+  const mode = optionPickerMode.value
+  closeOptionPicker()
+  if (mode === 'serviceDate') {
+    submitStructuredSelection('serviceDate', selected, selected)
+    return
+  }
+  handleChipClick(selected)
 }
 
 const goBack = () => {
@@ -2200,6 +2239,10 @@ onUnmounted(() => {
   max-width: 760rpx;
 }
 
+.option-sheet-panel {
+  max-width: 700rpx;
+}
+
 .sheet-handle {
   width: 88rpx;
   height: 10rpx;
@@ -2238,6 +2281,31 @@ onUnmounted(() => {
   min-height: 0;
   padding: 22rpx 24rpx 12rpx;
   box-sizing: border-box;
+}
+
+.option-sheet-list {
+  max-height: 620rpx;
+  padding: 16rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.option-sheet-item {
+  min-height: 88rpx;
+  padding: 22rpx 24rpx;
+  margin-bottom: 14rpx;
+  border-radius: 24rpx;
+  background: #f5f8ff;
+  border: 1rpx solid #dbe8ff;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.option-sheet-item text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #2356a4;
+  line-height: 1.4;
 }
 
 .sheet-actions {

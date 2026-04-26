@@ -480,6 +480,35 @@ class AdminServiceImplTest {
         ));
     }
 
+    @Test
+    void resolveDisputeShouldCalculateFinalAmountWhenOnlyDurationProvided() {
+        AdminServiceImpl service = newService();
+        Order order = new Order();
+        order.setOrderId(803);
+        order.setOrderNo("ORD-803");
+        order.setUserId(11);
+        order.setAttendantId(12);
+        order.setOrderStatus(5);
+        order.setClinicType(1);
+        order.setOrderAmount(new BigDecimal("170.00"));
+
+        org.example.model.request.AdminOrderDisputeResolutionRequest request = new org.example.model.request.AdminOrderDisputeResolutionRequest();
+        request.setFinalDuration(new BigDecimal("4.5"));
+        request.setAdminRemark("按最终时长自动核算金额");
+
+        when(orderMapper.selectByPrimaryKey(803)).thenReturn(order);
+
+        service.resolveDispute(2, 803, request);
+
+        verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(803).equals(patch.getOrderId())
+                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && new BigDecimal("140.00").compareTo(patch.getOrderAmount()) == 0
+                        && new BigDecimal("-30.00").compareTo(patch.getBalanceAmount()) == 0
+                        && new BigDecimal("30.00").compareTo(patch.getRefundAmount()) == 0
+        ));
+    }
+
     private AttendantQualification completeQualification() {
         AttendantQualification qualification = new AttendantQualification();
         qualification.setIdCardFrontFileUrl("front.png");

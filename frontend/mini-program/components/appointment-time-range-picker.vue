@@ -590,7 +590,9 @@ const createSafeDate = (dateStr) => {
 	border-radius: 36rpx 36rpx 28rpx 28rpx;
 	width: 100%;
 	max-width: 720rpx;
-	max-height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
+	height: calc(100vh - 48rpx - env(safe-area-inset-bottom));
+	height: calc(100dvh - 48rpx - env(safe-area-inset-bottom));
+	max-height: 1080rpx;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -636,10 +638,12 @@ const createSafeDate = (dateStr) => {
 }
 
 .time-list {
-	flex: 1;
+	flex: 1 1 auto;
+	height: 0;
 	min-height: 0;
 	padding: 22rpx 24rpx 16rpx;
 	box-sizing: border-box;
+	overflow: hidden;
 }
 
 .time-empty-state {
@@ -730,7 +734,7 @@ const createSafeDate = (dateStr) => {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 16rpx;
-	padding: 8rpx 8rpx 4rpx;
+	padding: 8rpx 8rpx 28rpx;
 }
 
 .time-option {
@@ -767,7 +771,9 @@ const createSafeDate = (dateStr) => {
 
 .time-footer {
 	display: flex;
-	padding: 24rpx 30rpx calc(30rpx + env(safe-area-inset-bottom));
+	position: relative;
+	z-index: 2;
+	padding: 22rpx 30rpx calc(28rpx + env(safe-area-inset-bottom));
 	gap: 20rpx;
 	border-top: 1rpx solid #eef3f8;
 	flex-shrink: 0;
@@ -780,8 +786,14 @@ const createSafeDate = (dateStr) => {
 	color: #666;
 	border: none;
 	border-radius: 25rpx;
-	padding: 25rpx 0;
+	min-height: 82rpx;
+	padding: 0 12rpx;
 	font-size: 28rpx;
+	line-height: 1.2;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
 }
 
 .confirm-time-btn {
@@ -790,8 +802,14 @@ const createSafeDate = (dateStr) => {
 	color: white;
 	border: none;
 	border-radius: 25rpx;
-	padding: 25rpx 0;
+	min-height: 82rpx;
+	padding: 0 12rpx;
 	font-size: 28rpx;
+	line-height: 1.2;
 	font-weight: 600;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
 }
 </style>

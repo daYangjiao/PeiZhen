@@ -321,11 +321,7 @@ const navigateToAppointmentForm = () => {
 
 const navigateToCategory = (item) => {
   if (publicSafeMode) {
-    uni.showModal({
-      title: item.name,
-      content: '当前页面主要展示服务介绍与流程参考信息。',
-      showCancel: false
-    })
+    showPublicSafeNotice(`${item.name}：当前页面主要展示服务介绍与流程参考信息。`)
     return
   }
   uni.navigateTo({

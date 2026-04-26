@@ -124,7 +124,7 @@
                   <button class="button" :class="disputeMode === 'user' ? 'button-primary' : 'button-secondary'" type="button" @click="applyDisputeMode('user')">按用户</button>
                   <button class="button" :class="disputeMode === 'custom' ? 'button-primary' : 'button-secondary'" type="button" @click="disputeMode = 'custom'">自定义</button>
                 </div>
-                <label class="login-field"><span>最终时长</span><input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" /></label>
+                <label class="login-field"><span>最终时长</span><input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" @input="handleDisputeDurationInput" /></label>
                 <label class="login-field"><span>最终金额</span><input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0" step="0.01" /></label>
                 <label class="login-field action-remark"><span>处理备注</span><textarea v-model.trim="disputeForm.adminRemark" class="filter-textarea" placeholder="请输入处理依据和结果"></textarea></label>
                 <button class="button button-primary submit-action" type="button" :disabled="actionLoading" @click="confirmComplete">提交处理</button>
@@ -279,6 +279,7 @@ import BaseDialog from '../components/BaseDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { useUiStore } from '../stores/ui'
 import { claimWorkbenchTask, completeWorkbenchTask, fetchAttendantDetail, fetchOrderDetail, fetchWorkbenchSummary, fetchWorkbenchTasks, releaseWorkbenchTask } from '../utils/admin-api'
+import { suggestDisputeFinalAmount } from '../utils/dispute-settlement'
 import { formatDateTime, formatMoney } from '../utils/format'
 
 const ORDER_DISPUTE = 'ORDER_DISPUTE'
@@ -331,7 +332,7 @@ const lockRemainingText = computed(() => {
   const seconds = Math.floor((remaining % 60000) / 1000)
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 })
-const attendantSuggestedAmount = computed(() => Number(order.value?.orderAmount || 0) + Number(order.value?.balanceAmount || 0))
+const attendantSuggestedAmount = computed(() => suggestDisputeFinalAmount(order.value, getActualDuration(order.value)))
 const disputeBalancePreview = computed(() => Number(disputeForm.finalOrderAmount || 0) - Number(order.value?.orderAmount || 0))
 const disputePreviewLabel = computed(() => disputeBalancePreview.value > 0 ? '待用户补差额' : '直接完成')
 const disputePreviewAmount = computed(() => disputeBalancePreview.value > 0 ? `补差额 ${formatMoney(disputeBalancePreview.value)}` : `退款 ${formatMoney(Math.abs(Math.min(disputeBalancePreview.value, 0)))}`)
@@ -408,6 +409,10 @@ const buildQualificationCard = (key, title, scanUrl, originalUrl, expireDate = '
 const getActualDuration = (item) => item?.actualDuration || item?.timeDisputeUserDuration || ''
 const formatDurationHour = (value) => value ? `${value} 小时` : '-'
 const isExpired = (dateText) => Boolean(dateText && dateText < new Date().toISOString().slice(0, 10))
+const updateDisputeAmountFromDuration = () => {
+  if (!order.value || !disputeForm.finalDuration) return
+  disputeForm.finalOrderAmount = suggestDisputeFinalAmount(order.value, disputeForm.finalDuration)
+}
 
 const syncQuery = () => {
   router.replace({
@@ -537,11 +542,16 @@ const applyDisputeMode = (mode) => {
   if (!order.value) return
   if (mode === 'attendant') {
     disputeForm.finalDuration = String(order.value.actualDuration || '')
-    disputeForm.finalOrderAmount = attendantSuggestedAmount.value ? attendantSuggestedAmount.value.toFixed(2) : String(order.value.orderAmount || '')
+    updateDisputeAmountFromDuration()
   } else if (mode === 'user') {
     disputeForm.finalDuration = String(order.value.timeDisputeUserDuration || order.value.actualDuration || '')
-    disputeForm.finalOrderAmount = String(order.value.orderAmount || '')
+    updateDisputeAmountFromDuration()
   }
+}
+
+const handleDisputeDurationInput = () => {
+  disputeMode.value = 'custom'
+  updateDisputeAmountFromDuration()
 }
 
 const confirmComplete = () => {

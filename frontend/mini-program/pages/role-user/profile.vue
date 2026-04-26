@@ -112,6 +112,18 @@
 		</view>
 
 		</template>
+
+		<view v-if="logoutConfirmVisible" class="confirm-mask" @click="logoutConfirmVisible = false">
+			<view class="confirm-panel" @click.stop>
+				<view class="confirm-icon">!</view>
+				<text class="confirm-title">退出登录</text>
+				<text class="confirm-desc">退出后将回到未登录状态，订单和消息数据不会丢失。</text>
+				<view class="confirm-actions">
+					<button class="confirm-btn secondary" @click="logoutConfirmVisible = false">取消</button>
+					<button class="confirm-btn primary" @click="confirmLogout">退出</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -129,6 +141,7 @@ import { showCurrentVersionInfo } from '@/utils/app-version.js'
 const PLACEHOLDER_AVATAR = userPlaceholder
 const userStore = useUserStore()
 const avatarLoadFailed = ref(false)
+const logoutConfirmVisible = ref(false)
 const publicSafeMode = isPublicSafeMode()
 let versionTapCount = 0
 let versionTapTimer = null
@@ -214,15 +227,12 @@ const goToHelp = () => {
 }
 
 const handleLogout = () => {
-	uni.showModal({
-		title: '提示',
-		content: '确定要退出登录吗？',
-		success: (res) => {
-			if (res.confirm) {
-				userStore.logout()
-			}
-		}
-	})
+	logoutConfirmVisible.value = true
+}
+
+const confirmLogout = () => {
+	logoutConfirmVisible.value = false
+	userStore.logout()
 }
 
 const fetchUserDetail = async () => {
@@ -470,5 +480,87 @@ onShow(() => {
 	font-size: 24rpx;
 	color: #999;
 	font-weight: bold;
+}
+
+.confirm-mask {
+	position: fixed;
+	inset: 0;
+	z-index: 1200;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	padding: 32rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+	background: rgba(15, 23, 42, 0.36);
+	box-sizing: border-box;
+}
+
+.confirm-panel {
+	width: 100%;
+	background: #fff;
+	border-radius: 34rpx;
+	padding: 34rpx 28rpx 28rpx;
+	box-shadow: 0 24rpx 70rpx rgba(15, 23, 42, 0.2);
+	box-sizing: border-box;
+}
+
+.confirm-icon {
+	width: 58rpx;
+	height: 58rpx;
+	border-radius: 20rpx;
+	background: #edf5ff;
+	color: #1677ff;
+	font-size: 34rpx;
+	font-weight: 800;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 20rpx;
+}
+
+.confirm-title {
+	display: block;
+	font-size: 34rpx;
+	font-weight: 800;
+	color: #17233d;
+}
+
+.confirm-desc {
+	display: block;
+	margin-top: 12rpx;
+	font-size: 26rpx;
+	line-height: 1.6;
+	color: #6b7b94;
+}
+
+.confirm-actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18rpx;
+	margin-top: 28rpx;
+}
+
+.confirm-btn {
+	height: 88rpx;
+	border-radius: 26rpx;
+	font-size: 28rpx;
+	font-weight: 800;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+}
+
+.confirm-btn::after {
+	border: none;
+}
+
+.confirm-btn.secondary {
+	background: #eef4ff;
+	color: #4b6388;
+}
+
+.confirm-btn.primary {
+	background: linear-gradient(135deg, #2f7cff 0%, #63adff 100%);
+	color: #fff;
 }
 </style>

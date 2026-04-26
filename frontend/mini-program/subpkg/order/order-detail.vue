@@ -598,13 +598,12 @@ const diffDesc = computed(() => {
 
 const confirmBtnText = computed(() => {
   if (!order.value || order.value.balanceAmount == null) {
-    return '确认时长，完成订单';
+    return '确认完成';
   }
   const b = Number(order.value.balanceAmount);
-  if (b === 0) return '确认时长，完成订单';
-  if (b > 0) return `确认并补付¥${formatAmount(b)}`;
-  // 自动退款场景：按钮文案尽量简短，避免在小屏幕被截断
-  return '确认并自动退款';
+  if (b === 0) return '确认完成';
+  if (b > 0) return `确认补付 ¥${formatAmount(b)}`;
+  return '确认退款';
 });
 
 // 是否已评价（前端本地标记，后端接入后可替换）
@@ -2039,26 +2038,34 @@ onUnmounted(() => {
 }
 .btn-group {
   margin-top: 24rpx;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 16rpx;
 }
 .disagree-btn,
 .confirm-btn {
   width: 100%;
-  height: 80rpx;
+  min-width: 0;
+  min-height: 84rpx;
   border-radius: 44rpx;
-  font-size: 30rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  line-height: 1.25;
   font-weight: 600;
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  white-space: normal;
 }
 .disagree-btn {
-  flex: 1;
   background: #ffffff;
   color: #007AFF;
   border: 2rpx solid rgba(24, 144, 255, 0.35);
 }
 .confirm-btn {
-  flex: 1.2;
   background: linear-gradient(135deg, #007AFF, #2563EB);
   color: #fff;
 }

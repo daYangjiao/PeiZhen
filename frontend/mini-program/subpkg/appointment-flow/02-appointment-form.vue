@@ -106,7 +106,7 @@
   <!-- 将姓名和手机号都放入 input-group 中，以保持样式一致 -->
   <view class="input-group">
     <input
-      :value="patientName"
+      v-model="patientName"
       placeholder="姓名"
       class="contact-input"
       type="text"
@@ -117,10 +117,10 @@
   </view>
   <view class="input-group">
     <input
-      :value="phoneNumber"
+      v-model="phoneNumber"
       placeholder="手机号"
       class="contact-input"
-      type="text"
+      type="number"
       inputmode="numeric"
       maxlength="11"
       confirm-type="done"
@@ -154,6 +154,10 @@
 
 		<!-- 预约按钮 -->
 		<view class="confirm-section">
+			<view v-if="formError" class="form-error-card">
+				<text class="form-error-title">信息还没填完整</text>
+				<text class="form-error-desc">{{ formError }}</text>
+			</view>
 			<button class="confirm-btn" :class="{ disabled: !isFormComplete }" @click="confirmAppointment">
 				确认预约
 			</button>
@@ -351,6 +355,7 @@ const patientName = ref('')
 const phoneNumber = ref('')
 const phoneError = ref('')
 const isPhoneValid = ref(false)
+const formError = ref('')
 
 // --- 弹窗控制 ---
 const showTimeModal = ref(false)
@@ -1031,13 +1036,10 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 	if (!String(phoneNumber.value || '').trim()) missing.push('手机号')
 
 	if (missing.length > 0) {
-		uni.showModal({
-			title: '提示',
-			content: `请先完善：${missing.join('、')}，全部输入完成后才能点击确认预约`,
-			showCancel: false
-		})
+		formError.value = `请先完善：${missing.join('、')}`
 		return
 	}
+	formError.value = ''
 
 	// 验证手机号格式
 	validatePhone()
@@ -1654,6 +1656,33 @@ onMounted(async () => {
 	border-top: 1rpx solid #eee;
 	box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05); /* 添加底部阴影 */
 	box-sizing: border-box;
+}
+
+.form-error-card {
+	margin-bottom: 18rpx;
+	padding: 18rpx 22rpx;
+	border-radius: 22rpx;
+	background: #fff6f6;
+	border: 1rpx solid rgba(239, 68, 68, 0.22);
+	box-shadow: 0 8rpx 22rpx rgba(239, 68, 68, 0.08);
+	display: flex;
+	flex-direction: column;
+	gap: 6rpx;
+	box-sizing: border-box;
+}
+
+.form-error-title {
+	color: #d83b3b;
+	font-size: 25rpx;
+	font-weight: 800;
+	line-height: 1.35;
+}
+
+.form-error-desc {
+	color: #8c5d5d;
+	font-size: 24rpx;
+	line-height: 1.45;
+	word-break: break-word;
 }
 
 .confirm-btn {

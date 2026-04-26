@@ -7,6 +7,7 @@ import org.example.dao.OrderMapper;
 import org.example.dao.UserMapper;
 import org.example.model.Attendant;
 import org.example.model.AttendantQualification;
+import org.example.model.ChatMessage;
 import org.example.model.Order;
 import org.example.model.User;
 import org.example.model.request.OrderListQueryRequest;
@@ -293,11 +294,35 @@ class OrderServiceImplTest {
 
         String result = service.endService(110, 20, new BigDecimal("2.5"), "检查排队较久");
 
-        assertThat(result).startsWith("服务结束成功");
+        assertThat(result).startsWith("服务已提交");
         verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
                 Integer.valueOf(110).equals(patch.getOrderId())
                         && Integer.valueOf(4).equals(patch.getOrderStatus())
                         && "检查排队较久".equals(patch.getAttendantTimeRemark())
+        ));
+    }
+
+    @Test
+    void endServiceShouldNotifyPendingConfirmationInsteadOfCompleted() {
+        Order order = new Order();
+        order.setOrderId(111);
+        order.setOrderNo("ORD-111");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(3);
+        order.setOrderAmount(new BigDecimal("170.00"));
+        when(orderMapper.selectByPrimaryKey(111)).thenReturn(order);
+
+        String result = service.endService(111, 20, new BigDecimal("2.5"), null);
+
+        assertThat(result).startsWith("服务已提交");
+        verify(chatMessageMapper).insert(argThat(message ->
+                Integer.valueOf(10).equals(message.getReceiverId())
+                        && Integer.valueOf(111).equals(message.getOrderId())
+                        && message.getContent() != null
+                        && message.getContent().contains("待您确认")
+                        && !message.getContent().contains("订单已完成")
+                        && !message.getContent().contains("服务已结束")
         ));
     }
 

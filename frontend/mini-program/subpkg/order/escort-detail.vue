@@ -447,6 +447,20 @@
 			</view>
 		</view>
 
+		<view class="modal-overlay" v-if="showQrErrorModal" @click="showQrErrorModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">扫码内容不匹配</text>
+				</view>
+				<view class="modal-body">
+					<text class="modal-desc">{{ qrErrorMessage }}</text>
+				</view>
+				<view class="modal-footer single">
+					<button class="modal-btn confirm" @click="showQrErrorModal = false">我知道了</button>
+				</view>
+			</view>
+		</view>
+
 		<!-- 取消订单弹窗 -->
 		<view class="modal-overlay" v-if="showCancelModal" @click="showCancelModal = false">
 			<view class="modal-content cancel-modal-content" @click.stop>
@@ -666,11 +680,13 @@ export default {
 			showEndServiceModal: false,
 			showPrepareModal: false,
 			showContactPatientModal: false,
+			showQrErrorModal: false,
 			assignedAccepting: false,
 			assignedRejecting: false,
 			assignedCountdownTimer: null,
 			simulateQrContent: '',
 			pendingQrContent: '',
+			qrErrorMessage: '',
 			verifySubmitting: false,
 			cancelReason: '',
 			cancelPenaltyRate: 0,
@@ -1209,12 +1225,8 @@ export default {
 			}
 			const validationError = this.getQrValidationError(scannedText)
 			if (validationError) {
-				uni.showModal({
-					title: '扫码内容不匹配',
-					content: validationError,
-					showCancel: false,
-					confirmText: '我知道了'
-				})
+				this.qrErrorMessage = validationError
+				this.showQrErrorModal = true
 				return
 			}
 			this.pendingQrContent = scannedText

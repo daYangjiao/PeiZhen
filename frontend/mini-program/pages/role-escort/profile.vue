@@ -70,13 +70,25 @@
       </view>
     </view>
 
+    <view v-if="logoutConfirmVisible" class="confirm-mask" @click="logoutConfirmVisible = false">
+      <view class="confirm-panel" @click.stop>
+        <view class="confirm-icon">!</view>
+        <text class="confirm-title">退出登录</text>
+        <text class="confirm-desc">退出后将回到登录页，历史订单、钱包和资质数据不会丢失。</text>
+        <view class="confirm-actions">
+          <button class="confirm-btn secondary" @click="logoutConfirmVisible = false">取消</button>
+          <button class="confirm-btn primary" @click="confirmLogout">退出</button>
+        </view>
+      </view>
+    </view>
+
     <exclusive-dispatch-popup />
     <escort-bottom-bar active="profile" />
   </view>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onShow } from '@dcloudio/uni-app'
 import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
@@ -107,6 +119,7 @@ import {
 const session = useSessionStore()
 const userStore = useUserStore()
 const { attendantInfo, todayService, monthService, totalIncome, praiseRate, balance } = storeToRefs(userStore)
+const logoutConfirmVisible = ref(false)
 let versionTapCount = 0
 let versionTapTimer = null
 
@@ -278,20 +291,18 @@ const onMenuTap = (item) => {
 }
 
 const logout = () => {
-  uni.showModal({
-    title: '确认退出',
-    content: '确定要退出登录吗？',
-    success: (res) => {
-      if (!res.confirm) return
-      clearToken()
-      session.logout()
-      userStore.clearAttendantInfo()
-      uni.showToast({ title: '已退出登录', icon: 'success' })
-      setTimeout(() => {
-        uni.reLaunch({ url: '/pages/auth/login?role=escort' })
-      }, 700)
-    }
-  })
+  logoutConfirmVisible.value = true
+}
+
+const confirmLogout = () => {
+  logoutConfirmVisible.value = false
+  clearToken()
+  session.logout()
+  userStore.clearAttendantInfo()
+  uni.showToast({ title: '已退出登录', icon: 'success' })
+  setTimeout(() => {
+    uni.reLaunch({ url: '/pages/auth/login?role=escort' })
+  }, 700)
 }
 
 onMounted(() => {
@@ -583,6 +594,88 @@ onShow(() => {
   &:active {
     transform: scale(0.985);
   }
+}
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 32rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+  background: rgba(15, 23, 42, 0.36);
+  box-sizing: border-box;
+}
+
+.confirm-panel {
+  width: 100%;
+  background: #fff;
+  border-radius: 34rpx;
+  padding: 34rpx 28rpx 28rpx;
+  box-shadow: 0 24rpx 70rpx rgba(15, 23, 42, 0.2);
+  box-sizing: border-box;
+}
+
+.confirm-icon {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 20rpx;
+  background: #edf5ff;
+  color: var(--escort-primary);
+  font-size: 34rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.confirm-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: $escort-color-text-main;
+}
+
+.confirm-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: $escort-color-text-sub;
+}
+
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+  margin-top: 28rpx;
+}
+
+.confirm-btn {
+  height: 88rpx;
+  border-radius: 26rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.confirm-btn::after {
+  border: none;
+}
+
+.confirm-btn.secondary {
+  background: #eef4ff;
+  color: #4b6388;
+}
+
+.confirm-btn.primary {
+  background: linear-gradient(135deg, var(--escort-primary), #63adff);
+  color: #fff;
 }
 
 @keyframes pulse {

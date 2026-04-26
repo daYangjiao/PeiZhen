@@ -404,14 +404,14 @@ try {
         order.setOrderStatus(4);
         orderMapper.updateByPrimaryKeySelective(order);
 
-        // 通知用户：服务已结束，请确认时长和费用
+        // 通知用户：服务时长已提交，等待用户确认后才进入完成/补差额/争议流程。
         publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
 
-        String msgContent = "您的陪诊服务(订单No." + order.getOrderNo() + ")已结束，请确认本次服务时长和费用（多退少补）。";
+        String msgContent = "陪诊师已提交订单No." + order.getOrderNo() + "的服务时长与费用，待您确认后再完成结算。";
         sendSystemMessage(order.getUserId(), msgContent, order.getOrderId());
-        sendSystemMessage(order.getAttendantId(), "您已结束订单 " + order.getOrderNo() + " 的服务，请提醒用户确认时长与费用。", order.getOrderId());
+        sendSystemMessage(order.getAttendantId(), "您已提交订单 " + order.getOrderNo() + " 的服务时长与费用，等待用户确认。", order.getOrderId());
 
-        return "服务结束成功，待用户确认时长费用";
+        return "服务已提交，待用户确认时长费用";
     }
 
     @Override
