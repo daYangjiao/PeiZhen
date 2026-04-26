@@ -59,14 +59,22 @@ def evaluate_deploy_decision(
     release_files: Iterable[Path],
 ) -> DeployDecision:
     remote_commit = remote_commit.strip().lower()
-    if state_file.exists() and state_file.read_text(encoding="utf-8").strip().lower() == remote_commit:
-        return DeployDecision(False, "unchanged")
-
-    release_commits = [read_release_commit(path) for path in release_files]
-    if release_commits and all(commit == remote_commit for commit in release_commits):
+    state_matches_remote = state_file.exists() and state_file.read_text(encoding="utf-8").strip().lower() == remote_commit
+    release_paths = list(release_files)
+    release_commits = [read_release_commit(path) for path in release_paths]
+    all_releases_match = bool(release_commits) and all(commit == remote_commit for commit in release_commits)
+    if all_releases_match:
         state_file.parent.mkdir(parents=True, exist_ok=True)
         state_file.write_text(f"{remote_commit}\n", encoding="utf-8")
+        if state_matches_remote:
+            return DeployDecision(False, "unchanged")
         return DeployDecision(False, "already deployed")
+
+    if release_paths:
+        return DeployDecision(True, "incomplete release")
+
+    if state_matches_remote:
+        return DeployDecision(False, "unchanged")
 
     return DeployDecision(True, "new commit")
 
