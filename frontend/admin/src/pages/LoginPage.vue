@@ -27,21 +27,24 @@
         <button class="button button-primary login-submit" type="submit" :disabled="loading">
           {{ loading ? '登录中...' : '登录' }}
         </button>
+        <button class="button login-wechat" type="button" :disabled="wechatLoading" @click="handleWechatScan">
+          {{ wechatLoading ? '正在打开微信扫码...' : '微信扫码登录' }}
+        </button>
       </form>
 
       <div class="login-footer">
-        <p>请输入管理员账号登录。</p>
+        <p>{{ wechatBindToken ? '该微信尚未绑定管理员账号，请先用账号密码登录完成绑定。' : '请输入管理员账号登录。' }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUiStore } from '../stores/ui'
-import { loginAdmin } from '../utils/admin-api'
+import { bindAdminWechat, fetchAdminWechatOAuthUrl, fetchCurrentAdmin, loginAdmin } from '../utils/admin-api'
 
 const router = useRouter()
 const route = useRoute()
@@ -54,7 +57,51 @@ const form = reactive({
 })
 
 const loading = ref(false)
+const wechatLoading = ref(false)
 const errorMessage = ref('')
+const wechatBindToken = ref('')
+
+const parseWechatHash = () => {
+  const hash = window.location.hash || ''
+  const params = new URLSearchParams(hash.replace(/^#/, '').replace(/^&/, ''))
+  return {
+    token: params.get('wechatToken') || '',
+    bindToken: params.get('wechatBindToken') || '',
+  }
+}
+
+const cleanWechatHash = () => {
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+}
+
+const consumeWechatLoginHash = async () => {
+  const payload = parseWechatHash()
+  if (payload.bindToken) {
+    wechatBindToken.value = payload.bindToken
+    cleanWechatHash()
+    return
+  }
+  if (!payload.token) return
+  loading.value = true
+  try {
+    authStore.setSession(payload.token, {})
+    const admin = await fetchCurrentAdmin()
+    authStore.setSession(payload.token, admin)
+    uiStore.toast('微信扫码登录成功', 'success')
+    router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard')
+  } catch (error) {
+    authStore.clearSession()
+    errorMessage.value = error.message || '微信扫码登录失败'
+    uiStore.toast(errorMessage.value, 'error')
+  } finally {
+    loading.value = false
+    cleanWechatHash()
+  }
+}
+
+onMounted(() => {
+  consumeWechatLoginHash()
+})
 
 const handleSubmit = async () => {
   if (!form.account || !form.password) {
@@ -68,13 +115,37 @@ const handleSubmit = async () => {
   try {
     const response = await loginAdmin(form)
     authStore.setSession(response.token, response.userInfo)
-    uiStore.toast('登录成功', 'success')
+    if (wechatBindToken.value) {
+      await bindAdminWechat(wechatBindToken.value)
+      wechatBindToken.value = ''
+      uiStore.toast('微信已绑定，后续可扫码登录', 'success')
+    } else {
+      uiStore.toast('登录成功', 'success')
+    }
     router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard')
   } catch (error) {
     errorMessage.value = error.message || '登录失败，请检查账号密码。'
     uiStore.toast(errorMessage.value, 'error')
   } finally {
     loading.value = false
+  }
+}
+
+const handleWechatScan = async () => {
+  wechatLoading.value = true
+  errorMessage.value = ''
+  try {
+    const redirectUrl = `${window.location.origin}/admin/login`
+    const response = await fetchAdminWechatOAuthUrl(redirectUrl)
+    if (!response?.url) {
+      throw new Error('微信扫码登录暂未开通')
+    }
+    window.location.href = response.url
+  } catch (error) {
+    errorMessage.value = error.message || '微信扫码登录暂未开通'
+    uiStore.toast(errorMessage.value, 'error')
+  } finally {
+    wechatLoading.value = false
   }
 }
 </script>
@@ -154,6 +225,14 @@ const handleSubmit = async () => {
 .login-submit {
   width: 100%;
   min-height: 46px;
+}
+
+.login-wechat {
+  width: 100%;
+  min-height: 46px;
+  background: #ecfdf3;
+  border-color: #b8ebc9;
+  color: #138a43;
 }
 
 .login-error {

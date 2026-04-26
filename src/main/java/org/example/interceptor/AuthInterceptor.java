@@ -103,6 +103,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/users/register",
             "/api/users/checkUsername",
             "/api/users/wechat/config-status",
+            "/api/users/wechat/oauth-url",
+            "/api/users/wechat/oauth-callback",
             "/api/users/wechat/login",
             "/api/users/wechat/bind-phone",
             "/api/common/upload",

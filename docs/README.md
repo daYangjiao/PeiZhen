@@ -1,6 +1,6 @@
 # Docs Index
 
-更新时间: 2026-04-25
+更新时间: 2026-04-26
 
 本目录是当前仓库可提交、可推送的项目说明入口。真实密码、服务器连接、数据库连接等本地机密只保存在根目录 `SECRET_VAULT.md`，该文件已由 `.gitignore` 忽略，不能提交或推送。
 
@@ -22,6 +22,6 @@
 
 ## 当前状态
 
-- 后端接口清单已对齐当前 `src/main/java/org/example/controller/**` 的 19 个控制器和 97 个方法级 HTTP 映射。
+- 后端接口清单已对齐当前 `src/main/java/org/example/controller/**` 的 19 个控制器和微信多端登录扩展后的方法级 HTTP 映射。
 - 前端页面清单已对齐当前 `frontend/mini-program/pages.json` 和 `frontend/admin/src/router/index.js`。
 - 数据库清单已覆盖 `database/student.sql` 基线、历史 `database/*.sql` 增量和当前 `db/*.sql` 自动部署增量。

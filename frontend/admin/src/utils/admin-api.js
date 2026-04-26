@@ -1,6 +1,9 @@
 import { del, get, patch, post } from './http'
 
 export const loginAdmin = (payload) => post('/api/admin/auth/login', payload)
+export const fetchCurrentAdmin = () => get('/api/admin/auth/current')
+export const fetchAdminWechatOAuthUrl = (redirectUrl) => get('/api/admin/auth/wechat/oauth-url', { redirectUrl })
+export const bindAdminWechat = (wechatBindToken) => post('/api/admin/auth/wechat/bind', { wechatBindToken })
 export const fetchDashboard = () => get('/api/admin/dashboard/overview')
 export const fetchUsers = (params) => get('/api/admin/users', params)
 export const fetchUserDetail = (id) => get(`/api/admin/users/${id}`)

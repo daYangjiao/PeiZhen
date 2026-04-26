@@ -32,6 +32,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                     "/api/users/register",
                     "/api/users/checkUsername",
                     "/api/users/wechat/config-status",
+                    "/api/users/wechat/oauth-url",
+                    "/api/users/wechat/oauth-callback",
                     "/api/users/wechat/login",
                     "/api/users/wechat/bind-phone",
                     "/api/app-upgrade/check",
@@ -46,7 +48,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
         registry.addInterceptor(adminAuthInterceptor)
                 .addPathPatterns("/api/admin/**")
-                .excludePathPatterns("/api/admin/auth/login");
+                .excludePathPatterns(
+                    "/api/admin/auth/login",
+                    "/api/admin/auth/wechat/oauth-url",
+                    "/api/admin/auth/wechat/oauth-callback"
+                );
         
         // 为AI导诊接口添加白名单（允许未登录用户访问预约流程）
         registry.addInterceptor(authInterceptor)

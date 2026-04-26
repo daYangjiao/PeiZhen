@@ -1,6 +1,6 @@
 # Backend Manifest
 
-更新时间: 2026-04-25
+更新时间: 2026-04-26
 
 本清单由 Spring Boot 控制器注解、Swagger 注解和拦截器配置整理。权限列按 `WebMvcConfig`、`AuthInterceptor`、`AdminAuthInterceptor` 推导。
 
@@ -82,7 +82,9 @@
 | UserController | POST | `/api/users/register` | 注册用户 | 公开 | `src/main/java/org/example/controller/UserController.java:44` |
 | UserController | POST | `/api/users/login` | 登录 | 公开 | `src/main/java/org/example/controller/UserController.java:121` |
 | UserController | GET | `/api/users/wechat/config-status` | 获取微信登录配置状态 | 公开 | `src/main/java/org/example/controller/UserController.java:150` |
-| UserController | POST | `/api/users/wechat/login` | 微信登录 | 公开 | `src/main/java/org/example/controller/UserController.java:158` |
+| UserController | GET | `/api/users/wechat/oauth-url` | 生成微信 H5 网页授权地址 | 公开 | `src/main/java/org/example/controller/UserController.java` |
+| UserController | GET | `/api/users/wechat/oauth-callback` | 微信 H5 网页授权回调，换取 openid/unionid 后跳回前端 | 公开 | `src/main/java/org/example/controller/UserController.java` |
+| UserController | POST | `/api/users/wechat/login` | 微信登录，支持 MINI_PROGRAM、APP、WECHAT_H5 code 换登录态 | 公开 | `src/main/java/org/example/controller/UserController.java:158` |
 | UserController | POST | `/api/users/wechat/bind-phone` | 绑定微信手机号 | 公开 | `src/main/java/org/example/controller/UserController.java:178` |
 | UserController | GET | `/api/users/current` | 查询当前用户 | 用户 JWT | `src/main/java/org/example/controller/UserController.java:198` |
 | UserController | GET | `/api/users` | 查询用户列表 | 用户 JWT | `src/main/java/org/example/controller/UserController.java:223` |
@@ -100,6 +102,10 @@
 | AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:61` |
 | AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/qualification-review` | 审核资质 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:73` |
 | AdminAuthController | POST | `/api/admin/auth/login` | 登录 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java:19` |
+| AdminAuthController | GET | `/api/admin/auth/current` | 查询当前管理员资料 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
+| AdminAuthController | GET | `/api/admin/auth/wechat/oauth-url` | 生成管理端微信扫码登录地址 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
+| AdminAuthController | GET | `/api/admin/auth/wechat/oauth-callback` | 管理端微信扫码回调，已绑定则返回登录态，未绑定则返回绑定凭证 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
+| AdminAuthController | POST | `/api/admin/auth/wechat/bind` | 当前管理员绑定微信扫码登录身份 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
 | AdminDashboardController | GET | `/api/admin/dashboard/overview` | 查询概览，超级管理员额外返回今日处理量和最近操作日志摘要 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminDashboardController.java:21` |
 | AdminOrderController | GET | `/api/admin/orders` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:23` |
 | AdminOrderController | GET | `/api/admin/orders/{orderId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:35` |
@@ -117,7 +123,7 @@
 
 ## 权限规则
 
-- `/api/admin/**` 默认需要管理员 JWT，`/api/admin/auth/login` 公开。
+- `/api/admin/**` 默认需要管理员 JWT，`/api/admin/auth/login`、`/api/admin/auth/wechat/oauth-url`、`/api/admin/auth/wechat/oauth-callback` 公开。
 - `/api/**`、`/attendant/**`、`/ai/medical/**` 默认需要用户 JWT，登录注册、微信登录绑定、部分上传、App 升级检查和 `/attendant/recommended` 公开。
 - `/ai/guide/**` 默认需要用户 JWT；预约创建、陪诊师匹配、订单创建/查询/支付状态、测试预约接口按当前拦截器配置公开。
 - `/user/attendants/**` 与 `/order-qr/**` 当前未被 MVC 鉴权拦截器覆盖，按公开接口记录。
@@ -126,6 +132,13 @@
 
 - `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`。
 - 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。陪诊师资料响应中的上传状态必须与可展示图片一致：存在原图或扫描预览图才返回已上传。
+
+## 微信登录口径
+
+- 用户端微信登录统一记录到 `third_party_account`：`provider=WECHAT`，`platform` 可为 `MINI_PROGRAM`、`APP`、`WECHAT_H5`；登录时优先按 `platform + openid` 命中，存在 `unionid` 时允许同一微信开放平台主体下跨端命中。
+- 现有 `user.openid` 作为小程序历史兼容字段保留；新登录和绑定会同步写入 `third_party_account`。
+- 管理端扫码登录使用 `platform=WEB_SCAN`，只允许已绑定的管理员微信身份直接登录；未绑定时返回短期绑定凭证，管理员用账号密码登录后调用绑定接口完成绑定。
+- 所有微信配置默认空，未配置时接口返回“微信登录暂未开通”，不影响手机号密码登录。
 
 ## 评价评分口径
 

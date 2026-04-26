@@ -18,6 +18,9 @@ import org.example.service.WechatAuthService;
 import org.example.unity.JwtUtil;
 import org.example.util.AuthUtil;
 import org.springframework.validation.BindingResult;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -155,8 +158,33 @@ public class UserController {
         return ResponseResult.success(wechatAuthService.getConfigStatus(role));
     }
 
+    @GetMapping("/wechat/oauth-url")
+    @ApiOperation(value = "生成微信网页授权地址", notes = "H5 微信内网页登录使用，返回可跳转的微信授权 URL。")
+    public ResponseResult<Map<String, Object>> getWechatOAuthUrl(
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "platform", required = false, defaultValue = "WECHAT_H5") String platform,
+            @RequestParam(value = "redirectUrl", required = false) String redirectUrl) {
+        try {
+            return ResponseResult.success(Map.of("url", wechatAuthService.buildUserOAuthUrl(role, platform, redirectUrl)));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return new ResponseResult<>(400, e.getMessage(), null);
+        }
+    }
+
+    @GetMapping("/wechat/oauth-callback")
+    @ApiOperation(value = "微信网页授权回调", notes = "微信回调后换取 openid/unionid，并跳回 H5 登录页。")
+    public ResponseEntity<Void> handleWechatOAuthCallback(
+            @RequestParam(value = "platform", required = false, defaultValue = "WECHAT_H5") String platform,
+            @RequestParam("code") String code,
+            @RequestParam(value = "state", required = false) String state) {
+        String redirectUrl = wechatAuthService.handleUserOAuthCallback(platform, code, state);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.LOCATION, redirectUrl);
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
     @PostMapping("/wechat/login")
-    @ApiOperation(value = "微信小程序登录", notes = "使用 wx.login 返回的 code 发起登录。若用户已绑定 openid 则直接返回 token；否则返回 wechatBindToken 进入手机号绑定。当前支持 user 和 escort。")
+    @ApiOperation(value = "微信登录", notes = "使用小程序/App/H5 返回的 code 发起登录。若用户已绑定微信身份则直接返回 token；否则返回 wechatBindToken 进入手机号绑定。当前支持 user 和 escort。")
     @ApiResponses({
             @ApiResponse(code = 200, message = "调用成功"),
             @ApiResponse(code = 400, message = "微信登录未开通、code 无效或当前角色暂不支持"),

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.dao.ThirdPartyAccountMapper">
+
+    <resultMap id="ThirdPartyAccountResultMap" type="org.example.model.ThirdPartyAccount">
+        <id column="id" property="id"/>
+        <result column="principal_type" property="principalType"/>
+        <result column="principal_id" property="principalId"/>
+        <result column="provider" property="provider"/>
+        <result column="platform" property="platform"/>
+        <result column="openid" property="openid"/>
+        <result column="unionid" property="unionid"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="WechatIdentityWhere">
+        provider = 'WECHAT'
+        AND (
+            (platform = #{platform} AND openid = #{openid})
+            <if test="unionid != null and unionid != ''">
+                OR unionid = #{unionid}
+            </if>
+        )
+    </sql>
+
+    <select id="findUserAccountByWechat" resultMap="ThirdPartyAccountResultMap">
+        SELECT *
+        FROM third_party_account
+        WHERE principal_type = 'USER'
+          AND <include refid="WechatIdentityWhere"/>
+        ORDER BY update_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findAdminAccountByWechat" resultMap="ThirdPartyAccountResultMap">
+        SELECT *
+        FROM third_party_account
+        WHERE principal_type = 'ADMIN'
+          AND <include refid="WechatIdentityWhere"/>
+        ORDER BY update_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="upsert" parameterType="org.example.model.ThirdPartyAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO third_party_account (
+            principal_type,
+            principal_id,
+            provider,
+            platform,
+            openid,
+            unionid
+        ) VALUES (
+            #{principalType},
+            #{principalId},
+            #{provider},
+            #{platform},
+            #{openid},
+            #{unionid}
+        )
+        ON DUPLICATE KEY UPDATE
+            principal_id = VALUES(principal_id),
+            unionid = COALESCE(VALUES(unionid), unionid),
+            update_time = CURRENT_TIMESTAMP
+    </insert>
+</mapper>

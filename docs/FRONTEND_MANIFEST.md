@@ -1,6 +1,6 @@
 # Frontend Manifest
 
-更新时间: 2026-04-25
+更新时间: 2026-04-26
 
 本清单覆盖两个前端：uni-app 小程序端和 Vue 管理端。小程序页面来源于 `frontend/mini-program/pages.json`；管理端页面来源于 `frontend/admin/src/router/index.js`，接口封装来源于 `frontend/admin/src/utils/admin-api.js`。
 
@@ -16,7 +16,7 @@
 
 | 页面路径 | 标题 | 核心交互逻辑 | 主要接口/动作 |
 | --- | --- | --- | --- |
-| `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流，登录后按角色进入对应 Tab。 | `/api/users/login` |
+| `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序和 App 走 `uni.login` code 登录，微信内 H5 走网页授权回调，未绑定时进入手机号绑定。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
 | `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口。 | 无直接接口调用/通过封装模块调用 |
@@ -67,7 +67,7 @@
 
 | 路由 | 组件 | 权限 | 核心交互逻辑 | 主要接口 |
 | --- | --- | --- | --- | --- |
-| `/login` | `LoginPage.vue` | 公开/游客 | 管理员登录，保存 admin token 并按 redirect 跳转。 | `POST /api/admin/auth/login` |
+| `/login` | `LoginPage.vue` | 公开/游客 | 管理员登录，保存 admin token 并按 redirect 跳转；支持微信扫码登录，未绑定微信时先账号密码登录完成绑定。 | `POST /api/admin/auth/login`<br>`GET /api/admin/auth/wechat/oauth-url`<br>`GET /api/admin/auth/current`<br>`POST /api/admin/auth/wechat/bind` |
 | `/dashboard` | `DashboardPage.vue` | 管理员 JWT | 首页概览，查看核心经营数据、待审核/争议/今日订单快捷入口；超级管理员可见最近操作日志摘要。 | `GET /api/admin/dashboard/overview` |
 | `/workbench` | `WorkbenchPage.vue` | 管理员 JWT | 处理工作台，统一流水线处理订单争议和陪诊师入驻审核；系统自动分配和续期任务、实时刷新队列、完成后进入下一条。陪诊师审核默认展示扫描预览图，放大查看展示用户上传原图。 | `GET /api/admin/workbench/summary`<br>`GET /api/admin/workbench/tasks`<br>`POST /api/admin/workbench/tasks/{type}/{targetId}/claim`<br>`POST /api/admin/workbench/tasks/{type}/{targetId}/complete`<br>`DELETE /api/admin/workbench/tasks/{type}/{targetId}/claim`<br>`GET /api/admin/orders/{id}`<br>`GET /api/admin/attendants/{id}` |
 | `/users` | `UsersPage.vue` | 管理员 JWT | 用户筛选、分页、档案抽屉查看、启用/禁用用户。列表点击或查看资料直接打开右侧工作抽屉展示完整资料、资质与最近订单。 | `GET /api/admin/users`<br>`GET /api/admin/users/{id}`<br>`PATCH /api/admin/users/{id}/status` |
@@ -85,6 +85,7 @@
 - 陪诊师收入展示统一通过 `utils/settlement.mjs`：钱包和已完成订单使用后端 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；待接单、专属派单和服务中页面只可展示预估收入；不得在页面内直接写 `orderAmount * 0.9`。
 - 管理端使用 Vue Router，`meta.requiresAuth` 路由必须存在管理端 token；401 响应会清理会话并跳转 `/admin/login`。
 - 管理端会在恢复本地会话时检查 JWT `exp`，过期 token 会直接清理并进入登录页；接口返回 401 时统一静默跳转登录页，不在后台页面残留“加载失败/登录失败”提示。
+- 微信登录入口按运行环境显示：微信小程序和 App 使用 `uni.login`，微信内 H5 使用公众号网页授权，普通浏览器 H5 保留手机号密码登录；管理端使用微信开放平台网站应用扫码登录。
 - 管理端侧栏入口在 `frontend/admin/src/components/AppShell.vue` 中维护。
 - 管理端浏览器标题为“愈安伴后台管理”，登录页、侧栏和 favicon 统一使用 `frontend/admin/public/brand-logo.png`。
 - 管理端活动弹窗统一使用 `BaseDialog.vue` 和 `styles.css` 中的 `.dialog-*` 自定义样式，不使用浏览器原生确认框；列表详情使用 `BaseDrawer.vue` 和 `.drawer-*` 自定义工作抽屉，避免详情堆到页面底部；筛选、分页和管理员账号类型选择使用 `BaseSelect.vue` 自定义下拉，日期/时间筛选使用 `BaseDateInput.vue` 自定义日历浮层，避免浏览器原生下拉和日期弹窗样式。
