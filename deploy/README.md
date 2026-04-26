@@ -89,7 +89,7 @@ Behavior:
 
 - Only pushes to `FF` deploy production.
 - Pushes to `main` or `master` are acknowledged and ignored.
-- Without WebHook access, the server polls `FF` every minute; unchanged commits do not build.
+- Without WebHook access, the server polls `FF` every minute; unchanged commits do not build. After pushing `FF`, wait for this poll cycle to publish backend, H5/admin, and Android WGT before confirming the server release.
 - A deployment lock prevents overlapping deploys.
 - Backend and H5/admin publish first. WGT publishes last.
 - WGT uses Linux HBuilderX CLI with `publish app --type wgt --project <absolute project path>`.
