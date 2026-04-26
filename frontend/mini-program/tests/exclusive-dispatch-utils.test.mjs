@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   buildExclusiveDispatchKey,
   formatExclusiveDispatchCountdown,
+  getExclusiveDispatchDisplayState,
   getExclusiveDispatchRemainingMs,
   isExclusiveDispatchExpired,
   shouldOpenExclusiveDispatchPopup,
@@ -38,6 +39,32 @@ test('isExclusiveDispatchExpired is true once the confirmation window ends', () 
   const now = Date.parse('2026-04-19T10:16:00+08:00')
   assert.equal(isExclusiveDispatchExpired({ paymentTime: '2026-04-19 10:00:00' }, now), true)
   assert.equal(isExclusiveDispatchExpired({ paymentTime: '2026-04-19 10:05:00' }, now), false)
+})
+
+test('getExclusiveDispatchDisplayState separates active and ended exclusive dispatches', () => {
+  const now = Date.parse('2026-04-19T10:16:00+08:00')
+
+  assert.deepEqual(
+    getExclusiveDispatchDisplayState({ orderStatus: 8, paymentTime: '2026-04-19 10:05:00' }, now),
+    {
+      active: true,
+      ended: false,
+      statusText: '专属派单待确认',
+      detailTitle: '专属派单待确认',
+      detailHint: '请尽快确认接单，超时后订单将自动释放到公共接单大厅。',
+    },
+  )
+
+  assert.deepEqual(
+    getExclusiveDispatchDisplayState({ orderStatus: 8, paymentTime: '2026-04-19 10:00:00' }, now),
+    {
+      active: false,
+      ended: true,
+      statusText: '专属派单已流转',
+      detailTitle: '专属接单时段已结束',
+      detailHint: '你曾收到过这笔专属派单，目前已不再单独保留，系统会自动转入公共接单大厅。',
+    },
+  )
 })
 
 test('shouldOpenExclusiveDispatchPopup blocks ignored, expired, and current-detail cases', () => {

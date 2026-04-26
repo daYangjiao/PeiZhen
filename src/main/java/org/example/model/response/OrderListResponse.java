@@ -54,6 +54,9 @@ public class OrderListResponse {
     @ApiModelProperty(value = "支付状态描述", example = "待支付")
     private String paymentStatusDesc;
 
+    @ApiModelProperty(value = "支付时间，专属派单确认窗口以此为准", example = "2025-12-01 09:10:00")
+    private Date paymentTime;
+
     @ApiModelProperty(value = "订单金额", example = "110.00")
     private BigDecimal orderAmount;
 

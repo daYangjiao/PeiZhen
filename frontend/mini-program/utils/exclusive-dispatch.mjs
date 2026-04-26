@@ -38,6 +38,26 @@ export const getExclusiveDispatchRemainingMs = (order = {}, now = Date.now()) =>
 export const isExclusiveDispatchExpired = (order = {}, now = Date.now()) =>
   getExclusiveDispatchRemainingMs(order, now) <= 0
 
+export const getExclusiveDispatchDisplayState = (order = {}, now = Date.now()) => {
+  const ended = Number(order.orderStatus) === EXCLUSIVE_DISPATCH_STATUS
+    && isExclusiveDispatchExpired(order, now)
+  return ended
+    ? {
+        active: false,
+        ended: true,
+        statusText: '专属派单已流转',
+        detailTitle: '专属接单时段已结束',
+        detailHint: '你曾收到过这笔专属派单，目前已不再单独保留，系统会自动转入公共接单大厅。',
+      }
+    : {
+        active: Number(order.orderStatus) === EXCLUSIVE_DISPATCH_STATUS,
+        ended: false,
+        statusText: '专属派单待确认',
+        detailTitle: '专属派单待确认',
+        detailHint: '请尽快确认接单，超时后订单将自动释放到公共接单大厅。',
+      }
+}
+
 export const formatExclusiveDispatchCountdown = (remainingMs = 0) => {
   const safeMs = Math.max(0, Number(remainingMs) || 0)
   const totalSeconds = Math.floor(safeMs / 1000)

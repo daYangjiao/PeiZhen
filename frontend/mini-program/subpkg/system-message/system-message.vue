@@ -119,6 +119,9 @@ const extractOrderNo = (content = '') => {
   return null
 }
 
+const isExclusiveDispatchMessage = (msg = {}) =>
+  String(msg.content || '').includes('专属派单')
+
 const getMessageId = (msg) => Number(msg?.id || msg?.messageId || 0)
 const getMessageOrderId = (msg) => Number(msg?.orderId || msg?.order?.orderId || 0)
 
@@ -185,7 +188,8 @@ const openOrderFromMessage = async (msg) => {
       return
     }
     await get(`/attendant/orders/${target.orderId}`)
-    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${target.orderId}` })
+    const extra = isExclusiveDispatchMessage(msg) ? '&fromExclusiveDispatch=1' : ''
+    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${target.orderId}${extra}` })
     return
   }
 

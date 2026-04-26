@@ -72,6 +72,7 @@ import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import ExclusiveDispatchPopup from '@/components/exclusive-dispatch-popup.vue'
 import { get } from '@/utils/api.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
+import { getExclusiveDispatchDisplayState } from '@/utils/exclusive-dispatch.mjs'
 
 const loading = ref(true)
 const loadError = ref('')
@@ -82,6 +83,11 @@ let socketRefreshTimer = null
 let pageActive = false
 
 const getEscortOrderStatusText = (order = {}) => {
+  const fromExclusiveDispatch = String(detail.value?.content || '').includes('专属派单')
+  if (Number(order?.orderStatus) === 1 && fromExclusiveDispatch) return '专属派单已流转'
+  if (Number(order?.orderStatus) === 8) {
+    return getExclusiveDispatchDisplayState(order).statusText
+  }
   if (order?.orderStatusText) return order.orderStatusText
   const status = Number(order?.orderStatus)
   const map = {
@@ -204,7 +210,8 @@ const openOrderDetail = async () => {
   }
   try {
     await get(`/attendant/orders/${orderId}`)
-    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${orderId}` })
+    const extra = String(detail.value.content || '').includes('专属派单') ? '&fromExclusiveDispatch=1' : ''
+    uni.navigateTo({ url: `/subpkg/order/escort-detail?orderId=${orderId}${extra}` })
   } catch (error) {
     uni.showToast({ title: error?.message || '订单暂时无法查看', icon: 'none' })
   }

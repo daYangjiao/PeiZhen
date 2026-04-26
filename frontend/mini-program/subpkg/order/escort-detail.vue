@@ -22,15 +22,19 @@
 				<text class="overview-order-no">订单号：{{ orderInfo.orderNo }}</text>
 			</view>
 
-			<view v-if="orderInfo.status === 'assigned_waiting'" class="status-card assigned-countdown-card">
+			<view v-if="showExclusiveDispatchCard" class="status-card assigned-countdown-card" :class="{ ended: exclusiveDispatchEnded }">
 				<view class="progress-title-row">
-					<text class="progress-title">专属派单待确认</text>
-					<text class="progress-step-text" :class="{ expired: assignedExpired }">
-						{{ assignedExpired ? '已超过确认时限' : `剩余 ${assignedCountdown}` }}
+					<text class="progress-title">{{ exclusiveDispatchCardTitle }}</text>
+					<text class="progress-step-text" :class="{ ended: exclusiveDispatchEnded }">
+						{{ exclusiveDispatchEnded ? '已流转' : `剩余 ${assignedCountdown}` }}
 					</text>
 				</view>
 				<view class="assigned-countdown-desc">
-					<text>{{ assignedExpired ? '该专属派单已超过确认期限，系统会自动释放到公共接单大厅。请返回刷新订单状态。' : '请尽快确认接单，超时后订单将自动释放到公共派单池。' }}</text>
+					<text>{{ exclusiveDispatchCardHint }}</text>
+				</view>
+				<view v-if="exclusiveDispatchEnded" class="exclusive-ended-actions">
+					<button class="exclusive-ended-btn primary" @click="refreshCurrentOrder">刷新订单状态</button>
+					<button class="exclusive-ended-btn secondary" @click="goBackToOrderList">返回订单列表</button>
 				</view>
 			</view>
 
@@ -351,7 +355,7 @@
 					{{ assignedRejecting ? '处理中...' : '拒绝派单' }}
 				</button>
 				<button class="action-btn primary" :disabled="assignedAccepting || assignedRejecting || assignedExpired" @click="handleAssignedAccept">
-					{{ assignedExpired ? '已超时' : (assignedAccepting ? '接单中...' : '立即接单') }}
+					{{ assignedExpired ? '接单时段已结束' : (assignedAccepting ? '接单中...' : '立即接单') }}
 				</button>
 			</template>
 			<template v-else>
@@ -537,7 +541,7 @@ import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
 import { calculateAttendantIncome, calculateDisplayAttendantIncome, calculatePlatformFee, normalizeFinalOrderAmount } from '@/utils/settlement.mjs'
-import { formatExclusiveDispatchCountdown, getExclusiveDispatchRemainingMs } from '@/utils/exclusive-dispatch.mjs'
+import { formatExclusiveDispatchCountdown, getExclusiveDispatchDisplayState, getExclusiveDispatchRemainingMs } from '@/utils/exclusive-dispatch.mjs'
 
 function fullAvatarUrl(path) {
 	return resolveAvatarUrl(path, placeholderImg)
@@ -678,6 +682,7 @@ export default {
 			socketListener: null,
 			isPrepared: false,
 			patientAvatarError: false,
+			fromExclusiveDispatchMessage: false,
 			orderInfo: {
 				id: '',
 				orderNo: '',
@@ -739,6 +744,7 @@ export default {
 			return status && status !== 'pending'
 		},
 		statusText() {
+			if (this.exclusiveDispatchEnded) return '专属派单已流转'
 			const texts = {
 				pending: '待接单',
 				assigned_waiting: '专属派单待确认',
@@ -752,6 +758,7 @@ export default {
 			return texts[this.orderInfo.status] || '未知状态'
 		},
 		statusDesc() {
+			if (this.exclusiveDispatchEnded) return '这笔订单已不再为你单独保留'
 			const descs = {
 				pending: '等待陪诊师接单',
 				assigned_waiting: '已指定您作为陪诊师，等待您确认接单',
@@ -765,7 +772,33 @@ export default {
 			return descs[this.orderInfo.status] || ''
 		},
 		showActions() {
+			if (this.exclusiveDispatchEnded) return false
 			return ['assigned_waiting', 'accepted', 'in_progress'].includes(this.orderInfo.status)
+		},
+		exclusiveDispatchState() {
+			return getExclusiveDispatchDisplayState({
+				orderStatus: this.orderInfo.orderStatus,
+				paymentTime: this.orderInfo.paymentTime,
+				createTime: this.orderInfo.createTime,
+				updateTime: this.orderInfo.updateTime
+			})
+		},
+		exclusiveDispatchEnded() {
+			if (this.orderInfo.status === 'assigned_waiting') {
+				return this.assignedExpired || this.exclusiveDispatchState.ended
+			}
+			return this.fromExclusiveDispatchMessage && Number(this.orderInfo.orderStatus) === 1
+		},
+		showExclusiveDispatchCard() {
+			return this.orderInfo.status === 'assigned_waiting' || this.exclusiveDispatchEnded
+		},
+		exclusiveDispatchCardTitle() {
+			return this.exclusiveDispatchEnded ? '专属接单时段已结束' : this.exclusiveDispatchState.detailTitle
+		},
+		exclusiveDispatchCardHint() {
+			return this.exclusiveDispatchEnded
+				? '你曾收到过这笔专属派单，目前已不再单独保留，系统会自动转入公共接单大厅。'
+				: this.exclusiveDispatchState.detailHint
 		},
 		serviceProgressStep() {
 			if (this.orderInfo.status === 'accepted') return 1
@@ -785,8 +818,9 @@ export default {
 		overviewHintText() {
 			const status = this.orderInfo.status
 			if (status === 'assigned_waiting') {
-				return this.assignedExpired ? '确认期限已过，请返回刷新订单状态' : `剩余确认时间：${this.assignedCountdown}`
+				return this.exclusiveDispatchEnded ? '你曾收到过这笔专属派单，目前已不再单独保留' : `剩余确认时间：${this.assignedCountdown}`
 			}
+			if (this.exclusiveDispatchEnded) return '这笔专属派单已结束单独保留，订单已进入后续流转'
 			if (status === 'accepted') {
 				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
 			}
@@ -856,6 +890,7 @@ export default {
 	
 	onLoad(options) {
 		if (redirectPublicSafeToHome()) return
+		this.fromExclusiveDispatchMessage = options.fromExclusiveDispatch === '1'
 		if (options.orderId) {
 			this.loadOrderDetail(options.orderId)
 		}
@@ -982,6 +1017,13 @@ export default {
 		},
 		goBack() {
 			uni.navigateBack()
+		},
+		refreshCurrentOrder() {
+			if (!this.orderInfo.id) return
+			this.loadOrderDetail(this.orderInfo.id)
+		},
+		goBackToOrderList() {
+			uni.switchTab({ url: '/pages/role-escort/order' })
 		},
 		async loadOrderDetail(orderId) {
 			this.isLoading = true
@@ -1649,6 +1691,11 @@ export default {
 }
 
 .assigned-countdown-card {
+	&.ended {
+		background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+		border: 1rpx solid #dfeaf5;
+	}
+
 	.assigned-countdown-desc {
 		margin-top: 14rpx;
 		font-size: 24rpx;
@@ -1661,10 +1708,40 @@ export default {
 		color: var(--primary);
 	}
 
-	.progress-step-text.expired {
-		background: #fff2f2;
-		color: #d94848;
+	.progress-step-text.ended {
+		background: #eef4f8;
+		color: #527087;
 	}
+}
+
+.exclusive-ended-actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 14rpx;
+	margin-top: 22rpx;
+}
+
+.exclusive-ended-btn {
+	height: 72rpx;
+	border-radius: 999rpx;
+	font-size: 25rpx;
+	font-weight: 700;
+	border: none;
+}
+
+.exclusive-ended-btn::after {
+	border: none;
+}
+
+.exclusive-ended-btn.primary {
+	background: var(--primary);
+	color: #ffffff;
+}
+
+.exclusive-ended-btn.secondary {
+	background: #f4f7fb;
+	color: #527087;
+	border: 1rpx solid #dfe7f0;
 }
 
 .info-card {

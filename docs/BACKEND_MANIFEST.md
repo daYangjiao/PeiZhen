@@ -51,7 +51,7 @@
 | AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:400` |
 | AttendantController | POST | `/attendant/orders/{orderId}/end` | 结束服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:425` |
 | AttendantController | POST | `/attendant/orders/{orderId}/service-progress` | 更新服务进度 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:452` |
-| AttendantController | GET | `/attendant/orders` | 查询陪诊师订单，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount` | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:479` |
+| AttendantController | GET | `/attendant/orders` | 查询陪诊师订单，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；列表项返回 `paymentTime` 供专属派单确认窗口判断 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:479` |
 | AttendantController | GET | `/attendant/orders/{orderId}` | 查询订单详情，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount` | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:585` |
 | AttendantController | POST|PUT | `/attendant/orders/{orderId}/cancel` | 取消订单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:624` |
 | AttendantController | POST | `/attendant/orders/{orderId}/scan-qr` | 扫码核销 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:676` |

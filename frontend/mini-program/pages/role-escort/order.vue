@@ -49,8 +49,8 @@
             <view class="card-content">
               <view class="order-header">
                 <text class="order-number">订单号: {{ order.orderNo }}</text>
-                <view class="status-badge" :class="getStatusClass(order.orderStatus)">
-                  <text class="status-text">{{ getStatusText(order.orderStatus) }}</text>
+                <view class="status-badge" :class="getStatusClass(order)">
+                  <text class="status-text">{{ getStatusText(order) }}</text>
                 </view>
               </view>
 
@@ -113,6 +113,7 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import { calculateDisplayAttendantIncome } from '@/utils/settlement.mjs'
+import { getExclusiveDispatchDisplayState } from '@/utils/exclusive-dispatch.mjs'
 import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 
 const searchKeyword = ref('')
@@ -270,11 +271,27 @@ const filteredOrders = computed(() => {
 const formatAmount = (amount) => (amount ? Number(amount).toFixed(2) : '0.00')
 const getAttendantIncome = (order) => calculateDisplayAttendantIncome(order)
 
-const getStatusText = (status) => {
+const getOrderExclusiveDisplayState = (order = {}) =>
+  getExclusiveDispatchDisplayState({
+    orderStatus: order.orderStatus,
+    paymentTime: order.paymentTime,
+    createTime: order.createTime,
+    updateTime: order.updateTime,
+  })
+
+const getStatusText = (order) => {
+  const status = normalizeStatus(order?.orderStatus ?? order)
+  if (status === 8) {
+    return getOrderExclusiveDisplayState(order).statusText
+  }
   const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '争议处理中', 6: '已完成', 7: '已取消', 9: '待用户补差额' }
   return map[status] || '未知'
 }
-const getStatusClass = (status) => {
+const getStatusClass = (order) => {
+  const status = normalizeStatus(order?.orderStatus ?? order)
+  if (status === 8 && getOrderExclusiveDisplayState(order).ended) {
+    return 'status-flowed'
+  }
   const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 5: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled', 9: 'status-confirm' }
   return map[status] || 'status-default'
 }
@@ -542,6 +559,11 @@ onUnmounted(() => {
 .status-completed {
   background: #eef1f5;
   color: #6b7280;
+}
+
+.status-flowed {
+  background: #eef4f8;
+  color: #527087;
 }
 
 .status-cancelled {

@@ -553,6 +553,7 @@ public class AttendantController {
         res.setOrderStatusDesc(getOrderStatusDesc(order.getOrderStatus()));
         res.setPaymentStatus(order.getPaymentStatus());
         res.setPaymentStatusDesc(order.getPaymentStatus() == 1 ? "已支付" : "待支付");
+        res.setPaymentTime(order.getPaymentTime());
         res.setServiceTypeName(order.getServiceContent());
         res.setCreateTime(order.getCreateTime());
         res.setAcceptTime(order.getAcceptTime());
