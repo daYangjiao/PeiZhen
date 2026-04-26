@@ -16,7 +16,7 @@
 
 | 页面路径 | 标题 | 核心交互逻辑 | 主要接口/动作 |
 | --- | --- | --- | --- |
-| `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序和 App 走 `uni.login` code 登录，微信内 H5 走网页授权回调，未绑定时进入手机号绑定。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
+| `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序走 `uni.login` code 登录，微信内 H5 走公众号网页授权回调，未绑定时进入手机号绑定；App 微信登录代码已预留，需后续整包启用原生微信 OAuth 模块。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
 | `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口。 | 无直接接口调用/通过封装模块调用 |
@@ -85,7 +85,7 @@
 - 陪诊师收入展示统一通过 `utils/settlement.mjs`：钱包和已完成订单使用后端 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；待接单、专属派单和服务中页面只可展示预估收入；不得在页面内直接写 `orderAmount * 0.9`。
 - 管理端使用 Vue Router，`meta.requiresAuth` 路由必须存在管理端 token；401 响应会清理会话并跳转 `/admin/login`。
 - 管理端会在恢复本地会话时检查 JWT `exp`，过期 token 会直接清理并进入登录页；接口返回 401 时统一静默跳转登录页，不在后台页面残留“加载失败/登录失败”提示。
-- 微信登录入口按运行环境显示：微信小程序和 App 使用 `uni.login`，微信内 H5 使用公众号网页授权，普通浏览器 H5 保留手机号密码登录；管理端使用微信开放平台网站应用扫码登录。
+- 微信登录入口按运行环境显示：微信小程序使用 `uni.login`，微信内 H5 使用公众号网页授权，普通浏览器 H5 保留手机号密码登录；管理端使用微信开放平台网站应用扫码登录。App 微信登录代码路径已预留，但 WGT 不能给已安装 App 动态新增原生 OAuth 模块，需后续发布完整 APK/IPA 时启用对应原生模块。
 - 管理端侧栏入口在 `frontend/admin/src/components/AppShell.vue` 中维护。
 - 管理端浏览器标题为“愈安伴后台管理”，登录页、侧栏和 favicon 统一使用 `frontend/admin/public/brand-logo.png`。
 - 管理端活动弹窗统一使用 `BaseDialog.vue` 和 `styles.css` 中的 `.dialog-*` 自定义样式，不使用浏览器原生确认框；列表详情使用 `BaseDrawer.vue` 和 `.drawer-*` 自定义工作抽屉，避免详情堆到页面底部；筛选、分页和管理员账号类型选择使用 `BaseSelect.vue` 自定义下拉，日期/时间筛选使用 `BaseDateInput.vue` 自定义日历浮层，避免浏览器原生下拉和日期弹窗样式。

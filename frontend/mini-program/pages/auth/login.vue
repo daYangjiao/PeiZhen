@@ -300,10 +300,6 @@ const handleWechatLogin = async () => {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
   }
-  // #ifndef MP-WEIXIN
-  showWechatUnavailable()
-  return
-  // #endif
   if (!wechatEnabled.value) {
     showWechatUnavailable()
     return
@@ -322,6 +318,10 @@ const handleWechatLogin = async () => {
     } finally {
       wechatLoading.value = false
     }
+    return
+  }
+  if (wechatPlatform.value !== 'MINI_PROGRAM' && wechatPlatform.value !== 'APP') {
+    showWechatUnavailable()
     return
   }
   wechatLoading.value = true

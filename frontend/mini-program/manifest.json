@@ -81,8 +81,7 @@
         },
         "modules" : {
             "Camera" : {},
-            "Barcode" : {},
-            "OAuth" : {}
+            "Barcode" : {}
         }
     },
     "mp-weixin" : {
