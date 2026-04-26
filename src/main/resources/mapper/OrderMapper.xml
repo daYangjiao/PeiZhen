@@ -313,7 +313,17 @@
     </select>
 
     <select id="sumCompletedIncome" resultType="java.math.BigDecimal">
-        SELECT COALESCE(SUM(order_amount * 0.9), 0)
+        SELECT COALESCE(SUM(
+            (
+                CASE
+                    WHEN refund_amount IS NOT NULL
+                         AND refund_amount &gt; 0
+                         AND (balance_amount IS NULL OR balance_amount &gt;= 0)
+                    THEN GREATEST(order_amount - refund_amount, 0)
+                    ELSE order_amount
+                END
+            ) * 0.9
+        ), 0)
         FROM `order`
         WHERE attendant_id = #{attendantId}
           AND order_status = 6

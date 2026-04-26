@@ -9,6 +9,7 @@ import {
   getExclusiveDispatchRemainingMs,
   shouldOpenExclusiveDispatchPopup,
 } from '@/utils/exclusive-dispatch.mjs'
+import { calculateEstimatedAttendantIncome } from '@/utils/settlement.mjs'
 
 let listenerBound = false
 let countdownTimer = null
@@ -46,9 +47,7 @@ const formatAppointmentTime = (order = {}) => {
 }
 
 const formatIncome = (amount) => {
-  const nextAmount = Number(amount || 0)
-  const income = Number.isFinite(nextAmount) ? nextAmount * 0.9 : 0
-  return income.toFixed(2)
+  return calculateEstimatedAttendantIncome(amount).toFixed(2)
 }
 
 const buildPopupPayload = (order = {}, userId) => {

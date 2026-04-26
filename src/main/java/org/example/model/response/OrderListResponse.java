@@ -57,6 +57,24 @@ public class OrderListResponse {
     @ApiModelProperty(value = "订单金额", example = "110.00")
     private BigDecimal orderAmount;
 
+    @ApiModelProperty(value = "差额金额：正数为用户补付，负数为退款", example = "-30.00")
+    private BigDecimal balanceAmount;
+
+    @ApiModelProperty(value = "退款金额", example = "30.00")
+    private BigDecimal refundAmount;
+
+    @ApiModelProperty(value = "违约金/超时费", example = "0.00")
+    private BigDecimal penaltyAmount;
+
+    @ApiModelProperty(value = "陪诊师结算基数，仅已完成订单大于0", example = "140.00")
+    private BigDecimal settlementAmount;
+
+    @ApiModelProperty(value = "平台服务费", example = "14.00")
+    private BigDecimal platformFeeAmount;
+
+    @ApiModelProperty(value = "陪诊师实收金额", example = "126.00")
+    private BigDecimal attendantIncomeAmount;
+
     @ApiModelProperty(value = "陪诊师姓名", example = "李四")
     private String attendantName;
     

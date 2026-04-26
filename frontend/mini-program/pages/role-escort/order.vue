@@ -66,7 +66,7 @@
                     {{ order.displayServiceTime }}
                   </text>
                 </view>
-                <text class="price">¥{{ formatAmount(getAttendantIncome(order.orderAmount)) }}</text>
+                <text class="price">¥{{ formatAmount(getAttendantIncome(order)) }}</text>
               </view>
 
               <view class="divider"></view>
@@ -112,6 +112,7 @@ import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
+import { calculateDisplayAttendantIncome } from '@/utils/settlement.mjs'
 
 const searchKeyword = ref('')
 
@@ -263,7 +264,7 @@ const filteredOrders = computed(() => {
 })
 
 const formatAmount = (amount) => (amount ? Number(amount).toFixed(2) : '0.00')
-const getAttendantIncome = (orderAmount) => Number(orderAmount || 0) * 0.9
+const getAttendantIncome = (order) => calculateDisplayAttendantIncome(order)
 
 const getStatusText = (status) => {
   const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '争议处理中', 6: '已完成', 7: '已取消', 9: '待用户补差额' }

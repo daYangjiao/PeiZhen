@@ -19,6 +19,7 @@ import org.example.model.response.PagedResponse;
 import org.example.service.OrderService;
 import org.example.util.AttendantQualificationPolicy;
 import org.example.util.OrderTimeoutCloseUtils;
+import org.example.unity.OrderSettlementCalculator;
 import org.example.unity.ServiceFeeCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -72,7 +73,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order getOrderById(Integer orderId) {
-        return orderMapper.selectByPrimaryKey(orderId);
+        return enrichSettlement(orderMapper.selectByPrimaryKey(orderId));
     }
 
     @Override
@@ -80,7 +81,7 @@ public class OrderServiceImpl implements OrderService {
         if (orderNo == null || orderNo.trim().isEmpty()) {
             return null;
         }
-        return orderMapper.selectByOrderNo(orderNo.trim());
+        return enrichSettlement(orderMapper.selectByOrderNo(orderNo.trim()));
     }
 
     @Override
@@ -798,6 +799,12 @@ try {
             res.setServiceDate(order.getServiceDate());
             res.setServiceTimeSlot(order.getServiceTimeSlot());
             res.setOrderAmount(order.getOrderAmount());
+            res.setBalanceAmount(order.getBalanceAmount());
+            res.setRefundAmount(order.getRefundAmount());
+            res.setPenaltyAmount(order.getPenaltyAmount());
+            res.setSettlementAmount(OrderSettlementCalculator.settlementAmount(order));
+            res.setPlatformFeeAmount(OrderSettlementCalculator.platformFee(order));
+            res.setAttendantIncomeAmount(OrderSettlementCalculator.attendantIncome(order));
             res.setOrderStatus(order.getOrderStatus());
             res.setOrderStatusDesc(OrderTimeoutCloseUtils.resolveOrderStatusText(order));
             res.setPaymentStatus(order.getPaymentStatus());
@@ -819,6 +826,16 @@ try {
             responses.add(res);
         }
         return responses;
+    }
+
+    private Order enrichSettlement(Order order) {
+        if (order == null) {
+            return null;
+        }
+        order.setSettlementAmount(OrderSettlementCalculator.settlementAmount(order));
+        order.setPlatformFeeAmount(OrderSettlementCalculator.platformFee(order));
+        order.setAttendantIncomeAmount(OrderSettlementCalculator.attendantIncome(order));
+        return order;
     }
 
     private String resolveAcceptBlockReason(Integer attendantId, User attendantUser) {

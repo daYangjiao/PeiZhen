@@ -531,6 +531,7 @@ import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
+import { calculateAttendantIncome, calculatePlatformFee, normalizeFinalOrderAmount } from '@/utils/settlement.mjs'
 
 function fullAvatarUrl(path) {
 	return resolveAvatarUrl(path, placeholderImg)
@@ -692,6 +693,9 @@ export default {
 				serviceFee: 0,
 				platformFee: 0,
 				totalFee: 0,
+				settlementAmount: null,
+				platformFeeAmount: null,
+				attendantIncomeAmount: null,
 				cancelReason: '',
 				cancelTime: '',
 				cancelBy: null,
@@ -793,23 +797,42 @@ export default {
 			return '等待接单后即可查看完整服务流程'
 		},
 		settlementTotal() {
-			const raw = Number(this.orderInfo.totalFee || this.orderInfo.serviceFee || 0)
-			return isNaN(raw) ? 0 : raw
+			const total = normalizeFinalOrderAmount({
+				orderStatus: this.orderInfo.status === 'completed' ? 6 : this.orderInfo.orderStatus,
+				orderAmount: this.orderInfo.totalFee || this.orderInfo.serviceFee || 0,
+				refundAmount: this.orderInfo.refundAmount,
+				balanceAmount: this.orderInfo.balanceAmount,
+				settlementAmount: this.orderInfo.settlementAmount
+			})
+			return Number.isFinite(total) ? total : 0
 		},
 		settlementTotalText() {
 			return this.settlementTotal.toFixed(2)
 		},
 		platformServiceFeeText() {
-			const fee = this.settlementTotal * 0.10
+			const fee = calculatePlatformFee({
+				orderStatus: this.orderInfo.status === 'completed' ? 6 : this.orderInfo.orderStatus,
+				orderAmount: this.orderInfo.totalFee || this.orderInfo.serviceFee || 0,
+				refundAmount: this.orderInfo.refundAmount,
+				balanceAmount: this.orderInfo.balanceAmount,
+				settlementAmount: this.orderInfo.settlementAmount,
+				platformFeeAmount: this.orderInfo.platformFeeAmount
+			})
 			return fee.toFixed(2)
 		},
 		attendantIncomeText() {
-			const income = this.settlementTotal * 0.90
+			const income = calculateAttendantIncome({
+				orderStatus: this.orderInfo.status === 'completed' ? 6 : this.orderInfo.orderStatus,
+				orderAmount: this.orderInfo.totalFee || this.orderInfo.serviceFee || 0,
+				refundAmount: this.orderInfo.refundAmount,
+				balanceAmount: this.orderInfo.balanceAmount,
+				settlementAmount: this.orderInfo.settlementAmount,
+				attendantIncomeAmount: this.orderInfo.attendantIncomeAmount
+			})
 			return income.toFixed(2)
 		},
 		feeInfoAttendantIncomeText() {
-			const raw = Number(this.orderInfo.totalFee || this.orderInfo.serviceFee || 0)
-			return (raw * 0.9).toFixed(2)
+			return this.attendantIncomeText
 		}
 	},
 	
@@ -967,6 +990,7 @@ export default {
 					this.patientAvatarError = false
 					this.orderInfo = {
 						id: order.orderId,
+						orderStatus: order.orderStatus,
 						orderNo: order.orderNo,
 						userId: order.userId,
 						status: status,
@@ -987,6 +1011,9 @@ export default {
 						specialRequests: (!order.specialRequirements && (!order.customRequirement || order.customRequirement === '无')) ? '无特殊要求' : '',
 						serviceFee: order.orderAmount,
 						totalFee: order.orderAmount,
+						settlementAmount: order.settlementAmount,
+						platformFeeAmount: order.platformFeeAmount,
+						attendantIncomeAmount: order.attendantIncomeAmount,
 						cancelReason: order.cancelReason || '',
 						cancelTime: order.cancelTime || '',
 						cancelBy: order.cancelBy,

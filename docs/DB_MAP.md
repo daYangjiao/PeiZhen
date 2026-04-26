@@ -51,6 +51,7 @@
 
 - `user.id` 是普通用户和陪诊师登录主体；陪诊师扩展资料使用 `attendant.user_id`、`attendant_qualification.user_id` 和 `attendant_qualification_audit_log.user_id`。
 - `order.user_id` 关联下单用户，`order.attendant_id` 关联接单陪诊师，`order.guide_appointment_id` 关联导诊预约号/记录；后台订单取消和争议处理写入 `admin_operation_log`，工作台处理前用 `admin_task_claim` 对 `ORDER_DISPUTE` 任务加领取锁。
+- 陪诊师钱包收入按后端统一结算口径读取：仅 `order_status = 6` 产生收入，取消/退款/超时关闭的 `order_status = 7` 不产生收入；新流程 `order_amount` 是最终结算金额，历史退款数据在没有负数 `balance_amount` 时按 `order_amount - refund_amount` 兼容后再扣 10% 平台服务费。
 - 陪诊师待审核任务使用 `admin_task_claim` 对 `ATTENDANT_REVIEW` 加领取锁；审核结果继续写入 `attendant_qualification_audit_log` 和 `admin_operation_log`。
 - `order_evaluation.order_id`、`order_evaluation.order_no` 关联订单评价；陪诊师评分、评价总数和好评率实时从 `order_evaluation.rating` 聚合，`rating >= 4` 算好评；`chat_message.order_id` 可将消息绑定到订单上下文。
 - `ai_appointment_session.session_id` 与 `ai_appointment_message.session_id` 组成 AI 预约导诊会话和消息明细。

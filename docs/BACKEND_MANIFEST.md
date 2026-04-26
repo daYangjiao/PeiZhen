@@ -51,8 +51,8 @@
 | AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:400` |
 | AttendantController | POST | `/attendant/orders/{orderId}/end` | 结束服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:425` |
 | AttendantController | POST | `/attendant/orders/{orderId}/service-progress` | 更新服务进度 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:452` |
-| AttendantController | GET | `/attendant/orders` | 查询陪诊师订单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:479` |
-| AttendantController | GET | `/attendant/orders/{orderId}` | 查询订单详情 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:585` |
+| AttendantController | GET | `/attendant/orders` | 查询陪诊师订单，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount` | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:479` |
+| AttendantController | GET | `/attendant/orders/{orderId}` | 查询订单详情，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount` | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:585` |
 | AttendantController | POST|PUT | `/attendant/orders/{orderId}/cancel` | 取消订单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:624` |
 | AttendantController | POST | `/attendant/orders/{orderId}/scan-qr` | 扫码核销 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:676` |
 | AttendantController | GET | `/attendant/orders/{orderId}/evaluation` | 查询订单评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:707` |
@@ -133,6 +133,13 @@
 - 用户订单详情中的陪诊师星级展示平均分，用户端陪诊师主页和陪诊师个人首页中的好评率展示好评占比；二者不是同一个数值，但都必须使用同一组 `order_evaluation.rating` 和评价总数。
 - 没有评价时，接口返回 `score = null`、`evaluationCount = 0`、`praiseRate = 0`，前端展示为“暂无评分/暂无评价”。
 - `attendant.score` 仅作为兼容缓存字段保留，不作为用户端、陪诊师端或管理端展示依据。
+
+## 订单结算口径
+
+- 陪诊师实际收入统一由后端 `OrderSettlementCalculator` 计算，订单列表和详情返回 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`。
+- 只有 `orderStatus = 6` 的已完成订单产生钱包收入；`orderStatus = 7` 的取消、退款或超时关闭订单结算金额和陪诊师收入均为 0。
+- 新争议/退款流程中 `order_amount` 已保存最终结算金额；若历史订单仅有 `refund_amount` 且没有负数 `balance_amount`，后端兼容为 `order_amount - refund_amount` 后再扣平台服务费。
+- 平台服务费率当前为 10%，陪诊师收入为实际结算金额扣除平台服务费后的 90%；前端不得直接用原始订单金额作为钱包收入。
 
 ## 维护规则
 

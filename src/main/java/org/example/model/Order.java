@@ -173,6 +173,15 @@ public class Order {
     @ApiModelProperty(value = "争议处理时间")
     private Date disputeResolvedTime;
 
+    @ApiModelProperty(value = "实际结算金额：已完成订单按最终金额，取消/退款关闭订单为0")
+    private BigDecimal settlementAmount;
+
+    @ApiModelProperty(value = "平台服务费金额")
+    private BigDecimal platformFeeAmount;
+
+    @ApiModelProperty(value = "陪诊师实际收入金额")
+    private BigDecimal attendantIncomeAmount;
+
     // 业务方法
     public BigDecimal calculateBalance() {
         if (this.actualDuration == null || this.unitPrice == null || this.depositAmount == null) {

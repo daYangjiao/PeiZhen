@@ -43,7 +43,9 @@ class MyBatisMapperXmlTest {
         assertThat(end).isGreaterThan(start);
         String selectSql = xml.substring(start, end);
 
-        assertThat(selectSql).contains("order_amount * 0.9");
+        assertThat(selectSql).contains("refund_amount");
+        assertThat(selectSql).contains("balance_amount");
+        assertThat(selectSql).contains("GREATEST(order_amount - refund_amount, 0)");
         assertThat(selectSql).doesNotContain("order_amount + COALESCE(balance_amount, 0)");
     }
 

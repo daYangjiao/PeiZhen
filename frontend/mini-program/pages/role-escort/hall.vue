@@ -173,6 +173,7 @@ import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
+import { calculateEstimatedAttendantIncome } from '@/utils/settlement.mjs'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -268,7 +269,7 @@ const formatOrderData = (raw) => {
 		serviceType: raw.serviceContent || raw.serviceTypeName || '陪诊服务',
 		hospitalName: raw.hospital || '未知医院',
 		appointmentTime: [raw.serviceDate, formatServiceTimeSlot(raw.serviceTimeSlot || '')].filter(Boolean).join(' ').trim(),
-		price: ((raw.orderAmount || 0) * 0.9).toFixed(2),
+		price: calculateEstimatedAttendantIncome(raw).toFixed(2),
 		symptomDescription,
 		otherRequirement,
 		phone: raw.contactPhone || raw.userPhone,

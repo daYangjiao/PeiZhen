@@ -162,10 +162,13 @@ const normalizedIncome = computed(() => {
     const serviceDate = item.serviceDate || '--'
     const timeText = item.createTime ? String(item.createTime).slice(0, 16).replace('T', ' ') : serviceDate
     const amountValue = calculateAttendantIncome(item)
+    const settlementAmount = Number(item.settlementAmount ?? item.orderAmount ?? 0)
+    const refundAmount = Number(item.refundAmount || 0)
+    const extraNote = refundAmount > 0 ? ` · 已按退款后 ¥${formatMoney(settlementAmount)} 结算` : ''
     return {
       id: `income-${item.orderId || orderNo}`,
       title: `${serviceName} (订单 ${orderNo})`,
-      sub: `${timeText} · 已扣平台服务费`,
+      sub: `${timeText} · 已扣平台服务费${extraNote}`,
       amount: amountValue,
       sortTime: parseTime(item.createTime) || parseTime(serviceDate)
     }
