@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { isJwtExpired } from '../utils/admin-auth-session'
 
 const TOKEN_KEY = 'yuanban_admin_token'
 const USER_KEY = 'yuanban_admin_user'
@@ -14,7 +15,12 @@ export const useAuthStore = defineStore('admin-auth', {
   actions: {
     restore() {
       if (this.token) return
-      this.token = window.localStorage.getItem(TOKEN_KEY) || ''
+      const storedToken = window.localStorage.getItem(TOKEN_KEY) || ''
+      if (storedToken && isJwtExpired(storedToken)) {
+        this.clearSession()
+        return
+      }
+      this.token = storedToken
       const rawUser = window.localStorage.getItem(USER_KEY)
       this.user = rawUser ? JSON.parse(rawUser) : null
     },

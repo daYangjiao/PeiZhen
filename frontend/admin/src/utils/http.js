@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/auth'
+import { createAuthExpiredError, redirectToAdminLogin } from './admin-auth-session'
 
 const buildQuery = (params = {}) => {
   const search = new URLSearchParams()
@@ -13,6 +14,7 @@ const buildQuery = (params = {}) => {
 export const request = async (url, options = {}) => {
   const authStore = useAuthStore()
   authStore.restore()
+  const isLoginRequest = String(url || '').includes('/api/admin/auth/login')
 
   const response = await fetch(url, {
     ...options,
@@ -24,10 +26,10 @@ export const request = async (url, options = {}) => {
   })
 
   const payload = await response.json().catch(() => ({ code: response.status, message: '请求失败' }))
-  if (response.status === 401 || payload.code === 401) {
+  if (!isLoginRequest && (response.status === 401 || payload.code === 401)) {
     authStore.clearSession()
-    window.location.href = '/admin/login'
-    throw new Error(payload.message || '登录已失效')
+    redirectToAdminLogin(window)
+    throw createAuthExpiredError()
   }
   if (!response.ok || payload.code >= 400) {
     throw new Error(payload.message || '请求失败')
