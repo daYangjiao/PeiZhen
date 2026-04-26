@@ -19,14 +19,14 @@ export const ATTENDANT_REASON_CHIPS = {
 export const ATTENDANT_ACTION_META = {
   approve: {
     title: '通过审核',
-    description: '将该陪诊师审核通过并恢复为正常状态。',
+    description: '将该陪诊师资质标记为已通过。',
     confirmText: '确认通过',
     confirmTone: 'button-primary',
     needReason: false
   },
   reject: {
     title: '驳回审核',
-    description: '驳回会把陪诊师状态改为审核失败，并记录原因。',
+    description: '驳回会把资质状态标记为未通过，并记录原因。',
     confirmText: '确认驳回',
     confirmTone: 'button-danger',
     needReason: true,
@@ -35,7 +35,7 @@ export const ATTENDANT_ACTION_META = {
   },
   ban: {
     title: '封禁陪诊师',
-    description: '封禁后该陪诊师无法以正常状态参与服务。',
+    description: '封禁账号后该陪诊师无法登录和接单，资质状态保持不变。',
     confirmText: '确认封禁',
     confirmTone: 'button-danger',
     needReason: true,
@@ -44,14 +44,14 @@ export const ATTENDANT_ACTION_META = {
   },
   'restore-status': {
     title: '恢复陪诊师',
-    description: '将封禁状态恢复为正常。',
+    description: '恢复账号登录和接单资格，资质状态保持不变。',
     confirmText: '确认恢复',
     confirmTone: 'button-primary',
     needReason: false
   },
   'restore-review': {
     title: '重新通过审核',
-    description: '将审核失败的陪诊师重新恢复为通过状态。',
+    description: '将未通过的资质重新标记为已通过。',
     confirmText: '确认通过',
     confirmTone: 'button-primary',
     needReason: false
@@ -77,7 +77,7 @@ export const useAttendantReviewActions = (uiStore) => {
       } else if (actionType === 'reject') {
         await reviewAttendant(attendantId, { action: 'reject', reason: reason.trim() })
       } else if (actionType === 'ban') {
-        await updateAttendantStatus(attendantId, { status: 2, reason: reason.trim() })
+        await updateAttendantStatus(attendantId, { status: 0, reason: reason.trim() })
       } else if (actionType === 'restore-status') {
         await updateAttendantStatus(attendantId, { status: 1, reason: '' })
       } else if (actionType === 'restore-review') {

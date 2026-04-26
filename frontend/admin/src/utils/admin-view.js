@@ -24,7 +24,7 @@ export const getUserStatusBadge = (status) => (status === 1 ? 'badge-green' : 'b
 
 export const getAttendantStatusBadge = (status) => {
   if (status === 1) return 'badge-green'
-  if (status === 2 || status === 3) return 'badge-red'
+  if (status === 2) return 'badge-red'
   return 'badge-orange'
 }
 

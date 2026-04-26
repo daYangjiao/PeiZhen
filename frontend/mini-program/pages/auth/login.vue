@@ -97,6 +97,7 @@ const wechatLoading = ref(false)
 const wechatEnabled = ref(false)
 const wechatStatusReason = ref('微信登录暂未开通')
 const fromGuard = ref(false)
+const afterLogin = ref('')
 const wechatTip = ref('当前支持手机号密码登录，微信登录开通后这里会直接一键进入')
 const publicSafeMode = computed(() => isPublicSafeMode())
 const wechatPlatform = computed(() => {
@@ -113,6 +114,11 @@ onLoad((options) => {
   if (!publicSafeMode.value && (options?.role === 'user' || options?.role === 'escort')) {
     currentRole.value = options.role
   }
+  if (options?.after) {
+    afterLogin.value = String(options.after)
+  } else {
+    afterLogin.value = uni.getStorageSync('escort_register_after') || ''
+  }
   if (publicSafeMode.value) currentRole.value = 'user'
   if (options?.from === 'guard') {
     fromGuard.value = true
@@ -128,7 +134,10 @@ onLoad((options) => {
   if (session.isLoggedIn && session.token) {
     const targetUrl = getSessionLandingUrl({ role: session.role, userInfo: session.userInfo })
     currentRole.value = session.role || currentRole.value
-    if (session.role === 'escort') {
+    if (session.role === 'escort' && afterLogin.value === 'qualification') {
+      uni.removeStorageSync('escort_register_after')
+      uni.redirectTo({ url: '/subpkg/profile/qualification-upload?from=register' })
+    } else if (session.role === 'escort') {
       uni.reLaunch({ url: targetUrl })
     } else {
       uni.switchTab({ url: targetUrl })
@@ -165,6 +174,19 @@ const goUserRegister = () => {
   uni.navigateTo({ url: '/subpkg/auth/user-register' })
 }
 
+const goAfterLogin = (targetUrl) => {
+  if (currentRole.value === 'escort' && afterLogin.value === 'qualification') {
+    uni.removeStorageSync('escort_register_after')
+    uni.redirectTo({ url: '/subpkg/profile/qualification-upload?from=register' })
+    return
+  }
+  if (currentRole.value === 'escort') {
+    uni.reLaunch({ url: targetUrl })
+  } else {
+    uni.switchTab({ url: targetUrl })
+  }
+}
+
 const handleLogin = async () => {
   if (publicSafeMode.value) {
     showPublicSafeNotice()
@@ -193,11 +215,7 @@ const handleLogin = async () => {
       const targetUrl = await completeLoginSession({ role: currentRole.value, token, userInfo })
       uni.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => {
-        if (currentRole.value === 'escort') {
-          uni.reLaunch({ url: targetUrl })
-        } else {
-          uni.switchTab({ url: targetUrl })
-        }
+        goAfterLogin(targetUrl)
       }, 400)
     } else {
       uni.showToast({ title: res.message || '登录失败', icon: 'none' })
@@ -275,11 +293,7 @@ const handleWechatOAuthReturn = () => {
     .then(async (res) => {
       const userInfo = res?.data
       const targetUrl = await completeLoginSession({ role: currentRole.value, token: payload.token, userInfo })
-      if (currentRole.value === 'escort') {
-        uni.reLaunch({ url: targetUrl })
-      } else {
-        uni.switchTab({ url: targetUrl })
-      }
+      goAfterLogin(targetUrl)
     })
     .catch(() => {
       setToken('')
@@ -347,11 +361,7 @@ const handleWechatLogin = async () => {
     })
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(() => {
-      if (currentRole.value === 'escort') {
-        uni.reLaunch({ url: targetUrl })
-      } else {
-        uni.switchTab({ url: targetUrl })
-      }
+      goAfterLogin(targetUrl)
     }, 400)
   } catch (error) {
     uni.hideLoading()

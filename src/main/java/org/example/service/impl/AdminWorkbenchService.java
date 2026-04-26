@@ -94,6 +94,7 @@ public class AdminWorkbenchService {
     public AdminWorkbenchClaimResponse claimTask(Integer operatorId, String type, Integer targetId) {
         String taskType = normalizeType(type);
         SysAdmin admin = requireAdmin(operatorId);
+        requireClaimableTarget(taskType, targetId);
         Date now = new Date();
         AdminTaskClaim desired = new AdminTaskClaim();
         desired.setTaskType(taskType);
@@ -144,7 +145,7 @@ public class AdminWorkbenchService {
 
     private void completeAttendantReview(Integer operatorId, Integer userId, AdminWorkbenchCompleteRequest request) {
         Attendant attendant = attendantMapper.findByUserId(userId);
-        if (attendant == null || attendant.getStatus() == null || attendant.getStatus() != 0) {
+        if (attendant == null || !Integer.valueOf(0).equals(qualificationStatus(attendant))) {
             throw new IllegalStateException("任务状态已变化，请刷新队列");
         }
         AdminAttendantReviewRequest reviewRequest = new AdminAttendantReviewRequest();
@@ -157,6 +158,40 @@ public class AdminWorkbenchService {
         reviewRequest.setAction(action);
         reviewRequest.setReason(request == null ? null : request.getReason());
         adminService.reviewAttendantQualification(operatorId, userId, reviewRequest.getAction(), reviewRequest.getReason());
+    }
+
+    private void requireClaimableTarget(String taskType, Integer targetId) {
+        if (TYPE_ORDER_DISPUTE.equals(taskType)) {
+            Order order = orderMapper.selectByPrimaryKey(targetId);
+            if (order == null || !Integer.valueOf(5).equals(order.getOrderStatus())) {
+                throw new IllegalStateException("任务状态已变化，请刷新队列");
+            }
+            return;
+        }
+        Attendant attendant = attendantMapper.findByUserId(targetId);
+        if (attendant == null || !Integer.valueOf(0).equals(qualificationStatus(attendant))) {
+            throw new IllegalStateException("任务状态已变化，请刷新队列");
+        }
+    }
+
+    private Integer qualificationStatus(Attendant attendant) {
+        if (attendant == null) {
+            return 0;
+        }
+        if (attendant.getQualificationStatus() != null) {
+            return attendant.getQualificationStatus();
+        }
+        Integer legacyStatus = attendant.getStatus();
+        if (legacyStatus == null) {
+            return 0;
+        }
+        if (legacyStatus == 1) {
+            return 1;
+        }
+        if (legacyStatus == 2 || legacyStatus == 3) {
+            return 2;
+        }
+        return 0;
     }
 
     private AdminTaskClaim requireActiveLock(Integer operatorId, String taskType, Integer targetId, String lockToken) {

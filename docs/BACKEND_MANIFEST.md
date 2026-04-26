@@ -39,7 +39,7 @@
 | AiMedicalController | GET | `/ai/medical/qa/thinking/{recordId}` | 兼容旧版思考过程查询 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:83` |
 | AppUpgradeController | POST | `/api/app-upgrade/check` | 检查 App 更新 | 公开 | `src/main/java/org/example/controller/AppUpgradeController.java:39` |
 | UserAttendantController | GET | `/user/attendants/{attendantId}` | 用户端查询陪诊师详情，评分、评价数、好评率按 `order_evaluation.rating` 聚合返回，兼容旧入口 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
-| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
+| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质状态只返回待审核/已通过/未通过，账号封禁由 `user.status` 控制；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
 | AttendantController | POST | `/attendant/profile/avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:185` |
@@ -99,8 +99,8 @@
 | AdminAttendantController | GET | `/api/admin/attendants/next-pending` | 查询下一条待审核陪诊师 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:34` |
 | AdminAttendantController | GET | `/api/admin/attendants/{userId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:40` |
 | AdminAttendantController | GET | `/api/admin/attendants/{userId}/qualification-logs` | 查询资质审核记录，超级管理员返回审核人字段 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:50` |
-| AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/status` | 更新状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:61` |
-| AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/qualification-review` | 审核资质 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:73` |
+| AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/status` | 更新陪诊师账号状态，仅写 `user.status`，不改变资质审核状态 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:61` |
+| AdminAttendantController | PATCH | `/api/admin/attendants/{userId}/qualification-review` | 审核资质，仅写 `attendant.qualification_status`，通过/驳回不封禁账号 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAttendantController.java:73` |
 | AdminAuthController | POST | `/api/admin/auth/login` | 登录 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java:19` |
 | AdminAuthController | GET | `/api/admin/auth/current` | 查询当前管理员资料 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
 | AdminAuthController | GET | `/api/admin/auth/wechat/oauth-url` | 生成管理端微信扫码登录地址 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
@@ -139,6 +139,12 @@
 - 现有 `user.openid` 作为小程序历史兼容字段保留；新登录和绑定会同步写入 `third_party_account`。
 - 管理端扫码登录使用 `platform=WEB_SCAN`，只允许已绑定的管理员微信身份直接登录；未绑定时返回短期绑定凭证，管理员用账号密码登录后调用绑定接口完成绑定。
 - 所有微信配置默认空，未配置时接口返回“微信登录暂未开通”，不影响手机号密码登录。
+
+## 陪诊师状态口径
+
+- 资质审核状态使用 `attendant.qualification_status`：`0=待审核`、`1=已通过`、`2=未通过`。
+- 账号封禁状态使用 `user.status`：`1=正常`、`0=禁用`；禁用账号登录返回明确的账号禁用提示，不再返回“手机号或密码错误”。
+- 接单大厅、接单接口和推荐接口必须同时满足：账号正常、资质已通过、证件材料完整且未过期。
 
 ## 评价评分口径
 

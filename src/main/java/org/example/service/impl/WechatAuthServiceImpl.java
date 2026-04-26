@@ -303,6 +303,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
             if (!isSupportedWechatUser(user, role)) {
                 throw new IllegalArgumentException(buildRoleMismatchMessage(user, role));
             }
+            requireEnabledUser(user);
             upsertWechatUserAccount(user.getId(), platform, openid, unionid);
             data.put("bindStatus", "BOUND");
             data.put("token", jwtUtil.generateToken(user.getId()));
@@ -323,6 +324,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     }
 
     private Map<String, Object> buildBoundResult(User user) {
+        requireEnabledUser(user);
         Map<String, Object> data = new HashMap<>();
         data.put("bindStatus", "BOUND");
         data.put("token", jwtUtil.generateToken(user.getId()));
@@ -450,6 +452,12 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         return expectedUserType != null && expectedUserType.equals(user.getUserType());
     }
 
+    private void requireEnabledUser(User user) {
+        if (user != null && Integer.valueOf(0).equals(user.getStatus())) {
+            throw new IllegalStateException("账号已被禁用，请联系平台客服");
+        }
+    }
+
     private Integer expectedUserType(String role) {
         String normalizedRole = normalizeRole(role);
         if (ESCORT_ROLE.equals(normalizedRole)) return 1;
@@ -474,7 +482,7 @@ public class WechatAuthServiceImpl implements WechatAuthService {
         if (ESCORT_ROLE.equals(role)) {
             user.setUserType(1);
             Attendant attendant = new Attendant();
-            attendant.setStatus(0);
+            attendant.setQualificationStatus(0);
             attendant.setQualificationFailReason("");
             attendant.setIntroduction("");
             attendant.setProfessionalField("");

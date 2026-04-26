@@ -430,13 +430,6 @@ const loadTasks = async () => {
     tasks.value = response.content || []
     total.value = response.totalElements || 0
     totalPages.value = Math.max(response.totalPages || 1, 1)
-    if (selectedTargetId.value && !tasks.value.some((task) => task.targetId === selectedTargetId.value)) {
-      lockToken.value = ''
-      lockExpiresAt.value = null
-      selectedTargetId.value = null
-      orderDetail.value = null
-      attendantDetail.value = null
-    }
     if (!selectedTargetId.value && tasks.value.length) {
       const next = tasks.value.find((task) => !task.claimed || task.claimMine)
       if (next) {

@@ -94,7 +94,7 @@ public class UserServiceMybatisImpl implements UserService {
         }
         if (user.getStatus() != null && user.getStatus() == 0) {
             logger.warn("登录失败：手机号 {} 已被禁用", phone);
-            return null;
+            throw new IllegalStateException("账号已被禁用，请联系平台客服");
         }
 
         String storedPassword = user.getPassword();

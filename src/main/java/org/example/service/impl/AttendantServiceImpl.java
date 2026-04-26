@@ -77,6 +77,12 @@ public class AttendantServiceImpl implements AttendantService {
 
         // 3. 创建 Attendant 扩展信息
         attendant.setUserId(userId);
+        if (attendant.getStatus() == null) {
+            attendant.setStatus(1);
+        }
+        if (attendant.getQualificationStatus() == null) {
+            attendant.setQualificationStatus(0);
+        }
         attendantMapper.insert(attendant);
         logger.info("创建陪诊师扩展信息成功, User ID: {}", userId);
 
@@ -148,9 +154,10 @@ public class AttendantServiceImpl implements AttendantService {
             response.setProfessionalField(attendant.getProfessionalField());
             response.setExperienceYears(attendant.getExperienceYears());
             response.setHospitalName(attendant.getHospitalName());
-            response.setQualificationStatusCode(attendant.getStatus() == null ? 0 : attendant.getStatus());
-            response.setQualificationStatusText(mapQualificationStatusText(attendant.getStatus()));
-            if (attendant.getStatus() != null && attendant.getStatus() == 3) {
+            Integer qualificationStatus = qualificationStatus(attendant);
+            response.setQualificationStatusCode(qualificationStatus);
+            response.setQualificationStatusText(mapQualificationStatusText(qualificationStatus));
+            if (qualificationStatus != null && qualificationStatus == 2) {
                 String failReason = attendant.getQualificationFailReason();
                 response.setQualificationFailReason(
                         failReason == null || failReason.trim().isEmpty()
@@ -217,8 +224,9 @@ public class AttendantServiceImpl implements AttendantService {
         String blockReason = AttendantQualificationPolicy.acceptBlockReason(user, attendant, qualification);
         response.setCanAcceptOrders(blockReason.isEmpty());
         response.setQualificationBlockReason(blockReason);
-        response.setQualificationPopupRequired(attendant != null && attendant.getStatus() != null
-                && (attendant.getStatus() == 2 || attendant.getStatus() == 3));
+        Integer qualificationStatus = qualificationStatus(attendant);
+        response.setQualificationPopupRequired(attendant != null
+                && (Integer.valueOf(0).equals(user.getStatus()) || Integer.valueOf(2).equals(qualificationStatus)));
         response.setRecentQualificationLogs(toAttendantLogs(auditLogMapper.findLatestByUserId(userId, 5)));
 
         Integer todayService = orderMapper.countTodayCompletedService(userId);
@@ -258,11 +266,11 @@ public class AttendantServiceImpl implements AttendantService {
         Attendant attendant = attendantMapper.findByUserId(userId);
         if (existing == null) {
             int rows = attendantQualificationMapper.insert(target);
-            writeAttendantLog(userId, "UPLOAD", attendant == null ? null : attendant.getStatus(), attendant == null ? null : attendant.getStatus(), "上传资质材料", target);
+            writeAttendantLog(userId, "UPLOAD", qualificationStatus(attendant), qualificationStatus(attendant), "上传资质材料", target);
             return rows;
         }
         int rows = attendantQualificationMapper.updateByUserId(target);
-        writeAttendantLog(userId, "UPLOAD", attendant == null ? null : attendant.getStatus(), attendant == null ? null : attendant.getStatus(), "上传资质材料", target);
+        writeAttendantLog(userId, "UPLOAD", qualificationStatus(attendant), qualificationStatus(attendant), "上传资质材料", target);
         return rows;
     }
 
@@ -279,10 +287,10 @@ public class AttendantServiceImpl implements AttendantService {
 
         Attendant update = new Attendant();
         update.setUserId(userId);
-        update.setStatus(0);
+        update.setQualificationStatus(0);
         update.setQualificationFailReason("");
         attendantMapper.update(update);
-        writeAttendantLog(userId, "SUBMIT", attendant.getStatus(), 0, "提交资质审核", qualification);
+        writeAttendantLog(userId, "SUBMIT", qualificationStatus(attendant), 0, "提交资质审核", qualification);
         return "提交审核成功";
     }
 
@@ -297,11 +305,30 @@ public class AttendantServiceImpl implements AttendantService {
         }
         return switch (status) {
             case 0 -> "待审核";
-            case 1 -> "已审核";
-            case 2 -> "封禁";
-            case 3 -> "审核失败";
+            case 1 -> "已通过";
+            case 2 -> "未通过";
             default -> "待审核";
         };
+    }
+
+    private Integer qualificationStatus(Attendant attendant) {
+        if (attendant == null) {
+            return 0;
+        }
+        if (attendant.getQualificationStatus() != null) {
+            return attendant.getQualificationStatus();
+        }
+        Integer legacyStatus = attendant.getStatus();
+        if (legacyStatus == null) {
+            return 0;
+        }
+        if (legacyStatus == 1) {
+            return 1;
+        }
+        if (legacyStatus == 2 || legacyStatus == 3) {
+            return 2;
+        }
+        return 0;
     }
 
     private List<Attendant> applyActualRating(List<Attendant> attendants) {

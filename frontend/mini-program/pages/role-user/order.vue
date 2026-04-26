@@ -341,7 +341,7 @@ const getStatusClass = (status) => {
     2: 'status-accepted',
     3: 'status-service',
     4: 'status-confirm',
-    5: 'status-balance',
+    5: 'status-dispute',
     9: 'status-balance',
     6: 'status-completed',
     7: 'status-cancelled'
@@ -597,6 +597,7 @@ onUnmounted(() => {
 .status-service { background: #f9f0ff; color: #722ed1; }
 .status-confirm { background: #e6f4ff; color: #007AFF; }
 .status-balance { background: #fff0f6; color: #c41d7f; }
+.status-dispute { background: #fff7e6; color: #ad6800; }
 .status-completed { background: #f5f7fa; color: #8c8c8c; }
 .status-cancelled { background: #fff1f0; color: #f5222d; }
 .service-row {

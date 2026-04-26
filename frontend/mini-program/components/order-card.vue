@@ -102,7 +102,7 @@ const statusClass = computed(() => {
 		2: 'status-accepted',
 		3: 'status-progress',
 		4: 'status-confirm',
-		5: 'status-balance',
+		5: 'status-dispute',
 		6: 'status-completed',
 		7: 'status-cancelled'
 	}
@@ -112,7 +112,7 @@ const statusClass = computed(() => {
 			accepted: 'status-accepted',
 			in_progress: 'status-progress',
 			waiting_confirm: 'status-confirm',
-			disputed: 'status-balance',
+			disputed: 'status-dispute',
 			completed: 'status-completed',
 			cancelled: 'status-cancelled'
 		}

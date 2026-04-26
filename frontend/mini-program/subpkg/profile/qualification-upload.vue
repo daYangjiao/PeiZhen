@@ -1,135 +1,121 @@
 <template>
   <view class="page">
     <view class="hero-card slide-up delay-1">
-      <view class="hero-left">
-        <image class="hero-icon" src="/static/ren_1.png" mode="aspectFit"></image>
-        <view>
-          <text class="hero-title">上传资质材料</text>
-          <text class="hero-desc">身份证需上传正反面，其他证件单独上传</text>
-        </view>
-      </view>
-
-      <view class="expire-form">
-        <view class="expire-row">
-          <view>
-            <text class="expire-label">执业证书有效期</text>
-            <text class="expire-desc">到期后需要重新提交审核</text>
-          </view>
-          <picker mode="date" :value="practiceCertExpireDate" @change="onExpireDateChange('practiceCert', $event)">
-            <view class="date-picker" :class="{ empty: !practiceCertExpireDate }">
-              {{ practiceCertExpireDate || '选择日期' }}
-            </view>
-          </picker>
-        </view>
-        <view class="expire-row">
-          <view>
-            <text class="expire-label">健康证有效期</text>
-            <text class="expire-desc">健康证必须在有效期内</text>
-          </view>
-          <picker mode="date" :value="healthCertExpireDate" @change="onExpireDateChange('healthCert', $event)">
-            <view class="date-picker" :class="{ empty: !healthCertExpireDate }">
-              {{ healthCertExpireDate || '选择日期' }}
-            </view>
-          </picker>
-        </view>
+      <view class="hero-mark">资</view>
+      <view class="hero-copy">
+        <text class="hero-title">上传资质材料</text>
+        <text class="hero-desc">按步骤补齐材料，外层显示便于审核的预览图，点击可查看原图。</text>
       </view>
     </view>
 
-    <view class="card slide-up delay-1">
+    <view class="card step-card slide-up delay-1">
       <view class="section-head">
-        <text class="section-title">身份证（正反面）</text>
+        <view>
+          <text class="section-kicker">步骤 1</text>
+          <text class="section-title">身份证正反面</text>
+        </view>
         <text class="section-status" :class="idCardReady ? 'status-pass' : 'status-warn'">
           {{ idCardReady ? '已完成' : '未完成' }}
         </text>
       </view>
       <view class="id-grid">
-        <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardFront')">
-          <image v-if="idCardFront" class="preview" :src="toFullUrl(idCardFront)" mode="aspectFit"></image>
+        <view class="id-slot" :class="{ focused: isFocused('idCardFront') }" @click="uploadByKey('idCardFront')">
+          <image v-if="idCardFrontDisplay" class="preview" :src="toFullUrl(idCardFrontDisplay)" mode="aspectFill"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传身份证正面</text>
           </view>
-          <text class="slot-label">正面</text>
+          <view class="slot-foot">
+            <text class="slot-label">身份证正面</text>
+            <text v-if="idCardFrontOriginal" class="slot-link" @click.stop="previewCert(idCardFrontOriginal)">原图</text>
+          </view>
         </view>
-        <view class="id-slot" :class="{ focused: focusType === 'idCard' }" @click="uploadByKey('idCardBack')">
-          <image v-if="idCardBack" class="preview" :src="toFullUrl(idCardBack)" mode="aspectFit"></image>
+        <view class="id-slot" :class="{ focused: isFocused('idCardBack') }" @click="uploadByKey('idCardBack')">
+          <image v-if="idCardBackDisplay" class="preview" :src="toFullUrl(idCardBackDisplay)" mode="aspectFill"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
             <text class="placeholder-text">上传身份证背面</text>
           </view>
-          <text class="slot-label">背面</text>
+          <view class="slot-foot">
+            <text class="slot-label">身份证背面</text>
+            <text v-if="idCardBackOriginal" class="slot-link" @click.stop="previewCert(idCardBackOriginal)">原图</text>
+          </view>
         </view>
       </view>
-      <text class="tip">仅支持 JPG/PNG，建议文字清晰无遮挡</text>
+      <text class="tip">上传前会先进入框选页，请让证件四边完整落入框内。</text>
     </view>
 
-    <view class="card slide-up delay-2">
+    <view
+      class="card cert-step slide-up"
+      :class="section.delay"
+      v-for="section in certSections"
+      :key="section.key"
+    >
       <view class="section-head">
-        <text class="section-title">其他证件</text>
-        <text class="section-status" :class="practiceCertUrl && healthCertUrl ? 'status-pass' : 'status-warn'">
-          {{ practiceCertUrl && healthCertUrl ? '已完成' : '未完成' }}
+        <view>
+          <text class="section-kicker">{{ section.step }}</text>
+          <text class="section-title">{{ section.title }}</text>
+        </view>
+        <text class="section-status" :class="section.ready ? 'status-pass' : 'status-warn'">
+          {{ section.ready ? '已完成' : '未完成' }}
         </text>
       </view>
-
-      <view class="cert-grid">
-        <view class="cert-slot" :class="{ focused: focusType === 'practiceCert' }" @click="onCertCardTap('practiceCert', practiceCertUrl)">
-          <image v-if="practiceCertUrl" class="preview" :src="toFullUrl(practiceCertUrl)" mode="aspectFit"></image>
+      <view class="cert-layout">
+        <view class="cert-preview" :class="{ focused: isFocused(section.key), empty: !section.displayUrl }" @click="onCertCardTap(section.key, section.originalUrl)">
+          <image v-if="section.displayUrl" class="preview" :src="toFullUrl(section.displayUrl)" mode="aspectFill"></image>
           <view v-else class="placeholder">
             <text class="plus">+</text>
-            <text class="placeholder-text">上传执业证书</text>
-          </view>
-          <view class="cert-foot">
-            <view class="cert-meta">
-              <text class="cert-name">执业证书</text>
-              <text class="cert-state" :class="practiceCertUrl ? 'pass' : 'warn'">
-                {{ practiceCertUrl ? '已上传' : '未上传' }}
-              </text>
-            </view>
-            <view class="cert-actions">
-              <text
-                v-if="practiceCertUrl"
-                class="cert-action"
-                @click.stop="previewCert(practiceCertUrl)"
-              >预览</text>
-              <text
-                class="cert-action primary"
-                @click.stop="uploadByKey('practiceCert')"
-              >{{ practiceCertUrl ? '修改' : '上传' }}</text>
-            </view>
+            <text class="placeholder-text">上传{{ section.title }}</text>
           </view>
         </view>
-
-        <view class="cert-slot" :class="{ focused: focusType === 'healthCert' }" @click="onCertCardTap('healthCert', healthCertUrl)">
-          <image v-if="healthCertUrl" class="preview" :src="toFullUrl(healthCertUrl)" mode="aspectFit"></image>
-          <view v-else class="placeholder">
-            <text class="plus">+</text>
-            <text class="placeholder-text">上传健康证</text>
+        <view class="cert-panel">
+          <text class="cert-desc">{{ section.desc }}</text>
+          <view class="date-picker" :class="{ empty: !section.expireDate, expired: section.expired }" @click="openDatePicker(section.key)">
+            <text>{{ section.expireDate || '选择有效期' }}</text>
+            <text v-if="section.expired" class="date-badge">已过期</text>
           </view>
-          <view class="cert-foot">
-            <view class="cert-meta">
-              <text class="cert-name">健康证</text>
-              <text class="cert-state" :class="healthCertUrl ? 'pass' : 'warn'">
-                {{ healthCertUrl ? '已上传' : '未上传' }}
-              </text>
-            </view>
-            <view class="cert-actions">
-              <text
-                v-if="healthCertUrl"
-                class="cert-action"
-                @click.stop="previewCert(healthCertUrl)"
-              >预览</text>
-              <text
-                class="cert-action primary"
-                @click.stop="uploadByKey('healthCert')"
-              >{{ healthCertUrl ? '修改' : '上传' }}</text>
-            </view>
+          <view class="cert-actions">
+            <text v-if="section.originalUrl" class="cert-action" @click.stop="previewCert(section.originalUrl)">查看原图</text>
+            <text class="cert-action primary" @click.stop="uploadByKey(section.key)">{{ section.originalUrl ? '修改材料' : '上传材料' }}</text>
           </view>
+          <text v-if="section.missingText" class="inline-error">{{ section.missingText }}</text>
         </view>
       </view>
     </view>
 
-    <view class="bottom-btn slide-up delay-3" :class="{ disabled: saving }" @click="goBack">
-      <text>{{ saving ? '处理中...' : '完成并返回' }}</text>
+    <view class="bottom-panel slide-up delay-3">
+      <text class="validation-text" :class="{ ok: allMaterialsReady }">{{ validationText }}</text>
+      <view class="bottom-actions">
+        <button class="bottom-btn secondary" :disabled="saving || submitting" @click="goBack">保存材料</button>
+        <button class="bottom-btn primary" :disabled="submitDisabled" @click="submitForReview">
+          {{ submitting ? '提交中...' : '提交审核' }}
+        </button>
+      </view>
+    </view>
+
+    <view v-if="datePickerVisible" class="sheet-mask" @click="closeDatePicker">
+      <view class="date-sheet" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="sheet-head">
+          <view>
+            <text class="sheet-kicker">证件有效期</text>
+            <text class="sheet-title">{{ datePickerTitle }}</text>
+          </view>
+          <text class="sheet-close" @click="closeDatePicker">关闭</text>
+        </view>
+        <picker-view class="date-wheel" :value="datePickerValue" @change="onDateWheelChange">
+          <picker-view-column>
+            <view class="wheel-item" v-for="year in yearOptions" :key="year">{{ year }}年</view>
+          </picker-view-column>
+          <picker-view-column>
+            <view class="wheel-item" v-for="month in monthOptions" :key="month">{{ pad(month) }}月</view>
+          </picker-view-column>
+          <picker-view-column>
+            <view class="wheel-item" v-for="day in dayOptions" :key="day">{{ pad(day) }}日</view>
+          </picker-view-column>
+        </picker-view>
+        <button class="sheet-confirm" :disabled="saving || submitting" @click="confirmDatePicker">确认有效期</button>
+      </view>
     </view>
   </view>
 </template>
@@ -138,7 +124,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
-import { put, upload } from '@/utils/api.js'
+import { post, put, upload } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { resolveImageUrl } from '@/utils/media.js'
 import { pickFrameIdCardFile } from '@/utils/id-card-upload.js'
@@ -149,8 +135,15 @@ const { attendantInfo } = storeToRefs(userStore)
 
 const focusType = ref('')
 const saving = ref(false)
+const submitting = ref(false)
 const practiceCertExpireDate = ref('')
 const healthCertExpireDate = ref('')
+const datePickerVisible = ref(false)
+const datePickerTarget = ref('')
+const datePickerValue = ref([0, 0, 0])
+const currentYear = new Date().getFullYear()
+const yearOptions = Array.from({ length: 31 }, (_, index) => currentYear + index)
+const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1)
 
 const userId = () => {
   const userInfo = uni.getStorageSync('userInfo')
@@ -163,9 +156,94 @@ const idCardBack = computed(() => qualificationImages.value.idCardBack)
 const practiceCertUrl = computed(() => qualificationImages.value.practiceCert)
 const healthCertUrl = computed(() => qualificationImages.value.healthCert)
 const idCardReady = computed(() => !!idCardFront.value && !!idCardBack.value)
+const idCardFrontOriginal = computed(() => attendantInfo.value.idCardFrontFileUrl || attendantInfo.value.idCardFileUrl || idCardFront.value)
+const idCardFrontDisplay = computed(() => attendantInfo.value.idCardFrontScanFileUrl || idCardFrontOriginal.value)
+const idCardBackOriginal = computed(() => attendantInfo.value.idCardBackFileUrl || idCardBack.value)
+const idCardBackDisplay = computed(() => attendantInfo.value.idCardBackScanFileUrl || idCardBackOriginal.value)
+const practiceCertOriginal = computed(() => attendantInfo.value.practiceCertFileUrl || practiceCertUrl.value)
+const practiceCertDisplay = computed(() => attendantInfo.value.practiceCertScanFileUrl || practiceCertOriginal.value)
+const healthCertOriginal = computed(() => attendantInfo.value.healthCertFileUrl || healthCertUrl.value)
+const healthCertDisplay = computed(() => attendantInfo.value.healthCertScanFileUrl || healthCertOriginal.value)
+const practiceCertReady = computed(() => !!practiceCertOriginal.value && !!practiceCertExpireDate.value && !attendantInfo.value.practiceCertExpired)
+const healthCertReady = computed(() => !!healthCertOriginal.value && !!healthCertExpireDate.value && !attendantInfo.value.healthCertExpired)
+const allMaterialsReady = computed(() => idCardReady.value && practiceCertReady.value && healthCertReady.value)
+const submitDisabled = computed(() => saving.value || submitting.value || !allMaterialsReady.value)
+const selectedYear = computed(() => yearOptions[datePickerValue.value[0]] || currentYear)
+const selectedMonth = computed(() => monthOptions[datePickerValue.value[1]] || 1)
+const dayOptions = computed(() => {
+  const count = new Date(selectedYear.value, selectedMonth.value, 0).getDate()
+  return Array.from({ length: count }, (_, index) => index + 1)
+})
+const datePickerTitle = computed(() => datePickerTarget.value === 'healthCert' ? '选择健康证到期日期' : '选择执业证书到期日期')
+
+const isFocused = (key) => focusType.value === key || (focusType.value === 'idCard' && (key === 'idCardFront' || key === 'idCardBack'))
+
+const certSections = computed(() => [
+  {
+    key: 'practiceCert',
+    step: '步骤 2',
+    title: '执业证书',
+    desc: '上传清晰证书照片，并填写有效期。到期后需要重新提交审核。',
+    originalUrl: practiceCertOriginal.value,
+    displayUrl: practiceCertDisplay.value,
+    expireDate: practiceCertExpireDate.value,
+    expired: attendantInfo.value.practiceCertExpired,
+    ready: practiceCertReady.value,
+    missingText: !practiceCertOriginal.value
+      ? '请上传执业证书'
+      : !practiceCertExpireDate.value
+        ? '请填写执业证书有效期'
+        : attendantInfo.value.practiceCertExpired
+          ? '执业证书已过期，请更新'
+          : '',
+    delay: 'delay-2',
+  },
+  {
+    key: 'healthCert',
+    step: '步骤 3',
+    title: '健康证',
+    desc: '健康证需清晰可识别，并处于有效期内。',
+    originalUrl: healthCertOriginal.value,
+    displayUrl: healthCertDisplay.value,
+    expireDate: healthCertExpireDate.value,
+    expired: attendantInfo.value.healthCertExpired,
+    ready: healthCertReady.value,
+    missingText: !healthCertOriginal.value
+      ? '请上传健康证'
+      : !healthCertExpireDate.value
+        ? '请填写健康证有效期'
+        : attendantInfo.value.healthCertExpired
+          ? '健康证已过期，请更新'
+          : '',
+    delay: 'delay-3',
+  },
+])
+
+const validationText = computed(() => {
+  if (allMaterialsReady.value) return '材料已完整，可以提交审核'
+  if (!idCardFront.value) return '请先上传身份证正面'
+  if (!idCardBack.value) return '请先上传身份证背面'
+  const firstMissingCert = certSections.value.find((item) => item.missingText)
+  return firstMissingCert?.missingText || '请补全资质材料'
+})
 
 const toFullUrl = (url) => {
   return resolveImageUrl(url, '')
+}
+
+const pad = (value) => String(value).padStart(2, '0')
+
+const parseDateToPickerValue = (dateText) => {
+  const fallback = new Date()
+  fallback.setFullYear(currentYear + 1)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText || '')
+  const year = match ? Number(match[1]) : fallback.getFullYear()
+  const month = match ? Number(match[2]) : fallback.getMonth() + 1
+  const day = match ? Number(match[3]) : fallback.getDate()
+  const yearIndex = Math.max(0, yearOptions.findIndex((item) => item === year))
+  const monthIndex = Math.max(0, Math.min(11, month - 1))
+  const dayCount = new Date(yearOptions[yearIndex] || currentYear, monthIndex + 1, 0).getDate()
+  return [yearIndex, monthIndex, Math.max(0, Math.min(dayCount - 1, day - 1))]
 }
 
 const loadProfile = async () => {
@@ -210,7 +288,7 @@ const chooseCertFile = () =>
   })
 
 const uploadByKey = async (key) => {
-  if (saving.value) return
+  if (saving.value || submitting.value) return
   const uid = userId()
   if (!uid) {
     uni.showToast({ title: '请先登录', icon: 'none' })
@@ -265,9 +343,8 @@ const uploadByKey = async (key) => {
   }
 }
 
-const onExpireDateChange = async (type, event) => {
-  const value = event?.detail?.value || ''
-  if (!value || saving.value) return
+const saveExpireDate = async (type, value) => {
+  if (!value || saving.value || submitting.value) return
   if (type === 'practiceCert') practiceCertExpireDate.value = value
   else healthCertExpireDate.value = value
 
@@ -291,6 +368,38 @@ const onExpireDateChange = async (type, event) => {
   }
 }
 
+const openDatePicker = (type) => {
+  if (saving.value || submitting.value) return
+  datePickerTarget.value = type
+  const currentValue = type === 'practiceCert' ? practiceCertExpireDate.value : healthCertExpireDate.value
+  datePickerValue.value = parseDateToPickerValue(currentValue)
+  datePickerVisible.value = true
+}
+
+const closeDatePicker = () => {
+  datePickerVisible.value = false
+  datePickerTarget.value = ''
+}
+
+const onDateWheelChange = (event) => {
+  const value = Array.isArray(event?.detail?.value) ? event.detail.value : datePickerValue.value
+  const yearIndex = Math.max(0, Math.min(yearOptions.length - 1, value[0] || 0))
+  const monthIndex = Math.max(0, Math.min(monthOptions.length - 1, value[1] || 0))
+  const dayCount = new Date(yearOptions[yearIndex], monthIndex + 1, 0).getDate()
+  const dayIndex = Math.max(0, Math.min(dayCount - 1, value[2] || 0))
+  datePickerValue.value = [yearIndex, monthIndex, dayIndex]
+}
+
+const confirmDatePicker = async () => {
+  const target = datePickerTarget.value
+  if (!target) return
+  const year = yearOptions[datePickerValue.value[0]] || currentYear
+  const month = monthOptions[datePickerValue.value[1]] || 1
+  const day = dayOptions.value[datePickerValue.value[2]] || 1
+  closeDatePicker()
+  await saveExpireDate(target, `${year}-${pad(month)}-${pad(day)}`)
+}
+
 const onCertCardTap = (key, url) => {
   if (url) {
     previewImage(url)
@@ -304,8 +413,33 @@ const previewCert = (url) => {
 }
 
 const goBack = () => {
-  if (saving.value) return
+  if (saving.value || submitting.value) return
   uni.navigateBack()
+}
+
+const submitForReview = async () => {
+  if (submitDisabled.value) return
+  const uid = userId()
+  if (!uid) {
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
+  }
+
+  submitting.value = true
+  try {
+    const res = await post(`/attendant/qualification/${uid}/submit`)
+    if (res.code === 200) {
+      await userStore.fetchAttendantProfile(uid)
+      uni.showToast({ title: '提交成功', icon: 'success' })
+      setTimeout(() => {
+        uni.redirectTo({ url: '/subpkg/profile/qualification' })
+      }, 500)
+    }
+  } catch (error) {
+    uni.showToast({ title: error?.message || '提交失败', icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 
 onLoad((options) => {
@@ -321,62 +455,84 @@ onMounted(loadProfile)
 .page {
   @include escort-page;
   min-height: 100vh;
-  padding-bottom: 24rpx;
+  padding: 24rpx 24rpx calc(190rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .hero-card {
-  @include escort-card(26rpx);
-  margin: 24rpx 24rpx 0;
+  @include escort-card(30rpx);
   border: 1rpx solid #e5eefb;
   background: linear-gradient(135deg, #ffffff 0%, #f3f8ff 100%);
-}
-
-.hero-left {
   display: flex;
   align-items: center;
+  gap: 20rpx;
 }
 
-.hero-icon {
-  width: 56rpx;
-  height: 56rpx;
-  margin-right: 14rpx;
+.hero-mark {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 30rpx;
+  background: #eaf4ff;
+  color: $escort-color-primary;
+  font-size: 34rpx;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .hero-title {
   display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #172033;
 }
 
 .hero-desc {
   display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #6b7280;
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  line-height: 1.55;
+  color: #61738a;
 }
 
 .card {
-  @include escort-card(28rpx);
-  margin: 24rpx;
+  @include escort-card(30rpx);
+  margin-top: 24rpx;
+  border: 1rpx solid #e3edf9;
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-kicker {
+  display: block;
+  margin-bottom: 4rpx;
+  font-size: 22rpx;
+  font-weight: 900;
+  color: $escort-color-primary;
 }
 
 .section-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
+  display: block;
+  font-size: 31rpx;
+  font-weight: 900;
+  color: #172033;
 }
 
 .section-status {
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 900;
 }
 
 .status-pass {
@@ -390,12 +546,12 @@ onMounted(loadProfile)
 .id-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14rpx;
+  gap: 18rpx;
 }
 
 .id-slot {
-  border-radius: 14rpx;
-  border: 1rpx solid #e5eaf2;
+  border-radius: 28rpx;
+  border: 1rpx solid #dfeaf7;
   overflow: hidden;
   background: #f8fafc;
 }
@@ -407,13 +563,13 @@ onMounted(loadProfile)
 
 .preview {
   width: 100%;
-  height: 190rpx;
+  height: 210rpx;
   background: #ffffff;
 }
 
 .placeholder {
   width: 100%;
-  height: 190rpx;
+  height: 210rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -429,143 +585,135 @@ onMounted(loadProfile)
 .placeholder-text {
   margin-top: 8rpx;
   color: #9ca3af;
-  font-size: 22rpx;
+  font-size: 23rpx;
 }
 
-.slot-label {
-  display: block;
-  text-align: center;
-  color: #4b5563;
-  font-size: 24rpx;
-  line-height: 58rpx;
+.slot-foot {
+  min-height: 64rpx;
+  padding: 0 18rpx;
   background: #fff;
-}
-
-.tip {
-  display: block;
-  margin-top: 10rpx;
-  color: #9ca3af;
-  font-size: 22rpx;
-}
-
-.cert-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14rpx;
-}
-
-.expire-form {
-  margin-top: 24rpx;
-  display: grid;
-  gap: 16rpx;
-}
-
-.expire-row {
-  min-height: 88rpx;
-  padding: 18rpx 20rpx;
-  border: 1rpx solid #e5eefb;
-  border-radius: 24rpx;
-  background: #f8fbff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-}
-
-.expire-label {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.expire-desc {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #8a97aa;
-}
-
-.date-picker {
-  min-width: 190rpx;
-  height: 64rpx;
-  padding: 0 24rpx;
-  border-radius: 999rpx;
-  background: #ffffff;
-  border: 1rpx solid #d8e6f5;
-  color: #1f2937;
-  font-size: 25rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.date-picker.empty {
-  color: $escort-color-primary;
-  font-weight: 700;
-}
-
-.cert-slot {
-  border-radius: 14rpx;
-  border: 1rpx solid #e5eaf2;
-  overflow: hidden;
-  background: #f8fafc;
-}
-
-.cert-slot.focused {
-  border-color: $escort-color-primary;
-  box-shadow: 0 0 0 2rpx rgba(102, 166, 255, 0.14);
-}
-
-.cert-foot {
-  min-height: 96rpx;
-  background: #fff;
-  padding: 12rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
 }
 
-.cert-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.cert-name {
+.slot-label {
+  color: #172033;
   font-size: 24rpx;
-  color: #1f2937;
-  font-weight: 600;
+  font-weight: 800;
 }
 
-.cert-state {
-  font-size: 22rpx;
+.slot-link {
+  color: $escort-color-primary;
+  font-size: 23rpx;
+  font-weight: 900;
 }
 
-.cert-state.pass {
-  color: #52c41a;
+.tip {
+  display: block;
+  margin-top: 16rpx;
+  color: #9ca3af;
+  font-size: 23rpx;
 }
 
-.cert-state.warn {
-  color: #ff4d4f;
-}
-
-.cert-actions {
+.cert-layout {
   display: flex;
-  align-items: center;
-  gap: 10rpx;
+  align-items: stretch;
+  gap: 18rpx;
+}
+
+.cert-preview {
+  width: 230rpx;
+  min-height: 260rpx;
+  border-radius: 28rpx;
+  border: 1rpx solid #dfeaf7;
+  overflow: hidden;
+  background: #f8fafc;
   flex-shrink: 0;
 }
 
+.cert-preview.focused {
+  border-color: $escort-color-primary;
+  box-shadow: 0 0 0 2rpx rgba(102, 166, 255, 0.14);
+}
+
+.cert-preview .preview {
+  height: 260rpx;
+}
+
+.cert-preview .placeholder {
+  height: 260rpx;
+}
+
+.cert-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cert-desc {
+  display: block;
+  color: #5d738b;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.date-picker {
+  margin-top: 18rpx;
+  min-height: 72rpx;
+  padding: 0 22rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #d8e6f5;
+  color: #1f2937;
+  font-size: 25rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.date-picker.empty {
+  color: $escort-color-primary;
+  font-weight: 900;
+}
+
+.date-picker.expired {
+  border-color: #ffd1d1;
+  background: #fff5f5;
+}
+
+.date-badge {
+  height: 38rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  background: #ffe4e4;
+  color: #ef4444;
+  font-size: 21rpx;
+  display: flex;
+  align-items: center;
+}
+
+.cert-actions {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .cert-action {
-  height: 48rpx;
-  padding: 0 18rpx;
+  height: 54rpx;
+  padding: 0 20rpx;
   border-radius: 999rpx;
   border: 1rpx solid #dbe4f0;
   background: #f8fbff;
   color: #4b5563;
-  font-size: 22rpx;
+  font-size: 23rpx;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -575,27 +723,178 @@ onMounted(loadProfile)
   border-color: rgba(37, 99, 235, 0.18);
   background: rgba(37, 99, 235, 0.1);
   color: $escort-color-primary;
-  font-weight: 600;
+}
+
+.inline-error {
+  display: block;
+  margin-top: 14rpx;
+  color: #ef4444;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.bottom-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  padding: 18rpx 24rpx calc(22rpx + env(safe-area-inset-bottom));
+  background: rgba(246, 249, 255, 0.96);
+  border-top: 1rpx solid #dce8f8;
+  box-shadow: 0 -12rpx 30rpx rgba(18, 56, 109, 0.08);
+  box-sizing: border-box;
+}
+
+.validation-text {
+  display: block;
+  margin-bottom: 14rpx;
+  color: #ef4444;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.validation-text.ok {
+  color: #16a35a;
+}
+
+.bottom-actions {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 16rpx;
 }
 
 .bottom-btn {
   height: 88rpx;
   border-radius: 60rpx;
-  background: $escort-color-primary;
-  margin: 16rpx 24rpx 0;
+  border: none;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: $escort-shadow-primary;
-
-  text {
-    color: #ffffff;
-    font-size: 30rpx;
-    font-weight: 700;
-  }
+  font-size: 29rpx;
+  font-weight: 900;
 }
 
-.bottom-btn.disabled {
+.bottom-btn.secondary {
+  background: #ffffff;
+  color: #4d617a;
+  border: 1rpx solid #d8e6f5;
+}
+
+.bottom-btn.primary {
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
+  color: #ffffff;
+  box-shadow: $escort-shadow-primary;
+}
+
+.bottom-btn[disabled],
+.bottom-btn.primary[disabled] {
+  background: #c0c4cc;
+  color: #ffffff;
+  border: none;
+  box-shadow: none;
+}
+
+.sheet-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1200;
+  background: rgba(10, 24, 45, 0.38);
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.18s ease forwards;
+}
+
+.date-sheet {
+  width: 100%;
+  padding: 18rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+  border-radius: 36rpx 36rpx 0 0;
+  background: #ffffff;
+  box-shadow: 0 -24rpx 60rpx rgba(17, 35, 64, 0.16);
+  box-sizing: border-box;
+  animation: sheetUp 0.24s ease forwards;
+}
+
+.sheet-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 999rpx;
+  background: #d8e4f2;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.sheet-kicker {
+  display: block;
+  color: $escort-color-primary;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.sheet-title {
+  display: block;
+  margin-top: 4rpx;
+  color: #172033;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.sheet-close {
+  height: 60rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: #f3f7fc;
+  color: #5d738b;
+  font-size: 24rpx;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.date-wheel {
+  height: 300rpx;
+  margin-top: 20rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 48%, #f8fbff 100%);
+  overflow: hidden;
+}
+
+.wheel-item {
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.sheet-confirm {
+  height: 88rpx;
+  margin: 22rpx 0 0;
+  border: none;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
+  color: #ffffff;
+  font-size: 29rpx;
+  font-weight: 900;
+  box-shadow: $escort-shadow-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet-confirm[disabled] {
   background: #c0c4cc;
   box-shadow: none;
 }
@@ -625,6 +924,24 @@ onMounted(loadProfile)
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(36rpx);
+  }
+  to {
     transform: translateY(0);
   }
 }

@@ -55,16 +55,11 @@ public final class AttendantQualificationPolicy {
         if (attendant == null) {
             return "陪诊师资料不存在";
         }
-        Integer status = attendant.getStatus() == null ? 0 : attendant.getStatus();
+        Integer status = qualificationStatus(attendant);
         if (status == 0) {
             return "资质正在审核中，请等待平台审核通过";
         }
         if (status == 2) {
-            return hasText(attendant.getQualificationFailReason())
-                    ? attendant.getQualificationFailReason()
-                    : "账号已封禁，请联系平台客服处理";
-        }
-        if (status == 3) {
             return hasText(attendant.getQualificationFailReason())
                     ? attendant.getQualificationFailReason()
                     : "资质审核未通过，请修改后重新提交";
@@ -79,8 +74,28 @@ public final class AttendantQualificationPolicy {
 
     public static boolean canAcceptOrders(User user, Attendant attendant, AttendantQualification qualification) {
         return attendant != null
-                && Integer.valueOf(1).equals(attendant.getStatus())
+                && Integer.valueOf(1).equals(qualificationStatus(attendant))
                 && acceptBlockReason(user, attendant, qualification).isEmpty();
+    }
+
+    public static Integer qualificationStatus(Attendant attendant) {
+        if (attendant == null) {
+            return 0;
+        }
+        if (attendant.getQualificationStatus() != null) {
+            return attendant.getQualificationStatus();
+        }
+        Integer legacyStatus = attendant.getStatus();
+        if (legacyStatus == null) {
+            return 0;
+        }
+        if (legacyStatus == 1) {
+            return 1;
+        }
+        if (legacyStatus == 2 || legacyStatus == 3) {
+            return 2;
+        }
+        return 0;
     }
 
     public static boolean isExpired(String dateValue) {

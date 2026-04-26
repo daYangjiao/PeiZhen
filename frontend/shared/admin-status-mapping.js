@@ -10,9 +10,8 @@ const STATUS_TEXT_MAP = {
   },
   attendantAuditStatus: {
     0: '待审核',
-    1: '正常',
-    2: '封禁',
-    3: '审核失败'
+    1: '已通过',
+    2: '未通过'
   },
   orderStatus: {
     0: '待支付',

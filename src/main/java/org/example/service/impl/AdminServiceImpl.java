@@ -100,8 +100,9 @@ public class AdminServiceImpl implements AdminService {
                 AttendantQualification qualification = attendantQualificationMapper.findByUserId(user.getId());
                 item.setQualificationCompleteness(calculateQualificationCompleteness(qualification));
                 if (attendant != null) {
-                    item.setAttendantAuditStatus(attendant.getStatus());
-                    item.setAttendantAuditStatusLabel(mapAttendantStatus(attendant.getStatus()));
+                    Integer qualificationStatus = qualificationStatus(attendant);
+                    item.setAttendantAuditStatus(qualificationStatus);
+                    item.setAttendantAuditStatusLabel(mapAttendantStatus(qualificationStatus));
                     item.setAttendantProfileCompleted(isAttendantProfileCompleted(attendant));
                     item.setAttendantHospitalName(attendant.getHospitalName());
                     item.setAttendantProfessionalField(attendant.getProfessionalField());
@@ -167,8 +168,9 @@ public class AdminServiceImpl implements AdminService {
             item.setScore(attendant.getScore() == null ? null : BigDecimal.valueOf(attendant.getScore()));
             item.setEvaluationCount(attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
             item.setPraiseRate(attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
-            item.setStatus(attendant.getStatus());
-            item.setStatusLabel(mapAttendantStatus(attendant.getStatus()));
+            Integer qualificationStatus = qualificationStatus(attendant);
+            item.setStatus(qualificationStatus);
+            item.setStatusLabel(mapAttendantStatus(qualificationStatus));
             item.setUserStatus(attendant.getUserStatus());
             item.setUserStatusLabel(mapUserStatus(attendant.getUserStatus()));
             item.setServiceCount(attendant.getServiceCount());
@@ -196,6 +198,7 @@ public class AdminServiceImpl implements AdminService {
         if (attendant == null) {
             throw new IllegalArgumentException("陪诊师不存在");
         }
+        attendant.setStatus(qualificationStatus(attendant));
 
         AdminAttendantDetailResponse response = new AdminAttendantDetailResponse();
         response.setUser(user);
@@ -253,21 +256,21 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void updateAttendantStatus(Integer operatorId, Integer userId, Integer status, String reason) {
-        requireUser(userId);
+        User user = requireUser(userId);
         Attendant attendant = attendantMapper.findByUserId(userId);
         if (attendant == null) {
             throw new IllegalArgumentException("陪诊师不存在");
         }
-        if (status == null || (status != 1 && status != 2)) {
-            throw new IllegalArgumentException("只支持设置为正常或封禁");
+        Integer targetStatus = normalizeAccountStatus(status);
+        if (targetStatus == null) {
+            throw new IllegalArgumentException("只支持设置为账号正常或禁用");
         }
-        Integer previousStatus = attendant.getStatus();
-        Attendant patch = new Attendant();
-        patch.setUserId(userId);
-        patch.setStatus(status);
-        patch.setQualificationFailReason(status == 1 ? "" : trim(reason));
-        attendantMapper.update(patch);
-        writeAdminQualificationLog(operatorId, userId, status == 1 ? "RESTORE" : "BAN", previousStatus, status, reason);
+        Integer previousStatus = normalizeUserStatus(user.getStatus());
+        User patch = new User();
+        patch.setId(userId);
+        patch.setStatus(targetStatus);
+        userMapper.update(patch);
+        writeAdminQualificationLog(operatorId, userId, targetStatus == 1 ? "RESTORE" : "BAN", previousStatus, targetStatus, reason);
     }
 
     @Override
@@ -289,19 +292,16 @@ public class AdminServiceImpl implements AdminService {
             }
             AttendantQualificationPolicy.requireSubmittable(qualification);
         }
-        Integer previousStatus = attendant.getStatus();
+        Integer previousStatus = qualificationStatus(attendant);
         if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
-            patch.setStatus(1);
+            patch.setQualificationStatus(1);
             patch.setQualificationFailReason("");
         } else if ("reject".equals(normalizedAction)) {
-            patch.setStatus(3);
+            patch.setQualificationStatus(2);
             patch.setQualificationFailReason(reason.trim());
-        } else {
-            patch.setStatus(2);
-            patch.setQualificationFailReason(trim(reason));
         }
         attendantMapper.update(patch);
-        writeAdminQualificationLog(operatorId, userId, normalizedAction.toUpperCase(), previousStatus, patch.getStatus(), reason);
+        writeAdminQualificationLog(operatorId, userId, normalizedAction.toUpperCase(), previousStatus, patch.getQualificationStatus(), reason);
     }
 
     @Override
@@ -550,6 +550,23 @@ public class AdminServiceImpl implements AdminService {
         return status == null ? 1 : status;
     }
 
+    private Integer normalizeAccountStatus(Integer status) {
+        if (status == null) {
+            return null;
+        }
+        if (status == 1) {
+            return 1;
+        }
+        if (status == 0 || status == 2) {
+            return 0;
+        }
+        return null;
+    }
+
+    private Integer qualificationStatus(Attendant attendant) {
+        return AttendantQualificationPolicy.qualificationStatus(attendant);
+    }
+
     private String trim(String value) {
         return value == null ? null : value.trim();
     }
@@ -562,8 +579,7 @@ public class AdminServiceImpl implements AdminService {
         String normalizedAction = trim(action);
         if (!"approve".equals(normalizedAction)
                 && !"restore".equals(normalizedAction)
-                && !"reject".equals(normalizedAction)
-                && !"ban".equals(normalizedAction)) {
+                && !"reject".equals(normalizedAction)) {
             throw new IllegalArgumentException("不支持的审核动作");
         }
         if ("reject".equals(normalizedAction) && !hasText(reason)) {
@@ -694,7 +710,7 @@ public class AdminServiceImpl implements AdminService {
 
     private Attendant activeAttendantStub() {
         Attendant attendant = new Attendant();
-        attendant.setStatus(1);
+        attendant.setQualificationStatus(1);
         return attendant;
     }
 
@@ -741,11 +757,10 @@ public class AdminServiceImpl implements AdminService {
             case 0:
                 return "待审核";
             case 1:
-                return "正常";
+                return "已通过";
             case 2:
-                return "封禁";
             case 3:
-                return "审核驳回";
+                return "未通过";
             default:
                 return "未知";
         }

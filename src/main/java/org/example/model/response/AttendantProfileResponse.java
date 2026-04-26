@@ -41,7 +41,7 @@ public class AttendantProfileResponse {
     @ApiModelProperty("常驻医院")
     private String hospitalName;
 
-    @ApiModelProperty("资质状态码：0=待审核,1=已审核,2=封禁,3=审核失败")
+    @ApiModelProperty("资质状态码：0=待审核,1=已通过,2=未通过")
     private Integer qualificationStatusCode;
 
     @ApiModelProperty("资质状态文案")

@@ -241,7 +241,7 @@ onMounted(async () => {
 onShow(() => {
   if (redirectPublicSafeToHome()) return
   if (!ensureRole('escort')) return
-  guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
+  guardEscortHallAccess({ showPopup: false, redirectOnConfirm: false })
   const dispatchStore = useExclusiveDispatchStore()
   dispatchStore.ensureInitialized()
   dispatchStore.refreshPendingExclusiveOrders()

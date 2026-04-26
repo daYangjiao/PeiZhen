@@ -48,6 +48,10 @@ class AdminWorkbenchServiceTest {
         SysAdmin admin = admin(1, "SUPER_ADMIN");
         AtomicReference<AdminTaskClaim> capturedClaim = new AtomicReference<>();
         when(sysAdminMapper.findById(1)).thenReturn(admin);
+        Order order = new Order();
+        order.setOrderId(88);
+        order.setOrderStatus(5);
+        when(orderMapper.selectByPrimaryKey(88)).thenReturn(order);
         doAnswer(invocation -> {
             capturedClaim.set(invocation.getArgument(0));
             return null;
@@ -80,6 +84,10 @@ class AdminWorkbenchServiceTest {
     void claimTaskShouldRejectWhenAnotherActiveAdminAlreadyClaimed() {
         AdminWorkbenchService service = service();
         when(sysAdminMapper.findById(2)).thenReturn(admin(2, "ADMIN"));
+        Attendant attendant = new Attendant();
+        attendant.setUserId(66);
+        attendant.setQualificationStatus(0);
+        when(attendantMapper.findByUserId(66)).thenReturn(attendant);
         AdminTaskClaim claimed = new AdminTaskClaim();
         claimed.setTaskType("ATTENDANT_REVIEW");
         claimed.setTargetId(66);
@@ -91,6 +99,20 @@ class AdminWorkbenchServiceTest {
         assertThatThrownBy(() -> service.claimTask(2, "ATTENDANT_REVIEW", 66))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("任务正在处理中");
+    }
+
+    @Test
+    void claimTaskShouldRejectOrderDisputeWhenOrderIsNotDisputing() {
+        AdminWorkbenchService service = service();
+        when(sysAdminMapper.findById(2)).thenReturn(admin(2, "ADMIN"));
+        Order order = new Order();
+        order.setOrderId(91);
+        order.setOrderStatus(6);
+        when(orderMapper.selectByPrimaryKey(91)).thenReturn(order);
+
+        assertThatThrownBy(() -> service.claimTask(2, "ORDER_DISPUTE", 91))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("任务状态已变化，请刷新队列");
     }
 
     @Test
@@ -143,7 +165,7 @@ class AdminWorkbenchServiceTest {
         when(claimMapper.findByTask("ATTENDANT_REVIEW", 77)).thenReturn(activeClaim("ATTENDANT_REVIEW", 77, 3, "token-77"));
         Attendant attendant = new Attendant();
         attendant.setUserId(77);
-        attendant.setStatus(0);
+        attendant.setQualificationStatus(0);
         when(attendantMapper.findByUserId(77)).thenReturn(attendant);
 
         service.completeTask(3, "ATTENDANT_REVIEW", 77, request);

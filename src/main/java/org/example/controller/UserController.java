@@ -71,7 +71,7 @@ public class UserController {
                 attendant.setProfessionalField(user.getProfessionalField());
                 attendant.setExperienceYears(user.getExperienceYears() == null ? 0 : user.getExperienceYears());
                 attendant.setHospitalName(user.getHospitalName());
-                attendant.setStatus(0);
+                attendant.setQualificationStatus(0);
                 userId = attendantService.registerAttendant(user, attendant);
             } else {
                 userId = userService.register(user);
@@ -144,6 +144,8 @@ public class UserController {
                 return ResponseResult.success(Map.of("token", token, "userInfo", userInfo));
             }
             return ResponseResult.error("手机号或密码错误");
+        } catch (IllegalStateException e) {
+            return ResponseResult.error(e.getMessage());
         } catch (Exception e) {
             log.error("登录异常: {}", user.getPhone(), e);
             return ResponseResult.error("服务器内部错误");

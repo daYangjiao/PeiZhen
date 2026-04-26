@@ -6,6 +6,7 @@
         <id column="user_id" property="userId"/>
         <result column="certificate" property="certificate"/>
         <result column="status" property="status"/>
+        <result column="qualification_status" property="qualificationStatus"/>
         <result column="qualification_fail_reason" property="qualificationFailReason"/>
         <result column="introduction" property="introduction"/>
         <result column="professional_field" property="professionalField"/>
@@ -26,8 +27,8 @@
 
     <!-- 插入陪诊师扩展信息 -->
     <insert id="insert" parameterType="org.example.model.Attendant">
-        INSERT INTO attendant (user_id, certificate, status, qualification_fail_reason, introduction, professional_field, score, experience_years, hospital_name)
-        VALUES (#{userId}, #{certificate}, #{status}, #{qualificationFailReason}, #{introduction}, #{professionalField}, #{score}, #{experienceYears}, #{hospitalName})
+        INSERT INTO attendant (user_id, certificate, status, qualification_status, qualification_fail_reason, introduction, professional_field, score, experience_years, hospital_name)
+        VALUES (#{userId}, #{certificate}, COALESCE(#{status}, 1), COALESCE(#{qualificationStatus}, 0), #{qualificationFailReason}, #{introduction}, #{professionalField}, #{score}, #{experienceYears}, #{hospitalName})
     </insert>
 
     <!-- 根据用户ID查询 -->
@@ -41,6 +42,7 @@
         <set>
             <if test="certificate != null">certificate = #{certificate},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="qualificationStatus != null">qualification_status = #{qualificationStatus},</if>
             <if test="qualificationFailReason != null">qualification_fail_reason = #{qualificationFailReason},</if>
             <if test="introduction != null">introduction = #{introduction},</if>
             <if test="professionalField != null">professional_field = #{professionalField},</if>
@@ -57,8 +59,10 @@
             a.*,
             COUNT(CASE WHEN o.order_status = 6 THEN 1 END) AS service_count
         FROM attendant a
+        INNER JOIN user u ON u.id = a.user_id
         LEFT JOIN `order` o ON o.attendant_id = a.user_id
-        WHERE a.status = 1
+        WHERE a.qualification_status = 1
+          AND u.status = 1
         GROUP BY a.user_id
         ORDER BY
             service_count DESC,
@@ -82,10 +86,10 @@
         FROM attendant a
         INNER JOIN user u ON u.id = a.user_id
         LEFT JOIN `order` o ON o.attendant_id = a.user_id
-        WHERE a.status = 1
+        WHERE a.qualification_status = 1
           AND u.status = 1
         GROUP BY
-            a.user_id, a.certificate, a.status, a.qualification_fail_reason, a.introduction,
+            a.user_id, a.certificate, a.status, a.qualification_status, a.qualification_fail_reason, a.introduction,
             a.professional_field, a.score, a.experience_years, a.hospital_name,
             a.create_time, a.update_time,
             u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
@@ -102,7 +106,7 @@
         FROM attendant a
         INNER JOIN user u ON u.id = a.user_id
         <where>
-            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="auditStatus != null">AND a.qualification_status = #{auditStatus}</if>
             <if test="keyword != null and keyword != ''">
                 AND (
                     CAST(u.id AS CHAR) = #{keyword}
@@ -130,7 +134,7 @@
         INNER JOIN user u ON u.id = a.user_id
         LEFT JOIN `order` o ON o.attendant_id = a.user_id
         <where>
-            <if test="auditStatus != null">AND a.status = #{auditStatus}</if>
+            <if test="auditStatus != null">AND a.qualification_status = #{auditStatus}</if>
             <if test="keyword != null and keyword != ''">
                 AND (
                     CAST(u.id AS CHAR) = #{keyword}
@@ -142,12 +146,12 @@
             </if>
         </where>
         GROUP BY
-            a.user_id, a.certificate, a.status, a.qualification_fail_reason, a.introduction,
+            a.user_id, a.certificate, a.status, a.qualification_status, a.qualification_fail_reason, a.introduction,
             a.professional_field, a.score, a.experience_years, a.hospital_name,
             a.create_time, a.update_time,
             u.id, u.name, u.phone, u.age, u.sex, u.avatar, u.status
         ORDER BY
-            CASE WHEN a.status = 0 THEN 0 ELSE 1 END,
+            CASE WHEN a.qualification_status = 0 THEN 0 ELSE 1 END,
             a.update_time DESC,
             a.user_id DESC
         LIMIT #{offset}, #{limit}
@@ -156,7 +160,7 @@
     <select id="findNextPendingUserId" resultType="int">
         SELECT a.user_id
         FROM attendant a
-        WHERE a.status = 0
+        WHERE a.qualification_status = 0
         <if test="excludeId != null">
             AND a.user_id != #{excludeId}
         </if>

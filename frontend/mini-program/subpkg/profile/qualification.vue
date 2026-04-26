@@ -1,66 +1,77 @@
 <template>
   <view class="page">
-    <view class="hero-card slide-up delay-1">
-      <view class="hero-left">
-        <image class="hero-icon" src="/static/ren_1.png" mode="aspectFit"></image>
-        <view>
-          <text class="hero-title">资质管理</text>
-          <text class="hero-desc">证件分步上传，审核状态实时同步</text>
+    <view class="status-card slide-up delay-1" :class="overallState">
+      <view class="status-top">
+        <view class="status-mark">{{ statusMark }}</view>
+        <view class="status-copy">
+          <text class="status-title">{{ statusTitle }}</text>
+          <text class="status-desc">{{ statusDesc }}</text>
         </view>
       </view>
-    </view>
-
-    <view class="card slide-up delay-1">
-      <view class="status-head">
-        <text class="section-title">资质状态</text>
-        <text class="status-text" :class="statusClass">{{ statusText }}</text>
-      </view>
-      <view class="progress-line">
+      <view class="progress-card">
+        <view class="progress-meta">
+          <text>材料完整度</text>
+          <text>{{ qualificationCompleteness }}%</text>
+        </view>
         <view class="progress-track">
           <view class="progress-fill" :style="{ width: `${qualificationCompleteness}%` }"></view>
         </view>
-        <text class="progress-text">{{ qualificationCompleteness }}%</text>
       </view>
-      <text v-if="blockReason" class="fail-reason">{{ blockReason }}</text>
-      <text v-if="showFailReason" class="fail-reason">失败原因：{{ failReasonText }}</text>
-      <text v-else-if="isBlocked" class="blocked-tip">账号已封禁，请联系平台客服处理。</text>
-    </view>
-
-    <view class="card slide-up delay-2">
-      <view class="row" v-for="item in qualificationItems" :key="item.key">
-        <view class="left">
-          <text class="name">{{ item.label }}</text>
-          <text class="desc">{{ item.desc }}</text>
-        </view>
-
-        <view class="middle">
-          <view class="dot" :class="item.uploaded ? 'dot-pass' : 'dot-warn'"></view>
-          <text :class="item.uploaded ? 'text-pass' : 'text-warn'">
-            {{ item.uploaded ? '已上传' : '未上传' }}
-          </text>
-          <text v-if="item.expireDate" class="expire-text" :class="item.expired ? 'expired' : ''">
-            {{ item.expireDate }}{{ item.expired ? ' 已过期' : '' }}
-          </text>
-        </view>
-
-        <view class="ghost-btn" @click="goUpload(item.key)">
-          <text>{{ item.uploaded ? '管理' : '上传' }}</text>
-        </view>
+      <view v-if="showFailReason || displayBlockReason" class="reason-card">
+        <text class="reason-title">{{ showFailReason ? '驳回原因' : '当前阻断' }}</text>
+        <text class="reason-text">{{ showFailReason ? failReasonText : displayBlockReason }}</text>
       </view>
     </view>
 
-    <view v-if="auditLogs.length" class="card slide-up delay-3">
-      <text class="section-title">审核记录</text>
-      <view class="log-row" v-for="(log, index) in auditLogs" :key="`${log.action}-${index}`">
-        <text class="log-action">{{ mapLogAction(log.action) }}</text>
-        <text class="log-time">{{ formatLogTime(log.createTime) }}</text>
-        <text v-if="log.reason" class="log-reason">{{ log.reason }}</text>
+    <view class="section-card slide-up delay-2">
+      <view class="section-head">
+        <text class="section-title">资质材料</text>
+        <text class="section-note">{{ materialReadyCount }}/4 已完成</text>
+      </view>
+      <view class="material-list">
+        <view class="material-card" v-for="item in materialItems" :key="item.key" @click="goUpload(item.key)">
+          <view class="material-preview" :class="{ empty: !item.preview }">
+            <image v-if="item.preview" :src="toFullUrl(item.preview)" mode="aspectFill"></image>
+            <text v-else>{{ item.short }}</text>
+          </view>
+          <view class="material-copy">
+            <view class="material-title-row">
+              <text class="material-title">{{ item.label }}</text>
+              <text class="material-badge" :class="item.ready ? 'ready' : 'missing'">{{ item.ready ? '已上传' : '待补充' }}</text>
+            </view>
+            <text class="material-desc">{{ item.desc }}</text>
+            <text v-if="item.expireDate" class="expire-text" :class="{ expired: item.expired }">
+              有效期 {{ item.expireDate }}{{ item.expired ? ' 已过期' : '' }}
+            </text>
+            <text v-else-if="item.needExpire" class="expire-text expired">待填写有效期</text>
+          </view>
+          <text class="material-action">{{ item.ready ? '管理' : '上传' }}</text>
+        </view>
       </view>
     </view>
 
-    <view class="submit-btn slide-up delay-3" :class="{ disabled: submitDisabled }" @click="submitForReview">
+    <view class="section-card slide-up delay-3">
+      <view class="section-head">
+        <text class="section-title">审核记录</text>
+        <text class="section-note">{{ auditLogs.length ? '最近记录' : '暂无记录' }}</text>
+      </view>
+      <view v-if="auditLogs.length" class="log-list">
+        <view class="log-row" v-for="(log, index) in auditLogs" :key="`${log.action}-${index}`">
+          <view class="log-dot"></view>
+          <view class="log-copy">
+            <text class="log-action">{{ mapLogAction(log.action) }}</text>
+            <text class="log-time">{{ formatLogTime(log.createTime) }}</text>
+            <text v-if="log.reason" class="log-reason">{{ log.reason }}</text>
+          </view>
+        </view>
+      </view>
+      <view v-else class="empty-log">材料提交后，这里会显示平台审核进度。</view>
+    </view>
+
+    <view v-if="showSubmitButton" class="submit-btn slide-up delay-3" :class="{ disabled: submitDisabled }" @click="submitForReview">
       <text>{{ submitting ? '提交中...' : '提交审核' }}</text>
     </view>
+    <view v-if="showPassedFooter" class="passed-footer slide-up delay-3">资质已通过，证件到期前请及时更新。</view>
   </view>
 </template>
 
@@ -71,6 +82,7 @@ import { storeToRefs } from 'pinia'
 import { post } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { getQualificationImageFields } from '@/utils/qualification.mjs'
+import { resolveImageUrl } from '@/utils/media.js'
 
 const userStore = useUserStore()
 const { attendantInfo } = storeToRefs(userStore)
@@ -84,22 +96,7 @@ const userId = () => {
 
 const statusCode = computed(() => Number(attendantInfo.value.qualificationStatusCode || 0))
 
-const statusText = computed(() => {
-  if (statusCode.value === 1) return '已审核'
-  if (statusCode.value === 3) return '审核失败'
-  if (statusCode.value === 2) return '封禁'
-  return '待审核'
-})
-
-const statusClass = computed(() => {
-  if (statusCode.value === 1) return 'status-pass'
-  if (statusCode.value === 3) return 'status-fail'
-  if (statusCode.value === 2) return 'status-blocked'
-  return 'status-pending'
-})
-
-const showFailReason = computed(() => statusCode.value === 3)
-const isBlocked = computed(() => statusCode.value === 2)
+const showFailReason = computed(() => statusCode.value === 2)
 const failReasonText = computed(() => attendantInfo.value.qualificationFailReason || '资质资料不完整')
 const blockReason = computed(() => attendantInfo.value.qualificationBlockReason || '')
 const qualificationCompleteness = computed(() => Math.max(0, Math.min(100, Number(attendantInfo.value.qualificationCompleteness || 0))))
@@ -113,33 +110,96 @@ const practiceReady = computed(() => !!qualificationImages.value.practiceCert)
 const healthReady = computed(() => !!qualificationImages.value.healthCert)
 const practiceExpireReady = computed(() => !!attendantInfo.value.practiceCertExpireDate && !attendantInfo.value.practiceCertExpired)
 const healthExpireReady = computed(() => !!attendantInfo.value.healthCertExpireDate && !attendantInfo.value.healthCertExpired)
+const allMaterialsReady = computed(() => idCardReady.value && practiceReady.value && healthReady.value && practiceExpireReady.value && healthExpireReady.value)
 
-const qualificationItems = computed(() => [
+const overallState = computed(() => {
+  if (attendantInfo.value.practiceCertExpired || attendantInfo.value.healthCertExpired) return 'expired'
+  if (statusCode.value === 1 && allMaterialsReady.value) return 'passed'
+  if (statusCode.value === 2) return 'rejected'
+  if (!allMaterialsReady.value) return 'incomplete'
+  return 'pending'
+})
+
+const statusMark = computed(() => {
+  const map = { passed: '通', rejected: '驳', expired: '期', incomplete: '补', pending: '审' }
+  return map[overallState.value] || '审'
+})
+
+const statusTitle = computed(() => {
+  const map = {
+    passed: '资质已通过',
+    rejected: '资质审核未通过',
+    expired: '证件已过期',
+    incomplete: '资质待补充',
+    pending: '资质审核中'
+  }
+  return map[overallState.value] || '资质审核中'
+})
+
+const statusDesc = computed(() => {
+  const map = {
+    passed: '你可以正常进入接单大厅并接单。',
+    rejected: '请根据驳回原因修改材料，重新提交平台审核。',
+    expired: '请更新过期证件和有效期后重新提交审核。',
+    incomplete: '补全身份证正反面、执业证书、健康证和有效期后提交审核。',
+    pending: '平台正在审核你的入驻资料，审核通过后即可接单。'
+  }
+  return map[overallState.value] || '平台正在审核你的入驻资料。'
+})
+
+const displayBlockReason = computed(() => {
+  if (!blockReason.value || showFailReason.value) return ''
+  if (overallState.value === 'incomplete' || overallState.value === 'pending') return ''
+  return blockReason.value
+})
+
+const materialItems = computed(() => [
   {
-    key: 'idCard',
-    label: '身份证',
-    desc: '需上传正反面',
-    uploaded: idCardReady.value
+    key: 'idCardFront',
+    label: '身份证正面',
+    short: '正',
+    desc: '姓名、证件号需清晰无遮挡',
+    ready: !!idCardFront.value,
+    preview: idCardFront.value
+  },
+  {
+    key: 'idCardBack',
+    label: '身份证反面',
+    short: '反',
+    desc: '有效期和签发机关需清晰',
+    ready: !!idCardBack.value,
+    preview: idCardBack.value
   },
   {
     key: 'practiceCert',
     label: '执业证书',
+    short: '执',
     desc: '证书清晰可见，需填写有效期',
-    uploaded: practiceReady.value && !!attendantInfo.value.practiceCertExpireDate,
+    ready: practiceReady.value && !!attendantInfo.value.practiceCertExpireDate && !attendantInfo.value.practiceCertExpired,
+    preview: qualificationImages.value.practiceCert,
+    needExpire: true,
     expireDate: attendantInfo.value.practiceCertExpireDate || '',
     expired: attendantInfo.value.practiceCertExpired
   },
   {
     key: 'healthCert',
     label: '健康证',
+    short: '康',
     desc: '需在有效期内',
-    uploaded: healthReady.value && !!attendantInfo.value.healthCertExpireDate,
+    ready: healthReady.value && !!attendantInfo.value.healthCertExpireDate && !attendantInfo.value.healthCertExpired,
+    preview: qualificationImages.value.healthCert,
+    needExpire: true,
     expireDate: attendantInfo.value.healthCertExpireDate || '',
     expired: attendantInfo.value.healthCertExpired
   }
 ])
 
-const submitDisabled = computed(() => submitting.value || !(idCardReady.value && practiceReady.value && healthReady.value && practiceExpireReady.value && healthExpireReady.value))
+const materialReadyCount = computed(() => materialItems.value.filter((item) => item.ready).length)
+const showSubmitButton = computed(() => overallState.value !== 'passed')
+const showPassedFooter = computed(() => overallState.value === 'passed')
+const submitDisabled = computed(() => submitting.value || !allMaterialsReady.value)
+
+const toFullUrl = (url) => resolveImageUrl(url, '')
 
 const loadProfile = async () => {
   const uid = userId()
@@ -162,8 +222,8 @@ const mapLogAction = (action = '') => {
     SUBMIT: '提交审核',
     APPROVE: '审核通过',
     REJECT: '审核驳回',
-    BAN: '账号封禁',
-    RESTORE: '恢复通过'
+    BAN: '账号状态变更',
+    RESTORE: '账号状态恢复'
   }
   return map[String(action).toUpperCase()] || action || '审核记录'
 }
@@ -208,177 +268,275 @@ onShow(loadProfile)
 @import '@/styles/escort-ui.scss';
 .page {
   @include escort-page;
-  min-height: 100vh;
-  padding-bottom: 24rpx;
+  padding: 24rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
-.hero-card {
-  @include escort-card(26rpx);
-  margin: 24rpx 24rpx 0;
-  border: 1rpx solid #e5eefb;
-  background: linear-gradient(135deg, #ffffff 0%, #f3f8ff 100%);
+.status-card,
+.section-card {
+  @include escort-card(30rpx);
+  border: 1rpx solid #e4eefb;
 }
 
-.hero-left {
+.section-card {
+  margin-top: 24rpx;
+}
+
+.status-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f9ff 100%);
+}
+
+.status-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 22rpx;
+}
+
+.status-mark {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 30rpx;
+  background: #eaf4ff;
+  color: $escort-color-primary;
+  font-size: 34rpx;
+  font-weight: 900;
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.hero-icon {
-  width: 56rpx;
-  height: 56rpx;
-  margin-right: 14rpx;
+.status-card.passed .status-mark {
+  background: #e9f9f0;
+  color: #16a35a;
 }
 
-.hero-title {
+.status-card.rejected .status-mark,
+.status-card.expired .status-mark {
+  background: #fff0f0;
+  color: #ef4444;
+}
+
+.status-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-title {
   display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 38rpx;
+  line-height: 1.3;
+  font-weight: 900;
+  color: #172033;
 }
 
-.hero-desc {
+.status-desc {
   display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #6b7280;
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #60738d;
 }
 
-.card {
-  @include escort-card(32rpx);
-  margin: 24rpx;
+.progress-card {
+  margin-top: 26rpx;
+  padding: 22rpx;
+  border-radius: 26rpx;
+  background: #f7fbff;
+  border: 1rpx solid #e1ecfa;
 }
 
-.status-head {
+.progress-meta {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-}
-
-.section-title {
-  font-size: 30rpx;
-  color: #1f2937;
-  font-weight: 700;
-}
-
-.status-text {
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.progress-line {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  margin-top: 22rpx;
+  color: #4d617a;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .progress-track {
-  flex: 1;
-  height: 14rpx;
+  margin-top: 16rpx;
+  height: 16rpx;
   border-radius: 999rpx;
-  background: #eef3f8;
+  background: #e8f0fa;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   border-radius: 999rpx;
-  background: linear-gradient(90deg, $escort-color-primary 0%, #43c3a4 100%);
+  background: linear-gradient(90deg, $escort-color-primary 0%, #27b89a 100%);
 }
 
-.progress-text {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: $escort-color-primary;
+.reason-card {
+  margin-top: 22rpx;
+  padding: 22rpx;
+  border-radius: 26rpx;
+  background: #fff5f5;
+  border: 1rpx solid #ffd7d7;
 }
 
-.status-pass {
-  color: #52c41a;
-}
-
-.status-pending {
-  color: #faad14;
-}
-
-.status-fail,
-.status-blocked {
-  color: #ff4d4f;
-}
-
-.fail-reason,
-.blocked-tip {
+.reason-title {
   display: block;
-  margin-top: 14rpx;
-  font-size: 25rpx;
-  color: #ff4d4f;
+  font-size: 24rpx;
+  color: #c24141;
+  font-weight: 900;
 }
 
-.row {
-  min-height: 112rpx;
+.reason-text {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: #7f1d1d;
+}
+
+.section-head {
   display: flex;
   align-items: center;
-  border-bottom: 1rpx solid #eef2f7;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
 }
 
-.row:last-child {
-  border-bottom: none;
+.section-title {
+  font-size: 31rpx;
+  color: #172033;
+  font-weight: 900;
 }
 
-.left {
-  width: 240rpx;
+.section-note {
+  font-size: 24rpx;
+  color: #7d8ea2;
 }
 
-.name {
-  display: block;
-  font-size: 28rpx;
-  color: #1f2937;
-  font-weight: 600;
+.material-list {
+  display: grid;
+  gap: 18rpx;
 }
 
-.desc {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #9ca3af;
-}
-
-.middle {
-  flex: 1;
+.material-card {
+  min-height: 132rpx;
+  padding: 16rpx;
+  border-radius: 28rpx;
+  background: #f8fbff;
+  border: 1rpx solid #e0ebf8;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6rpx;
+  align-items: center;
+  gap: 18rpx;
 }
 
-.middle .dot {
-  margin-bottom: 2rpx;
+.material-preview {
+  width: 110rpx;
+  height: 86rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: #eaf4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $escort-color-primary;
+  font-size: 30rpx;
+  font-weight: 900;
+  flex-shrink: 0;
 }
 
+.material-preview image {
+  width: 100%;
+  height: 100%;
+}
+
+.material-preview.empty {
+  border: 1rpx dashed #b8cff0;
+}
+
+.material-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.material-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.material-title {
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #172033;
+}
+
+.material-badge {
+  height: 38rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 21rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+}
+
+.material-badge.ready {
+  background: #e9f9f0;
+  color: #16a35a;
+}
+
+.material-badge.missing {
+  background: #fff4e5;
+  color: #c06d00;
+}
+
+.material-desc,
 .expire-text {
-  font-size: 22rpx;
-  color: #667085;
+  display: block;
+  margin-top: 7rpx;
+  font-size: 23rpx;
+  line-height: 1.35;
+  color: #7d8ea2;
 }
 
 .expire-text.expired {
-  color: #ff4d4f;
-  font-weight: 700;
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.material-action {
+  color: $escort-color-primary;
+  font-size: 25rpx;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.log-list {
+  display: grid;
+  gap: 18rpx;
 }
 
 .log-row {
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #eef2f7;
+  display: flex;
+  gap: 16rpx;
 }
 
-.log-row:last-child {
-  border-bottom: none;
+.log-dot {
+  width: 18rpx;
+  height: 18rpx;
+  margin-top: 10rpx;
+  border-radius: 50%;
+  background: $escort-color-primary;
+  flex-shrink: 0;
+}
+
+.log-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .log-action {
   display: block;
   font-size: 27rpx;
-  font-weight: 700;
-  color: #1f2937;
+  color: #172033;
+  font-weight: 900;
 }
 
 .log-time,
@@ -386,53 +544,23 @@ onShow(loadProfile)
   display: block;
   margin-top: 6rpx;
   font-size: 24rpx;
-  color: #667085;
+  line-height: 1.45;
+  color: #6b7890;
 }
 
-.dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  margin-right: 8rpx;
-}
-
-.dot-pass {
-  background: #52c41a;
-}
-
-.dot-warn {
-  background: #ff4d4f;
-}
-
-.text-pass {
-  color: #52c41a;
+.empty-log {
+  padding: 28rpx;
+  border-radius: 24rpx;
+  background: #f7fbff;
+  color: #7d8ea2;
   font-size: 25rpx;
-}
-
-.text-warn {
-  color: #ff4d4f;
-  font-size: 25rpx;
-}
-
-.ghost-btn {
-  min-width: 108rpx;
-  height: 54rpx;
-  border-radius: 30rpx;
-  border: 1rpx solid $escort-color-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  text {
-    color: $escort-color-primary;
-    font-size: 24rpx;
-  }
+  text-align: center;
 }
 
 .submit-btn {
   height: 88rpx;
   border-radius: 60rpx;
-  background: $escort-color-primary;
+  background: linear-gradient(135deg, $escort-color-primary, $escort-color-primary-deep);
   margin: 28rpx 24rpx 0;
   display: flex;
   align-items: center;
@@ -449,6 +577,17 @@ onShow(loadProfile)
 .submit-btn.disabled {
   background: #c0c4cc;
   box-shadow: none;
+}
+
+.passed-footer {
+  margin-top: 28rpx;
+  padding: 24rpx;
+  border-radius: 26rpx;
+  background: #e9f9f0;
+  color: #16724a;
+  font-size: 25rpx;
+  text-align: center;
+  font-weight: 800;
 }
 
 .slide-up {

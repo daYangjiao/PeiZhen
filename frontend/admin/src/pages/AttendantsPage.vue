@@ -121,9 +121,9 @@
               </div>
               <div class="toolbar-group">
                 <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" @click="openReviewWorkbench(detail.user.id)">进入工作台处理</button>
-                <button v-if="detail.attendant.status === 1" class="button button-danger" type="button" @click="openActionDialog('ban')">封禁</button>
-                <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" @click="openActionDialog('restore-status')">恢复</button>
-                <button v-if="detail.attendant.status === 3" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">重新通过</button>
+                <button v-if="detail.user.status === 1" class="button button-danger" type="button" @click="openActionDialog('ban')">封禁账号</button>
+                <button v-if="detail.user.status === 0" class="button button-primary" type="button" @click="openActionDialog('restore-status')">恢复账号</button>
+                <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">重新通过资质</button>
               </div>
             </div>
 
@@ -454,19 +454,15 @@ const loadWorkbench = async ({ preferredSelectedId } = {}) => {
 
 const selectQueueItem = async (id) => {
   selectedId.value = id
-  const changed = await syncQuery({ selectedId: id })
-  if (!changed) {
-    await loadDetail(id)
-  }
+  await syncQuery({ selectedId: id })
+  await loadDetail(id)
 }
 
 const submitFilters = async () => {
   page.value = 0
   selectedId.value = null
-  const changed = await syncQuery({ page: 0, selectedId: null })
-  if (!changed) {
-    await loadWorkbench({ preferredSelectedId: null })
-  }
+  await syncQuery({ page: 0, selectedId: null })
+  await loadWorkbench({ preferredSelectedId: null })
 }
 
 const resetFilters = async () => {
@@ -474,33 +470,27 @@ const resetFilters = async () => {
   filters.auditStatus = ''
   page.value = 0
   selectedId.value = null
-  const changed = await syncQuery({
+  await syncQuery({
     keyword: '',
     auditStatus: '',
     page: 0,
     selectedId: null
   })
-  if (!changed) {
-    await loadWorkbench({ preferredSelectedId: null })
-  }
+  await loadWorkbench({ preferredSelectedId: null })
 }
 
 const changePage = async (nextPage) => {
-  page.value = nextPage
+  page.value = Math.max(0, Math.min(nextPage, totalPages.value - 1))
   selectedId.value = null
-  const changed = await syncQuery({ page: nextPage, selectedId: null })
-  if (!changed) {
-    await loadWorkbench({ preferredSelectedId: null })
-  }
+  await syncQuery({ page: page.value, selectedId: null })
+  await loadWorkbench({ preferredSelectedId: null })
 }
 
 const changePageSize = async () => {
   page.value = 0
   selectedId.value = null
-  const changed = await syncQuery({ page: 0, pageSize: pageSize.value, selectedId: null })
-  if (!changed) {
-    await loadWorkbench({ preferredSelectedId: null })
-  }
+  await syncQuery({ page: 0, pageSize: pageSize.value, selectedId: null })
+  await loadWorkbench({ preferredSelectedId: null })
 }
 
 const openFullDetail = (id) => {

@@ -33,6 +33,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -161,7 +162,7 @@ class AdminServiceImplTest {
 
         Attendant attendant = new Attendant();
         attendant.setUserId(301);
-        attendant.setStatus(3);
+        attendant.setQualificationStatus(2);
         attendant.setHospitalName("华西医院");
         attendant.setProfessionalField("肿瘤陪诊");
         attendant.setExperienceYears(6);
@@ -185,8 +186,8 @@ class AdminServiceImplTest {
         assertThat(response.getContent()).hasSize(1);
         AdminUserListItemResponse item = response.getContent().get(0);
         assertThat(item.getCompletedOrderCount()).isEqualTo(4);
-        assertThat(item.getAttendantAuditStatus()).isEqualTo(3);
-        assertThat(item.getAttendantAuditStatusLabel()).isEqualTo("审核驳回");
+        assertThat(item.getAttendantAuditStatus()).isEqualTo(2);
+        assertThat(item.getAttendantAuditStatusLabel()).isEqualTo("未通过");
         assertThat(item.getAttendantProfileCompleted()).isTrue();
         assertThat(item.getQualificationCompleteness()).isEqualTo(50);
     }
@@ -311,6 +312,36 @@ class AdminServiceImplTest {
                         && Integer.valueOf(0).equals(log.getFromStatus())
                         && Integer.valueOf(1).equals(log.getToStatus())
         ));
+        verify(attendantMapper).update(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(702).equals(patch.getUserId())
+                        && Integer.valueOf(1).equals(patch.getQualificationStatus())
+                        && patch.getStatus() == null
+        ));
+    }
+
+    @Test
+    void updateAttendantStatusShouldOnlyUpdateUserAccountStatus() {
+        AdminServiceImpl service = newService();
+
+        User user = new User();
+        user.setId(704);
+        user.setStatus(1);
+        user.setName("被封禁陪诊师");
+        Attendant attendant = new Attendant();
+        attendant.setUserId(704);
+        attendant.setQualificationStatus(1);
+        attendant.setStatus(1);
+
+        when(userMapper.findById(704)).thenReturn(user);
+        when(attendantMapper.findByUserId(704)).thenReturn(attendant);
+
+        service.updateAttendantStatus(2, 704, 0, "违规服务");
+
+        verify(userMapper).update(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(704).equals(patch.getId())
+                        && Integer.valueOf(0).equals(patch.getStatus())
+        ));
+        verify(attendantMapper, never()).update(ArgumentMatchers.any());
     }
 
     @Test

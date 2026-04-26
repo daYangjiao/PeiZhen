@@ -165,7 +165,7 @@ onShow(() => {
   if (redirectPublicSafeToHome()) return
   pageActive = true
   if (ensureRole('escort')) {
-    guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
+    guardEscortHallAccess({ showPopup: false, redirectOnConfirm: false })
     connectOrderSocket()
     const dispatchStore = useExclusiveDispatchStore()
     dispatchStore.ensureInitialized()

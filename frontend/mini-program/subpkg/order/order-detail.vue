@@ -999,7 +999,7 @@ const getStatusClass = (order) => {
     2: 'status-accepted',
     3: 'status-service',
     4: 'status-confirm',
-    5: 'status-balance',
+    5: 'status-dispute',
     6: 'status-completed',
     7: 'status-cancelled'
   };
@@ -1758,6 +1758,10 @@ onUnmounted(() => {
 .status-balance {
   background-color: #FFEBEE;
   color: #D32F2F;
+}
+.status-dispute {
+  background-color: #FFF7E6;
+  color: #AD6800;
 }
 .status-completed {
   background-color: #E0E0E0;

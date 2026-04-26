@@ -859,7 +859,7 @@ try {
         if (blockReason == null || blockReason.isEmpty()) {
             return null;
         }
-        if (attendant != null && Integer.valueOf(0).equals(attendant.getStatus())) {
+        if (attendant != null && Integer.valueOf(0).equals(AttendantQualificationPolicy.qualificationStatus(attendant))) {
             return "资质审核通过后才能接单";
         }
         if (blockReason.contains("已过期")) {

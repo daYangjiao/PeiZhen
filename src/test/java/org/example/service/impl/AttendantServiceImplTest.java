@@ -81,7 +81,7 @@ class AttendantServiceImplTest {
         AttendantQualification qualification = completeQualification();
         Attendant attendant = new Attendant();
         attendant.setUserId(11);
-        attendant.setStatus(3);
+        attendant.setQualificationStatus(2);
         when(attendantQualificationMapper.findByUserId(11)).thenReturn(qualification);
         when(attendantMapper.findByUserId(11)).thenReturn(attendant);
 
@@ -91,7 +91,7 @@ class AttendantServiceImplTest {
                 Integer.valueOf(11).equals(log.getUserId())
                         && "ATTENDANT".equals(log.getActorType())
                         && "SUBMIT".equals(log.getAction())
-                        && Integer.valueOf(3).equals(log.getFromStatus())
+                        && Integer.valueOf(2).equals(log.getFromStatus())
                         && Integer.valueOf(0).equals(log.getToStatus())
         ));
     }

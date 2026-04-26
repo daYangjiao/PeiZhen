@@ -95,6 +95,33 @@
         已有账号？<text class="link-text">立即登录</text>
       </view>
     </view>
+
+    <view v-if="successSheetVisible" class="success-mask" @click="closeSuccessSheet">
+      <view class="success-sheet" @click.stop>
+        <view class="sheet-handle"></view>
+        <view class="success-mark">✓</view>
+        <text class="success-title">账号已创建</text>
+        <text class="success-desc">接下来上传身份证、执业证书和健康证。审核通过后即可进入接单大厅。</text>
+        <view class="success-steps">
+          <view class="success-step done">
+            <text class="step-dot">1</text>
+            <text class="step-text">注册资料</text>
+          </view>
+          <view class="success-step active">
+            <text class="step-dot">2</text>
+            <text class="step-text">上传资质</text>
+          </view>
+          <view class="success-step">
+            <text class="step-dot">3</text>
+            <text class="step-text">平台审核</text>
+          </view>
+        </view>
+        <view class="sheet-actions">
+          <button class="sheet-btn primary" @click="goLoginAfterQualification">登录并上传资质</button>
+          <button class="sheet-btn secondary" @click="goLogin">稍后完善</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -125,6 +152,7 @@ const confirmPassword = ref('')
 const agreed = ref(false)
 const loading = ref(false)
 const sexIndex = ref(-1)
+const successSheetVisible = ref(false)
 
 const onCheckChange = (e) => {
   agreed.value = e.detail.value.length > 0
@@ -137,6 +165,15 @@ const onSexChange = (e) => {
 
 const goLogin = () => {
   uni.redirectTo({ url: '/pages/auth/login?role=escort' })
+}
+
+const closeSuccessSheet = () => {
+  successSheetVisible.value = false
+}
+
+const goLoginAfterQualification = () => {
+  uni.setStorageSync('escort_register_after', 'qualification')
+  uni.redirectTo({ url: '/pages/auth/login?role=escort&after=qualification' })
 }
 
 const validateForm = () => {
@@ -210,12 +247,8 @@ const handleRegister = async () => {
     })
     uni.hideLoading()
     if (res.code === 200) {
-      uni.showModal({
-        title: '提交成功',
-        content: '入驻申请已提交，请使用手机号和密码登录陪诊师端。',
-        showCancel: false,
-        success: goLogin
-      })
+      uni.setStorageSync('escort_register_after', 'qualification')
+      successSheetVisible.value = true
       return
     }
     uni.showToast({ title: res.message || '提交失败', icon: 'none' })
@@ -432,5 +465,151 @@ const handleRegister = async () => {
 .link-text {
   color: #007aff;
   font-weight: 600;
+}
+
+.success-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  background: rgba(15, 35, 64, 0.42);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.success-sheet {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 18rpx 32rpx 34rpx;
+  border-radius: 36rpx;
+  background: #ffffff;
+  box-shadow: 0 28rpx 80rpx rgba(19, 60, 112, 0.22);
+  box-sizing: border-box;
+  animation: sheetUp 180ms ease-out;
+}
+
+.sheet-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 28rpx;
+  border-radius: 999rpx;
+  background: #d7e5f5;
+}
+
+.success-mark {
+  width: 88rpx;
+  height: 88rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(135deg, #1777ff, #25b7a4);
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-title {
+  display: block;
+  text-align: center;
+  font-size: 36rpx;
+  line-height: 1.35;
+  color: #172033;
+  font-weight: 800;
+}
+
+.success-desc {
+  display: block;
+  margin-top: 14rpx;
+  text-align: center;
+  font-size: 27rpx;
+  line-height: 1.65;
+  color: #5d738b;
+}
+
+.success-steps {
+  margin-top: 28rpx;
+  padding: 22rpx 18rpx;
+  border-radius: 28rpx;
+  background: #f6faff;
+  border: 1rpx solid #dfebfb;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.success-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  color: #8a97aa;
+}
+
+.step-dot {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #edf3fb;
+  color: #75859a;
+  font-size: 24rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-step.done .step-dot,
+.success-step.active .step-dot {
+  background: #e9f3ff;
+  color: #1777ff;
+}
+
+.success-step.active .step-dot {
+  box-shadow: 0 8rpx 22rpx rgba(23, 119, 255, 0.18);
+}
+
+.step-text {
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.sheet-actions {
+  margin-top: 28rpx;
+  display: grid;
+  gap: 16rpx;
+}
+
+.sheet-btn {
+  height: 88rpx;
+  border: none;
+  border-radius: 999rpx;
+  font-size: 29rpx;
+  font-weight: 800;
+}
+
+.sheet-btn.primary {
+  background: linear-gradient(135deg, #1777ff, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 14rpx 30rpx rgba(23, 119, 255, 0.22);
+}
+
+.sheet-btn.secondary {
+  background: #eef5ff;
+  color: #42617f;
+}
+
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
