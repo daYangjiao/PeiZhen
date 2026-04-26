@@ -521,6 +521,7 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatRatingScore } from '@/utils/rating.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
 import { getTimeoutClosedMessage, isTimeoutClosedOrder, TIMEOUT_CLOSE_STATUS_TEXT } from '@/utils/order-timeout.js'
+import { isUnauthorizedResponse } from '@/utils/request-error.mjs'
 
 // 使用 ref 定义响应式变量
 const order = ref({});
@@ -1374,7 +1375,7 @@ const handlePrimaryAction = () => {
 // 支付差价
 const payBalance = async () => {
   try {
-    const response = await post(`/api/orders/${order.value.orderId}/pay-balance`);
+    const response = await post(`/api/orders/${order.value.orderId}/pay-balance`, {}, { suppressAuthRedirect: true });
     
     if (response && response.code === 200) {
       uni.showToast({ title: '支付成功', icon: 'success' });
@@ -1384,6 +1385,10 @@ const payBalance = async () => {
     }
   } catch (error) {
     console.error('支付差价失败:', error);
+    if (isUnauthorizedResponse(error)) {
+      uni.showToast({ title: '登录状态已过期，请重新登录后再支付差额', icon: 'none', duration: 2200 });
+      return;
+    }
     uni.showToast({ title: '支付失败', icon: 'none' });
   }
 };

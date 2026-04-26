@@ -343,11 +343,15 @@ export default {
 .desc-input {
   width: 100%;
   min-height: 180rpx;
+  box-sizing: border-box;
+  display: block;
   background: #f8f8f8;
+  border: 1rpx solid #e4ebf4;
   border-radius: 14rpx;
   padding: 16rpx;
   font-size: 25rpx;
   color: var(--text-main);
+  line-height: 1.6;
 }
 .desc-count {
   margin-top: 8rpx;

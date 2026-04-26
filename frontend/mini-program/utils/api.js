@@ -167,7 +167,9 @@ export const request = (options) => {
       success: (res) => {
         const { statusCode, data } = res
         if (statusCode === 401 || (data && data.code === 401)) {
-          forceLogout()
+          if (!options.suppressAuthRedirect) {
+            forceLogout()
+          }
           reject(data || res)
           return
         }
@@ -188,9 +190,9 @@ export const request = (options) => {
 }
 
 export const get = (url, params = {}) => request({ url, method: 'GET', data: params })
-export const post = (url, data = {}) => request({ url, method: 'POST', data })
-export const put = (url, data = {}) => request({ url, method: 'PUT', data })
-export const del = (url, data = {}) => request({ url, method: 'DELETE', data })
+export const post = (url, data = {}, options = {}) => request({ url, method: 'POST', data, ...options })
+export const put = (url, data = {}, options = {}) => request({ url, method: 'PUT', data, ...options })
+export const del = (url, data = {}, options = {}) => request({ url, method: 'DELETE', data, ...options })
 
 // 文件上传（聊天图片等）
 export const upload = (url, filePath, formData = {}, name = 'file') => {
