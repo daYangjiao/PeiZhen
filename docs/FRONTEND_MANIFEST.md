@@ -40,7 +40,7 @@
 | `subpkg/auth/user-register` | 用户注册 | 用户注册，填写手机号、姓名、密码等基础信息后提交。 | `/api/users/register` |
 | `subpkg/auth/wechat-bind` | 绑定手机号 | 微信登录后绑定手机号/姓名/密码，完成账号合并并进入角色首页。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/appointment-flow/01-appointment-selection` | 预约类型选择 | 普通预约流程入口，选择服务类型并进入预约表单。 | 无直接接口调用/通过封装模块调用 |
-| `subpkg/appointment-flow/02-appointment-form` | 服务预约 | 普通预约表单，填写患者/医院/时间/需求，创建预约、匹配陪诊师并生成订单。 | `/ai/guide/attendants/match?appointmentNo={...}`<br>`/ai/guide/appointments`<br>`/ai/guide/orders`<br>`/api/users/current` |
+| `subpkg/appointment-flow/02-appointment-form` | 服务预约 | 普通预约表单，填写患者/医院/时间/需求，创建预约并生成公共待接单订单；普通下单不自动指定陪诊师，支付后进入接单大厅。联系信息输入使用自定义输入同步，兼容 H5/App/小程序。 | `/ai/guide/appointments`<br>`/ai/guide/orders`<br>`/api/users/current` |
 | `subpkg/appointment-flow/04-order-confirm-page` | 确认订单 | 订单确认与模拟支付，加载完整订单信息并提交支付状态。 | `/ai/guide/orders/{...}/complete-info`<br>`/ai/guide/payments/status` |
 | `subpkg/appointment-flow/05-payment-success-page` | 支付成功 | 支付成功页，展示订单摘要并引导查看订单详情。 | `/ai/guide/orders/{...}/complete-info` |
 | `subpkg/appointment-flow/06-payment-failed-page` | 支付失败 | 支付失败页，提示重试或返回订单确认。 | 无直接接口调用/通过封装模块调用 |

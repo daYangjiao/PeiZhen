@@ -106,18 +106,26 @@
   <!-- 将姓名和手机号都放入 input-group 中，以保持样式一致 -->
   <view class="input-group">
     <input
-      v-model="patientName"
+      :value="patientName"
       placeholder="姓名"
       class="contact-input"
+      type="text"
+      confirm-type="next"
+      cursor-spacing="120"
+      @input="handlePatientNameInput"
     />
   </view>
   <view class="input-group">
     <input
-      v-model="phoneNumber"
+      :value="phoneNumber"
       placeholder="手机号"
       class="contact-input"
-      type="number"
+      type="text"
+      inputmode="numeric"
       maxlength="11"
+      confirm-type="done"
+      cursor-spacing="120"
+      @input="handlePhoneInput"
       @blur="validatePhone"
     />
     <text v-if="phoneError" class="error-text">{{ phoneError }}</text>
@@ -890,6 +898,22 @@ const validatePhone = () => {
 	}
 }
 
+const getInputValue = (event) => String(event?.detail?.value ?? event?.target?.value ?? '')
+
+const handlePatientNameInput = (event) => {
+	patientName.value = getInputValue(event).trimStart()
+}
+
+const handlePhoneInput = (event) => {
+	phoneNumber.value = getInputValue(event).replace(/\D/g, '').slice(0, 11)
+	if (!phoneNumber.value || phoneNumber.value.length === 11) {
+		validatePhone()
+	} else {
+		phoneError.value = ''
+		isPhoneValid.value = false
+	}
+}
+
 const isValidPhone = computed(() => {
 	const phoneRegex = /^1[3-9]\d{9}$/
 	return !!phoneNumber.value && phoneRegex.test(String(phoneNumber.value).trim())
@@ -1096,44 +1120,31 @@ const confirmAppointment = async () => { // ⚠️ 修改为异步函数
 				throw new Error('未能获取到预约编号');
 			}
 
-			// 2. 根据预约编号匹配陪诊师
-			const matchResponse = await get(`/ai/guide/attendants/match?appointmentNo=${appointmentNo}`);
-			console.log('【02页面】匹配陪诊师响应:', matchResponse);
+			// 2. 普通预约不指定陪诊师，支付后进入公共接单大厅，状态为待接单。
+			const orderRequest = {
+				appointmentNo: appointmentNo
+			};
 
-			if (matchResponse && matchResponse.code === 200 && matchResponse.data.attendants.length > 0) {
-				// 自动选择第一个陪诊师
-				const firstAttendant = matchResponse.data.attendants[0];
-				const attendantId = firstAttendant.id;
-				
-				// 3. 创建订单
-				const orderRequest = {
-					appointmentNo: appointmentNo,
-					attendantId: attendantId.toString()
-				};
-				
-				const orderResponse = await post('/ai/guide/orders', orderRequest);
-				console.log('【02页面】创建订单响应:', orderResponse);
-				
-				if (orderResponse && orderResponse.code === 200) {
-					const orderNo = orderResponse.data.orderNo;
-					console.log('【02页面】获取到订单编号:', orderNo);
-					
-					if (!orderNo) {
-						throw new Error('未能获取到订单编号');
-					}
+			const orderResponse = await post('/ai/guide/orders', orderRequest);
+			console.log('【02页面】创建订单响应:', orderResponse);
 
-					// --- 保存订单编号 ---
-					uni.setStorageSync('orderNo', orderNo);
-
-					// --- 直接跳转到订单确认页面 ---
-					uni.redirectTo({
-						url: '/subpkg/appointment-flow/04-order-confirm-page?orderNo=' + orderNo
-					});
-				} else {
-					throw new Error(orderResponse.message || '创建订单失败');
+			if (orderResponse && orderResponse.code === 200) {
+				const orderNo = orderResponse.data.orderNo;
+				console.log('【02页面】获取到订单编号:', orderNo);
+				
+				if (!orderNo) {
+					throw new Error('未能获取到订单编号');
 				}
+
+				// --- 保存订单编号 ---
+				uni.setStorageSync('orderNo', orderNo);
+
+				// --- 直接跳转到订单确认页面 ---
+				uni.redirectTo({
+					url: '/subpkg/appointment-flow/04-order-confirm-page?orderNo=' + orderNo
+				});
 			} else {
-				throw new Error('未找到可用陪诊师');
+				throw new Error(orderResponse.message || '创建订单失败');
 			}
 		} else {
 			const errorMsg = submitResponse.message || '提交预约失败';
