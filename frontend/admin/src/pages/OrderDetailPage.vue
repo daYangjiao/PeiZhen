@@ -239,7 +239,7 @@
         </label>
         <label class="login-field">
           <span>最终订单金额</span>
-          <input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0" step="0.01" />
+          <input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0.01" step="0.01" />
         </label>
         <label class="login-field">
           <span>后台备注</span>
@@ -409,6 +409,11 @@ const submitDispute = async () => {
     uiStore.toast('请填写最终时长和金额', 'error')
     return
   }
+  const finalAmount = Number(disputeForm.finalOrderAmount)
+  if (!Number.isFinite(finalAmount) || finalAmount <= 0) {
+    uiStore.toast('最终金额必须大于0', 'error')
+    return
+  }
   if (!disputeForm.adminRemark) {
     uiStore.toast('请填写争议处理备注', 'error')
     return
@@ -417,7 +422,7 @@ const submitDispute = async () => {
   try {
     await resolveDispute(detail.value.order.orderId, {
       finalDuration: Number(disputeForm.finalDuration),
-      finalOrderAmount: Number(disputeForm.finalOrderAmount),
+      finalOrderAmount: finalAmount,
       adminRemark: disputeForm.adminRemark
     })
     uiStore.toast('争议处理成功', 'success')

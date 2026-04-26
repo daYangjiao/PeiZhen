@@ -7,6 +7,7 @@ import {
   calculateEstimatedAttendantIncome,
   calculatePlatformFee,
   normalizeFinalOrderAmount,
+  shouldDisplayIncomeRecord,
 } from '../utils/settlement.mjs'
 
 test('normalizeFinalOrderAmount uses final orderAmount without adding balance again', () => {
@@ -58,6 +59,19 @@ test('canceled refund order does not generate wallet income', () => {
   assert.equal(normalizeFinalOrderAmount(order), 0)
   assert.equal(calculateAttendantIncome(order), 0)
   assert.equal(calculateDisplayAttendantIncome(order), 0)
+})
+
+test('wallet income list hides completed orders with zero real income', () => {
+  assert.equal(shouldDisplayIncomeRecord({
+    orderStatus: 6,
+    settlementAmount: '0.00',
+    attendantIncomeAmount: '0.00',
+  }), false)
+  assert.equal(shouldDisplayIncomeRecord({
+    orderStatus: 6,
+    settlementAmount: '170.00',
+    attendantIncomeAmount: '153.00',
+  }), true)
 })
 
 test('estimated income is only used before final settlement', () => {

@@ -125,7 +125,7 @@
                   <button class="button" :class="disputeMode === 'custom' ? 'button-primary' : 'button-secondary'" type="button" @click="disputeMode = 'custom'">自定义</button>
                 </div>
                 <label class="login-field"><span>最终时长</span><input v-model.trim="disputeForm.finalDuration" class="field" type="number" min="0" step="0.5" @input="handleDisputeDurationInput" /></label>
-                <label class="login-field"><span>最终金额</span><input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0" step="0.01" /></label>
+                <label class="login-field"><span>最终金额</span><input v-model.trim="disputeForm.finalOrderAmount" class="field" type="number" min="0.01" step="0.01" /></label>
                 <label class="login-field action-remark"><span>处理备注</span><textarea v-model.trim="disputeForm.adminRemark" class="filter-textarea" placeholder="请输入处理依据和结果"></textarea></label>
                 <button class="button button-primary submit-action" type="button" :disabled="actionLoading" @click="confirmComplete">提交处理</button>
               </div>
@@ -557,6 +557,11 @@ const handleDisputeDurationInput = () => {
 const confirmComplete = () => {
   if (!disputeForm.finalDuration || !disputeForm.finalOrderAmount || !disputeForm.adminRemark) {
     uiStore.toast('请填写最终时长、最终金额和处理备注', 'error')
+    return
+  }
+  const finalAmount = Number(disputeForm.finalOrderAmount)
+  if (!Number.isFinite(finalAmount) || finalAmount <= 0) {
+    uiStore.toast('最终金额必须大于0', 'error')
     return
   }
   confirmDialogOpen.value = true

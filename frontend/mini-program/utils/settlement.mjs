@@ -40,6 +40,10 @@ export const calculateAttendantIncome = (order = {}) => {
   return roundMoney(normalizeFinalOrderAmount(order) * ATTENDANT_INCOME_RATE)
 }
 
+export const shouldDisplayIncomeRecord = (order = {}) => {
+  return calculateAttendantIncome(order) > 0
+}
+
 export const calculateEstimatedAttendantIncome = (amountOrOrder = 0) => {
   const amount = typeof amountOrOrder === 'object'
     ? toMoneyNumber(amountOrOrder.orderAmount)

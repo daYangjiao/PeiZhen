@@ -410,8 +410,8 @@ public class AdminServiceImpl implements AdminService {
         BigDecimal finalAmount = request != null && request.getFinalOrderAmount() != null
                 ? request.getFinalOrderAmount()
                 : calculateFinalAmountByDuration(order, finalDuration, currentAmount);
-        if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("最终订单金额不能小于0");
+        if (finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("最终订单金额必须大于0");
         }
         if (request == null || !hasText(request.getAdminRemark())) {
             throw new IllegalArgumentException("处理备注不能为空");

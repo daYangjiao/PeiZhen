@@ -481,6 +481,30 @@ class AdminServiceImplTest {
     }
 
     @Test
+    void resolveDisputeShouldRejectZeroFinalAmount() {
+        AdminServiceImpl service = newService();
+        Order order = new Order();
+        order.setOrderId(804);
+        order.setOrderNo("ORD-804");
+        order.setUserId(11);
+        order.setAttendantId(12);
+        order.setOrderStatus(5);
+        order.setOrderAmount(new BigDecimal("170.00"));
+
+        org.example.model.request.AdminOrderDisputeResolutionRequest request = new org.example.model.request.AdminOrderDisputeResolutionRequest();
+        request.setFinalDuration(new BigDecimal("1.0"));
+        request.setFinalOrderAmount(BigDecimal.ZERO);
+        request.setAdminRemark("零元争议金额");
+
+        when(orderMapper.selectByPrimaryKey(804)).thenReturn(order);
+
+        assertThatThrownBy(() -> service.resolveDispute(2, 804, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("最终订单金额必须大于0");
+        verify(orderMapper, never()).updateByPrimaryKeySelective(ArgumentMatchers.any());
+    }
+
+    @Test
     void resolveDisputeShouldCalculateFinalAmountWhenOnlyDurationProvided() {
         AdminServiceImpl service = newService();
         Order order = new Order();

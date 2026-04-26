@@ -53,7 +53,7 @@
 | `subpkg/profile/id-card-crop` | 身份证框选 | 身份证正反面上传前的自定义框选页，按身份证比例裁切并输出清晰审核图。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/edit-escort` | 编辑资料 | 陪诊师编辑个人资料、擅长领域、医院和简介。 | `/attendant/profile/{...}` |
 | `subpkg/profile/withdraw-center` | 提现中心 | 提现中心入口，跳转钱包明细的提现 Tab。 | 无直接接口调用/通过封装模块调用 |
-| `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，优先使用后端 `attendantIncomeAmount` 展示真实收入；退款订单按 `settlementAmount` 结算，取消/超时关闭订单不产生收入。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
+| `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，优先使用后端 `attendantIncomeAmount` 展示真实收入；只展示实际到账金额大于 0 的收入记录；退款订单按 `settlementAmount` 结算，取消/超时关闭订单不产生收入。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
 | `subpkg/profile/qualification` | 资质管理 | 陪诊师资质管理，按状态总览、四项材料清单、审核记录三段展示；资质状态只表达待补充、审核中、已通过、未通过、证件过期，账号禁用不混入资质状态；驳回原因置顶高亮，已通过时不展示提交审核按钮。 | `/attendant/profile/{...}`<br>`/attendant/qualification/{...}/submit` |
 | `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期；页面按身份证、执业证、健康证三块分步展示，外层显示扫描/框选预览，点击查看原图；底部固定保存和提交审核，材料不完整时页面内提示原因。 | `/attendant/qualification/{...}`<br>`/attendant/qualification/{...}/submit`<br>`/api/common/upload-image` |
 | `subpkg/profile/reviews` | 我的评价 | 陪诊师评价列表，查看订单评价并回复用户评价；平均评分无评价时显示“暂无评分”。 | `/attendant/orders`<br>`/attendant/orders/` |
@@ -83,7 +83,7 @@
 - 小程序使用原生 Tab/分包跳转，登录态由 `stores/session.js`、`stores/user.js` 和请求封装维护。APP-PLUS Android 在 `App.vue` 的 `onLaunch` 和 `onShow` 自动调用 `/api/app-upgrade/check`，发现 `101` WGT 更新后下载、安装并重启；H5/非 APP 环境不会执行安装。Android WGT 资源包启用 `app-plus.compatible.ignoreVersion`，避免服务器 HBuilderX 5.07 生成的 WGT 在 5.06 Runtime 安装包中反复弹出版本不一致提示；后续发布完整 APK 时再升级内置 Runtime。
 - 陪诊师资质门禁弹窗只出现在接单厅入口和接单厅页面内：待审核不弹窗，待补充/未通过/证件过期同一前台会话同状态只提示一次；订单、消息、我的页面不自动弹资质提醒。
 - 评分展示统一通过 `utils/rating.js`：平均星级必须同时传入 `score` 和 `evaluationCount`，好评率必须同时传入 `praiseRate` 和 `evaluationCount`；缺少评价数或评价数为 0 时统一显示“暂无评分/暂无评价”，避免把旧缓存或缺省值显示成 100%。
-- 陪诊师收入展示统一通过 `utils/settlement.mjs`：钱包和已完成订单使用后端 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；待接单、专属派单和服务中页面只可展示预估收入；不得在页面内直接写 `orderAmount * 0.9`。
+- 陪诊师收入展示统一通过 `utils/settlement.mjs`：钱包和已完成订单使用后端 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；钱包收入列表过滤实际到账金额小于等于 0 的记录，并用“实际到账/按退款后结算”表达结算口径；待接单、专属派单和服务中页面只可展示预估收入；不得在页面内直接写 `orderAmount * 0.9`。
 - 管理端使用 Vue Router，`meta.requiresAuth` 路由必须存在管理端 token；401 响应会清理会话并跳转 `/admin/login`。
 - 管理端会在恢复本地会话时检查 JWT `exp`，过期 token 会直接清理并进入登录页；接口返回 401 时统一静默跳转登录页，不在后台页面残留“加载失败/登录失败”提示。
 - 微信登录入口按运行环境显示：微信小程序使用 `uni.login`，微信内 H5 使用公众号网页授权，普通浏览器 H5 保留手机号密码登录；管理端使用微信开放平台网站应用扫码登录。App 微信登录代码路径已预留，但 WGT 不能给已安装 App 动态新增原生 OAuth 模块，需后续发布完整 APK/IPA 时启用对应原生模块。

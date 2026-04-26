@@ -106,7 +106,7 @@ import { storeToRefs } from 'pinia'
 import { get, post } from '@/utils/api.js'
 import { useUserStore } from '@/stores/user'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
-import { calculateAttendantIncome } from '@/utils/settlement.mjs'
+import { calculateAttendantIncome, shouldDisplayIncomeRecord } from '@/utils/settlement.mjs'
 
 const userStore = useUserStore()
 const { balance } = storeToRefs(userStore)
@@ -156,7 +156,7 @@ const getStatusClass = (status) => {
 }
 
 const normalizedIncome = computed(() => {
-  return incomeRecords.value.map((item) => {
+  return incomeRecords.value.filter(shouldDisplayIncomeRecord).map((item) => {
     const orderNo = item.orderNo || '--'
     const serviceName = item.serviceTypeName || item.serviceContent || '服务收入'
     const serviceDate = item.serviceDate || '--'
@@ -164,11 +164,13 @@ const normalizedIncome = computed(() => {
     const amountValue = calculateAttendantIncome(item)
     const settlementAmount = Number(item.settlementAmount ?? item.orderAmount ?? 0)
     const refundAmount = Number(item.refundAmount || 0)
-    const extraNote = refundAmount > 0 ? ` · 已按退款后 ¥${formatMoney(settlementAmount)} 结算` : ''
+    const settlementNote = refundAmount > 0
+      ? `按退款后 ¥${formatMoney(settlementAmount)} 结算 · 实际到账`
+      : '实际到账'
     return {
       id: `income-${item.orderId || orderNo}`,
       title: `${serviceName} (订单 ${orderNo})`,
-      sub: `${timeText} · 已扣平台服务费${extraNote}`,
+      sub: `${timeText} · ${settlementNote}`,
       amount: amountValue,
       sortTime: parseTime(item.createTime) || parseTime(serviceDate)
     }
