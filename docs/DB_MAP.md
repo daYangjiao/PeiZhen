@@ -27,7 +27,7 @@
 | `db/20260425_attendant_qualification_scan_urls.sql` | 陪诊师资质材料扫描预览图字段；保留原图并为后台审核生成裁切增强图 |
 | `db/20260426_third_party_account_wechat_login.sql` | 微信多端登录第三方身份表；回填历史 `user.openid` 为小程序微信身份 |
 | `db/20260426_split_attendant_qualification_status.sql` | 拆分陪诊师资质状态与账号封禁状态；旧 `attendant.status=2` 迁移为 `user.status=0` 且 `qualification_status=2` |
-| `db/20260426_add_order_admin_remark.sql` | 幂等补齐订单争议处理备注字段 `order.admin_remark`，避免历史库争议处理更新备注时报缺列 |
+| `db/20260426_add_order_admin_remark.sql` | 幂等补齐订单争议处理持久字段 `order.admin_remark`、`dispute_resolved_by`、`dispute_resolved_time`，避免历史库争议处理更新时报缺列 |
 | `db/.gitkeep` | 保留后续日期命名数据库脚本目录 |
 
 ## 表结构地图

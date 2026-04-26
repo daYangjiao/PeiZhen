@@ -10,6 +10,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -47,6 +49,18 @@ class MyBatisMapperXmlTest {
         assertThat(selectSql).contains("balance_amount");
         assertThat(selectSql).contains("GREATEST(order_amount - refund_amount, 0)");
         assertThat(selectSql).doesNotContain("order_amount + COALESCE(balance_amount, 0)");
+    }
+
+    @Test
+    void orderDisputeMigrationShouldCoverAllPersistedResolutionColumns() throws Exception {
+        String migration = Files.readString(
+                Path.of("db/20260426_add_order_admin_remark.sql"),
+                StandardCharsets.UTF_8
+        );
+
+        assertThat(migration).contains("admin_remark");
+        assertThat(migration).contains("dispute_resolved_by");
+        assertThat(migration).contains("dispute_resolved_time");
     }
 
     private static Document parseXml(Resource resource) throws Exception {
