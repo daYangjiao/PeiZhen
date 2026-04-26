@@ -58,10 +58,13 @@
               <p class="section-copy">根据资质状态和账号状态分别处理。</p>
             </div>
             <div class="toolbar-group">
-              <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" @click="openReviewWorkbench(detail.user.id)">进入工作台处理</button>
+              <button v-if="detail.attendant.status === 0" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('approve')">通过资质</button>
+              <button v-if="detail.attendant.status === 0" class="button button-danger" type="button" @click="openActionDialog('reject')">驳回资质</button>
+              <button v-if="detail.attendant.status === 0" class="button button-secondary" type="button" @click="openReviewWorkbench(detail.user.id)">工作台流水线</button>
+              <button v-if="detail.attendant.status === 1" class="button button-danger" type="button" @click="openActionDialog('reject')">标记未通过</button>
               <button v-if="detail.user.status === 1" class="button button-danger" type="button" @click="openActionDialog('ban')">封禁账号</button>
               <button v-if="detail.user.status === 0" class="button button-primary" type="button" @click="openActionDialog('restore-status')">恢复账号</button>
-              <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">重新通过资质</button>
+              <button v-if="detail.attendant.status === 2" class="button button-primary" type="button" :disabled="!canApproveQualification" :title="approveDisabledReason" @click="openActionDialog('restore-review')">通过资质</button>
             </div>
           </div>
 
@@ -409,6 +412,11 @@ watch(() => route.params.id, loadDetail, { immediate: true })
 .audit-log-list {
   display: grid;
   gap: 8px;
+  margin-top: 12px;
+}
+
+.panel-card > .empty-card {
+  margin-top: 12px;
 }
 
 .audit-log-item {

@@ -640,8 +640,27 @@ public class AdminServiceImpl implements AdminService {
         log.setReason(trim(reason));
         log.setSnapshotJson(buildQualificationSnapshot(qualification));
         auditLogMapper.insert(log);
-        recordOperation(operatorId, "ATTENDANT", action, "ATTENDANT", userId, String.valueOf(userId),
+        recordOperation(operatorId, "ATTENDANT", action, "ATTENDANT", userId, buildUserTargetLabel(userId),
                 fromStatus, toStatus, reason, log.getSnapshotJson());
+    }
+
+    private String buildUserTargetLabel(Integer userId) {
+        User user = userId == null ? null : userMapper.findById(userId);
+        if (user == null) {
+            return userId == null ? null : String.valueOf(userId);
+        }
+        String name = trim(user.getName());
+        String phone = trim(user.getPhone());
+        if (hasText(name) && hasText(phone)) {
+            return name + "（" + maskPhone(phone) + "）";
+        }
+        if (hasText(name)) {
+            return name;
+        }
+        if (hasText(phone)) {
+            return maskPhone(phone);
+        }
+        return userId == null ? null : String.valueOf(userId);
     }
 
     private String buildQualificationSnapshot(AttendantQualification qualification) {

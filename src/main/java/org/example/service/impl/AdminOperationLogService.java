@@ -3,8 +3,10 @@ package org.example.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.dao.AdminOperationLogMapper;
 import org.example.dao.SysAdminMapper;
+import org.example.dao.UserMapper;
 import org.example.entity.SysAdmin;
 import org.example.model.AdminOperationLog;
+import org.example.model.User;
 import org.example.model.response.AdminOperationLogResponse;
 import org.example.model.response.PagedResponse;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ public class AdminOperationLogService {
 
     private final AdminOperationLogMapper operationLogMapper;
     private final SysAdminMapper sysAdminMapper;
+    private final UserMapper userMapper;
 
     public void record(Integer operatorId, String module, String action, String targetType, Integer targetId,
                        String targetLabel, Integer fromStatus, Integer toStatus, String remark, String snapshotJson) {
@@ -113,7 +116,7 @@ public class AdminOperationLogService {
             response.setAction(log.getAction());
             response.setTargetType(log.getTargetType());
             response.setTargetId(log.getTargetId());
-            response.setTargetLabel(log.getTargetLabel());
+            response.setTargetLabel(resolveTargetLabel(log));
             response.setFromStatus(log.getFromStatus());
             response.setToStatus(log.getToStatus());
             response.setRemark(log.getRemark());
@@ -121,6 +124,55 @@ public class AdminOperationLogService {
             responses.add(response);
         }
         return responses;
+    }
+
+    private String resolveTargetLabel(AdminOperationLog log) {
+        String targetLabel = trim(log.getTargetLabel());
+        if (hasMeaningfulTargetLabel(targetLabel, log.getTargetType(), log.getTargetId())) {
+            return targetLabel;
+        }
+        if ("ATTENDANT".equals(log.getTargetType()) || "USER".equals(log.getTargetType())) {
+            return buildUserTargetLabel(log.getTargetId(), targetLabel);
+        }
+        if ("SYS_ADMIN".equals(log.getTargetType())) {
+            SysAdmin admin = log.getTargetId() == null ? null : sysAdminMapper.findById(log.getTargetId());
+            if (admin != null && trim(admin.getName()) != null) {
+                return admin.getName();
+            }
+        }
+        return targetLabel;
+    }
+
+    private boolean hasMeaningfulTargetLabel(String targetLabel, String targetType, Integer targetId) {
+        if (targetLabel == null || targetLabel.isEmpty()) {
+            return false;
+        }
+        if (targetId == null) {
+            return true;
+        }
+        String id = String.valueOf(targetId);
+        return !targetLabel.equals(id)
+                && !targetLabel.equals("#" + id)
+                && !targetLabel.equals(trim(targetType) + " #" + id);
+    }
+
+    private String buildUserTargetLabel(Integer userId, String fallback) {
+        User user = userId == null ? null : userMapper.findById(userId);
+        if (user == null) {
+            return fallback;
+        }
+        String name = trim(user.getName());
+        String phone = trim(user.getPhone());
+        if (name != null && !name.isEmpty() && phone != null && !phone.isEmpty()) {
+            return name + "（" + maskPhone(phone) + "）";
+        }
+        if (name != null && !name.isEmpty()) {
+            return name;
+        }
+        if (phone != null && !phone.isEmpty()) {
+            return maskPhone(phone);
+        }
+        return fallback;
     }
 
     private int normalizePage(Integer page) {

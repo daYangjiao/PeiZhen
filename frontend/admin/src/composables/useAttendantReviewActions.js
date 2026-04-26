@@ -50,8 +50,8 @@ export const ATTENDANT_ACTION_META = {
     needReason: false
   },
   'restore-review': {
-    title: '重新通过审核',
-    description: '将未通过的资质重新标记为已通过。',
+    title: '通过资质',
+    description: '将该陪诊师资质标记为已通过。',
     confirmText: '确认通过',
     confirmTone: 'button-primary',
     needReason: false

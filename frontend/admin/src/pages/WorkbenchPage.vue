@@ -93,19 +93,19 @@
             <section class="workspace-section">
               <div class="dispute-focus-grid">
                 <article class="dispute-focus-card attendant-side">
-                  <p class="dispute-focus-label">陪诊师提交</p>
+                  <p class="dispute-focus-label">陪诊师提交时长</p>
                   <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
-                  <span>提交金额 {{ formatMoney(attendantSuggestedAmount) }}</span>
-                  <p class="dispute-focus-copy">{{ order.adminRemark || '陪诊师提交实际服务时长后，用户未认可并发起申诉。' }}</p>
+                  <span>系统计算应收 {{ formatMoney(attendantSuggestedAmount) }}</span>
+                  <p class="dispute-focus-copy">当前流程陪诊师只提交实际服务时长，未要求填写说明；这里展示的是系统按实际时长计算的费用依据。</p>
                 </article>
                 <article class="dispute-focus-card user-side">
-                  <p class="dispute-focus-label">用户申诉重点</p>
+                  <p class="dispute-focus-label">用户不认可原因</p>
                   <strong>{{ formatDurationHour(order.timeDisputeUserDuration) }}</strong>
-                  <span>{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
-                  <p class="dispute-focus-copy">请优先核对用户申诉原因、服务时间和双方金额差异。</p>
+                  <span class="dispute-reason-text">{{ order.timeDisputeReason || '未填写申诉说明' }}</span>
+                  <p class="dispute-focus-copy">用户不认可后会直接进入平台争议处理，不会打回陪诊师重新提交。</p>
                 </article>
                 <article class="dispute-focus-card result-side">
-                  <p class="dispute-focus-label">裁定结果预览</p>
+                  <p class="dispute-focus-label">平台裁定去向</p>
                   <strong>{{ disputePreviewLabel }}</strong>
                   <span>{{ disputePreviewAmount }}</span>
                   <p class="dispute-focus-copy">最终金额高于已付金额时，订单进入待用户补差额。</p>
@@ -894,8 +894,9 @@ onBeforeUnmount(() => {
 }
 
 .dispute-focus-card.user-side {
-  border-color: rgba(228, 85, 85, 0.18);
-  background: linear-gradient(180deg, #fff 0%, #fff4f4 100%);
+  border-color: rgba(228, 85, 85, 0.32);
+  background: linear-gradient(180deg, #fff 0%, #fff3f3 100%);
+  box-shadow: 0 14px 28px rgba(228, 85, 85, 0.08);
 }
 
 .dispute-focus-card.result-side {
@@ -926,6 +927,14 @@ onBeforeUnmount(() => {
   margin: 0;
   color: var(--text-muted);
   line-height: 1.55;
+}
+
+.dispute-reason-text {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(228, 85, 85, 0.18);
 }
 
 .evidence-label,

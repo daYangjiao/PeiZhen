@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -33,6 +34,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +58,8 @@ class AdminServiceImplTest {
     private OrderEvaluationMapper orderEvaluationMapper;
     @Mock
     private OrderService orderService;
+    @Mock
+    private AdminOperationLogService operationLogService;
 
     private AdminServiceImpl newService() {
         return new AdminServiceImpl(userMapper, attendantMapper, attendantQualificationMapper, auditLogMapper,
@@ -281,9 +285,12 @@ class AdminServiceImplTest {
     @Test
     void reviewAttendantQualificationShouldWriteAdminAuditLog() {
         AdminServiceImpl service = newService();
+        ReflectionTestUtils.setField(service, "operationLogService", operationLogService);
 
         User user = new User();
         user.setId(702);
+        user.setName("王小花");
+        user.setPhone("17311209183");
         user.setStatus(1);
         Attendant attendant = new Attendant();
         attendant.setUserId(702);
@@ -317,6 +324,18 @@ class AdminServiceImplTest {
                         && Integer.valueOf(1).equals(patch.getQualificationStatus())
                         && patch.getStatus() == null
         ));
+        verify(operationLogService).record(
+                eq(2),
+                eq("ATTENDANT"),
+                eq("APPROVE"),
+                eq("ATTENDANT"),
+                eq(702),
+                eq("王小花（173****9183）"),
+                eq(0),
+                eq(1),
+                isNull(),
+                ArgumentMatchers.anyString()
+        );
     }
 
     @Test
