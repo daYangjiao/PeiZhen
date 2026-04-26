@@ -56,7 +56,7 @@ export const calculateDisplayAttendantIncome = (order = {}) => {
   if (status === 6) {
     return calculateAttendantIncome(order)
   }
-  if (status === 7) {
+  if (status === 7 || status === 10) {
     return 0
   }
   return calculateEstimatedAttendantIncome(order)

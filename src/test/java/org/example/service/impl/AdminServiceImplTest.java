@@ -452,7 +452,7 @@ class AdminServiceImplTest {
     }
 
     @Test
-    void resolveDisputeShouldCompleteAndRefundWhenFinalAmountLowerThanPaid() {
+    void resolveDisputeShouldEnterRefundPendingWhenFinalAmountLowerThanPaid() {
         AdminServiceImpl service = newService();
         Order order = new Order();
         order.setOrderId(802);
@@ -473,7 +473,7 @@ class AdminServiceImplTest {
 
         verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
                 Integer.valueOf(802).equals(patch.getOrderId())
-                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && Integer.valueOf(10).equals(patch.getOrderStatus())
                         && new BigDecimal("170.00").compareTo(patch.getOrderAmount()) == 0
                         && new BigDecimal("-60.00").compareTo(patch.getBalanceAmount()) == 0
                         && new BigDecimal("60.00").compareTo(patch.getRefundAmount()) == 0
@@ -526,10 +526,34 @@ class AdminServiceImplTest {
 
         verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
                 Integer.valueOf(803).equals(patch.getOrderId())
-                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && Integer.valueOf(10).equals(patch.getOrderStatus())
                         && new BigDecimal("140.00").compareTo(patch.getOrderAmount()) == 0
                         && new BigDecimal("-30.00").compareTo(patch.getBalanceAmount()) == 0
                         && new BigDecimal("30.00").compareTo(patch.getRefundAmount()) == 0
+        ));
+    }
+
+    @Test
+    void completeDisputeRefundShouldCompleteRefundPendingOrder() {
+        AdminServiceImpl service = newService();
+        Order order = new Order();
+        order.setOrderId(805);
+        order.setOrderNo("ORD-805");
+        order.setUserId(11);
+        order.setAttendantId(12);
+        order.setOrderStatus(10);
+        order.setOrderAmount(new BigDecimal("170.00"));
+        order.setBalanceAmount(new BigDecimal("-60.00"));
+        order.setRefundAmount(new BigDecimal("60.00"));
+
+        when(orderMapper.selectByPrimaryKey(805)).thenReturn(order);
+
+        service.completeDisputeRefund(2, 805, "已完成原路退款");
+
+        verify(orderMapper).updateByPrimaryKeySelective(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(805).equals(patch.getOrderId())
+                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && "已完成原路退款".equals(patch.getAdminRemark())
         ));
     }
 

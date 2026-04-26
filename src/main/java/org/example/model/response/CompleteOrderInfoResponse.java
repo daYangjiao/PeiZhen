@@ -118,6 +118,9 @@ public class CompleteOrderInfoResponse {
     // 新增：实际服务时长
     @ApiModelProperty(value = "实际服务时长")
     private BigDecimal actualDuration;
+
+    @ApiModelProperty(value = "陪诊师提交时长说明")
+    private String attendantTimeRemark;
     
     // 新增：预估服务时长
     @ApiModelProperty(value = "预估服务时长")
@@ -126,6 +129,15 @@ public class CompleteOrderInfoResponse {
     // 新增：差价金额
     @ApiModelProperty(value = "差价金额")
     private BigDecimal balanceAmount;
+
+    @ApiModelProperty(value = "用户申诉的实际时长")
+    private BigDecimal timeDisputeUserDuration;
+
+    @ApiModelProperty(value = "用户申诉原因")
+    private String timeDisputeReason;
+
+    @ApiModelProperty(value = "平台处理说明")
+    private String adminRemark;
     
     // 新增：服务开始时间
     @ApiModelProperty(value = "服务开始时间")

@@ -1,8 +1,14 @@
 <template>
   <view v-if="visible" class="qualification-modal-mask" @click="close">
     <view class="qualification-modal" :class="`state-${gate.state}`" @click.stop>
-      <view class="modal-mark">{{ markText }}</view>
-      <view class="modal-title">{{ gate.title || '资质状态提醒' }}</view>
+      <view class="modal-handle"></view>
+      <view class="modal-head">
+        <view class="modal-mark">{{ markText }}</view>
+        <view class="modal-title-wrap">
+          <view class="modal-kicker">接单门禁</view>
+          <view class="modal-title">{{ gate.title || '资质状态提醒' }}</view>
+        </view>
+      </view>
       <view class="modal-message">{{ gate.message || '请先完善资质后再继续操作。' }}</view>
       <view class="modal-actions">
         <button class="modal-btn secondary" @click="close">稍后</button>
@@ -71,17 +77,18 @@ onUnmounted(() => {
   z-index: 2200;
   background: rgba(17, 24, 39, 0.44);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 48rpx;
+  padding: 28rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 .qualification-modal {
   width: 100%;
-  max-width: 620rpx;
-  padding: 46rpx 34rpx 32rpx;
-  border-radius: 40rpx;
+  max-width: 680rpx;
+  max-height: 86vh;
+  padding: 18rpx 34rpx 32rpx;
+  border-radius: 38rpx;
   background: #ffffff;
   border: 1rpx solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 30rpx 90rpx rgba(25, 66, 128, 0.22);
@@ -89,10 +96,24 @@ onUnmounted(() => {
   animation: qualificationModalIn 180ms ease-out;
 }
 
+.modal-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 28rpx;
+  border-radius: 999rpx;
+  background: #d7e5f5;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+}
+
 .modal-mark {
-  width: 92rpx;
-  height: 92rpx;
-  margin: 0 auto 24rpx;
+  width: 84rpx;
+  height: 84rpx;
+  flex: 0 0 84rpx;
   border-radius: 32rpx;
   background: #eef6ff;
   color: $escort-color-primary;
@@ -101,6 +122,18 @@ onUnmounted(() => {
   justify-content: center;
   font-size: 38rpx;
   font-weight: 800;
+}
+
+.modal-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.modal-kicker {
+  font-size: 23rpx;
+  color: #6b7a90;
+  margin-bottom: 6rpx;
+  font-weight: 700;
 }
 
 .state-rejected .modal-mark,
@@ -116,7 +149,7 @@ onUnmounted(() => {
 }
 
 .modal-title {
-  text-align: center;
+  text-align: left;
   font-size: 36rpx;
   line-height: 1.3;
   color: #172033;
@@ -124,14 +157,14 @@ onUnmounted(() => {
 }
 
 .modal-message {
-  margin-top: 18rpx;
+  margin-top: 24rpx;
   padding: 22rpx 24rpx;
   border-radius: 26rpx;
   background: #f7faff;
   color: #53627a;
   font-size: 27rpx;
   line-height: 1.65;
-  text-align: center;
+  text-align: left;
 }
 
 .modal-actions {
@@ -143,11 +176,22 @@ onUnmounted(() => {
 
 .modal-btn {
   height: 84rpx;
-  line-height: 84rpx;
+  line-height: normal;
   border: none;
   border-radius: 999rpx;
   font-size: 28rpx;
   font-weight: 700;
+  padding: 0 18rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.modal-btn::after {
+  border: none;
 }
 
 .modal-btn.secondary {
@@ -164,11 +208,11 @@ onUnmounted(() => {
 @keyframes qualificationModalIn {
   from {
     opacity: 0;
-    transform: translateY(28rpx) scale(0.96);
+    transform: translateY(60rpx);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 </style>

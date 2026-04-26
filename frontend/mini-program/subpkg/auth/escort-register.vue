@@ -101,7 +101,7 @@
         <view class="sheet-handle"></view>
         <view class="success-mark">✓</view>
         <text class="success-title">账号已创建</text>
-        <text class="success-desc">接下来上传身份证、执业证书和健康证。审核通过后即可进入接单大厅。</text>
+        <text class="success-desc">账号可进入陪诊师端。接单前需要上传身份证、执业证书和健康证，点击接单厅时会提示完善资质。</text>
         <view class="success-steps">
           <view class="success-step done">
             <text class="step-dot">1</text>
@@ -117,7 +117,7 @@
           </view>
         </view>
         <view class="sheet-actions">
-          <button class="sheet-btn primary" @click="goLoginAfterQualification">登录并上传资质</button>
+          <button class="sheet-btn primary" @click="goLoginAfterQualification">登录进入陪诊师端</button>
           <button class="sheet-btn secondary" @click="goLogin">稍后完善</button>
         </view>
       </view>

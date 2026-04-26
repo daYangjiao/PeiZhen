@@ -125,6 +125,7 @@ const statusTabs = ref([
   { name: '待患者确认', value: 4 },
   { name: '争议中', value: 5 },
   { name: '待补差额', value: 9 },
+  { name: '待退款', value: 10 },
   { name: '已完成', value: 6 },
   { name: '已取消', value: 7 }
 ])
@@ -284,7 +285,7 @@ const getStatusText = (order) => {
   if (status === 8) {
     return getOrderExclusiveDisplayState(order).statusText
   }
-  const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '争议处理中', 6: '已完成', 7: '已取消', 9: '待用户补差额' }
+  const map = { 1: '待接单', 8: '专属派单待确认', 2: '待核销', 3: '服务中', 4: '待患者确认', 5: '争议处理中', 6: '已完成', 7: '已取消', 9: '待用户补差额', 10: '待平台退款' }
   return map[status] || '未知'
 }
 const getStatusClass = (order) => {
@@ -292,7 +293,7 @@ const getStatusClass = (order) => {
   if (status === 8 && getOrderExclusiveDisplayState(order).ended) {
     return 'status-flowed'
   }
-  const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 5: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled', 9: 'status-confirm' }
+  const map = { 1: 'status-waiting', 8: 'status-waiting', 2: 'status-accepted', 3: 'status-service', 4: 'status-confirm', 5: 'status-confirm', 6: 'status-completed', 7: 'status-cancelled', 9: 'status-confirm', 10: 'status-confirm' }
   return map[status] || 'status-default'
 }
 
@@ -359,7 +360,7 @@ const startPolling = () => {
   stopPolling()
   pollTimer = setInterval(() => {
     if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
-    const shouldPoll = orders.value.some((order) => [2, 3, 4, 5, 8, 9].includes(normalizeStatus(order.orderStatus)))
+    const shouldPoll = orders.value.some((order) => [2, 3, 4, 5, 8, 9, 10].includes(normalizeStatus(order.orderStatus)))
     if (shouldPoll) {
       loadOrders({ silent: true })
     }

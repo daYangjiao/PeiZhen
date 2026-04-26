@@ -33,7 +33,7 @@
 
     <!-- 服务进度条（与陪诊师端四步保持一致） -->
     <view
-      v-if="order.orderStatus === 3 || order.orderStatus === 4 || order.orderStatus === 6"
+      v-if="order.orderStatus === 3 || order.orderStatus === 4 || order.orderStatus === 6 || order.orderStatus === 10"
       class="service-progress-card"
     >
       <view class="service-progress-title">服务进度</view>
@@ -319,14 +319,22 @@
     <view v-if="showBalancePayResultModal" class="payment-modal-overlay" @click="showBalancePayResultModal = false">
       <view class="payment-modal-content" @click.stop>
         <view class="payment-modal-header">
-          <text class="payment-modal-title">补付结果确认</text>
+          <text class="payment-modal-title">平台处理结果</text>
         </view>
         <view class="payment-modal-body">
-          <text class="payment-modal-text">请确认本次补付的支付结果：</text>
+          <view class="payment-result-card">
+            <text class="payment-result-label">待补差额</text>
+            <text class="payment-result-amount">¥{{ formatAmount(order.balanceAmount) }}</text>
+          </view>
+          <view class="payment-remark-card">
+            <text class="payment-remark-label">平台处理说明</text>
+            <text class="payment-remark-text">{{ platformRemarkText }}</text>
+          </view>
+          <text class="payment-modal-text">认可处理结果后继续补付；如仍不认可，可再次提交申诉。</text>
         </view>
         <view class="payment-modal-footer">
-          <button class="payment-modal-btn success-btn" @click="handleBalancePayResult(true)">已支付</button>
-          <button class="payment-modal-btn fail-btn" @click="handleBalancePayResult(false)">未支付</button>
+          <button class="payment-modal-btn fail-btn" @click="handleBalanceDispute">继续申诉</button>
+          <button class="payment-modal-btn success-btn" @click="handleBalancePayResult(true)">继续补付</button>
         </view>
       </view>
     </view>
@@ -388,6 +396,31 @@
     </view>
 
     <!-- 服务记录（时间轴样式） -->
+    <view
+      v-if="order.timeDisputeReason || order.adminRemark || order.orderStatus === 9"
+      class="dispute-result-section"
+    >
+      <view class="record-title">争议处理</view>
+      <view class="dispute-result-grid">
+        <view class="dispute-result-item" v-if="order.timeDisputeUserDuration">
+          <text class="dispute-result-label">您认可的时长</text>
+          <text class="dispute-result-value">{{ formatDuration(order.timeDisputeUserDuration) }}小时</text>
+        </view>
+        <view class="dispute-result-item" v-if="order.timeDisputeReason">
+          <text class="dispute-result-label">您的申诉原因</text>
+          <text class="dispute-result-value">{{ order.timeDisputeReason }}</text>
+        </view>
+        <view class="dispute-result-item full" v-if="order.adminRemark">
+          <text class="dispute-result-label">平台处理说明</text>
+          <text class="dispute-result-value">{{ order.adminRemark }}</text>
+        </view>
+        <view class="dispute-result-item full" v-if="order.orderStatus === 9">
+          <text class="dispute-result-label">当前处理</text>
+          <text class="dispute-result-value">请补付差额 ¥{{ formatAmount(order.balanceAmount) }}，仍不认可可继续申诉。</text>
+        </view>
+      </view>
+    </view>
+
     <view class="record-section">
       <view class="record-title">服务记录</view>
       <view class="record-list">
@@ -529,6 +562,7 @@ const userEvaluation = ref(null); // 我的评价（含陪诊师回复）
 const balancePayMethod = ref('wechat'); // 差额支付方式，默认微信
 const showBalancePayResultModal = ref(false); // 补付结果弹窗
 const showContactModal = ref(false); // 联系陪诊师方式弹窗
+const balancePromptedOrderKey = ref('');
 let pollTimer = null; // 订单实时同步轮询定时器
 let payCountdownTimer = null; // 待支付倒计时定时器
 let assignedCountdownTimer = null; // 专属派单待确认倒计时定时器
@@ -604,7 +638,7 @@ const confirmBtnText = computed(() => {
   const b = Number(order.value.balanceAmount);
   if (b === 0) return '确认完成';
   if (b > 0) return `确认补付 ¥${formatAmount(b)}`;
-  return '确认退款';
+  return '确认并等待退款';
 });
 
 // 是否已评价（前端本地标记，后端接入后可替换）
@@ -644,6 +678,10 @@ const primaryActionText = computed(() => {
 
   if (status === 9) {
     return '支付差额';
+  }
+
+  if (status === 10) {
+    return '查看退款进度';
   }
 
   // 已完成：优先评价，评价后展示再次下单
@@ -694,6 +732,11 @@ const diffLabel = computed(() => {
   if (!hasDiff.value) return '无差额';
   if (diffAmount.value > 0) return '实际补付';
   return '实际退款';
+});
+
+const platformRemarkText = computed(() => {
+  const remark = String(order.value?.adminRemark || '').trim();
+  return remark || '平台已完成本次时长与费用核定，请按页面金额继续处理。';
 });
 
 // 服务进度（用户端进度条，来源于后端 serviceProgressStep）
@@ -939,6 +982,20 @@ const serviceSteps = computed(() => {
       steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
       steps.push({ title: '待补差额', desc: '请完成平台核定的差额支付', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
       break;
+    case 10:
+      steps.push({
+        title: '陪诊师已接单',
+        desc: '陪诊师已接单，准备为您服务',
+        time: acceptTime
+      });
+      steps.push({
+        title: '服务开始',
+        desc: '陪诊师已开始服务',
+        time: startTime
+      });
+      steps.push({ title: '服务结束', desc: '陪诊师已结束服务', time: endTime });
+      steps.push({ title: '待平台退款', desc: '平台正在处理退差价，完成后订单结束', time: formatOrderDateTime(order.value.updateTime || order.value.serviceEndTime) });
+      break;
     case 6:
       steps.push({
         title: '陪诊师已接单',
@@ -982,9 +1039,11 @@ const getOrderStatusText = (order) => {
     2: '待服务', // 修改：将“已接单”改为“待服务”
     3: '服务中',
     4: '待确认时长',
-    5: '待支付差价',
+    5: '平台争议处理中',
     6: '已完成',
-    7: '已取消'
+    7: '已取消',
+    9: '待补差额',
+    10: '待平台退款'
   };
   return statusMap[order.orderStatus] || '未知状态';
 };
@@ -1004,6 +1063,8 @@ const getStatusClass = (order) => {
     3: 'status-service',
     4: 'status-confirm',
     5: 'status-dispute',
+    9: 'status-balance',
+    10: 'status-dispute',
     6: 'status-completed',
     7: 'status-cancelled'
   };
@@ -1302,6 +1363,11 @@ const handleBalancePayResult = async (isPaid) => {
   }
 };
 
+const handleBalanceDispute = () => {
+  showBalancePayResultModal.value = false;
+  openDisputeModal();
+};
+
 // 底部主操作按钮行为
 const handlePrimaryAction = () => {
   if (!order.value) return;
@@ -1345,6 +1411,14 @@ const handlePrimaryAction = () => {
 
   if (status === 9) {
     showBalancePayResultModal.value = true;
+    return;
+  }
+
+  if (status === 10) {
+    uni.pageScrollTo({
+      selector: '.record-section',
+      duration: 300
+    });
     return;
   }
 
@@ -1533,6 +1607,17 @@ const fetchOrderDetail = async (orderKey) => {
     order.value = {
       ...data
     };
+
+    const balancePromptKey = `${data.orderId || data.orderNo || orderKey}:9`;
+    if (Number(data.orderStatus) === 9 && Number(data.balanceAmount || 0) > 0) {
+      if (balancePromptedOrderKey.value !== balancePromptKey) {
+        balancePromptedOrderKey.value = balancePromptKey;
+        showBalancePayResultModal.value = true;
+      }
+    } else if (balancePromptedOrderKey.value === balancePromptKey) {
+      balancePromptedOrderKey.value = '';
+      showBalancePayResultModal.value = false;
+    }
 
     if (qrSourceChanged) {
       currentQrSourceKey.value = nextQrSourceKey;
@@ -2621,6 +2706,48 @@ onUnmounted(() => {
   box-shadow: 0 6rpx 20rpx rgba(15, 23, 42, 0.06);
 }
 
+.dispute-result-section {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #dbeafe;
+  box-shadow: 0 12rpx 34rpx rgba(37, 99, 235, 0.08);
+}
+
+.dispute-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.dispute-result-item {
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #f7faff;
+  border: 1rpx solid #e1edff;
+}
+
+.dispute-result-item.full {
+  grid-column: 1 / -1;
+}
+
+.dispute-result-label {
+  display: block;
+  font-size: 23rpx;
+  color: #6b7a90;
+  margin-bottom: 10rpx;
+}
+
+.dispute-result-value {
+  display: block;
+  font-size: 27rpx;
+  line-height: 1.55;
+  color: #172033;
+  font-weight: 700;
+  word-break: break-word;
+}
+
 .record-title {
   font-size: 32rpx;
   font-weight: 500;
@@ -2844,22 +2971,71 @@ onUnmounted(() => {
   padding: 20rpx 34rpx 8rpx;
   overflow-y: auto;
   min-height: 0;
-  text-align: center;
+  text-align: left;
 }
 
 .payment-modal-text {
   display: block;
-  padding: 22rpx 24rpx;
+  margin-top: 18rpx;
+  padding: 20rpx 22rpx;
   border-radius: 26rpx;
   background: #f7faff;
   font-size: 28rpx;
   color: #53627a;
   line-height: 1.6;
+  text-align: center;
+}
+
+.payment-result-card {
+  padding: 24rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #fff7ed, #ffffff);
+  border: 1rpx solid #fed7aa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.payment-result-label {
+  font-size: 26rpx;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.payment-result-amount {
+  font-size: 38rpx;
+  color: #ea580c;
+  font-weight: 900;
+}
+
+.payment-remark-card {
+  margin-top: 18rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 26rpx;
+  background: #f8fbff;
+  border: 1rpx solid #dbeafe;
+}
+
+.payment-remark-label {
+  display: block;
+  font-size: 24rpx;
+  color: #5d738b;
+  margin-bottom: 10rpx;
+}
+
+.payment-remark-text {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #172033;
+  font-weight: 700;
+  word-break: break-word;
 }
 
 .payment-modal-footer {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: 1fr 1.15fr;
   padding: 30rpx 34rpx 34rpx;
   gap: 18rpx;
 }

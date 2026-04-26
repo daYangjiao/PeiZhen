@@ -346,7 +346,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public void cancelOrder(Integer operatorId, Integer orderId, AdminOrderCancelRequest request) {
         Order order = requireOrder(orderId);
-        if (order.getOrderStatus() != null && (order.getOrderStatus() == 6 || order.getOrderStatus() == 7)) {
+        if (order.getOrderStatus() != null && (order.getOrderStatus() == 6 || order.getOrderStatus() == 7 || order.getOrderStatus() == 10)) {
             throw new IllegalArgumentException("当前订单状态不允许取消");
         }
         String reason = request != null && hasText(request.getReason()) ? request.getReason().trim() : "管理员取消订单";
@@ -419,7 +419,14 @@ public class AdminServiceImpl implements AdminService {
 
         BigDecimal normalizedFinalAmount = finalAmount.setScale(2, RoundingMode.HALF_UP);
         BigDecimal balance = normalizedFinalAmount.subtract(currentAmount).setScale(2, RoundingMode.HALF_UP);
-        Integer nextStatus = balance.compareTo(BigDecimal.ZERO) > 0 ? 9 : 6;
+        Integer nextStatus;
+        if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            nextStatus = 9;
+        } else if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            nextStatus = 10;
+        } else {
+            nextStatus = 6;
+        }
         Order patch = new Order();
         patch.setOrderId(orderId);
         patch.setActualDuration(finalDuration);
@@ -438,12 +445,18 @@ public class AdminServiceImpl implements AdminService {
         order.setBalanceAmount(balance);
         order.setRefundAmount(patch.getRefundAmount());
         order.setOrderStatus(nextStatus);
-        String userMessage = nextStatus == 9
-                ? "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，请完成差额支付。"
-                : "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。";
-        String attendantMessage = nextStatus == 9
-                ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，等待用户支付差额。"
-                : "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。";
+        String userMessage;
+        String attendantMessage;
+        if (nextStatus == 9) {
+            userMessage = "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，请完成差额支付。处理说明：" + trim(request.getAdminRemark());
+            attendantMessage = "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，等待用户支付差额。";
+        } else if (nextStatus == 10) {
+            userMessage = "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，平台将为您处理退差价。处理说明：" + trim(request.getAdminRemark());
+            attendantMessage = "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，等待平台退差价。";
+        } else {
+            userMessage = "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。处理说明：" + trim(request.getAdminRemark());
+            attendantMessage = "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的争议已由平台处理，订单已完成。";
+        }
         orderService.notifyOrderParties(
                 order,
                 userMessage,
@@ -452,6 +465,39 @@ public class AdminServiceImpl implements AdminService {
         orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
         recordOperation(operatorId, "ORDER", "RESOLVE_DISPUTE", "ORDER", orderId, order.getOrderNo(),
                 5, nextStatus, trim(request.getAdminRemark()), buildOrderSnapshot(order));
+    }
+
+    @Override
+    @Transactional
+    public void completeDisputeRefund(Integer operatorId, Integer orderId, String adminRemark) {
+        Order order = requireOrder(orderId);
+        if (order.getOrderStatus() == null || order.getOrderStatus() != 10) {
+            throw new IllegalArgumentException("只有待平台退款订单才能确认退款");
+        }
+        BigDecimal refundAmount = order.getRefundAmount() == null ? BigDecimal.ZERO : order.getRefundAmount();
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("当前订单没有可确认的退款金额");
+        }
+        String remark = hasText(adminRemark) ? adminRemark.trim() : "平台已完成退款";
+
+        Order patch = new Order();
+        patch.setOrderId(orderId);
+        patch.setOrderStatus(6);
+        patch.setAdminRemark(remark);
+        orderMapper.updateByPrimaryKeySelective(patch);
+
+        order.setOrderStatus(6);
+        order.setAdminRemark(remark);
+        orderService.notifyOrderParties(
+                order,
+                "您的订单" + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的退款已处理完成，订单已完成。",
+                order.getAttendantId() != null
+                        ? "订单 " + (order.getOrderNo() != null ? order.getOrderNo() : "") + " 的退款已由平台处理完成，订单已完成。"
+                        : null
+        );
+        orderService.publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+        recordOperation(operatorId, "ORDER", "COMPLETE_REFUND", "ORDER", orderId, order.getOrderNo(),
+                10, 6, remark, buildOrderSnapshot(order));
     }
 
     private BigDecimal calculateFinalAmountByDuration(Order order, BigDecimal finalDuration, BigDecimal fallbackAmount) {
@@ -822,6 +868,8 @@ public class AdminServiceImpl implements AdminService {
                 return "专属派单待确认";
             case 9:
                 return "待用户补差额";
+            case 10:
+                return "待平台退款";
             default:
                 return "未知";
         }

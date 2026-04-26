@@ -125,6 +125,7 @@ const statusTabs = ref([
   { name: '待确认时长', value: 4 },
   { name: '争议中', value: 5 },
   { name: '待补差额', value: 9 },
+  { name: '待退款', value: 10 },
   { name: '已完成', value: 6 },
   { name: '已取消', value: 7 }
 ])
@@ -328,7 +329,8 @@ const getStatusText = (orderOrStatus) => {
     5: '争议处理中',
     6: '已完成',
     7: '已取消',
-    9: '待补差额'
+    9: '待补差额',
+    10: '待平台退款'
   }
   return map[status] || '未知'
 }
@@ -343,6 +345,7 @@ const getStatusClass = (status) => {
     4: 'status-confirm',
     5: 'status-dispute',
     9: 'status-balance',
+    10: 'status-balance',
     6: 'status-completed',
     7: 'status-cancelled'
   }
@@ -407,7 +410,7 @@ const startPolling = () => {
     if (!pageActive || isOrderListLoading() || isOrderSocketOpen()) return
     const shouldPoll = orders.value.some(order =>
       (order.paymentStatus === 0 && order.orderStatus !== 7) ||
-      [1, 2, 3, 4, 5, 8, 9].includes(order.orderStatus)
+      [1, 2, 3, 4, 5, 8, 9, 10].includes(order.orderStatus)
     )
     if (shouldPoll) loadOrders({ silent: true })
   }, ORDER_LIST_POLL_INTERVAL)

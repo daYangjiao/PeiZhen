@@ -137,6 +137,7 @@
             </span>
             <button v-if="canCancel(currentOrder.orderStatus)" class="button button-danger" type="button" @click="openCancelDialog(currentOrder)">取消订单</button>
             <button v-if="currentOrder.orderStatus === 5" class="button button-primary" type="button" @click="openDisputeWorkbench(currentOrder.orderId)">进入工作台处理</button>
+            <button v-if="currentOrder.orderStatus === 10" class="button button-primary" type="button" @click="openRefundDialog(currentOrder)">确认已退款</button>
             <button class="button button-ghost" type="button" @click="openStandaloneDetail">打开独立详情</button>
           </div>
         </div>
@@ -324,7 +325,7 @@
       </template>
     </BaseDialog>
 
-    <BaseDialog v-model="disputeDialogOpen" title="处理争议订单" description="最终金额高于当前已付金额时，订单会进入待用户补差额。" width="620px">
+    <BaseDialog v-model="disputeDialogOpen" title="处理争议订单" description="补差额进入用户支付，退差价进入待平台退款，零差额才直接完成。" width="620px">
       <div class="page-stack">
         <div class="kv-grid" v-if="currentOrder">
           <div class="kv-item">
@@ -372,6 +373,31 @@
         </button>
       </template>
     </BaseDialog>
+
+    <BaseDialog v-model="refundDialogOpen" title="确认退款完成" description="仅在平台已完成原路退款或线下退款后确认，确认后订单才会完成。" width="560px">
+      <div class="page-stack">
+        <div class="kv-grid" v-if="currentOrder">
+          <div class="kv-item">
+            <p class="kv-label">订单号</p>
+            <p class="kv-value">{{ currentOrder.orderNo }}</p>
+          </div>
+          <div class="kv-item">
+            <p class="kv-label">退款金额</p>
+            <p class="kv-value">{{ formatMoney(currentOrder.refundAmount) }}</p>
+          </div>
+        </div>
+        <label class="login-field">
+          <span>退款备注</span>
+          <textarea v-model.trim="refundForm.adminRemark" class="filter-textarea" placeholder="例如：已完成原路退款"></textarea>
+        </label>
+      </div>
+      <template #footer>
+        <button class="button button-ghost" type="button" @click="refundDialogOpen = false">取消</button>
+        <button class="button button-primary" type="button" :disabled="actionLoading" @click="submitRefundComplete">
+          {{ actionLoading ? '提交中...' : '确认退款完成' }}
+        </button>
+      </template>
+    </BaseDialog>
   </AppShell>
 </template>
 
@@ -384,7 +410,7 @@ import BaseDateInput from '../components/BaseDateInput.vue'
 import BaseDrawer from '../components/BaseDrawer.vue'
 import BaseSelect from '../components/BaseSelect.vue'
 import { useUiStore } from '../stores/ui'
-import { cancelOrder, fetchOrderDetail, fetchOrders, resolveDispute } from '../utils/admin-api'
+import { cancelOrder, completeOrderRefund, fetchOrderDetail, fetchOrders, resolveDispute } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel, orderStatusOptions, paymentStatusOptions, toQueryValue } from '../utils/admin-view'
 import { suggestDisputeFinalAmount } from '../utils/dispute-settlement'
 import { formatDateTime, formatMoney } from '../utils/format'
@@ -430,6 +456,11 @@ const disputeForm = reactive({
   finalDuration: '',
   finalOrderAmount: '',
   adminRemark: ''
+})
+
+const refundDialogOpen = ref(false)
+const refundForm = reactive({
+  adminRemark: '已完成原路退款'
 })
 
 const ignoreNextQueryWatch = ref(false)
@@ -566,7 +597,7 @@ const syncQuery = async (overrides = {}) => {
   return true
 }
 
-const canCancel = (status) => status !== 6 && status !== 7
+const canCancel = (status) => ![6, 7, 10].includes(Number(status))
 
 const loadSelectedOrderDetail = async (orderId) => {
   if (!orderId) {
@@ -706,6 +737,12 @@ const openDisputeDialog = (order) => {
   disputeDialogOpen.value = true
 }
 
+const openRefundDialog = (order) => {
+  selectedOrderId.value = order.orderId
+  refundForm.adminRemark = '已完成原路退款'
+  refundDialogOpen.value = true
+}
+
 const recalculateDisputeAmount = () => {
   if (!currentOrder.value || !disputeForm.finalDuration) return
   disputeForm.finalOrderAmount = getSuggestedFinalAmount(currentOrder.value, disputeForm.finalDuration)
@@ -767,6 +804,27 @@ const submitDispute = async () => {
     await refreshAfterAction()
   } catch (error) {
     uiStore.toast(error.message || '争议处理失败', 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const submitRefundComplete = async () => {
+  if (!currentOrder.value) return
+  if (!refundForm.adminRemark) {
+    uiStore.toast('请填写退款备注', 'error')
+    return
+  }
+  actionLoading.value = true
+  try {
+    await completeOrderRefund(currentOrder.value.orderId, {
+      adminRemark: refundForm.adminRemark
+    })
+    uiStore.toast('退款已确认，订单已完成', 'success')
+    refundDialogOpen.value = false
+    await refreshAfterAction()
+  } catch (error) {
+    uiStore.toast(error.message || '确认退款失败', 'error')
   } finally {
     actionLoading.value = false
   }

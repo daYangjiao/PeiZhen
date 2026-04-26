@@ -47,6 +47,7 @@ test('non-actionable statuses and canceled unpaid orders do not light tabs', () 
     { paymentStatus: 1, orderStatus: 6 },
     { paymentStatus: 1, orderStatus: 7 },
     { paymentStatus: 1, orderStatus: 8 },
+    { paymentStatus: 1, orderStatus: 10 },
     { paymentStatus: 0, orderStatus: 7 }
   ]
 

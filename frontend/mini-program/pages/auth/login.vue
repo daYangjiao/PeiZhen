@@ -98,6 +98,7 @@ const wechatEnabled = ref(false)
 const wechatStatusReason = ref('微信登录暂未开通')
 const fromGuard = ref(false)
 const afterLogin = ref('')
+const escortRegisterLandingUrl = '/pages/role-escort/profile'
 const wechatTip = ref('当前支持手机号密码登录，微信登录开通后这里会直接一键进入')
 const publicSafeMode = computed(() => isPublicSafeMode())
 const wechatPlatform = computed(() => {
@@ -136,7 +137,8 @@ onLoad((options) => {
     currentRole.value = session.role || currentRole.value
     if (session.role === 'escort' && afterLogin.value === 'qualification') {
       uni.removeStorageSync('escort_register_after')
-      uni.redirectTo({ url: '/subpkg/profile/qualification-upload?from=register' })
+      uni.setStorageSync('escort_after_login_prompt_qualification', '1')
+      uni.reLaunch({ url: escortRegisterLandingUrl })
     } else if (session.role === 'escort') {
       uni.reLaunch({ url: targetUrl })
     } else {
@@ -177,7 +179,8 @@ const goUserRegister = () => {
 const goAfterLogin = (targetUrl) => {
   if (currentRole.value === 'escort' && afterLogin.value === 'qualification') {
     uni.removeStorageSync('escort_register_after')
-    uni.redirectTo({ url: '/subpkg/profile/qualification-upload?from=register' })
+    uni.setStorageSync('escort_after_login_prompt_qualification', '1')
+    uni.reLaunch({ url: escortRegisterLandingUrl })
     return
   }
   if (currentRole.value === 'escort') {

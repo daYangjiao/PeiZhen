@@ -17,7 +17,7 @@
 | 页面路径 | 标题 | 核心交互逻辑 | 主要接口/动作 |
 | --- | --- | --- | --- |
 | `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序走 `uni.login` code 登录，微信内 H5 走公众号网页授权回调，未绑定时进入手机号绑定；App 微信登录代码已预留，需后续整包启用原生微信 OAuth 模块。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
-| `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
+| `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 支持待退款状态，对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口；退出登录使用自定义底部确认面板。 | 无直接接口调用/通过封装模块调用 |
 | `pages/ai-triage/01-appointment-selection` | 预约类型选择 | 预约类型选择，承接首页/AI 分流，进入普通预约或 AI 导诊。 | 无直接接口调用/通过封装模块调用 |
@@ -31,12 +31,12 @@
 | `subpkg/chat/chat-escort` | 聊天 | 陪诊师侧聊天页，加载历史消息、发送文本/图片/语音并同步已读；聊天头部不展示静态在线状态和说明型副标题，只保留对象名称与身份标签。 | `/api/chat/history?targetUserId={...}&page=1&pageSize={...}`<br>`/api/chat/history?targetUserId={...}&page={...}&pageSize={...}`<br>`/api/chat/read?senderId={...}`<br>`/api/chat/send`<br>`/api/common/upload` |
 | `subpkg/system-message/system-message` | 系统消息 | 系统消息列表，进入后批量标记系统通知已读并同步用户/陪诊师底部消息红点，按消息动作跳转订单详情/评价/接单处理。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/chat/system/{...}`<br>`/attendant/orders/{...}`<br>`/api/orders/{...}`<br>`/api/chat/system`<br>`/api/chat/read?senderId=0` |
 | `subpkg/system-message/escort-detail` | 系统消息详情 | 陪诊师系统消息详情，查看派单/订单相关消息并跳转订单；专属派单消息打开已流转订单时保留“曾收到过派单”的上下文。 | `/attendant/orders/{...}`<br>`/api/chat/system/{...}` |
-| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；待确认时长时展示陪诊师提交说明，确认按钮采用自适应布局避免文字裁切；补差额支付遇到登录态过期时只提示重新登录，不直接跳走当前订单页；陪诊师星级展示平均评分，按 `attendantScore + attendantEvaluationCount` 判断，无评价显示“暂无评分”。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
+| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；待确认时长时展示陪诊师提交说明，确认按钮采用自适应布局避免文字裁切；确认负差额后展示待平台退款，不再直接显示已完成；补差额支付遇到登录态过期时只提示重新登录，不直接跳走当前订单页；陪诊师星级展示平均评分，按 `attendantScore + attendantEvaluationCount` 判断，无评价显示“暂无评分”。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
 | `subpkg/order/escort-detail` | 订单详情（陪诊师端） | 陪诊师订单详情，专属派单可查看完整资料、确认接单或拒绝派单；专属接单时段结束后展示“曾收到过派单、已转入公共大厅”的流转态和刷新/返回操作；接单后执行开始服务、结束服务、取消、扫码核销、评价查看等；扫码内容不匹配使用自定义提示面板。 | `/attendant/orders/{...}/evaluation`<br>`/attendant/orders/{...}/evaluation/reply`<br>`/attendant/orders/{...}/service-progress?step={...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned`<br>`/attendant/orders/{...}/scan-qr?qrCodeContent={...}`<br>`/attendant/orders/{...}/cancel` |
 | `subpkg/order/prepare` | 服务前准备清单 | 服务前准备清单，展示陪诊服务前注意事项。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/order/submit-time-fee` | 提交时长与费用 | 陪诊师提交实际服务时长、费用和说明，驱动用户确认或争议流程；说明输入框按卡片宽度对齐，不因内边距溢出。 | `/attendant/orders/{...}`<br>`/attendant/orders/{...}/end?actualDuration={...}&attendantTimeRemark={...}` |
 | `subpkg/evaluate/evaluate` | 订单评价 | 用户订单评价，加载订单和既有评价，提交星级、标签和文字内容。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/orders/{...}/evaluation` |
-| `subpkg/auth/escort-register` | 陪诊师入驻 | 陪诊师入驻注册，填写基础信息、擅长领域、医院和简介后提交；注册成功后使用自定义底部引导面板进入登录，带 `after=qualification` 标记，陪诊师登录后直接进入资质上传流程。 | `/api/users/register` |
+| `subpkg/auth/escort-register` | 陪诊师入驻 | 陪诊师入驻注册，填写基础信息、擅长领域、医院和简介后提交；注册成功后使用自定义底部引导面板进入登录，带 `after=qualification` 标记，陪诊师登录后进入陪诊师端“我的”，点击接单厅时由资质门禁弹窗提示上传资质。 | `/api/users/register` |
 | `subpkg/auth/user-register` | 用户注册 | 用户注册，填写手机号、姓名、密码等基础信息后提交；注册成功后使用自定义底部引导面板进入登录。 | `/api/users/register` |
 | `subpkg/auth/wechat-bind` | 绑定手机号 | 微信登录后绑定手机号/姓名/密码，完成账号合并并进入角色首页。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/appointment-flow/01-appointment-selection` | 预约类型选择 | 普通预约流程入口，选择服务类型并进入预约表单。 | 无直接接口调用/通过封装模块调用 |
@@ -73,15 +73,15 @@
 | `/users` | `UsersPage.vue` | 管理员 JWT | 用户筛选、分页、档案抽屉查看、启用/禁用用户。列表点击或查看资料直接打开右侧工作抽屉展示完整资料、资质与最近订单。 | `GET /api/admin/users`<br>`GET /api/admin/users/{id}`<br>`PATCH /api/admin/users/{id}/status` |
 | `/attendants` | `AttendantsPage.vue` | 管理员 JWT | 陪诊师审核工作台，资质状态只显示待审核/已通过/未通过，账号状态单独显示正常/禁用；列表详情可直接通过/驳回/标记未通过/通过资质，也可进入处理工作台流水线。资质缩略图默认用扫描预览图，点开看原图。材料缺失或过期时禁用通过。超级管理员可看到审核人字段。 | `GET /api/admin/attendants`<br>`GET /api/admin/attendants/{id}`<br>`GET /api/admin/attendants/{id}/qualification-logs`<br>`PATCH /api/admin/attendants/{id}/qualification-review`<br>`PATCH /api/admin/attendants/{id}/status` |
 | `/attendants/:id` | `AttendantDetailPage.vue` | 管理员 JWT | 陪诊师详情、历史订单、资质有效期、审核记录、资质通过/驳回/标记未通过、账号禁用/恢复；资质缩略图默认用扫描预览图，点开看原图。超级管理员可看到审核人字段。 | `GET /api/admin/attendants/{id}`<br>`GET /api/admin/attendants/{id}/qualification-logs`<br>`PATCH /api/admin/attendants/{id}/qualification-review`<br>`PATCH /api/admin/attendants/{id}/status` |
-| `/orders` | `OrdersPage.vue` | 管理员 JWT | 订单筛选、详情抽屉查看、取消订单、争议处理。列表点击或查看记录直接打开右侧工作抽屉展示完整资料与处理操作，并同步 `selectedId` 查询参数；争议处理弹窗修改最终时长时自动重算最终金额，可再手动覆盖。 | `GET /api/admin/orders`<br>`GET /api/admin/orders/{id}`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution` |
-| `/orders/:id` | `OrderDetailPage.vue` | 管理员 JWT | 订单详情、取消订单、时长费用争议处理；修改最终时长时自动重算最终金额，可再手动覆盖。 | `GET /api/admin/orders/{id}`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution` |
+| `/orders` | `OrdersPage.vue` | 管理员 JWT | 订单筛选、详情抽屉查看、取消订单、争议处理、确认退款完成。列表点击或查看记录直接打开右侧工作抽屉展示完整资料与处理操作，并同步 `selectedId` 查询参数；争议处理弹窗修改最终时长时自动重算最终金额，可再手动覆盖；退差价进入待平台退款，管理员确认已退款后订单完成。 | `GET /api/admin/orders`<br>`GET /api/admin/orders/{id}`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution`<br>`PATCH /api/admin/orders/{id}/refund-complete` |
+| `/orders/:id` | `OrderDetailPage.vue` | 管理员 JWT | 订单详情、取消订单、时长费用争议处理、确认退款完成；修改最终时长时自动重算最终金额，可再手动覆盖。 | `GET /api/admin/orders/{id}`<br>`PATCH /api/admin/orders/{id}/cancel`<br>`PATCH /api/admin/orders/{id}/dispute-resolution`<br>`PATCH /api/admin/orders/{id}/refund-complete` |
 | `/system` | `SystemPage.vue` | 超级管理员 JWT | 管理员账号管理，创建管理员/超级管理员、启用/停用/删除账号。普通管理员不显示该入口，手动访问会静默回首页。 | `GET /api/admin/admin-users`<br>`POST /api/admin/admin-users`<br>`PATCH /api/admin/admin-users/{id}/status`<br>`DELETE /api/admin/admin-users/{id}` |
 | `/logs` | `LogsPage.vue` | 超级管理员 JWT | 操作日志工作台，按模块、动作、管理员角色、关键词和时间范围分页查询后台处理记录；用户管理和陪诊师审核指向同一用户时，对象列统一显示“姓名（脱敏手机号）/ 用户 ID”。普通管理员不显示该入口，手动访问会静默回首页。 | `GET /api/admin/operation-logs` |
 
 ## 导航和鉴权
 
 - 小程序使用原生 Tab/分包跳转，登录态由 `stores/session.js`、`stores/user.js` 和请求封装维护。APP-PLUS Android 在 `App.vue` 的 `onLaunch` 和 `onShow` 自动调用 `/api/app-upgrade/check`，发现 `101` WGT 更新后下载、安装并重启；H5/非 APP 环境不会执行安装。Android WGT 资源包启用 `app-plus.compatible.ignoreVersion`，避免服务器 HBuilderX 5.07 生成的 WGT 在 5.06 Runtime 安装包中反复弹出版本不一致提示；后续发布完整 APK 时再升级内置 Runtime。
-- 陪诊师资质门禁弹窗只出现在接单厅入口和接单厅页面内：待审核不弹窗，待补充/未通过/证件过期同一前台会话同状态只提示一次；订单、消息、我的页面不自动弹资质提醒。
+- 陪诊师资质门禁弹窗只出现在接单厅入口和接单厅页面内：新注册陪诊师可进入陪诊师端“我的”，点击接单厅时提示上传资质；待审核不弹窗，待补充/未通过/证件过期同一前台会话同状态只提示一次；订单、消息、我的页面不自动弹资质提醒。
 - 评分展示统一通过 `utils/rating.js`：平均星级必须同时传入 `score` 和 `evaluationCount`，好评率必须同时传入 `praiseRate` 和 `evaluationCount`；缺少评价数或评价数为 0 时统一显示“暂无评分/暂无评价”，避免把旧缓存或缺省值显示成 100%。
 - 陪诊师收入展示统一通过 `utils/settlement.mjs`：钱包和已完成订单使用后端 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；钱包收入列表过滤实际到账金额小于等于 0 的记录，并用“实际到账/按退款后结算”表达结算口径；待接单、专属派单和服务中页面只可展示预估收入；不得在页面内直接写 `orderAmount * 0.9`。
 - 管理端使用 Vue Router，`meta.requiresAuth` 路由必须存在管理端 token；401 响应会清理会话并跳转 `/admin/login`。

@@ -7,7 +7,7 @@
 ## 摘要
 
 - 控制器数量: 19
-- HTTP 映射数量: 97
+- HTTP 映射数量: 98
 - 普通用户鉴权: `Authorization: Bearer <user-jwt>`
 - 管理员鉴权: `Authorization: Bearer <admin-jwt>`，且 JWT principalType 为 `admin`
 - WebSocket: `/ws/orders`、`/ws/chat` 通过 `WebSocketAuthHandshakeInterceptor` 鉴权。
@@ -111,6 +111,7 @@
 | AdminOrderController | GET | `/api/admin/orders/{orderId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:35` |
 | AdminOrderController | PATCH | `/api/admin/orders/{orderId}/cancel` | cancel | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:45` |
 | AdminOrderController | PATCH | `/api/admin/orders/{orderId}/dispute-resolution` | 处理争议 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:57` |
+| AdminOrderController | PATCH | `/api/admin/orders/{orderId}/refund-complete` | 确认争议退款完成 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java` |
 | AdminOperationLogController | GET | `/api/admin/operation-logs` | 查询后台操作日志，支持模块、动作、角色、关键词和时间筛选 | 管理员 JWT，仅超级管理员可用 | `src/main/java/org/example/controller/admin/AdminOperationLogController.java:23` |
 | AdminUserController | GET | `/api/admin/users` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:22` |
 | AdminUserController | GET | `/api/admin/users/{userId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminUserController.java:32` |
@@ -163,9 +164,10 @@
 ## 订单时长争议口径
 
 - 陪诊师结束服务时只提交 `actualDuration`，后端按实际时长计算 `balanceAmount` 并把订单置为 `4=待确认时长费用`；系统消息提示“待用户确认”，不能提前提示订单已结束/已完成；当前版本不保存陪诊师提交原因。
-- 用户认可时调用确认接口：差额大于 0 进入 `9=待用户补差额`，差额小于等于 0 直接完成并在负差额时记录退款金额。
+- 用户认可时调用确认接口：差额大于 0 进入 `9=待用户补差额`，差额小于 0 进入 `10=待平台退款`，差额等于 0 才直接完成。
 - 用户不认可时提交 `timeDisputeUserDuration` 和 `timeDisputeReason`，订单直接进入 `5=平台争议处理中`，不会打回陪诊师重新提交。
-- 管理端争议处理只允许处理状态 5，必须填写处理备注并持久化到 `order.admin_remark`；最终金额必须大于 0，高于已付金额进入 9，否则完成或记录退款；若请求只提供最终时长未提供最终金额，后端按服务类型和最终时长重新计算金额兜底。
+- 管理端争议处理只允许处理状态 5，必须填写处理备注并持久化到 `order.admin_remark`；最终金额必须大于 0，高于已付金额进入 9，低于已付金额进入 10，等于已付金额才完成；若请求只提供最终时长未提供最终金额，后端按服务类型和最终时长重新计算金额兜底。
+- `10=待平台退款` 不产生陪诊师收入，管理员确认退款完成后调用 `/api/admin/orders/{orderId}/refund-complete`，订单进入 `6=已完成` 并开始按最终金额结算陪诊师收入。
 
 ## 后台操作日志口径
 

@@ -108,7 +108,7 @@
                   <p class="dispute-focus-label">平台裁定去向</p>
                   <strong>{{ disputePreviewLabel }}</strong>
                   <span>{{ disputePreviewAmount }}</span>
-                  <p class="dispute-focus-copy">最终金额高于已付金额时，订单进入待用户补差额。</p>
+                  <p class="dispute-focus-copy">补差额进入用户支付，退差价进入待平台退款，零差额才直接完成。</p>
                 </article>
               </div>
             </section>
@@ -334,8 +334,16 @@ const lockRemainingText = computed(() => {
 })
 const attendantSuggestedAmount = computed(() => suggestDisputeFinalAmount(order.value, getActualDuration(order.value)))
 const disputeBalancePreview = computed(() => Number(disputeForm.finalOrderAmount || 0) - Number(order.value?.orderAmount || 0))
-const disputePreviewLabel = computed(() => disputeBalancePreview.value > 0 ? '待用户补差额' : '直接完成')
-const disputePreviewAmount = computed(() => disputeBalancePreview.value > 0 ? `补差额 ${formatMoney(disputeBalancePreview.value)}` : `退款 ${formatMoney(Math.abs(Math.min(disputeBalancePreview.value, 0)))}`)
+const disputePreviewLabel = computed(() => {
+  if (disputeBalancePreview.value > 0) return '待用户补差额'
+  if (disputeBalancePreview.value < 0) return '待平台退款'
+  return '直接完成'
+})
+const disputePreviewAmount = computed(() => {
+  if (disputeBalancePreview.value > 0) return `补差额 ${formatMoney(disputeBalancePreview.value)}`
+  if (disputeBalancePreview.value < 0) return `退款 ${formatMoney(Math.abs(disputeBalancePreview.value))}`
+  return '无差额'
+})
 const confirmDescription = computed(() => `最终时长 ${disputeForm.finalDuration || '-'} 小时，最终金额 ${formatMoney(disputeForm.finalOrderAmount || 0)}。`)
 const qualificationBlocked = computed(() => Boolean(approveDisabledReason.value))
 const approveDisabledReason = computed(() => {

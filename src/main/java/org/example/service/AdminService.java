@@ -36,4 +36,6 @@ public interface AdminService {
     void cancelOrder(Integer operatorId, Integer orderId, AdminOrderCancelRequest request);
 
     void resolveDispute(Integer operatorId, Integer orderId, AdminOrderDisputeResolutionRequest request);
+
+    void completeDisputeRefund(Integer operatorId, Integer orderId, String adminRemark);
 }

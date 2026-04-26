@@ -23,5 +23,5 @@ CREATE TABLE IF NOT EXISTS `admin_operation_log` (
   KEY `idx_admin_operation_log_target` (`target_type`, `target_id`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- 订单状态本次新增语义：5=平台争议处理中，9=待用户补差额。
+-- 订单状态本次新增语义：5=平台争议处理中，9=待用户补差额，10=待平台退款。
 -- 相关金额字段沿用 `order.balance_amount`、`order.refund_amount`、`order.payment_time`，无需新增列。

@@ -46,13 +46,15 @@
 
       <view class="card">
         <view class="card-title">陪诊师说明</view>
-        <textarea
-          class="desc-input"
-          v-model="attendantRemark"
-          placeholder="可简单说明就诊过程，例如：检查项目较多，排队时间较长等"
-          maxlength="200"
-          auto-height
-        />
+        <view class="desc-input-wrap">
+          <textarea
+            class="desc-input"
+            v-model="attendantRemark"
+            placeholder="可简单说明就诊过程，例如：检查项目较多，排队时间较长等"
+            maxlength="200"
+            auto-height
+          />
+        </view>
         <view class="desc-count">{{ attendantRemark.length }}/200</view>
       </view>
     </scroll-view>
@@ -340,15 +342,23 @@ export default {
   font-size: 25rpx;
   color: var(--text-main);
 }
-.desc-input {
+.desc-input-wrap {
   width: 100%;
   min-height: 180rpx;
   box-sizing: border-box;
-  display: block;
   background: #f8f8f8;
   border: 1rpx solid #e4ebf4;
   border-radius: 14rpx;
   padding: 16rpx;
+}
+.desc-input {
+  width: 100%;
+  min-height: 148rpx;
+  box-sizing: border-box;
+  display: block;
+  background: transparent;
+  border: none;
+  padding: 0;
   font-size: 25rpx;
   color: var(--text-main);
   line-height: 1.6;

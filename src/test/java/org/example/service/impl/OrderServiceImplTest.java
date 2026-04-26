@@ -196,7 +196,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void userConfirmTimeAndFeeShouldCompleteAndRefundWhenBalanceNegative() {
+    void userConfirmTimeAndFeeShouldEnterRefundPendingWhenBalanceNegative() {
         Order order = new Order();
         order.setOrderId(103);
         order.setOrderNo("ORD-103");
@@ -209,12 +209,34 @@ class OrderServiceImplTest {
 
         String result = service.userConfirmTimeAndFee(103, 10);
 
-        assertThat(result).isEqualTo("确认成功，订单已完成");
+        assertThat(result).isEqualTo("确认成功，等待平台退款");
         verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
                 Integer.valueOf(103).equals(patch.getOrderId())
-                        && Integer.valueOf(6).equals(patch.getOrderStatus())
+                        && Integer.valueOf(10).equals(patch.getOrderStatus())
                         && new BigDecimal("140.00").compareTo(patch.getOrderAmount()) == 0
                         && new BigDecimal("30.00").compareTo(patch.getRefundAmount()) == 0
+        ));
+    }
+
+    @Test
+    void userDisputeTimeAndFeeShouldAllowDisputeAgainFromBalancePayment() {
+        Order order = new Order();
+        order.setOrderId(105);
+        order.setOrderNo("ORD-105");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(9);
+        order.setAdminRemark("平台核定补差额");
+        when(orderMapper.selectByPrimaryKey(105)).thenReturn(order);
+
+        String result = service.userDisputeTimeAndFee(105, 10, new BigDecimal("2.50"), "仍不认可平台核定时长");
+
+        assertThat(result).isEqualTo("申诉已提交，等待平台处理");
+        verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
+                Integer.valueOf(105).equals(patch.getOrderId())
+                        && Integer.valueOf(5).equals(patch.getOrderStatus())
+                        && new BigDecimal("2.50").compareTo(patch.getTimeDisputeUserDuration()) == 0
+                        && "仍不认可平台核定时长".equals(patch.getTimeDisputeReason())
         ));
     }
 
@@ -233,6 +255,27 @@ class OrderServiceImplTest {
         assertThatThrownBy(() -> service.userDisputeTimeAndFee(104, 10, new BigDecimal("2.5"), " "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("申诉原因不能为空");
+    }
+
+    @Test
+    void userDisputeTimeAndFeeShouldAllowBalancePaymentOrderToAppealAgain() {
+        Order order = new Order();
+        order.setOrderId(108);
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(9);
+        order.setBalanceAmount(new BigDecimal("60.00"));
+        when(orderMapper.selectByPrimaryKey(108)).thenReturn(order);
+
+        String result = service.userDisputeTimeAndFee(108, 10, new BigDecimal("2.5"), "仍不认可平台核定时长");
+
+        assertThat(result).isEqualTo("申诉已提交，等待平台处理");
+        verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
+                Integer.valueOf(108).equals(patch.getOrderId())
+                        && Integer.valueOf(5).equals(patch.getOrderStatus())
+                        && new BigDecimal("2.50").compareTo(patch.getTimeDisputeUserDuration()) == 0
+                        && "仍不认可平台核定时长".equals(patch.getTimeDisputeReason())
+        ));
     }
 
     @Test

@@ -66,6 +66,8 @@ public final class OrderTimeoutCloseUtils {
                 return "专属派单待确认";
             case 9:
                 return "待用户补差额";
+            case 10:
+                return "待平台退款";
             default:
                 return "未知";
         }

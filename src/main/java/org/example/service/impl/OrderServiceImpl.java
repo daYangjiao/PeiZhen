@@ -470,6 +470,17 @@ try {
         patch.setOrderAmount(finalAmount);
         if (balance.compareTo(BigDecimal.ZERO) < 0) {
             patch.setRefundAmount(balance.abs().setScale(2, RoundingMode.HALF_UP));
+            patch.setOrderStatus(10);
+            orderMapper.updateByPrimaryKeySelective(patch);
+            order.setOrderAmount(finalAmount);
+            order.setRefundAmount(patch.getRefundAmount());
+            order.setOrderStatus(10);
+
+            sendSystemMessage(order.getUserId(), "您已确认本次陪诊服务时长与费用，平台将为您处理退差价。", order.getOrderId());
+            sendSystemMessage(order.getAttendantId(), "用户已确认订单 " + order.getOrderNo() + " 的时长与费用，等待平台处理退差价。", order.getOrderId());
+            publishOrderEvent(order, "ORDER_STATUS_CHANGED", null, null, true, true);
+
+            return "确认成功，等待平台退款";
         }
         patch.setOrderStatus(6);
         orderMapper.updateByPrimaryKeySelective(patch);
@@ -493,7 +504,7 @@ try {
             throw new IllegalArgumentException("订单不存在");
         }
         ensureOrderOwner(order, currentUserId);
-        if (order.getOrderStatus() == null || order.getOrderStatus() != 4) {
+        if (order.getOrderStatus() == null || (order.getOrderStatus() != 4 && order.getOrderStatus() != 9)) {
             throw new IllegalArgumentException("当前状态不允许发起申诉");
         }
         if (userDuration == null || userDuration.compareTo(BigDecimal.ZERO) <= 0) {

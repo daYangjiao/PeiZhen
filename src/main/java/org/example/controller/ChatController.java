@@ -213,6 +213,7 @@ public class ChatController {
             case 7 -> "已取消";
             case 8 -> "专属派单待确认";
             case 9 -> "待用户补差额";
+            case 10 -> "待平台退款";
             default -> "未知";
         };
     }

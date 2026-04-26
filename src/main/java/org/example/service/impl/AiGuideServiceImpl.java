@@ -235,8 +235,12 @@ public class AiGuideServiceImpl implements AiGuideService {
         // 补充核销二维码和状态信息
         response.setQrCodeUrl(order.getQrCodeUrl());
         response.setActualDuration(order.getActualDuration());
+        response.setAttendantTimeRemark(order.getAttendantTimeRemark());
         response.setEstimatedDuration(order.getEstimatedDuration());
         response.setBalanceAmount(order.getBalanceAmount());
+        response.setTimeDisputeUserDuration(order.getTimeDisputeUserDuration());
+        response.setTimeDisputeReason(order.getTimeDisputeReason());
+        response.setAdminRemark(order.getAdminRemark());
         response.setCancelReason(order.getCancelReason());
         response.setCancelBy(order.getCancelBy());
         response.setPenaltyRate(order.getPenaltyRate());
@@ -530,6 +534,7 @@ public class AiGuideServiceImpl implements AiGuideService {
             case 7 -> "已取消";
             case 8 -> "专属派单待确认";
             case 9 -> "待用户补差额";
+            case 10 -> "待平台退款";
             default -> "未知";
         };
     }

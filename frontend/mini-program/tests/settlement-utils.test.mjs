@@ -61,6 +61,14 @@ test('canceled refund order does not generate wallet income', () => {
   assert.equal(calculateDisplayAttendantIncome(order), 0)
 })
 
+test('refund pending order does not display estimated wallet income', () => {
+  const order = { orderAmount: '140.00', balanceAmount: '-30.00', refundAmount: '30.00', orderStatus: 10 }
+  assert.equal(normalizeFinalOrderAmount(order), 0)
+  assert.equal(calculateAttendantIncome(order), 0)
+  assert.equal(calculateDisplayAttendantIncome(order), 0)
+  assert.equal(shouldDisplayIncomeRecord(order), false)
+})
+
 test('wallet income list hides completed orders with zero real income', () => {
   assert.equal(shouldDisplayIncomeRecord({
     orderStatus: 6,

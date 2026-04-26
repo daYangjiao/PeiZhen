@@ -41,7 +41,10 @@ public enum OrderStatusEnum {
     ASSIGNED_WAITING_CONFIRM(8, "专属派单待确认"),
 
     @ApiModelProperty(value = "待用户补差额", example = "9")
-    WAITING_PAY_BALANCE(9, "待用户补差额");
+    WAITING_PAY_BALANCE(9, "待用户补差额"),
+
+    @ApiModelProperty(value = "待平台退款", example = "10")
+    WAITING_PLATFORM_REFUND(10, "待平台退款");
 
     private final Integer code;
     private final String description;

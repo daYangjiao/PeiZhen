@@ -100,7 +100,8 @@ const getEscortOrderStatusText = (order = {}) => {
     5: '争议处理中',
     6: '已完成',
     7: '已取消',
-    9: '待用户补差额'
+    9: '待用户补差额',
+    10: '待平台退款'
   }
   return map[status] || order?.orderStatusText || '--'
 }

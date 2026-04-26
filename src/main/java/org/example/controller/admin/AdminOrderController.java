@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.common.ResponseResult;
 import org.example.model.request.AdminOrderCancelRequest;
 import org.example.model.request.AdminOrderDisputeResolutionRequest;
+import org.example.model.request.AdminOrderRefundCompleteRequest;
 import org.example.model.response.AdminOrderDetailResponse;
 import org.example.model.response.AdminOrderListItemResponse;
 import org.example.model.response.PagedResponse;
@@ -60,6 +61,19 @@ public class AdminOrderController {
                                                HttpServletRequest httpServletRequest) {
         try {
             adminService.resolveDispute(AuthUtil.getCurrentAdminId(httpServletRequest), orderId, request);
+            return ResponseResult.success(null);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseResult<>(400, ex.getMessage(), null);
+        }
+    }
+
+    @PatchMapping("/{orderId}/refund-complete")
+    public ResponseResult<Void> completeRefund(@PathVariable Integer orderId,
+                                               @RequestBody(required = false) AdminOrderRefundCompleteRequest request,
+                                               HttpServletRequest httpServletRequest) {
+        try {
+            String remark = request == null ? null : request.getAdminRemark();
+            adminService.completeDisputeRefund(AuthUtil.getCurrentAdminId(httpServletRequest), orderId, remark);
             return ResponseResult.success(null);
         } catch (IllegalArgumentException ex) {
             return new ResponseResult<>(400, ex.getMessage(), null);

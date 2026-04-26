@@ -103,6 +103,7 @@ const statusClass = computed(() => {
 		3: 'status-progress',
 		4: 'status-confirm',
 		5: 'status-dispute',
+		10: 'status-dispute',
 		6: 'status-completed',
 		7: 'status-cancelled'
 	}
@@ -130,6 +131,7 @@ const statusText = computed(() => {
 		4: '待确认时长',
 		5: '争议处理中',
 		9: '待补差额',
+		10: '待平台退款',
 		6: '已完成',
 		7: '已取消'
 	}
@@ -141,6 +143,7 @@ const statusText = computed(() => {
 			waiting_confirm: '待确认时长',
 			disputed: '争议处理中',
 			waiting_balance: '待补差额',
+			waiting_refund: '待平台退款',
 			completed: '已完成',
 			cancelled: '已取消'
 		}

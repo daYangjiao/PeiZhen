@@ -72,9 +72,14 @@
 
     <view v-if="logoutConfirmVisible" class="confirm-mask" @click="logoutConfirmVisible = false">
       <view class="confirm-panel" @click.stop>
-        <view class="confirm-icon">!</view>
-        <text class="confirm-title">退出登录</text>
-        <text class="confirm-desc">退出后将回到登录页，历史订单、钱包和资质数据不会丢失。</text>
+        <view class="confirm-handle"></view>
+        <view class="confirm-head">
+          <view class="confirm-icon">退</view>
+          <view class="confirm-copy">
+            <text class="confirm-title">退出登录</text>
+            <text class="confirm-desc">退出后将回到登录页，历史订单、钱包和资质数据不会丢失。</text>
+          </view>
+        </view>
         <view class="confirm-actions">
           <button class="confirm-btn secondary" @click="logoutConfirmVisible = false">取消</button>
           <button class="confirm-btn primary" @click="confirmLogout">退出</button>
@@ -610,25 +615,46 @@ onShow(() => {
 
 .confirm-panel {
   width: 100%;
+  max-width: 680rpx;
+  max-height: 86vh;
   background: #fff;
   border-radius: 34rpx;
-  padding: 34rpx 28rpx 28rpx;
+  padding: 18rpx 28rpx 28rpx;
   box-shadow: 0 24rpx 70rpx rgba(15, 23, 42, 0.2);
   box-sizing: border-box;
 }
 
+.confirm-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 28rpx;
+  border-radius: 999rpx;
+  background: #d7e5f5;
+}
+
+.confirm-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+}
+
 .confirm-icon {
-  width: 58rpx;
-  height: 58rpx;
+  width: 68rpx;
+  height: 68rpx;
+  flex: 0 0 68rpx;
   border-radius: 20rpx;
   background: #edf5ff;
   color: var(--escort-primary);
-  font-size: 34rpx;
+  font-size: 30rpx;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20rpx;
+}
+
+.confirm-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .confirm-title {
@@ -662,6 +688,10 @@ onShow(() => {
   align-items: center;
   justify-content: center;
   border: none;
+  min-width: 0;
+  line-height: normal;
+  padding: 0 18rpx;
+  box-sizing: border-box;
 }
 
 .confirm-btn::after {

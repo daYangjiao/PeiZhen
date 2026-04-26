@@ -168,7 +168,7 @@ public class OrderController {
             @ApiResponse(code = 500, message = "查询失败")
     })
     public ResponseResult<PagedResponse<OrderListResponse>> getCurrentUserOrders(
-            @ApiParam(value = "订单状态筛选：1=待接单，2=待服务，3=服务中，4=待确认时长费用，5=平台争议处理中，6=已完成，7=已取消，9=待用户补差额", example = "6")
+            @ApiParam(value = "订单状态筛选：1=待接单，2=待服务，3=服务中，4=待确认时长费用，5=平台争议处理中，6=已完成，7=已取消，9=待用户补差额，10=待平台退款", example = "6")
             @RequestParam(required = false) Integer status,
             @ApiParam(value = "页码，从 0 开始", example = "0")
             @RequestParam(defaultValue = "0") Integer page,

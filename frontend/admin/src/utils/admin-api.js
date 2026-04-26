@@ -20,6 +20,7 @@ export const fetchOrders = (params) => get('/api/admin/orders', params)
 export const fetchOrderDetail = (id) => get(`/api/admin/orders/${id}`)
 export const cancelOrder = (id, payload) => patch(`/api/admin/orders/${id}/cancel`, payload)
 export const resolveDispute = (id, payload) => patch(`/api/admin/orders/${id}/dispute-resolution`, payload)
+export const completeOrderRefund = (id, payload) => patch(`/api/admin/orders/${id}/refund-complete`, payload)
 export const fetchOperationLogs = (params) => get('/api/admin/operation-logs', params)
 
 export const fetchWorkbenchSummary = () => get('/api/admin/workbench/summary')
