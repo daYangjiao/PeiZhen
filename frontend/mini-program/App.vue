@@ -55,6 +55,7 @@ export default {
     ensureChatConnected()
     const messageStore = useMessageStore()
     messageStore.scheduleRefreshUnreadCounts(120)
+    checkAppUpgrade()
   }
 }
 </script>

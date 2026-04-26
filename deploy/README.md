@@ -219,6 +219,10 @@ App update delivery:
 - App updates are now split into:
   - `101`: WGT resource update for JS/CSS/pages/static assets
   - `102`: full Android APK update for native manifest/permissions/plugins/icon/splash changes
+- Installed Android App clients check this endpoint when the App launches and
+  when it returns to the foreground. A `101` response downloads the WGT,
+  installs it with `plus.runtime.install`, stores the new WGT version, and
+  restarts the App automatically.
 
 Backend update check endpoint:
 
@@ -271,6 +275,6 @@ bash deploy/scripts/publish-app-update.sh
 ```
 
 - This means:
-  - `backend + h5` can be auto-published through GitHub Actions
-  - `wgt` can be published by any collaborator who has the packaged file and the same `ops` deploy key
-- If you want, the next step can be to continue turning `wgt` into a GitHub Actions release pipeline too, but that requires settling the CI-side app packaging toolchain first.
+  - pushes to Gitee `FF` are handled by the server autodeploy runner, which publishes backend, H5/admin, and WGT
+  - a packaged WGT can still be published manually by any collaborator who has the packaged file and the same `ops` deploy key
+  - installed Android clients pick up the newest WGT on launch/foreground through `/api/app-upgrade/check`
