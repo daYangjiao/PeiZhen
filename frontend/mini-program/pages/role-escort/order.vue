@@ -113,6 +113,7 @@ import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import { calculateDisplayAttendantIncome } from '@/utils/settlement.mjs'
+import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 
 const searchKeyword = ref('')
 
@@ -165,6 +166,9 @@ onShow(() => {
   if (ensureRole('escort')) {
     guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
     connectOrderSocket()
+    const dispatchStore = useExclusiveDispatchStore()
+    dispatchStore.ensureInitialized()
+    dispatchStore.refreshPendingExclusiveOrders()
     loadOrders({ silent: orders.value.length > 0 })
     startPolling()
   }

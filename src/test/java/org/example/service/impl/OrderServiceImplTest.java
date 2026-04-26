@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -102,6 +103,25 @@ class OrderServiceImplTest {
         String result = service.attendantAcceptOrder(92, 23);
 
         assertThat(result).isEqualTo("健康证已过期，请更新资质后重新提交审核");
+    }
+
+    @Test
+    void attendantAcceptOrderShouldReleaseExpiredAssignedOrder() {
+        Order order = new Order();
+        order.setOrderId(93);
+        order.setOrderStatus(8);
+        order.setPaymentStatus(1);
+        order.setAttendantId(22);
+        order.setUserId(10);
+        order.setPaymentTime(new Date(System.currentTimeMillis() - 16 * 60 * 1000L));
+
+        when(orderMapper.selectByPrimaryKey(93)).thenReturn(order);
+        when(orderMapper.releaseOrderBackToHall(org.mockito.ArgumentMatchers.eq(93), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(Date.class))).thenReturn(1);
+
+        String result = service.attendantAcceptOrder(93, 22);
+
+        assertThat(result).isEqualTo("专属派单已超时，订单已转入公共派单");
+        verify(orderMapper).releaseOrderBackToHall(org.mockito.ArgumentMatchers.eq(93), org.mockito.ArgumentMatchers.contains("超时未确认"), org.mockito.ArgumentMatchers.any(Date.class));
     }
 
     @Test

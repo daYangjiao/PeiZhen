@@ -35,6 +35,9 @@ export const getExclusiveDispatchRemainingMs = (order = {}, now = Date.now()) =>
   return Math.max(0, deadline - now)
 }
 
+export const isExclusiveDispatchExpired = (order = {}, now = Date.now()) =>
+  getExclusiveDispatchRemainingMs(order, now) <= 0
+
 export const formatExclusiveDispatchCountdown = (remainingMs = 0) => {
   const safeMs = Math.max(0, Number(remainingMs) || 0)
   const totalSeconds = Math.floor(safeMs / 1000)

@@ -25,10 +25,12 @@
 			<view v-if="orderInfo.status === 'assigned_waiting'" class="status-card assigned-countdown-card">
 				<view class="progress-title-row">
 					<text class="progress-title">专属派单待确认</text>
-					<text class="progress-step-text">剩余 {{ assignedCountdown }}</text>
+					<text class="progress-step-text" :class="{ expired: assignedExpired }">
+						{{ assignedExpired ? '已超过确认时限' : `剩余 ${assignedCountdown}` }}
+					</text>
 				</view>
 				<view class="assigned-countdown-desc">
-					<text>请尽快确认接单，超时后订单将自动释放到公共派单池。</text>
+					<text>{{ assignedExpired ? '该专属派单已超过确认期限，系统会自动释放到公共接单大厅。请返回刷新订单状态。' : '请尽快确认接单，超时后订单将自动释放到公共派单池。' }}</text>
 				</view>
 			</view>
 
@@ -345,8 +347,11 @@
 		<!-- 底部操作按钮 -->
 		<view class="bottom-actions" v-if="showActions">
 			<template v-if="orderInfo.status === 'assigned_waiting'">
-				<button class="action-btn primary" :disabled="assignedAccepting" @click="handleAssignedAccept">
-					{{ assignedAccepting ? '接单中...' : '立即接单' }}
+				<button class="action-btn secondary" :disabled="assignedRejecting || assignedAccepting || assignedExpired" @click="handleAssignedReject">
+					{{ assignedRejecting ? '处理中...' : '拒绝派单' }}
+				</button>
+				<button class="action-btn primary" :disabled="assignedAccepting || assignedRejecting || assignedExpired" @click="handleAssignedAccept">
+					{{ assignedExpired ? '已超时' : (assignedAccepting ? '接单中...' : '立即接单') }}
 				</button>
 			</template>
 			<template v-else>
@@ -531,7 +536,8 @@ import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
-import { calculateAttendantIncome, calculatePlatformFee, normalizeFinalOrderAmount } from '@/utils/settlement.mjs'
+import { calculateAttendantIncome, calculateDisplayAttendantIncome, calculatePlatformFee, normalizeFinalOrderAmount } from '@/utils/settlement.mjs'
+import { formatExclusiveDispatchCountdown, getExclusiveDispatchRemainingMs } from '@/utils/exclusive-dispatch.mjs'
 
 function fullAvatarUrl(path) {
 	return resolveAvatarUrl(path, placeholderImg)
@@ -657,6 +663,7 @@ export default {
 			showPrepareModal: false,
 			showContactPatientModal: false,
 			assignedAccepting: false,
+			assignedRejecting: false,
 			assignedCountdownTimer: null,
 			simulateQrContent: '',
 			pendingQrContent: '',
@@ -677,6 +684,8 @@ export default {
 				status: 'accepted',
 				paymentStatus: 0,
 				paymentTime: '',
+				createTime: '',
+				updateTime: '',
 				patientAvatar: '',
 				patientName: '',
 				patientAge: 0,
@@ -704,6 +713,7 @@ export default {
 				serviceRecords: []
 			},
 			assignedCountdown: '00:00',
+			assignedExpired: false,
 			serviceFlowSteps: [
 				{ key: 'arrived', label: '已到院' },
 				{ key: 'waiting', label: '候诊中' },
@@ -775,7 +785,7 @@ export default {
 		overviewHintText() {
 			const status = this.orderInfo.status
 			if (status === 'assigned_waiting') {
-				return `剩余确认时间：${this.assignedCountdown}`
+				return this.assignedExpired ? '确认期限已过，请返回刷新订单状态' : `剩余确认时间：${this.assignedCountdown}`
 			}
 			if (status === 'accepted') {
 				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
@@ -832,7 +842,15 @@ export default {
 			return income.toFixed(2)
 		},
 		feeInfoAttendantIncomeText() {
-			return this.attendantIncomeText
+			const income = calculateDisplayAttendantIncome({
+				orderStatus: this.orderInfo.orderStatus,
+				orderAmount: this.orderInfo.totalFee || this.orderInfo.serviceFee || 0,
+				refundAmount: this.orderInfo.refundAmount,
+				balanceAmount: this.orderInfo.balanceAmount,
+				settlementAmount: this.orderInfo.settlementAmount,
+				attendantIncomeAmount: this.orderInfo.attendantIncomeAmount
+			})
+			return income.toFixed(2)
 		}
 	},
 	
@@ -874,29 +892,24 @@ export default {
 			this.clearAssignedCountdown()
 			if (this.orderInfo.status !== 'assigned_waiting' || Number(this.orderInfo.paymentStatus) !== 1) {
 				this.assignedCountdown = '00:00'
+				this.assignedExpired = false
 				return
 			}
-			const paymentTime = this.orderInfo.paymentTime || this.orderInfo.createTime
-			if (!paymentTime) {
-				this.assignedCountdown = '00:00'
-				return
+			const source = {
+				paymentTime: this.orderInfo.paymentTime,
+				createTime: this.orderInfo.createTime,
+				updateTime: this.orderInfo.updateTime
 			}
-			const baseTime = Date.parse(String(paymentTime).replace(/-/g, '/'))
-			if (Number.isNaN(baseTime)) {
-				this.assignedCountdown = '00:00'
-				return
-			}
-			const deadline = baseTime + 15 * 60 * 1000
 			const tick = () => {
-				const diff = deadline - Date.now()
-				if (diff <= 0) {
-					this.assignedCountdown = '00:00'
+				const remainingMs = getExclusiveDispatchRemainingMs(source)
+				if (remainingMs <= 0) {
+					this.assignedCountdown = ''
+					this.assignedExpired = true
 					this.clearAssignedCountdown()
 					return
 				}
-				const minutes = Math.floor(diff / 60000)
-				const seconds = Math.floor((diff % 60000) / 1000)
-				this.assignedCountdown = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+				this.assignedExpired = false
+				this.assignedCountdown = formatExclusiveDispatchCountdown(remainingMs)
 			}
 			tick()
 			this.assignedCountdownTimer = setInterval(tick, 1000)
@@ -996,6 +1009,8 @@ export default {
 						status: status,
 						paymentStatus: order.paymentStatus,
 						paymentTime: order.paymentTime || '',
+						createTime: order.createTime || '',
+						updateTime: order.updateTime || '',
 						patientName: order.contactPerson || order.patientName || order.userName || '患者',
 						patientAge: order.patientAge || '--',
 						patientGender: order.patientSex || '未知',
@@ -1064,7 +1079,7 @@ export default {
 			this.showContactPatientModal = true
 		},
 		async handleAssignedAccept() {
-			if (this.assignedAccepting || !this.orderInfo.id) return
+			if (this.assignedAccepting || this.assignedRejecting || this.assignedExpired || !this.orderInfo.id) return
 			this.assignedAccepting = true
 			try {
 				const store = useExclusiveDispatchStore()
@@ -1076,6 +1091,19 @@ export default {
 				}
 			} finally {
 				this.assignedAccepting = false
+			}
+		},
+		async handleAssignedReject() {
+			if (this.assignedRejecting || this.assignedAccepting || this.assignedExpired || !this.orderInfo.id) return
+			this.assignedRejecting = true
+			try {
+				const store = useExclusiveDispatchStore()
+				const result = await store.rejectExclusiveOrder(this.orderInfo.id, '当前时段无法接单')
+				if (result?.ok || result?.terminal) {
+					uni.switchTab({ url: '/pages/role-escort/order' })
+				}
+			} finally {
+				this.assignedRejecting = false
 			}
 		},
 		handleContactPatientChoice(type) {
@@ -1631,6 +1659,11 @@ export default {
 	.progress-step-text {
 		background: #eef5ff;
 		color: var(--primary);
+	}
+
+	.progress-step-text.expired {
+		background: #fff2f2;
+		color: #d94848;
 	}
 }
 

@@ -75,6 +75,7 @@ import { brandLogo, defaultAvatar } from '@/utils/assets.js'
 import { resolveDisplayImageUrl } from '@/utils/media.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
+import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 
 const contacts = ref([])
 const lastSystemMsg = ref({})
@@ -241,6 +242,9 @@ onShow(() => {
   if (redirectPublicSafeToHome()) return
   if (!ensureRole('escort')) return
   guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
+  const dispatchStore = useExclusiveDispatchStore()
+  dispatchStore.ensureInitialized()
+  dispatchStore.refreshPendingExclusiveOrders()
   loadContacts()
 })
 

@@ -63,4 +63,5 @@ test('canceled refund order does not generate wallet income', () => {
 test('estimated income is only used before final settlement', () => {
   assert.equal(calculateEstimatedAttendantIncome('170.00'), 153)
   assert.equal(calculateDisplayAttendantIncome({ orderAmount: '170.00', orderStatus: 2 }), 153)
+  assert.equal(calculateDisplayAttendantIncome({ orderAmount: '170.00', orderStatus: 8 }), 153)
 })

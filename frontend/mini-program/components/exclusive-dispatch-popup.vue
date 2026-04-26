@@ -53,11 +53,23 @@
         </view>
       </view>
 
+      <view class="reject-confirm" v-if="showRejectConfirm">
+        <text class="reject-title">确认暂不接这单？</text>
+        <text class="reject-desc">拒绝后订单会回到公共接单大厅，由其他陪诊师接单。</text>
+        <view class="reject-actions">
+          <button class="reject-btn ghost" @click="showRejectConfirm = false">再看看</button>
+          <button class="reject-btn danger" :disabled="store.actionLoading" @click="handleReject">
+            {{ store.actionLoading ? '处理中...' : '确认拒绝' }}
+          </button>
+        </view>
+      </view>
+
       <view class="popup-actions">
         <button class="action-btn primary" :disabled="store.actionLoading" @click="handleAccept">
           {{ store.actionLoading ? '接单中...' : '立即接单' }}
         </button>
         <button class="action-btn secondary" @click="handleViewDetail">查看详情</button>
+        <button class="action-btn danger" :disabled="store.actionLoading" @click="showRejectConfirm = true">拒绝派单</button>
       </view>
 
       <view class="later-wrap">
@@ -68,27 +80,39 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { orderActive } from '@/utils/assets.js'
 import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 
 const store = useExclusiveDispatchStore()
 const popup = computed(() => store.popup || {})
+const showRejectConfirm = ref(false)
 
 onMounted(() => {
   store.ensureInitialized()
+  store.refreshPendingExclusiveOrders()
 })
 
 const handleAccept = async () => {
+  showRejectConfirm.value = false
   await store.acceptExclusiveOrder()
 }
 
 const handleViewDetail = async () => {
+  showRejectConfirm.value = false
   await store.viewOrderDetail()
 }
 
+const handleReject = async () => {
+  const result = await store.rejectExclusiveOrder()
+  if (result?.ok || result?.terminal) {
+    showRejectConfirm.value = false
+  }
+}
+
 const handleLater = () => {
+  showRejectConfirm.value = false
   store.closePopup({ ignore: true })
 }
 </script>
@@ -297,6 +321,59 @@ const handleLater = () => {
   padding: 0 24rpx;
 }
 
+.reject-confirm {
+  margin: 0 24rpx 20rpx;
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: #fff5f5;
+  border: 1rpx solid #ffd6d6;
+}
+
+.reject-title {
+  display: block;
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #9f1d1d;
+}
+
+.reject-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  line-height: 1.55;
+  color: #8b5a5a;
+}
+
+.reject-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.reject-btn {
+  height: 72rpx;
+  border-radius: 999rpx;
+  font-size: 25rpx;
+  font-weight: 700;
+  border: none;
+}
+
+.reject-btn::after {
+  border: none;
+}
+
+.reject-btn.ghost {
+  background: #ffffff;
+  color: #31536f;
+  border: 1rpx solid #e1ebf5;
+}
+
+.reject-btn.danger {
+  background: #ffe4e4;
+  color: #d94848;
+}
+
 .action-btn {
   width: 100%;
   height: 88rpx;
@@ -319,6 +396,13 @@ const handleLater = () => {
   background: #f2f7ff;
   color: #2563eb;
   border: 1rpx solid #cdddf8;
+}
+
+.action-btn.danger {
+  margin-top: 16rpx;
+  background: #fff5f5;
+  color: #d94848;
+  border: 1rpx solid #ffd0d0;
 }
 
 .action-btn[disabled] {

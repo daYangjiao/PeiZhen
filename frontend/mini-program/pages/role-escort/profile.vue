@@ -91,6 +91,7 @@ import { showCurrentVersionInfo } from '@/utils/app-version.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import { formatPraiseRate } from '@/utils/rating.js'
+import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 import {
   escortRules,
   escortServiceCenter,
@@ -305,6 +306,9 @@ onShow(() => {
   if (!ensureRole('escort')) return
   loadProfile()
   guardEscortHallAccess({ showPopup: true, redirectOnConfirm: false })
+  const dispatchStore = useExclusiveDispatchStore()
+  dispatchStore.ensureInitialized()
+  dispatchStore.refreshPendingExclusiveOrders()
 })
 </script>
 

@@ -46,7 +46,7 @@
 | AttendantController | PUT | `/attendant/qualification/{userId}` | 更新资质和证件有效期 | 用户 JWT，仅本人 | `src/main/java/org/example/controller/AttendantController.java:222` |
 | AttendantController | POST | `/attendant/qualification/{userId}/submit` | 提交资质审核，校验证件完整和有效期 | 用户 JWT，仅本人 | `src/main/java/org/example/controller/AttendantController.java:277` |
 | AttendantController | GET | `/attendant/orders/waiting` | 查询待接订单，需资质通过且证件有效 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:311` |
-| AttendantController | POST | `/attendant/orders/{orderId}/accept` | 接单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:347` |
+| AttendantController | POST | `/attendant/orders/{orderId}/accept` | 接单；专属派单超过15分钟会服务端释放回公共接单大厅 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:347` |
 | AttendantController | POST | `/attendant/orders/{orderId}/reject-assigned` | 拒绝专属派单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:378` |
 | AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:400` |
 | AttendantController | POST | `/attendant/orders/{orderId}/end` | 结束服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:425` |

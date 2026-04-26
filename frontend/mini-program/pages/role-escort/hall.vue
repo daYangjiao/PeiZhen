@@ -174,6 +174,7 @@ import { formatServiceTimeSlot } from '@/utils/order-display.js'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import { calculateEstimatedAttendantIncome } from '@/utils/settlement.mjs'
+import { useExclusiveDispatchStore } from '@/stores/exclusive-dispatch.js'
 
 const orderList = ref([])
 const searchKeyword = ref('')
@@ -539,6 +540,9 @@ onShow(() => {
 	if (redirectPublicSafeToHome()) return
 	pageActive = true
 	ensureRole('escort')
+	const dispatchStore = useExclusiveDispatchStore()
+	dispatchStore.ensureInitialized()
+	dispatchStore.refreshPendingExclusiveOrders()
 	checkHallGate({ showPopup: true }).then((gate) => {
 		if (!gate.allowed) return
 		connectOrderSocket()

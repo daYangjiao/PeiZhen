@@ -112,6 +112,12 @@ public class OrderServiceImpl implements OrderService {
             return "订单当前状态无法接单";
         }
 
+        if (assignedWaitingOrder && isAssignedOrderExpired(order)) {
+            String releaseResult = rejectAssignedOrder(orderId, attendantId, "指定陪诊师超时未确认，订单已转入公共派单");
+            log.warn("接单失败：专属派单已超时，订单ID: {}, 释放结果: {}", orderId, releaseResult);
+            return "专属派单已超时，订单已转入公共派单";
+        }
+
         // 验证陪诊师ID是否有效
         // 注意：这里传入的 attendantId 应该是 user 表中的 id，而不是 attendant 表中的 id
         // 因为 AttendantController 中调用时传入的是 attendantInfo.id (即 user.id)
@@ -836,6 +842,14 @@ try {
         order.setPlatformFeeAmount(OrderSettlementCalculator.platformFee(order));
         order.setAttendantIncomeAmount(OrderSettlementCalculator.attendantIncome(order));
         return order;
+    }
+
+    private boolean isAssignedOrderExpired(Order order) {
+        if (order == null || order.getPaymentTime() == null) {
+            return false;
+        }
+        long deadline = order.getPaymentTime().getTime() + 15 * 60 * 1000L;
+        return System.currentTimeMillis() >= deadline;
     }
 
     private String resolveAcceptBlockReason(Integer attendantId, User attendantUser) {

@@ -5,6 +5,7 @@ import {
   buildExclusiveDispatchKey,
   formatExclusiveDispatchCountdown,
   getExclusiveDispatchRemainingMs,
+  isExclusiveDispatchExpired,
   shouldOpenExclusiveDispatchPopup,
 } from '../utils/exclusive-dispatch.mjs'
 
@@ -31,6 +32,12 @@ test('formatExclusiveDispatchCountdown formats minutes and seconds', () => {
   assert.equal(formatExclusiveDispatchCountdown(5 * 60 * 1000), '05:00')
   assert.equal(formatExclusiveDispatchCountdown(61 * 1000), '01:01')
   assert.equal(formatExclusiveDispatchCountdown(0), '00:00')
+})
+
+test('isExclusiveDispatchExpired is true once the confirmation window ends', () => {
+  const now = Date.parse('2026-04-19T10:16:00+08:00')
+  assert.equal(isExclusiveDispatchExpired({ paymentTime: '2026-04-19 10:00:00' }, now), true)
+  assert.equal(isExclusiveDispatchExpired({ paymentTime: '2026-04-19 10:05:00' }, now), false)
 })
 
 test('shouldOpenExclusiveDispatchPopup blocks ignored, expired, and current-detail cases', () => {

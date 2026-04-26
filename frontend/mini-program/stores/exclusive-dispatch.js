@@ -13,6 +13,7 @@ import { calculateEstimatedAttendantIncome } from '@/utils/settlement.mjs'
 
 let listenerBound = false
 let countdownTimer = null
+let refreshPromise = null
 const pendingOrderIds = new Set()
 
 const readEscortSession = () => {
@@ -110,6 +111,7 @@ export const useExclusiveDispatchStore = defineStore('exclusiveDispatch', {
 
       this.initialized = true
       listenerBound = true
+      this.refreshPendingExclusiveOrders()
     },
 
     syncSession(forceReset = false) {
@@ -276,6 +278,47 @@ export const useExclusiveDispatchStore = defineStore('exclusiveDispatch', {
       this.showNextPopup()
     },
 
+    async refreshPendingExclusiveOrders() {
+      const session = this.syncSession()
+      if (!session) return
+      if (refreshPromise) return refreshPromise
+
+      refreshPromise = (async () => {
+        try {
+          const res = await get('/attendant/orders', {
+            attendantId: session.userId,
+            orderStatus: 8,
+            page: 0,
+            size: 20,
+          })
+          const orders = Array.isArray(res?.data?.content) ? res.data.content : []
+          orders.forEach((order) => {
+            if (Number(order?.orderStatus) !== 8) return
+            const popup = buildPopupPayload(order, session.userId)
+            const { route, orderId: currentOrderId } = getCurrentPageContext()
+            if (!shouldOpenExclusiveDispatchPopup({
+              userId: session.userId,
+              orderId: popup.orderId,
+              orderStatus: 8,
+              remainingMs: popup.remainingMs,
+              ignoredKeys: this.ignoredKeysSet,
+              currentRoute: route,
+              currentOrderId,
+            })) {
+              return
+            }
+            this.enqueuePopup(popup)
+          })
+        } catch (error) {
+          console.error('刷新专属派单失败:', error)
+        } finally {
+          refreshPromise = null
+        }
+      })()
+
+      return refreshPromise
+    },
+
     async fetchExclusiveOrder(orderId) {
       const nextOrderId = Number(orderId || 0)
       if (!nextOrderId || pendingOrderIds.has(nextOrderId)) return
@@ -372,6 +415,48 @@ export const useExclusiveDispatchStore = defineStore('exclusiveDispatch', {
         return { ok: true, orderId: acceptedOrderId }
       } catch (error) {
         const message = error?.message || error?.errMsg || '接单失败，请稍后重试'
+        const terminal = isTerminalAcceptError(error)
+        if (terminal) {
+          this.clearOrderState(nextOrderId)
+          uni.$emit('escort-order-updated', {
+            action: 'refresh',
+            orderId: nextOrderId,
+          })
+        }
+        uni.showToast({ title: message, icon: 'none' })
+        return { ok: false, terminal, message }
+      } finally {
+        if (isCurrentPopupOrder) {
+          this.actionLoading = false
+        }
+      }
+    },
+
+    async rejectExclusiveOrder(orderId = this.popup?.orderId, reason = '当前时段无法接单') {
+      const nextOrderId = Number(orderId || 0)
+      const session = this.syncSession()
+      if (!session || !nextOrderId) {
+        return { ok: false, message: '订单信息有误' }
+      }
+
+      const isCurrentPopupOrder = this.popup?.orderId === nextOrderId
+      if (isCurrentPopupOrder && this.actionLoading) {
+        return { ok: false, message: '处理中' }
+      }
+
+      if (isCurrentPopupOrder) this.actionLoading = true
+      try {
+        const encodedReason = encodeURIComponent(reason || '当前时段无法接单')
+        const res = await post(`/attendant/orders/${nextOrderId}/reject-assigned?reason=${encodedReason}`)
+        this.clearOrderState(nextOrderId)
+        uni.$emit('escort-order-updated', {
+          action: 'rejected-assigned',
+          orderId: nextOrderId,
+        })
+        uni.showToast({ title: res?.data || '已拒绝派单', icon: 'none' })
+        return { ok: true }
+      } catch (error) {
+        const message = error?.message || error?.errMsg || '拒绝失败，请稍后重试'
         const terminal = isTerminalAcceptError(error)
         if (terminal) {
           this.clearOrderState(nextOrderId)
