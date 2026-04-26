@@ -202,7 +202,12 @@ export default {
       if (this.submitting) return
       this.submitting = true
       try {
-        const res = await post(`/attendant/orders/${this.orderId}/end?actualDuration=${this.actualDuration}`)
+        const query = [`actualDuration=${encodeURIComponent(this.actualDuration)}`]
+        const remark = String(this.attendantRemark || '').trim()
+        if (remark) {
+          query.push(`attendantTimeRemark=${encodeURIComponent(remark)}`)
+        }
+        const res = await post(`/attendant/orders/${this.orderId}/end?${query.join('&')}`)
         if (res.code === 200) {
           uni.$emit('escort-order-updated', {
             orderId: Number(this.orderId),

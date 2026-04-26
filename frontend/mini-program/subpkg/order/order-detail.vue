@@ -244,6 +244,10 @@
                 {{ getActualDurationDisplay(order) }}（陪诊师提交）
               </text>
             </view>
+            <view class="row" v-if="order.attendantTimeRemark">
+              <text class="label">陪诊师说明</text>
+              <text class="value">{{ order.attendantTimeRemark }}</text>
+            </view>
             <view class="row">
               <text class="label">费用差异</text>
               <text

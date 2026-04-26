@@ -106,6 +106,25 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void attendantAcceptOrderShouldRejectNonAttendantUserType() {
+        Order order = new Order();
+        order.setOrderId(90);
+        order.setOrderStatus(1);
+        User user = new User();
+        user.setId(25);
+        user.setName("普通用户");
+        user.setUserType(0);
+
+        when(orderMapper.selectByPrimaryKey(90)).thenReturn(order);
+        when(userMapper.findById(25)).thenReturn(user);
+
+        String result = service.attendantAcceptOrder(90, 25);
+
+        assertThat(result).isEqualTo("只有陪诊师账号可以接单");
+    }
+
+
+    @Test
     void attendantAcceptOrderShouldReleaseExpiredAssignedOrder() {
         Order order = new Order();
         order.setOrderId(93);
@@ -233,5 +252,78 @@ class OrderServiceImplTest {
                 Integer.valueOf(105).equals(patch.getOrderId())
                         && Integer.valueOf(6).equals(patch.getOrderStatus())
         ));
+    }
+
+    @Test
+    void startServiceShouldRejectOtherAttendant() {
+        Order order = new Order();
+        order.setOrderId(106);
+        order.setAttendantId(20);
+        order.setOrderStatus(2);
+        when(orderMapper.selectByPrimaryKey(106)).thenReturn(order);
+
+        String result = service.startService(106, 21);
+
+        assertThat(result).isEqualTo("无权操作该订单");
+    }
+
+    @Test
+    void endServiceShouldRejectOtherAttendant() {
+        Order order = new Order();
+        order.setOrderId(107);
+        order.setAttendantId(20);
+        order.setOrderStatus(3);
+        when(orderMapper.selectByPrimaryKey(107)).thenReturn(order);
+
+        String result = service.endService(107, 21, new BigDecimal("2.5"), null);
+
+        assertThat(result).isEqualTo("无权操作该订单");
+    }
+
+    @Test
+    void endServiceShouldSaveAttendantTimeRemark() {
+        Order order = new Order();
+        order.setOrderId(110);
+        order.setOrderNo("ORD-110");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(3);
+        order.setOrderAmount(new BigDecimal("170.00"));
+        when(orderMapper.selectByPrimaryKey(110)).thenReturn(order);
+
+        String result = service.endService(110, 20, new BigDecimal("2.5"), "检查排队较久");
+
+        assertThat(result).startsWith("服务结束成功");
+        verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
+                Integer.valueOf(110).equals(patch.getOrderId())
+                        && Integer.valueOf(4).equals(patch.getOrderStatus())
+                        && "检查排队较久".equals(patch.getAttendantTimeRemark())
+        ));
+    }
+
+    @Test
+    void updateServiceProgressShouldRejectOtherAttendant() {
+        Order order = new Order();
+        order.setOrderId(108);
+        order.setAttendantId(20);
+        order.setOrderStatus(3);
+        when(orderMapper.selectByPrimaryKey(108)).thenReturn(order);
+
+        String result = service.updateServiceProgress(108, 21, 2);
+
+        assertThat(result).isEqualTo("无权操作该订单");
+    }
+
+    @Test
+    void attendantCancelOrderShouldRejectOtherAttendant() {
+        Order order = new Order();
+        order.setOrderId(109);
+        order.setAttendantId(20);
+        order.setOrderStatus(2);
+        when(orderMapper.selectByPrimaryKey(109)).thenReturn(order);
+
+        String result = service.attendantCancelOrder(109, 21, "临时无法服务", null, null, null);
+
+        assertThat(result).isEqualTo("无权操作该订单");
     }
 }

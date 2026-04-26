@@ -501,6 +501,7 @@ public class AdminServiceImpl implements AdminService {
             item.setServiceStartTime(order.getServiceStartTime());
             item.setServiceEndTime(order.getServiceEndTime());
             item.setActualDuration(order.getActualDuration());
+            item.setAttendantTimeRemark(order.getAttendantTimeRemark());
             item.setBalanceAmount(order.getBalanceAmount());
             item.setRefundAmount(order.getRefundAmount());
             item.setAdminRemark(order.getAdminRemark());

@@ -406,9 +406,11 @@ public class AttendantController {
             @ApiResponse(code = 500, message = "开始服务失败")
     })
     public ResponseResult<String> startService(
-            @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId) {
+            @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
+            @ApiIgnore HttpServletRequest request) {
         try {
-            String result = orderService.startService(orderId);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.startService(orderId, currentUserId);
             if ("服务开始成功".equals(result)) {
                 return ResponseResult.success(result);
             } else {
@@ -432,9 +434,12 @@ public class AttendantController {
     })
     public ResponseResult<String> endService(
             @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
-            @ApiParam(value = "实际服务时长，单位小时", required = true, example = "3.5") @RequestParam BigDecimal actualDuration) {
+            @ApiParam(value = "实际服务时长，单位小时", required = true, example = "3.5") @RequestParam BigDecimal actualDuration,
+            @ApiParam(value = "陪诊师提交时长说明", example = "检查排队较久") @RequestParam(required = false) String attendantTimeRemark,
+            @ApiIgnore HttpServletRequest request) {
         try {
-            String result = orderService.endService(orderId, actualDuration);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.endService(orderId, currentUserId, actualDuration, attendantTimeRemark);
             // 只要返回不是明显错误提示，就认为成功
             if (result != null && result.startsWith("服务结束成功")) {
                 return ResponseResult.success(result);
@@ -462,7 +467,8 @@ public class AttendantController {
             @ApiParam(value = "服务进度步骤：1=已到院,2=候诊中,3=检查中,4=就诊完成", required = true, example = "2") @RequestParam Integer step,
             @ApiIgnore HttpServletRequest request) {
         try {
-            String result = orderService.updateServiceProgress(orderId, step);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.updateServiceProgress(orderId, currentUserId, step);
             if (result != null && result.startsWith("服务进度已更新")) {
                 return ResponseResult.success(result);
             } else {
@@ -487,7 +493,12 @@ public class AttendantController {
             @ApiParam(value = "陪诊师ID", required = true, example = "21") @RequestParam Integer attendantId,
             @ApiParam(value = "页码，从 0 开始", example = "0") @RequestParam(defaultValue = "0") Integer page,
             @ApiParam(value = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer size,
-            @ApiParam(value = "订单状态，可传 null 字符串表示不筛选", example = "6") @RequestParam(required = false) String orderStatusStr) {
+            @ApiParam(value = "订单状态，可传 null 字符串表示不筛选", example = "6") @RequestParam(required = false) String orderStatusStr,
+            @ApiIgnore HttpServletRequest request) {
+        Integer currentUserId = AuthUtil.getCurrentUserId(request);
+        if (currentUserId == null || !currentUserId.equals(attendantId)) {
+            return new ResponseResult<>(403, "无权查看他人订单", null);
+        }
         Integer orderStatus = null;
         if (orderStatusStr != null && !"null".equals(orderStatusStr)) {
             try {
@@ -642,31 +653,33 @@ public class AttendantController {
             @ApiParam(value = "违约金金额，单位元", example = "20.00") @RequestParam(required = false) BigDecimal penaltyAmount,
             @ApiParam(value = "退款金额，单位元", example = "60.00") @RequestParam(required = false) BigDecimal refundAmount,
             @ApiParam(value = "违约金比例，0-1 之间", example = "0.25") @RequestParam(required = false) BigDecimal penaltyRate,
-            @RequestBody(required = false) AttendantCancelOrderRequest request) {
+            @RequestBody(required = false) AttendantCancelOrderRequest requestBody,
+            @ApiIgnore HttpServletRequest request) {
         try {
             String finalReason = reason;
             BigDecimal finalPenaltyAmount = penaltyAmount;
             BigDecimal finalRefundAmount = refundAmount;
             BigDecimal finalPenaltyRate = penaltyRate;
 
-            if (request != null) {
-                if ((finalReason == null || finalReason.trim().isEmpty()) && request.getReason() != null) {
-                    finalReason = request.getReason();
+            if (requestBody != null) {
+                if ((finalReason == null || finalReason.trim().isEmpty()) && requestBody.getReason() != null) {
+                    finalReason = requestBody.getReason();
                 }
                 if (finalPenaltyAmount == null) {
-                    finalPenaltyAmount = request.getPenaltyAmount();
+                    finalPenaltyAmount = requestBody.getPenaltyAmount();
                 }
                 if (finalRefundAmount == null) {
-                    finalRefundAmount = request.getRefundAmount();
+                    finalRefundAmount = requestBody.getRefundAmount();
                 }
                 if (finalPenaltyRate == null) {
-                    finalPenaltyRate = request.getPenaltyRate();
+                    finalPenaltyRate = requestBody.getPenaltyRate();
                 }
             }
 
             log.info("陪诊师取消订单请求，orderId={}, reason={}, penaltyAmount={}, refundAmount={}, penaltyRate={}",
                     orderId, finalReason, finalPenaltyAmount, finalRefundAmount, finalPenaltyRate);
-            String result = orderService.attendantCancelOrder(orderId, finalReason, finalPenaltyAmount, finalRefundAmount, finalPenaltyRate);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.attendantCancelOrder(orderId, currentUserId, finalReason, finalPenaltyAmount, finalRefundAmount, finalPenaltyRate);
             if (result != null && (result.startsWith("订单已释放") || result.startsWith("订单已取消"))) {
                 return ResponseResult.success(result);
             }
@@ -690,14 +703,16 @@ public class AttendantController {
     })
     public ResponseResult<String> scanQrCode(
             @ApiParam(value = "订单ID", required = true, example = "62") @PathVariable Integer orderId,
-            @ApiParam(value = "二维码内容", required = true, example = "SERVICE_CONFIRM_62") @RequestParam String qrCodeContent) {
+            @ApiParam(value = "二维码内容", required = true, example = "SERVICE_CONFIRM_62") @RequestParam String qrCodeContent,
+            @ApiIgnore HttpServletRequest request) {
         try {
             String expectedQrCode = "SERVICE_CONFIRM_" + orderId;
             if (!expectedQrCode.equals(qrCodeContent)) {
                 return ResponseResult.error("二维码无效");
             }
             
-            String result = orderService.startService(orderId);
+            Integer currentUserId = AuthUtil.getCurrentUserId(request);
+            String result = orderService.startService(orderId, currentUserId);
             if ("服务开始成功".equals(result)) {
                 return ResponseResult.success("扫码成功，服务已开始");
             } else {

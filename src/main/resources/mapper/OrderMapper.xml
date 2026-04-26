@@ -38,6 +38,7 @@
         <result column="service_progress_step" property="serviceProgressStep"/>
         <result column="estimated_duration" property="estimatedDuration"/>
         <result column="actual_duration" property="actualDuration"/>
+        <result column="attendant_time_remark" property="attendantTimeRemark"/>
         <result column="balance_amount" property="balanceAmount"/>
         <result column="time_dispute_user_duration" property="timeDisputeUserDuration"/>
         <result column="time_dispute_reason" property="timeDisputeReason"/>
@@ -146,6 +147,7 @@
             <if test="serviceProgressStep != null">service_progress_step = #{serviceProgressStep},</if>
             <if test="estimatedDuration != null">estimated_duration = #{estimatedDuration},</if>
             <if test="actualDuration != null">actual_duration = #{actualDuration},</if>
+            <if test="attendantTimeRemark != null">attendant_time_remark = #{attendantTimeRemark},</if>
             <if test="balanceAmount != null">balance_amount = #{balanceAmount},</if>
             <if test="timeDisputeUserDuration != null">time_dispute_user_duration = #{timeDisputeUserDuration},</if>
             <if test="timeDisputeReason != null">time_dispute_reason = #{timeDisputeReason},</if>

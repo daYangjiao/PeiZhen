@@ -64,6 +64,8 @@ public class AdminOrderListItemResponse {
 
     private BigDecimal actualDuration;
 
+    private String attendantTimeRemark;
+
     private BigDecimal balanceAmount;
 
     private BigDecimal refundAmount;

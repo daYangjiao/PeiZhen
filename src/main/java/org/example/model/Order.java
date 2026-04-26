@@ -117,6 +117,9 @@ public class Order {
     
     @ApiModelProperty(value = "实际服务时长(小时)")
     private BigDecimal actualDuration;
+
+    @ApiModelProperty(value = "陪诊师提交时长说明")
+    private String attendantTimeRemark;
     
     @ApiModelProperty(value = "差价金额（正数需补付，负数自动退款）")
     private BigDecimal balanceAmount;

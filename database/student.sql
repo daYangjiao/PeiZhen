@@ -211,6 +211,7 @@ CREATE TABLE `order` (
   `service_progress_step` int DEFAULT NULL,
   `estimated_duration` decimal(10,2) DEFAULT NULL,
   `actual_duration` decimal(10,2) DEFAULT NULL,
+  `attendant_time_remark` varchar(255) DEFAULT NULL,
   `balance_amount` decimal(10,2) DEFAULT NULL,
   `time_dispute_user_duration` decimal(10,2) DEFAULT NULL,
   `time_dispute_reason` varchar(255) DEFAULT NULL,

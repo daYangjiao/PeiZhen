@@ -24,9 +24,9 @@ public interface OrderService {
 
     String closeTimedOutUnmatchedOrder(Integer orderId);
 
-    String startService(Integer orderId);
+    String startService(Integer orderId, Integer attendantId);
 
-    String endService(Integer orderId, BigDecimal actualDuration);
+    String endService(Integer orderId, Integer attendantId, BigDecimal actualDuration, String attendantTimeRemark);
 
     /**
      * 用户确认时长与费用（多退少补）
@@ -46,13 +46,13 @@ public interface OrderService {
     /**
      * 更新订单服务进度（已到院/候诊中/检查中/就诊完成）
      */
-    String updateServiceProgress(Integer orderId, Integer step);
+    String updateServiceProgress(Integer orderId, Integer attendantId, Integer step);
 
     /**
      * 陪诊师取消订单：若在预约开始前取消则订单释放回接单大厅（待接单），并通知用户；否则按已取消处理。
      * @return 成功文案，如 "订单已释放回接单大厅，将重新为您匹配合诊师" 或 "订单已取消"
      */
-    String attendantCancelOrder(Integer orderId, String reason, java.math.BigDecimal penaltyAmount,
+    String attendantCancelOrder(Integer orderId, Integer attendantId, String reason, java.math.BigDecimal penaltyAmount,
                                 java.math.BigDecimal refundAmount, java.math.BigDecimal penaltyRate);
 
     /**

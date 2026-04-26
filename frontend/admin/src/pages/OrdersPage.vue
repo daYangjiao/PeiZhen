@@ -265,6 +265,10 @@
                 <div class="detail-row-value">{{ getDisputeReason(currentOrder) }}</div>
               </div>
               <div class="detail-row">
+                <div class="detail-row-label">陪诊师说明</div>
+                <div class="detail-row-value">{{ currentOrder.attendantTimeRemark || '-' }}</div>
+              </div>
+              <div class="detail-row">
                 <div class="detail-row-label">取消原因</div>
                 <div class="detail-row-value">{{ currentOrder.cancelReason || '-' }}</div>
               </div>

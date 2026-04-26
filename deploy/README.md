@@ -278,3 +278,4 @@ bash deploy/scripts/publish-app-update.sh
   - pushes to Gitee `FF` are handled by the server autodeploy runner, which publishes backend, H5/admin, and WGT
   - a packaged WGT can still be published manually by any collaborator who has the packaged file and the same `ops` deploy key
   - installed Android clients pick up the newest WGT on launch/foreground through `/api/app-upgrade/check`
+  - Android keeps `app-plus.compatible.ignoreVersion=true`, so a 5.07-built WGT can run on the installed 5.06 HTML5+ Runtime without repeatedly showing DCloud's mismatch dialog; a later full APK release should upgrade the embedded Runtime.

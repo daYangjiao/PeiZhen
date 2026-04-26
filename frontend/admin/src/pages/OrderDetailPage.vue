@@ -95,6 +95,10 @@
             <div class="detail-row-label">争议说明</div>
             <div class="detail-row-value">{{ getDisputeReason(order) }}</div>
           </div>
+          <div class="detail-row">
+            <div class="detail-row-label">陪诊师说明</div>
+            <div class="detail-row-value">{{ order.attendantTimeRemark || '-' }}</div>
+          </div>
         </section>
 
         <section class="panel-card">

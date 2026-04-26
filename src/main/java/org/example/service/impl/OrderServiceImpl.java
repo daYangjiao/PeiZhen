@@ -131,15 +131,9 @@ public class OrderServiceImpl implements OrderService {
                 attendantUser.getId(), attendantUser.getName(), attendantUser.getUserType());
         
         // 检查用户类型是否为陪诊师 (user_type = 1)
-        // 临时放宽验证：允许 user_type = 0 或 1 的用户接单，便于测试
-        if (attendantUser.getUserType() != 0 && attendantUser.getUserType() != 1) {
+        if (!Integer.valueOf(1).equals(attendantUser.getUserType())) {
             log.warn("接单用户类型异常: ID={}, Type={}", attendantId, attendantUser.getUserType());
-            return "用户类型不支持接单";
-        }
-        
-        // 如果是普通用户类型，记录警告但允许接单（测试环境）
-        if (attendantUser.getUserType() == 0) {
-            log.warn("普通用户尝试接单，允许测试: ID={}, Name={}", attendantId, attendantUser.getName());
+            return "只有陪诊师账号可以接单";
         }
 
         String qualificationBlockReason = resolveAcceptBlockReason(attendantId, attendantUser);
@@ -324,9 +318,10 @@ try {
 
     @Override
     @Transactional
-    public String startService(Integer orderId) {
+    public String startService(Integer orderId, Integer attendantId) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
+        if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
         if (order.getOrderStatus() != 2) return "订单当前状态无法开始服务";
 
         order.setOrderStatus(3);
@@ -348,14 +343,18 @@ try {
 
     @Override
     @Transactional
-    public String endService(Integer orderId, BigDecimal actualDuration) {
+    public String endService(Integer orderId, Integer attendantId, BigDecimal actualDuration, String attendantTimeRemark) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
+        if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
         if (order.getOrderStatus() == null || order.getOrderStatus() != 3) return "订单当前状态无法结束服务";
 
         // 记录结束时间与实际时长
         order.setServiceEndTime(new Date());
         order.setActualDuration(actualDuration);
+        if (attendantTimeRemark != null && !attendantTimeRemark.trim().isEmpty()) {
+            order.setAttendantTimeRemark(attendantTimeRemark.trim());
+        }
 
         // 若预估时长为空，尝试从 consultationDuration 或 service_time_slot 推导
         if (order.getEstimatedDuration() == null) {
@@ -417,9 +416,10 @@ try {
 
     @Override
     @Transactional
-    public String updateServiceProgress(Integer orderId, Integer step) {
+    public String updateServiceProgress(Integer orderId, Integer attendantId, Integer step) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
+        if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
         if (order.getOrderStatus() == null || order.getOrderStatus() != 3) {
             return "仅服务中状态可更新服务进度";
         }
@@ -555,10 +555,11 @@ try {
 
     @Override
     @Transactional
-    public String attendantCancelOrder(Integer orderId, String reason, BigDecimal penaltyAmount,
+    public String attendantCancelOrder(Integer orderId, Integer attendantId, String reason, BigDecimal penaltyAmount,
                                        BigDecimal refundAmount, BigDecimal penaltyRate) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
+        if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
         if (order.getOrderStatus() == null || order.getOrderStatus() != 2) {
             return "仅待服务状态可取消订单";
         }
@@ -682,6 +683,13 @@ try {
         if (currentUserId == null || order == null || order.getUserId() == null || !order.getUserId().equals(currentUserId)) {
             throw new IllegalArgumentException("无权限操作该订单");
         }
+    }
+
+    private boolean isAssignedAttendant(Order order, Integer attendantId) {
+        return attendantId != null
+                && order != null
+                && order.getAttendantId() != null
+                && order.getAttendantId().equals(attendantId);
     }
 
     // 辅助方法：发送系统消息（写入 DB 并 WebSocket 推送，用户端可实时收到未读提示）

@@ -96,7 +96,7 @@
                   <p class="dispute-focus-label">陪诊师提交时长</p>
                   <strong>{{ formatDurationHour(getActualDuration(order)) }}</strong>
                   <span>系统计算应收 {{ formatMoney(attendantSuggestedAmount) }}</span>
-                  <p class="dispute-focus-copy">当前流程陪诊师只提交实际服务时长，未要求填写说明；这里展示的是系统按实际时长计算的费用依据。</p>
+                  <p class="dispute-focus-copy">{{ order.attendantTimeRemark || '陪诊师未填写说明' }}</p>
                 </article>
                 <article class="dispute-focus-card user-side">
                   <p class="dispute-focus-label">用户不认可原因</p>
