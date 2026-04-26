@@ -197,6 +197,39 @@ class AdminServiceImplTest {
     }
 
     @Test
+    void updateUserStatusShouldRecordConsistentUserTargetLabel() {
+        AdminServiceImpl service = newService();
+        ReflectionTestUtils.setField(service, "operationLogService", operationLogService);
+
+        User user = new User();
+        user.setId(302);
+        user.setName("肖阳");
+        user.setPhone("18600010001");
+        user.setStatus(0);
+
+        when(userMapper.findById(302)).thenReturn(user);
+
+        service.updateUserStatus(2, 302, 1);
+
+        verify(userMapper).update(ArgumentMatchers.argThat(patch ->
+                Integer.valueOf(302).equals(patch.getId())
+                        && Integer.valueOf(1).equals(patch.getStatus())
+        ));
+        verify(operationLogService).record(
+                eq(2),
+                eq("USER"),
+                eq("ENABLE_USER"),
+                eq("USER"),
+                eq(302),
+                eq("肖阳（186****0001）"),
+                eq(0),
+                eq(1),
+                isNull(),
+                eq("{}")
+        );
+    }
+
+    @Test
     void getOrdersShouldIncludeExtendedOrderFields() {
         AdminServiceImpl service = newService();
 

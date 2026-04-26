@@ -71,7 +71,7 @@
                 <td>{{ mapAction(log.action) }}</td>
                 <td>
                   <p class="table-cell-title">{{ log.targetLabel || '-' }}</p>
-                  <p class="table-cell-copy">{{ log.targetType || '-' }} #{{ log.targetId || '-' }}</p>
+                  <p class="table-cell-copy">{{ formatTargetIdentity(log) }}</p>
                 </td>
                 <td>{{ formatStatusChange(log) }}</td>
                 <td>{{ log.remark || '-' }}</td>
@@ -208,6 +208,18 @@ const mapAction = (action) => ({
   DISABLE_ADMIN: '禁用管理员',
   DELETE_ADMIN: '删除管理员'
 })[action] || action || '-'
+
+const formatTargetIdentity = (log) => {
+  if (!log?.targetId) return '-'
+  if (log.targetType === 'USER' || log.targetType === 'ATTENDANT') {
+    return `用户 ID ${log.targetId}`
+  }
+  const typeLabel = {
+    ORDER: '订单',
+    SYS_ADMIN: '管理员'
+  }[log.targetType] || log.targetType || '对象'
+  return `${typeLabel} ID ${log.targetId}`
+}
 
 const formatStatusChange = (log) => {
   const fromStatus = log.fromStatus ?? '-'

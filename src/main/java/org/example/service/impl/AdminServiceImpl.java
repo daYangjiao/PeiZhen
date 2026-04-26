@@ -145,7 +145,7 @@ public class AdminServiceImpl implements AdminService {
         patch.setStatus(status);
         userMapper.update(patch);
         recordOperation(operatorId, "USER", status == 1 ? "ENABLE_USER" : "DISABLE_USER", "USER",
-                userId, user.getName(), normalizeUserStatus(user.getStatus()), status, null, "{}");
+                userId, buildUserTargetLabel(userId), normalizeUserStatus(user.getStatus()), status, null, "{}");
     }
 
     @Override

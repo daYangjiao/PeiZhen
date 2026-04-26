@@ -170,7 +170,7 @@
 ## 后台操作日志口径
 
 - `admin_operation_log.target_label` 必须保存可读业务对象名；陪诊师审核类日志使用“姓名（脱敏手机号）”，不得只写用户 ID。
-- 查询 `/api/admin/operation-logs` 和首页最近操作日志时，后端会对历史纯数字 `target_label` 做兼容补全，避免管理端显示 `ATTENDANT #21` 这类不可读对象。
+- 查询 `/api/admin/operation-logs` 和首页最近操作日志时，后端会对用户/陪诊师类对象统一按 `user.id` 补全为“姓名（脱敏手机号）”，避免同一个用户在用户管理和陪诊师审核日志中显示成不同对象。
 
 ## 维护规则
 

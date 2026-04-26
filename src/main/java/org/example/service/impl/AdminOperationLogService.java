@@ -128,11 +128,11 @@ public class AdminOperationLogService {
 
     private String resolveTargetLabel(AdminOperationLog log) {
         String targetLabel = trim(log.getTargetLabel());
-        if (hasMeaningfulTargetLabel(targetLabel, log.getTargetType(), log.getTargetId())) {
-            return targetLabel;
-        }
         if ("ATTENDANT".equals(log.getTargetType()) || "USER".equals(log.getTargetType())) {
             return buildUserTargetLabel(log.getTargetId(), targetLabel);
+        }
+        if (hasMeaningfulTargetLabel(targetLabel, log.getTargetType(), log.getTargetId())) {
+            return targetLabel;
         }
         if ("SYS_ADMIN".equals(log.getTargetType())) {
             SysAdmin admin = log.getTargetId() == null ? null : sysAdminMapper.findById(log.getTargetId());

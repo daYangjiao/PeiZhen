@@ -98,4 +98,46 @@ class AdminOperationLogServiceTest {
         assertThat(((org.example.model.response.AdminOperationLogResponse) response.getContent().get(0)).getTargetLabel())
                 .isEqualTo("王小花（173****9183）");
     }
+
+    @Test
+    void queryLogsShouldResolveUserAndAttendantLabelsConsistently() {
+        AdminOperationLogService service = new AdminOperationLogService(operationLogMapper, sysAdminMapper, userMapper);
+        SysAdmin admin = new SysAdmin();
+        admin.setId(1);
+        admin.setRole("SUPER_ADMIN");
+        when(sysAdminMapper.findById(1)).thenReturn(admin);
+
+        AdminOperationLog userLog = new AdminOperationLog();
+        userLog.setId(8L);
+        userLog.setModule("USER");
+        userLog.setAction("ENABLE_USER");
+        userLog.setTargetType("USER");
+        userLog.setTargetId(21);
+        userLog.setTargetLabel("肖阳");
+
+        AdminOperationLog attendantLog = new AdminOperationLog();
+        attendantLog.setId(9L);
+        attendantLog.setModule("ATTENDANT");
+        attendantLog.setAction("RESTORE");
+        attendantLog.setTargetType("ATTENDANT");
+        attendantLog.setTargetId(21);
+        attendantLog.setTargetLabel("ATTENDANT #21");
+
+        when(operationLogMapper.countLogs(null, null, null, null, null, null)).thenReturn(2);
+        when(operationLogMapper.findLogs(null, null, null, null, null, null, 0, 10)).thenReturn(java.util.List.of(userLog, attendantLog));
+
+        User user = new User();
+        user.setId(21);
+        user.setName("肖阳");
+        user.setPhone("18600010001");
+        when(userMapper.findById(21)).thenReturn(user);
+
+        PagedResponse<?> response = service.getLogs(1, null, null, null, null, null, null, 0, 10);
+
+        assertThat(response.getContent()).hasSize(2);
+        assertThat(((org.example.model.response.AdminOperationLogResponse) response.getContent().get(0)).getTargetLabel())
+                .isEqualTo("肖阳（186****0001）");
+        assertThat(((org.example.model.response.AdminOperationLogResponse) response.getContent().get(1)).getTargetLabel())
+                .isEqualTo("肖阳（186****0001）");
+    }
 }
