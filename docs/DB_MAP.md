@@ -1,6 +1,6 @@
 # Database Map
 
-更新时间: 2026-04-26
+更新时间: 2026-04-27
 
 本文件记录当前数据库结构、迁移脚本位置和以后数据库变更规则。当前基线主要来自 `database/student.sql`，历史增量来自 `database/*.sql`，后续新增变更统一写入根目录 `db/`。
 
@@ -28,6 +28,7 @@
 | `db/20260426_third_party_account_wechat_login.sql` | 微信多端登录第三方身份表；回填历史 `user.openid` 为小程序微信身份 |
 | `db/20260426_split_attendant_qualification_status.sql` | 拆分陪诊师资质状态与账号封禁状态；旧 `attendant.status=2` 迁移为 `user.status=0` 且 `qualification_status=2` |
 | `db/20260426_add_order_admin_remark.sql` | 幂等补齐订单争议处理持久字段 `order.admin_remark`、`dispute_resolved_by`、`dispute_resolved_time`，避免历史库争议处理更新时报缺列 |
+| `db/20260427_split_unsubmitted_attendant_qualification.sql` | 将陪诊师未提交资质从待审核状态拆出为 `qualification_status=3`，并回填无完整材料或证件过期的历史待审记录为待补充 |
 | `db/.gitkeep` | 保留后续日期命名数据库脚本目录 |
 
 ## 表结构地图
@@ -37,7 +38,7 @@
 | `user` | 用户基础账号，区分普通用户和陪诊师登录身份。 | `id int`<br>`password varchar(100)`<br>`name varchar(50)`<br>`phone varchar(20)`<br>`sex varchar(10)`<br>`age int`<br>`avatar varchar(255)`<br>`user_type int`<br>`status tinyint`<br>`openid varchar(64)`<br>`create_time datetime` |
 | `sys_admin` | 管理端管理员账号，独立于普通用户体系。 | `id int`<br>`name varchar(50)`<br>`phone varchar(20)`<br>`password varchar(100)`<br>`status tinyint`<br>`role varchar(20)`<br>`create_time datetime`<br>`update_time datetime`<br>`last_login_time datetime` |
 | `third_party_account` | 用户和管理员的第三方登录身份绑定，当前用于微信小程序、App、H5 和管理端网页扫码登录。 | `id bigint`<br>`principal_type varchar(20)`<br>`principal_id int`<br>`provider varchar(30)`<br>`platform varchar(30)`<br>`openid varchar(128)`<br>`unionid varchar(128)`<br>`create_time datetime`<br>`update_time datetime` |
-| `attendant` | 陪诊师业务资料、资质审核状态、评分兼容缓存、医院和服务能力；账号封禁只看 `user.status`，展示评分以 `order_evaluation.rating` 聚合为准。 | `user_id int`<br>`certificate varchar(100)`<br>`status int` 历史兼容字段<br>`qualification_status int` 资质状态，0=待审核、1=已通过、2=未通过<br>`qualification_fail_reason varchar(255)`<br>`introduction text`<br>`professional_field varchar(255)`<br>`score decimal(2,1)`<br>`experience_years int`<br>`hospital_name varchar(100)`<br>`service_count int`<br>`create_time datetime`<br>`update_time datetime` |
+| `attendant` | 陪诊师业务资料、资质审核状态、评分兼容缓存、医院和服务能力；账号封禁只看 `user.status`，展示评分以 `order_evaluation.rating` 聚合为准。 | `user_id int`<br>`certificate varchar(100)`<br>`status int` 历史兼容字段<br>`qualification_status int` 资质状态，3=待补充/未提交、0=已提交待审核、1=已通过、2=未通过<br>`qualification_fail_reason varchar(255)`<br>`introduction text`<br>`professional_field varchar(255)`<br>`score decimal(2,1)`<br>`experience_years int`<br>`hospital_name varchar(100)`<br>`service_count int`<br>`create_time datetime`<br>`update_time datetime` |
 | `attendant_qualification` | 陪诊师身份证、执业证、健康证等资质材料上传状态、原图地址、扫描预览图地址和证件有效期。 | `user_id int`<br>`id_card_uploaded tinyint(1)`<br>`practice_cert_uploaded tinyint(1)`<br>`health_cert_uploaded tinyint(1)`<br>`id_card_file_url varchar(255)`<br>`id_card_front_file_url varchar(255)`<br>`id_card_front_scan_file_url varchar(255)`<br>`id_card_back_file_url varchar(255)`<br>`id_card_back_scan_file_url varchar(255)`<br>`practice_cert_file_url varchar(255)`<br>`practice_cert_scan_file_url varchar(255)`<br>`health_cert_file_url varchar(255)`<br>`health_cert_scan_file_url varchar(255)`<br>`practice_cert_expire_date varchar(20)`<br>`health_cert_expire_date varchar(20)`<br>`create_time datetime`<br>`update_time datetime` |
 | `attendant_qualification_audit_log` | 陪诊师资质上传、提交、审核、驳回、封禁和恢复操作日志。 | `id bigint`<br>`user_id int`<br>`actor_type varchar(20)`<br>`actor_id int`<br>`actor_name varchar(50)`<br>`actor_phone varchar(20)`<br>`actor_role varchar(20)`<br>`action varchar(30)`<br>`from_status int`<br>`to_status int`<br>`reason varchar(255)`<br>`snapshot_json json`<br>`create_time datetime` |
 | `admin_operation_log` | 全局管理端操作日志，供超级管理员按模块、动作、管理员角色、对象和时间审计。 | `id bigint`<br>`operator_id int`<br>`operator_name varchar(50)`<br>`operator_phone varchar(20)`<br>`operator_role varchar(20)`<br>`module varchar(40)`<br>`action varchar(50)`<br>`target_type varchar(40)`<br>`target_id int`<br>`target_label varchar(100)`<br>`from_status int`<br>`to_status int`<br>`remark varchar(255)`<br>`snapshot_json json`<br>`create_time datetime` |
@@ -57,7 +58,7 @@
 - `third_party_account.principal_type + principal_id` 关联 `user.id` 或 `sys_admin.id`；微信身份按 `provider=WECHAT`、`platform`、`openid` 唯一，`unionid` 用于同一微信开放平台主体下跨 App/H5/网站扫码识别同一微信用户。
 - `order.user_id` 关联下单用户，`order.attendant_id` 关联接单陪诊师，`order.guide_appointment_id` 关联导诊预约号/记录；后台订单取消和争议处理写入 `admin_operation_log`，工作台处理前用 `admin_task_claim` 对 `ORDER_DISPUTE` 任务加领取锁。
 - 陪诊师钱包收入按后端统一结算口径读取：仅 `order_status = 6` 产生收入，`order_status = 10` 待平台退款、取消/退款/超时关闭的 `order_status = 7` 不产生收入；新流程 `order_amount` 是最终结算金额，历史退款数据在没有负数 `balance_amount` 时按 `order_amount - refund_amount` 兼容后再扣 10% 平台服务费。
-- 陪诊师待审核任务使用 `admin_task_claim` 对 `ATTENDANT_REVIEW` 加领取锁；审核结果只更新 `attendant.qualification_status` 并继续写入 `attendant_qualification_audit_log` 和 `admin_operation_log`；封禁/恢复账号只更新 `user.status`。
+- 陪诊师待审核任务只来自 `attendant.qualification_status = 0` 的已提交记录，使用 `admin_task_claim` 对 `ATTENDANT_REVIEW` 加领取锁；新注册和未提交资料状态为 `3=待补充`，不进入待审队列；审核结果只更新 `attendant.qualification_status` 并继续写入 `attendant_qualification_audit_log` 和 `admin_operation_log`；封禁/恢复账号只更新 `user.status`。
 - `order_evaluation.order_id`、`order_evaluation.order_no` 关联订单评价；陪诊师评分、评价总数和好评率实时从 `order_evaluation.rating` 聚合，`rating >= 4` 算好评；`chat_message.order_id` 可将消息绑定到订单上下文。
 - `ai_appointment_session.session_id` 与 `ai_appointment_message.session_id` 组成 AI 预约导诊会话和消息明细。
 - `ai_medical_qa.conversation_id` 用于 AI 医疗问答会话聚合。

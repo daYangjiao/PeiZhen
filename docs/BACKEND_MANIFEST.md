@@ -39,7 +39,7 @@
 | AiMedicalController | GET | `/ai/medical/qa/thinking/{recordId}` | 兼容旧版思考过程查询 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:83` |
 | AppUpgradeController | POST | `/api/app-upgrade/check` | 检查 App 更新 | 公开 | `src/main/java/org/example/controller/AppUpgradeController.java:39` |
 | UserAttendantController | GET | `/user/attendants/{attendantId}` | 用户端查询陪诊师详情，评分、评价数、好评率按 `order_evaluation.rating` 聚合返回，兼容旧入口 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
-| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质状态只返回待审核/已通过/未通过，账号封禁由 `user.status` 控制；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
+| AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质状态返回待补充/待审核/已通过/未通过，账号封禁由 `user.status` 控制；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
 | AttendantController | POST | `/attendant/profile/avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:185` |
@@ -143,7 +143,8 @@
 
 ## 陪诊师状态口径
 
-- 资质审核状态使用 `attendant.qualification_status`：`0=待审核`、`1=已通过`、`2=未通过`。
+- 资质审核状态使用 `attendant.qualification_status`：`3=待补充/未提交`、`0=已提交待审核`、`1=已通过`、`2=未通过`。
+- 新注册陪诊师默认进入 `3=待补充/未提交`；只有调用 `/attendant/qualification/{userId}/submit` 且材料、有效期完整时才进入 `0=已提交待审核`。管理端待审核数量、审核列表和工作台只统计 `0`，不会把未提交资料的陪诊师放入待审队列。
 - 账号封禁状态使用 `user.status`：`1=正常`、`0=禁用`；禁用账号登录返回明确的账号禁用提示，不再返回“手机号或密码错误”。
 - 接单大厅、接单接口和推荐接口必须同时满足：账号正常、资质已通过、证件材料完整且未过期。
 

@@ -15,8 +15,8 @@ const createDefaultAttendantInfo = () => ({
   professionalField: '',
   experienceYears: 0,
   hospitalName: '',
-  qualificationStatusCode: 0,
-  qualificationStatusText: '待审核',
+  qualificationStatusCode: 3,
+  qualificationStatusText: '待补充',
   qualificationFailReason: '',
   idCardUploaded: false,
   practiceCertUploaded: false,
@@ -78,7 +78,7 @@ export const useUserStore = defineStore('user', {
     totalIncome: (state) => Number(state.attendantInfo.totalIncome || 0),
     praiseRate: (state) => Number(state.attendantInfo.praiseRate || 0),
     balance: (state) => Number(state.attendantInfo.balance || 0),
-    qualificationStatusText: (state) => state.attendantInfo.qualificationStatusText || '待审核'
+    qualificationStatusText: (state) => state.attendantInfo.qualificationStatusText || '待补充'
   },
 
   actions: {
@@ -189,8 +189,8 @@ export const useUserStore = defineStore('user', {
       next.balance = Number(next.balance || 0)
       next.score = next.score === null || next.score === undefined || next.score === '' ? null : Number(next.score)
       next.experienceYears = Number(next.experienceYears || 0)
-      next.qualificationStatusCode = Number(next.qualificationStatusCode || 0)
-      next.qualificationStatusText = next.qualificationStatusText || '待审核'
+      next.qualificationStatusCode = Number(next.qualificationStatusCode ?? 3)
+      next.qualificationStatusText = next.qualificationStatusText || '待补充'
       next.qualificationFailReason = next.qualificationFailReason || ''
       Object.assign(next, normalizeQualificationStatus(next))
       next.practiceCertExpireDate = next.practiceCertExpireDate || ''

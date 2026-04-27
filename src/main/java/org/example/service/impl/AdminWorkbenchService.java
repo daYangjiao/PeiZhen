@@ -175,23 +175,7 @@ public class AdminWorkbenchService {
     }
 
     private Integer qualificationStatus(Attendant attendant) {
-        if (attendant == null) {
-            return 0;
-        }
-        if (attendant.getQualificationStatus() != null) {
-            return attendant.getQualificationStatus();
-        }
-        Integer legacyStatus = attendant.getStatus();
-        if (legacyStatus == null) {
-            return 0;
-        }
-        if (legacyStatus == 1) {
-            return 1;
-        }
-        if (legacyStatus == 2 || legacyStatus == 3) {
-            return 2;
-        }
-        return 0;
+        return org.example.util.AttendantQualificationPolicy.qualificationStatus(attendant);
     }
 
     private AdminTaskClaim requireActiveLock(Integer operatorId, String taskType, Integer targetId, String lockToken) {

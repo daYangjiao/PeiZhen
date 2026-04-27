@@ -94,7 +94,7 @@ const userId = () => {
   return userInfo && userInfo.id ? userInfo.id : null
 }
 
-const statusCode = computed(() => Number(attendantInfo.value.qualificationStatusCode || 0))
+const statusCode = computed(() => Number(attendantInfo.value.qualificationStatusCode ?? 3))
 
 const showFailReason = computed(() => statusCode.value === 2)
 const failReasonText = computed(() => attendantInfo.value.qualificationFailReason || '资质资料不完整')

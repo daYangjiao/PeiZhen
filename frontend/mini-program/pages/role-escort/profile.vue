@@ -144,7 +144,7 @@ const dashboardCards = computed(() => [
 
 const qualificationStatusType = computed(() => {
   if (attendantInfo.value.practiceCertExpired || attendantInfo.value.healthCertExpired) return 'failed'
-  const code = Number(attendantInfo.value.qualificationStatusCode || 0)
+  const code = Number(attendantInfo.value.qualificationStatusCode ?? 3)
   if (code === 1) return 'verified'
   if (code === 0) return 'pending'
   if (code === 3) return 'failed'
@@ -155,7 +155,7 @@ const qualificationStatusType = computed(() => {
 const qualificationStatusText = computed(() => {
   if (attendantInfo.value.canAcceptOrders) return '已通过'
   if (attendantInfo.value.practiceCertExpired || attendantInfo.value.healthCertExpired) return '证件过期'
-  return attendantInfo.value.qualificationStatusText || '待审核'
+  return attendantInfo.value.qualificationStatusText || '待补充'
 })
 
 const menuGroups = computed(() => [

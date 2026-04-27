@@ -2,7 +2,7 @@ const hasText = (value) => typeof value === 'string' && value.trim().length > 0
 
 const numericStatus = (value) => {
   const next = Number(value)
-  return Number.isFinite(next) ? next : 0
+  return Number.isFinite(next) ? next : 3
 }
 
 const isAccountBlocked = (profile = {}) => {

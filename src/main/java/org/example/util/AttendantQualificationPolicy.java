@@ -64,6 +64,9 @@ public final class AttendantQualificationPolicy {
                     ? attendant.getQualificationFailReason()
                     : "资质审核未通过，请修改后重新提交";
         }
+        if (status == 3) {
+            return "请先上传并提交资质审核";
+        }
         try {
             requireSubmittable(qualification);
         } catch (IllegalArgumentException ex) {
@@ -80,14 +83,14 @@ public final class AttendantQualificationPolicy {
 
     public static Integer qualificationStatus(Attendant attendant) {
         if (attendant == null) {
-            return 0;
+            return 3;
         }
         if (attendant.getQualificationStatus() != null) {
             return attendant.getQualificationStatus();
         }
         Integer legacyStatus = attendant.getStatus();
         if (legacyStatus == null) {
-            return 0;
+            return 3;
         }
         if (legacyStatus == 1) {
             return 1;

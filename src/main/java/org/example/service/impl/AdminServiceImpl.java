@@ -287,6 +287,10 @@ public class AdminServiceImpl implements AdminService {
         Attendant patch = new Attendant();
         patch.setUserId(userId);
         String normalizedAction = validateReviewAction(action, reason);
+        Integer previousStatus = qualificationStatus(attendant);
+        if (Integer.valueOf(3).equals(previousStatus)) {
+            throw new IllegalStateException("资质未提交审核，不能处理");
+        }
         if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
             AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
             if (!AttendantQualificationPolicy.isComplete(qualification)) {
@@ -294,7 +298,6 @@ public class AdminServiceImpl implements AdminService {
             }
             AttendantQualificationPolicy.requireSubmittable(qualification);
         }
-        Integer previousStatus = qualificationStatus(attendant);
         if ("approve".equals(normalizedAction) || "restore".equals(normalizedAction)) {
             patch.setQualificationStatus(1);
             patch.setQualificationFailReason("");
@@ -832,15 +835,16 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private String mapAttendantStatus(Integer status) {
-        if (status == null) return "待审核";
+        if (status == null) return "待补充";
         switch (status) {
             case 0:
                 return "待审核";
             case 1:
                 return "已通过";
             case 2:
-            case 3:
                 return "未通过";
+            case 3:
+                return "待补充";
             default:
                 return "未知";
         }

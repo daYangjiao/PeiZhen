@@ -55,6 +55,21 @@ class AttendantServiceImplTest {
     }
 
     @Test
+    void registerAttendantShouldStartAsQualificationIncompleteNotPendingReview() {
+        User user = new User();
+        user.setId(11);
+        user.setPhone("13800001111");
+        Attendant attendant = new Attendant();
+
+        service.registerAttendant(user, attendant);
+
+        verify(attendantMapper).insert(org.mockito.ArgumentMatchers.argThat(created ->
+                Integer.valueOf(11).equals(created.getUserId())
+                        && Integer.valueOf(3).equals(created.getQualificationStatus())
+        ));
+    }
+
+    @Test
     void submitQualificationShouldRequireCertificateExpireDates() {
         AttendantQualification qualification = completeQualification();
         qualification.setPracticeCertExpireDate(null);
@@ -94,6 +109,26 @@ class AttendantServiceImplTest {
                         && Integer.valueOf(2).equals(log.getFromStatus())
                         && Integer.valueOf(0).equals(log.getToStatus())
         ));
+    }
+
+    @Test
+    void getProfileShouldShowQualificationIncompleteBeforeSubmit() {
+        User user = new User();
+        user.setId(11);
+        user.setName("陪诊师");
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(11);
+        attendant.setQualificationStatus(3);
+
+        when(userMapper.findById(11)).thenReturn(user);
+        when(attendantMapper.findByUserId(11)).thenReturn(attendant);
+
+        AttendantProfileResponse profile = service.getProfile(11);
+
+        assertThat(profile.getQualificationStatusCode()).isEqualTo(3);
+        assertThat(profile.getQualificationStatusText()).isEqualTo("待补充");
+        assertThat(profile.getQualificationBlockReason()).isEqualTo("请先上传并提交资质审核");
     }
 
     @Test

@@ -172,6 +172,27 @@ class AdminServiceImplTest {
     }
 
     @Test
+    void reviewAttendantQualificationShouldRequireSubmittedPendingStatus() {
+        AdminServiceImpl service = newService();
+
+        User user = new User();
+        user.setId(202);
+        user.setStatus(1);
+        Attendant attendant = new Attendant();
+        attendant.setUserId(202);
+        attendant.setQualificationStatus(3);
+
+        when(userMapper.findById(202)).thenReturn(user);
+        when(attendantMapper.findByUserId(202)).thenReturn(attendant);
+
+        assertThatThrownBy(() -> service.reviewAttendantQualification(1, 202, "reject", "未提交资料"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("资质未提交审核，不能处理");
+
+        verify(attendantMapper, never()).update(ArgumentMatchers.any());
+    }
+
+    @Test
     void getUsersShouldIncludeCompletedOrderCountAndAttendantAuditFields() {
         AdminServiceImpl service = newService();
 

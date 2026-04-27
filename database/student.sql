@@ -87,7 +87,7 @@ CREATE TABLE `attendant` (
   `user_id` int NOT NULL,
   `certificate` varchar(100) DEFAULT NULL,
   `status` int NOT NULL DEFAULT 0,
-  `qualification_status` int NOT NULL DEFAULT 0,
+  `qualification_status` int NOT NULL DEFAULT 3,
   `qualification_fail_reason` varchar(255) DEFAULT NULL,
   `introduction` text,
   `professional_field` varchar(255) DEFAULT NULL,

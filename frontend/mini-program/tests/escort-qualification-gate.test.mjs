@@ -19,6 +19,19 @@ test('pending qualification blocks hall without popup', () => {
   assert.equal(gate.popupRequired, false)
 })
 
+test('unsubmitted qualification prompts upload even when status is explicit incomplete', () => {
+  const gate = resolveQualificationGate({
+    qualificationStatusCode: 3,
+    qualificationCompleteness: 0,
+    canAcceptOrders: false,
+  })
+
+  assert.equal(gate.allowed, false)
+  assert.equal(gate.state, 'incomplete')
+  assert.equal(gate.title, '资质待补充')
+  assert.equal(gate.popupRequired, true)
+})
+
 test('rejected qualification prompts only once per foreground session', () => {
   const tracker = createQualificationPromptTracker()
   const gate = resolveQualificationGate({

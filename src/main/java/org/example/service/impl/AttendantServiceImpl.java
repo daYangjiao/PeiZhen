@@ -81,7 +81,7 @@ public class AttendantServiceImpl implements AttendantService {
             attendant.setStatus(1);
         }
         if (attendant.getQualificationStatus() == null) {
-            attendant.setQualificationStatus(0);
+            attendant.setQualificationStatus(3);
         }
         attendantMapper.insert(attendant);
         logger.info("创建陪诊师扩展信息成功, User ID: {}", userId);
@@ -167,8 +167,8 @@ public class AttendantServiceImpl implements AttendantService {
             }
         } else {
             response.setScore(null);
-            response.setQualificationStatusCode(0);
-            response.setQualificationStatusText(mapQualificationStatusText(0));
+            response.setQualificationStatusCode(3);
+            response.setQualificationStatusText(mapQualificationStatusText(3));
         }
 
         AttendantQualification qualification = attendantQualificationMapper.findByUserId(userId);
@@ -226,7 +226,9 @@ public class AttendantServiceImpl implements AttendantService {
         response.setQualificationBlockReason(blockReason);
         Integer qualificationStatus = qualificationStatus(attendant);
         response.setQualificationPopupRequired(attendant != null
-                && (Integer.valueOf(0).equals(user.getStatus()) || Integer.valueOf(2).equals(qualificationStatus)));
+                && (Integer.valueOf(0).equals(user.getStatus())
+                || Integer.valueOf(2).equals(qualificationStatus)
+                || Integer.valueOf(3).equals(qualificationStatus)));
         response.setRecentQualificationLogs(toAttendantLogs(auditLogMapper.findLatestByUserId(userId, 5)));
 
         Integer todayService = orderMapper.countTodayCompletedService(userId);
@@ -301,26 +303,27 @@ public class AttendantServiceImpl implements AttendantService {
 
     private String mapQualificationStatusText(Integer status) {
         if (status == null) {
-            return "待审核";
+            return "待补充";
         }
         return switch (status) {
             case 0 -> "待审核";
             case 1 -> "已通过";
             case 2 -> "未通过";
-            default -> "待审核";
+            case 3 -> "待补充";
+            default -> "待补充";
         };
     }
 
     private Integer qualificationStatus(Attendant attendant) {
         if (attendant == null) {
-            return 0;
+            return 3;
         }
         if (attendant.getQualificationStatus() != null) {
             return attendant.getQualificationStatus();
         }
         Integer legacyStatus = attendant.getStatus();
         if (legacyStatus == null) {
-            return 0;
+            return 3;
         }
         if (legacyStatus == 1) {
             return 1;
