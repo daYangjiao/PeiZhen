@@ -33,13 +33,6 @@ export const buildDashboardMetricCards = (dashboard = {}) => {
       tone: 'warning',
     },
     {
-      label: '订单总量',
-      value: dashboard.totalOrders || 0,
-      hint: '订单',
-      badge: '订单',
-      tone: 'neutral',
-    },
-    {
       label: '今日订单',
       value: dashboard.todayOrders || 0,
       hint: '今日',

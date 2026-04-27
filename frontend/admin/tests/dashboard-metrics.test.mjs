@@ -22,4 +22,5 @@ test('dashboard metrics split total users, patient users, and attendants', () =>
     ['陪诊师', 3, '陪诊师'],
   ])
   assert.equal(cards.some((card) => card.label === '用户总量'), false)
+  assert.equal(cards.some((card) => card.label === '订单总量'), false)
 })
