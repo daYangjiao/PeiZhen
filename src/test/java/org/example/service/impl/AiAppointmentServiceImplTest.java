@@ -6,6 +6,8 @@ import org.example.dao.AiAppointmentSessionMapper;
 import org.example.model.AiAppointmentMessageRecord;
 import org.example.model.AiAppointmentSessionRecord;
 import org.example.model.AiAppointmentStructuredDemand;
+import org.example.model.Attendant;
+import org.example.model.Order;
 import org.example.model.User;
 import org.example.model.request.AiAppointmentSessionRequest;
 import org.example.model.response.AiAppointmentLatestOverviewResponse;
@@ -20,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -63,7 +66,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         AiAppointmentSessionRecord session = new AiAppointmentSessionRecord();
@@ -109,7 +112,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         User user = new User();
@@ -141,7 +144,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         AiAppointmentStructuredDemand demand = new AiAppointmentStructuredDemand();
@@ -168,7 +171,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         AiAppointmentSessionRecord session = new AiAppointmentSessionRecord();
@@ -199,7 +202,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         AiAppointmentSessionRecord session = new AiAppointmentSessionRecord();
@@ -242,7 +245,7 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
 
         AiAppointmentSessionRecord session = new AiAppointmentSessionRecord();
@@ -327,7 +330,7 @@ class AiAppointmentServiceImplTest {
         user.setSex("女");
         when(userMapper.findById(15)).thenReturn(user);
         when(aiAppointmentSessionMapper.selectBySessionId(any())).thenReturn(null);
-        when(deepSeekClient.chatCompletion(any(), eq("deepseek-chat"))).thenReturn("""
+        when(deepSeekClient.chatCompletion(any(), eq("deepseek-v4-flash"))).thenReturn("""
                 {"assistantReply":"已收到您的需求，请补充就诊医院。","assistantIntent":"collect","needMoreInfo":true,"missingFields":["hospital"],"questionType":"hospital","questionKey":"hospital","followUpType":"hospital_input","readyForConfirm":false}
                 """);
 
@@ -337,7 +340,7 @@ class AiAppointmentServiceImplTest {
         AiAppointmentSessionResponse response = service.createSession(15, request);
 
         ArgumentCaptor<List<Map<String, String>>> messagesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(deepSeekClient, timeout(1000)).chatCompletion(messagesCaptor.capture(), eq("deepseek-chat"));
+        verify(deepSeekClient, timeout(1000)).chatCompletion(messagesCaptor.capture(), eq("deepseek-v4-flash"));
         List<Map<String, String>> modelMessages = messagesCaptor.getValue();
         String contextPayload = modelMessages.get(1).get("content");
 
@@ -350,6 +353,42 @@ class AiAppointmentServiceImplTest {
         assertThat(contextPayload).contains("\"replyTemplate\"");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void filterAvailableCandidatesShouldIgnoreExpiredAssignedOrders() throws Exception {
+        AiAppointmentServiceImpl service = createService();
+        Attendant candidate = attendant(22, "华西医院");
+        Order expiredAssignedOrder = occupiedOrder(22, 8, "2026-04-28", "09:00-11:00");
+        expiredAssignedOrder.setPaymentTime(new Date(System.currentTimeMillis() - 16 * 60 * 1000L));
+        when(orderService.findAllOrders()).thenReturn(List.of(expiredAssignedOrder));
+
+        List<Attendant> result = (List<Attendant>) filterMethod().invoke(
+                service,
+                List.of(candidate),
+                demand("2026-04-28", "09:00", "11:00")
+        );
+
+        assertThat(result).extracting(Attendant::getUserId).containsExactly(22);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void filterAvailableCandidatesShouldKeepUnexpiredAssignedOrdersOccupied() throws Exception {
+        AiAppointmentServiceImpl service = createService();
+        Attendant candidate = attendant(22, "华西医院");
+        Order unexpiredAssignedOrder = occupiedOrder(22, 8, "2026-04-28", "09:00-11:00");
+        unexpiredAssignedOrder.setPaymentTime(new Date(System.currentTimeMillis() - 5 * 60 * 1000L));
+        when(orderService.findAllOrders()).thenReturn(List.of(unexpiredAssignedOrder));
+
+        List<Attendant> result = (List<Attendant>) filterMethod().invoke(
+                service,
+                List.of(candidate),
+                demand("2026-04-28", "09:00", "11:00")
+        );
+
+        assertThat(result).isEmpty();
+    }
+
     private AiAppointmentServiceImpl createService() {
         return new AiAppointmentServiceImpl(
                 deepSeekClient,
@@ -360,8 +399,41 @@ class AiAppointmentServiceImplTest {
                 orderService,
                 userMapper,
                 new ObjectMapper(),
-                "deepseek-chat"
+                "deepseek-v4-flash"
         );
+    }
+
+    private Method filterMethod() throws Exception {
+        Method method = AiAppointmentServiceImpl.class.getDeclaredMethod("filterAvailableCandidates", List.class, AiAppointmentStructuredDemand.class);
+        method.setAccessible(true);
+        return method;
+    }
+
+    private AiAppointmentStructuredDemand demand(String serviceDate, String startTime, String endTime) {
+        AiAppointmentStructuredDemand demand = new AiAppointmentStructuredDemand();
+        demand.setServiceDate(serviceDate);
+        demand.setServiceStartTime(startTime);
+        demand.setServiceEndTime(endTime);
+        return demand;
+    }
+
+    private Attendant attendant(Integer userId, String hospitalName) {
+        Attendant attendant = new Attendant();
+        attendant.setUserId(userId);
+        attendant.setHospitalName(hospitalName);
+        attendant.setScore(new BigDecimal("4.8"));
+        attendant.setServiceCount(10);
+        attendant.setExperienceYears(3);
+        return attendant;
+    }
+
+    private Order occupiedOrder(Integer attendantId, Integer status, String serviceDate, String serviceTimeSlot) {
+        Order order = new Order();
+        order.setAttendantId(attendantId);
+        order.setOrderStatus(status);
+        order.setServiceDate(serviceDate);
+        order.setServiceTimeSlot(serviceTimeSlot);
+        return order;
     }
 
     private AiAppointmentSessionRecord sessionRecord(String sessionId, Integer userId, String status, Date updateTime) {

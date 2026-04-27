@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,11 +29,17 @@ public class DeepSeekClient {
     @Value("${deepseek.api-key:}")
     private String apiKey;
 
-    @Value("${deepseek.model:deepseek-reasoner}")
+    @Value("${deepseek.model:deepseek-v4-flash}")
     private String model;
 
     @Value("${deepseek.max-tokens:1200}")
     private Integer maxTokens;
+
+    @Value("${deepseek.thinking-type:disabled}")
+    private String thinkingType;
+
+    @Value("${deepseek.reasoning-effort:high}")
+    private String reasoningEffort;
 
     public DeepSeekClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -60,11 +66,7 @@ public class DeepSeekClient {
             httpPost.setHeader("Content-Type", "application/json");
             httpPost.setHeader("Authorization", "Bearer " + apiKey.trim());
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("model", resolveModel(modelOverride));
-            payload.put("messages", messages);
-            payload.put("temperature", 0.2);
-            payload.put("max_tokens", maxTokens == null || maxTokens <= 0 ? 1200 : maxTokens);
+            Map<String, Object> payload = buildPayload(messages, modelOverride);
 
             httpPost.setEntity(new StringEntity(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8));
 
@@ -72,7 +74,8 @@ public class DeepSeekClient {
                 int statusCode = response.getStatusLine().getStatusCode();
                 String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
                 if (statusCode < 200 || statusCode >= 300) {
-                    throw new IllegalStateException("DeepSeek API 调用失败，状态码=" + statusCode);
+                    throw new IllegalStateException("DeepSeek API 调用失败，状态码="
+                            + statusCode + "，响应=" + summarizeResponseBody(responseBody));
                 }
 
                 JsonNode root = objectMapper.readTree(responseBody);
@@ -95,10 +98,53 @@ public class DeepSeekClient {
     }
 
     private String resolveModel(String modelOverride) {
+        String requestedModel = resolveRequestedModel(modelOverride);
+        if ("deepseek-chat".equals(requestedModel) || "deepseek-reasoner".equals(requestedModel)) {
+            return "deepseek-v4-flash";
+        }
+        return requestedModel;
+    }
+
+    private String resolveRequestedModel(String modelOverride) {
         if (StringUtils.hasText(modelOverride)) {
             return modelOverride.trim();
         }
-        return StringUtils.hasText(model) ? model.trim() : "deepseek-chat";
+        return StringUtils.hasText(model) ? model.trim() : "deepseek-v4-flash";
+    }
+
+    private Map<String, Object> buildPayload(List<Map<String, String>> messages, String modelOverride) {
+        String requestedModel = resolveRequestedModel(modelOverride);
+        String thinking = resolveThinkingType(requestedModel);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("model", resolveModel(modelOverride));
+        payload.put("messages", messages);
+        payload.put("thinking", Map.of("type", thinking));
+        if ("enabled".equals(thinking)) {
+            payload.put("reasoning_effort", resolveReasoningEffort());
+        }
+        payload.put("max_tokens", maxTokens == null || maxTokens <= 0 ? 1200 : maxTokens);
+        return payload;
+    }
+
+    private String resolveThinkingType(String requestedModel) {
+        if ("deepseek-reasoner".equals(requestedModel)) {
+            return "enabled";
+        }
+        String normalized = StringUtils.hasText(thinkingType) ? thinkingType.trim().toLowerCase() : "disabled";
+        return "enabled".equals(normalized) ? "enabled" : "disabled";
+    }
+
+    private String resolveReasoningEffort() {
+        String normalized = StringUtils.hasText(reasoningEffort) ? reasoningEffort.trim().toLowerCase() : "high";
+        return "max".equals(normalized) || "xhigh".equals(normalized) ? "max" : "high";
+    }
+
+    private String summarizeResponseBody(String responseBody) {
+        if (!StringUtils.hasText(responseBody)) {
+            return "空";
+        }
+        String compact = responseBody.replaceAll("\\s+", " ").trim();
+        return compact.length() <= 300 ? compact : compact.substring(0, 300) + "...";
     }
 
     private String resolveEndpoint() {

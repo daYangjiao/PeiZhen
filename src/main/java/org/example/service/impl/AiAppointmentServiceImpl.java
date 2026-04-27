@@ -238,7 +238,7 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
                                     OrderService orderService,
                                     org.example.dao.UserMapper userMapper,
                                     ObjectMapper objectMapper,
-                                    @Value("${deepseek.appointment-model:deepseek-chat}") String appointmentModel) {
+                                    @Value("${deepseek.appointment-model:deepseek-v4-flash}") String appointmentModel) {
         this.deepSeekClient = deepSeekClient;
         this.aiAppointmentSessionMapper = aiAppointmentSessionMapper;
         this.aiAppointmentMessageMapper = aiAppointmentMessageMapper;
@@ -652,9 +652,10 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
         if (candidates == null || candidates.isEmpty()) {
             return List.of();
         }
-        List<Order> occupiedOrders = orderService.findAllOrders().stream()
+        List<Order> allOrders = orderService.findAllOrders();
+        List<Order> occupiedOrders = (allOrders == null ? List.<Order>of() : allOrders).stream()
                 .filter(order -> order.getAttendantId() != null)
-                .filter(order -> OCCUPIED_ORDER_STATUS.contains(order.getOrderStatus()))
+                .filter(this::isOccupyingOrder)
                 .collect(Collectors.toList());
 
         return candidates.stream()
@@ -693,6 +694,24 @@ public class AiAppointmentServiceImpl implements AiAppointmentService {
             }
         }
         return false;
+    }
+
+    private boolean isOccupyingOrder(Order order) {
+        if (order == null || !OCCUPIED_ORDER_STATUS.contains(order.getOrderStatus())) {
+            return false;
+        }
+        if (Integer.valueOf(8).equals(order.getOrderStatus())) {
+            return !isAssignedOrderExpired(order);
+        }
+        return true;
+    }
+
+    private boolean isAssignedOrderExpired(Order order) {
+        if (order == null || order.getPaymentTime() == null) {
+            return false;
+        }
+        long deadline = order.getPaymentTime().getTime() + 15 * 60 * 1000L;
+        return System.currentTimeMillis() >= deadline;
     }
 
     private boolean isTimeOverlap(int startA, int endA, int startB, int endB) {

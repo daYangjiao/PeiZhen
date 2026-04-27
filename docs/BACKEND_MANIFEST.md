@@ -129,6 +129,14 @@
 - `/ai/guide/**` 默认需要用户 JWT；预约创建、陪诊师匹配、订单创建/查询/支付状态、测试预约接口按当前拦截器配置公开。
 - `/user/attendants/**` 与 `/order-qr/**` 当前未被 MVC 鉴权拦截器覆盖，按公开接口记录。
 
+## AI / DeepSeek 口径
+
+- DeepSeek OpenAI 兼容接口使用 `deepseek.base-url`，默认 `https://api.deepseek.com`，请求路径由后端拼接 `/chat/completions`；真实 `DEEPSEEK_API_KEY` 只允许保存在服务器或本地忽略配置中。
+- 默认模型已切换为当前 DeepSeek V4：`deepseek.model=${DEEPSEEK_MODEL:deepseek-v4-flash}`、`deepseek.appointment-model=${DEEPSEEK_APPOINTMENT_MODEL:deepseek-v4-flash}`。旧环境变量若仍配置 `deepseek-chat` 会在客户端兼容映射到 `deepseek-v4-flash` 非思考模式；`deepseek-reasoner` 会兼容映射为 `deepseek-v4-flash` 思考模式。
+- 默认发送 `thinking: {"type":"disabled"}`，避免医疗问答和预约采集链路因默认思考模式混入思维链上下文；需要启用时通过 `DEEPSEEK_THINKING_TYPE=enabled` 和 `DEEPSEEK_REASONING_EFFORT=high|max` 控制。
+- DeepSeek 非 2xx 响应会在异常中保留安全截断后的响应摘要，便于排查模型名、参数或限流错误，不记录 API Key。
+- AI 预约匹配只从账号正常、资质已通过的陪诊师中选候选；时间冲突过滤中 `8=专属派单待确认` 只在支付后 15 分钟确认窗口内视为占用，超时未确认不再阻塞该陪诊师被 AI 推荐。
+
 ## 上传响应约定
 
 - `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`。
