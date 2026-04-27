@@ -53,6 +53,7 @@ public class AdminServiceImpl implements AdminService {
     public AdminDashboardOverviewResponse getDashboardOverview(Integer operatorId) {
         AdminDashboardOverviewResponse response = new AdminDashboardOverviewResponse();
         response.setTotalUsers(userMapper.countAdminUsers(null, null, null));
+        response.setTotalPatientUsers(userMapper.countByUserType(0));
         response.setTotalAttendants(userMapper.countByUserType(1));
         response.setPendingAttendantReviews(attendantMapper.countAdminAttendants(null, 0));
         response.setTotalOrders(orderMapper.countAllOrders(new OrderListQueryRequest()));

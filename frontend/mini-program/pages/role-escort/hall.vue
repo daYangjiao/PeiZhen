@@ -142,13 +142,13 @@
 					<view class="accept-title">确认接单</view>
 					<view class="accept-desc">接单后订单会进入你的服务列表，请确认服务时间和医院信息后再继续。</view>
 					<view class="accept-summary">
-						<view class="accept-summary-row">
-							<text>服务医院</text>
-							<text>{{ acceptConfirm.order?.hospital || '-' }}</text>
-						</view>
-						<view class="accept-summary-row">
-							<text>服务时间</text>
-							<text>{{ acceptConfirm.order?.displayServiceTime || formatServiceTimeSlot(acceptConfirm.order || {}) }}</text>
+						<view
+							v-for="row in acceptConfirmRows"
+							:key="row[0]"
+							class="accept-summary-row"
+						>
+							<text>{{ row[0] }}</text>
+							<text>{{ row[1] }}</text>
 						</view>
 					</view>
 					<view class="accept-actions">
@@ -171,6 +171,7 @@ import { ensureRole } from '@/utils/auth-guard.js'
 import { userPlaceholder } from '@/utils/assets.js'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { formatServiceTimeSlot } from '@/utils/order-display.js'
+import { buildAcceptConfirmSummaryRows } from '@/utils/escort-accept-confirm.mjs'
 import { addOrderListener, removeOrderListener, connectOrderSocket } from '@/utils/order-websocket.js'
 import { guardEscortHallAccess } from '@/utils/escort-qualification-guard.js'
 import { calculateEstimatedAttendantIncome } from '@/utils/settlement.mjs'
@@ -251,6 +252,7 @@ const filteredOrderList = computed(() => {
 const hasActiveFilter = computed(() =>
 	filterServiceTypeIndex.value > 0 || filterDurationIndex.value > 0 || filterFeeIndex.value > 0
 )
+const acceptConfirmRows = computed(() => buildAcceptConfirmSummaryRows(acceptConfirm.value.order || {}))
 const handleSearch = () => {}
 
 const formatOrderData = (raw) => {
@@ -850,7 +852,7 @@ const setupOrderSocketListener = () => {
 	.accept-actions {
 	  margin-top: 30rpx;
 	  display: grid;
-	  grid-template-columns: 1fr 1.25fr;
+	  grid-template-columns: repeat(2, minmax(0, 1fr));
 	  gap: 18rpx;
 	}
 

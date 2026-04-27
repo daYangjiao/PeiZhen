@@ -1,6 +1,6 @@
 # Frontend Manifest
 
-更新时间: 2026-04-26
+更新时间: 2026-04-27
 
 本清单覆盖两个前端：uni-app 小程序端和 Vue 管理端。小程序页面来源于 `frontend/mini-program/pages.json`；管理端页面来源于 `frontend/admin/src/router/index.js`，接口封装来源于 `frontend/admin/src/utils/admin-api.js`。
 
@@ -21,7 +21,7 @@
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口；退出登录使用自定义底部确认面板。 | 无直接接口调用/通过封装模块调用 |
 | `pages/ai-triage/01-appointment-selection` | 预约类型选择 | 预约类型选择，承接首页/AI 分流，进入普通预约或 AI 导诊。 | 无直接接口调用/通过封装模块调用 |
-| `pages/role-escort/hall` | 陪诊接单大厅 | 陪诊师接单大厅，先检查资质门禁；资质待补充、未通过、过期或账号不可用时不请求待接订单并显示阻断态；待审核只显示审核中状态，不弹窗；未通过/过期/待补充只在进入接单厅时用自定义弹窗提示且同一前台会话同状态只提示一次。 | `/attendant/profile/{...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned`<br>`/attendant/orders/waiting` |
+| `pages/role-escort/hall` | 陪诊接单大厅 | 陪诊师接单大厅，先检查资质门禁；资质待补充、未通过、过期或账号不可用时不请求待接订单并显示阻断态；待审核只显示审核中状态，不弹窗；未通过/过期/待补充只在进入接单厅时用自定义弹窗提示且同一前台会话同状态只提示一次；确认接单弹窗展示患者、服务项目、医院、服务时间和预计收入，取消/确认按钮等宽等高。 | `/attendant/profile/{...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned`<br>`/attendant/orders/waiting` |
 | `pages/role-escort/order` | 陪诊师订单 | 陪诊师订单列表，按状态查看历史和服务订单；不再因资质未通过自动弹窗，历史订单正常可见；进入页面会刷新专属派单，列表不展示无效倒计时；专属接单时段结束后改显示“专属派单已流转”，不再停留在“待确认”语义。 | `/attendant/profile/{...}`<br>`/attendant/orders`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned` |
 | `pages/role-escort/message` | 消息中心 | 陪诊师消息中心，加载联系人和系统消息；不因资质未通过自动弹窗；监听系统消息已读并同步自定义底栏红点。 | `/attendant/profile/{...}`<br>`/api/chat/contacts` |
 | `pages/role-escort/profile` | 我的 | 陪诊师个人中心，展示资料、收入、资质门禁状态、服务统计入口和按真实评价数展示的好评率；无评价显示“暂无评价”；不因资质未通过自动弹窗，资质入口用状态标签提示；退出登录使用自定义底部确认面板。 | `/attendant/profile/{...}` |
@@ -68,7 +68,7 @@
 | 路由 | 组件 | 权限 | 核心交互逻辑 | 主要接口 |
 | --- | --- | --- | --- | --- |
 | `/login` | `LoginPage.vue` | 公开/游客 | 管理员登录，保存 admin token 并按 redirect 跳转；支持微信扫码登录，未绑定微信时先账号密码登录完成绑定。 | `POST /api/admin/auth/login`<br>`GET /api/admin/auth/wechat/oauth-url`<br>`GET /api/admin/auth/current`<br>`POST /api/admin/auth/wechat/bind` |
-| `/dashboard` | `DashboardPage.vue` | 管理员 JWT | 首页概览，查看核心经营数据、待审核/争议/今日订单快捷入口；超级管理员可见最近操作日志摘要。 | `GET /api/admin/dashboard/overview` |
+| `/dashboard` | `DashboardPage.vue` | 管理员 JWT | 首页概览，用户指标拆分展示总用户、患者用户和陪诊师，查看待审核/争议/今日订单快捷入口；超级管理员可见最近操作日志摘要。 | `GET /api/admin/dashboard/overview` |
 | `/workbench` | `WorkbenchPage.vue` | 管理员 JWT | 处理工作台，统一流水线处理订单争议和陪诊师入驻审核；系统自动分配和续期任务、实时刷新队列、完成后进入下一条。指定 `targetId` 可直接领取处理，不因当前分页不包含该任务而丢失。订单争议证据区突出陪诊师提交实际时长、用户不认可原因和平台裁定去向；修改最终时长会按服务类型自动核算最终金额，管理员仍可手动覆盖金额；当前流程陪诊师只提交实际时长，不保存提交原因。陪诊师审核默认展示扫描预览图，放大查看展示用户上传原图。 | `GET /api/admin/workbench/summary`<br>`GET /api/admin/workbench/tasks`<br>`POST /api/admin/workbench/tasks/{type}/{targetId}/claim`<br>`POST /api/admin/workbench/tasks/{type}/{targetId}/complete`<br>`DELETE /api/admin/workbench/tasks/{type}/{targetId}/claim`<br>`GET /api/admin/orders/{id}`<br>`GET /api/admin/attendants/{id}` |
 | `/users` | `UsersPage.vue` | 管理员 JWT | 用户筛选、分页、档案抽屉查看、启用/禁用用户。列表点击或查看资料直接打开右侧工作抽屉展示完整资料、资质与最近订单。 | `GET /api/admin/users`<br>`GET /api/admin/users/{id}`<br>`PATCH /api/admin/users/{id}/status` |
 | `/attendants` | `AttendantsPage.vue` | 管理员 JWT | 陪诊师审核工作台，资质状态只显示待审核/已通过/未通过，账号状态单独显示正常/禁用；列表详情可直接通过/驳回/标记未通过/通过资质，也可进入处理工作台流水线。资质缩略图默认用扫描预览图，点开看原图。材料缺失或过期时禁用通过。超级管理员可看到审核人字段。 | `GET /api/admin/attendants`<br>`GET /api/admin/attendants/{id}`<br>`GET /api/admin/attendants/{id}/qualification-logs`<br>`PATCH /api/admin/attendants/{id}/qualification-review`<br>`PATCH /api/admin/attendants/{id}/status` |

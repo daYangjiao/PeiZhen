@@ -67,6 +67,25 @@ class AdminServiceImplTest {
     }
 
     @Test
+    void getDashboardOverviewShouldSplitTotalPatientsAndAttendants() {
+        AdminServiceImpl service = newService();
+
+        when(userMapper.countAdminUsers(null, null, null)).thenReturn(7);
+        when(userMapper.countByUserType(0)).thenReturn(4L);
+        when(userMapper.countByUserType(1)).thenReturn(3L);
+        when(attendantMapper.countAdminAttendants(null, 0)).thenReturn(2);
+        when(orderMapper.countAllOrders(ArgumentMatchers.any(OrderListQueryRequest.class))).thenReturn(0);
+        when(orderMapper.findAllOrdersWithPagination(ArgumentMatchers.any(OrderListQueryRequest.class), eq(0), eq(5)))
+                .thenReturn(List.of());
+
+        var overview = service.getDashboardOverview(1);
+
+        assertThat(overview.getTotalUsers()).isEqualTo(7);
+        assertThat(overview.getTotalPatientUsers()).isEqualTo(4);
+        assertThat(overview.getTotalAttendants()).isEqualTo(3);
+    }
+
+    @Test
     void getAttendantsShouldIncludeQualificationCompleteness() {
         AdminServiceImpl service = newService();
 

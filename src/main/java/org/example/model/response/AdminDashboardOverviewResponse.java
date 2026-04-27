@@ -9,6 +9,8 @@ public class AdminDashboardOverviewResponse {
 
     private long totalUsers;
 
+    private long totalPatientUsers;
+
     private long totalAttendants;
 
     private long pendingAttendantReviews;

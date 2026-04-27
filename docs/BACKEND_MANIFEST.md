@@ -1,6 +1,6 @@
 # Backend Manifest
 
-更新时间: 2026-04-26
+更新时间: 2026-04-27
 
 本清单由 Spring Boot 控制器注解、Swagger 注解和拦截器配置整理。权限列按 `WebMvcConfig`、`AuthInterceptor`、`AdminAuthInterceptor` 推导。
 
@@ -106,7 +106,7 @@
 | AdminAuthController | GET | `/api/admin/auth/wechat/oauth-url` | 生成管理端微信扫码登录地址 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
 | AdminAuthController | GET | `/api/admin/auth/wechat/oauth-callback` | 管理端微信扫码回调，已绑定则返回登录态，未绑定则返回绑定凭证 | 公开 | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
 | AdminAuthController | POST | `/api/admin/auth/wechat/bind` | 当前管理员绑定微信扫码登录身份 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminAuthController.java` |
-| AdminDashboardController | GET | `/api/admin/dashboard/overview` | 查询概览，超级管理员额外返回今日处理量和最近操作日志摘要 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminDashboardController.java:21` |
+| AdminDashboardController | GET | `/api/admin/dashboard/overview` | 查询概览，用户指标同时返回 `totalUsers` 总用户、`totalPatientUsers` 患者用户、`totalAttendants` 陪诊师，超级管理员额外返回今日处理量和最近操作日志摘要 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminDashboardController.java:21` |
 | AdminOrderController | GET | `/api/admin/orders` | 列表查询 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:23` |
 | AdminOrderController | GET | `/api/admin/orders/{orderId}` | 查询详情 | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:35` |
 | AdminOrderController | PATCH | `/api/admin/orders/{orderId}/cancel` | cancel | 管理员 JWT | `src/main/java/org/example/controller/admin/AdminOrderController.java:45` |

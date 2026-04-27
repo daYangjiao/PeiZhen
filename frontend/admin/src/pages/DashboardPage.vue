@@ -25,13 +25,15 @@
 
       <template v-else>
         <section class="overview-grid stats-grid">
-          <StatCard label="用户总量" :value="dashboard.totalUsers" hint="用户" badge="用户" tone="neutral" />
-          <StatCard label="陪诊师总量" :value="dashboard.totalAttendants" hint="陪诊师" badge="陪诊师" tone="success" />
-          <StatCard label="待审陪诊师" :value="dashboard.pendingAttendantReviews" hint="待审核" badge="审核" tone="warning" />
-          <StatCard label="订单总量" :value="dashboard.totalOrders" hint="订单" badge="订单" tone="neutral" />
-          <StatCard label="今日订单" :value="dashboard.todayOrders" hint="今日" badge="今日" tone="success" />
-          <StatCard label="争议订单" :value="dashboard.disputeOrders" hint="争议" badge="争议" tone="danger" />
-          <StatCard v-if="dashboard.recentOperationLogs?.length" label="今日处理" :value="dashboard.todayOperationCount" hint="后台操作" badge="日志" tone="neutral" />
+          <StatCard
+            v-for="card in dashboardMetricCards"
+            :key="card.label"
+            :label="card.label"
+            :value="card.value"
+            :hint="card.hint"
+            :badge="card.badge"
+            :tone="card.tone"
+          />
         </section>
 
         <section class="quick-entry-grid">
@@ -125,6 +127,7 @@ import StatCard from '../components/StatCard.vue'
 import { useUiStore } from '../stores/ui'
 import { fetchDashboard } from '../utils/admin-api'
 import { getOrderStatusBadge, getOrderStatusLabel, getPaymentStatusBadge, getPaymentStatusLabel } from '../utils/admin-view'
+import { buildDashboardMetricCards } from '../utils/dashboard-metrics'
 import { formatDateTime, formatMoney } from '../utils/format'
 
 const router = useRouter()
@@ -132,6 +135,7 @@ const uiStore = useUiStore()
 
 const dashboard = reactive({
   totalUsers: 0,
+  totalPatientUsers: 0,
   totalAttendants: 0,
   pendingAttendantReviews: 0,
   totalOrders: 0,
@@ -146,6 +150,8 @@ const dashboard = reactive({
 const loading = ref(true)
 const reloading = ref(false)
 const errorMessage = ref('')
+
+const dashboardMetricCards = computed(() => buildDashboardMetricCards(dashboard))
 
 const quickEntries = computed(() => ([
   {
