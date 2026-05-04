@@ -246,11 +246,13 @@ const fetchUserDetail = async () => {
 	try {
 		const userDetailResponse = await getUserById(uid)
 		if (userDetailResponse.data) {
+			const nextAvatar = userDetailResponse.data.avatar || userDetailResponse.data.avatarUrl || ''
 			const updatedUserInfo = {
 				...userStore.userInfo,
 				name: userDetailResponse.data.name,
 				phone: userDetailResponse.data.phone,
-				avatar: userDetailResponse.data.avatar
+				avatar: nextAvatar,
+				avatarUrl: nextAvatar
 			}
 			userStore.setUserInfo(updatedUserInfo)
 		}

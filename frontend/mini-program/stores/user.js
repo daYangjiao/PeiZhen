@@ -65,7 +65,7 @@ export const useUserStore = defineStore('user', {
     },
     avatar: (state) => {
       if (!state.userInfo) return ''
-      return state.userInfo.avatarUrl || state.userInfo.avatar || ''
+      return state.userInfo.avatar || state.userInfo.avatarUrl || ''
     },
     needUpdateUserInfo: (state) => {
       if (!state.loginTime) return true

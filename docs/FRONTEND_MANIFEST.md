@@ -1,6 +1,6 @@
 # Frontend Manifest
 
-更新时间: 2026-04-27
+更新时间: 2026-05-04
 
 本清单覆盖两个前端：uni-app 小程序端和 Vue 管理端。小程序页面来源于 `frontend/mini-program/pages.json`；管理端页面来源于 `frontend/admin/src/router/index.js`，接口封装来源于 `frontend/admin/src/utils/admin-api.js`。
 
@@ -19,7 +19,7 @@
 | `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序走 `uni.login` code 登录，微信内 H5 走公众号网页授权回调，未绑定时进入手机号绑定；App 微信登录代码已预留，需后续整包启用原生微信 OAuth 模块。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
 | `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 支持待退款状态，对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
-| `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，进入资料编辑、订单、消息、设置等入口；退出登录使用自定义底部确认面板。 | 无直接接口调用/通过封装模块调用 |
+| `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，头像展示优先使用后端 `avatar` 并同步 `avatar/avatarUrl` 缓存，进入资料编辑、订单、消息、设置等入口；退出登录使用自定义底部确认面板。 | 无直接接口调用/通过封装模块调用 |
 | `pages/ai-triage/01-appointment-selection` | 预约类型选择 | 预约类型选择，承接首页/AI 分流，进入普通预约或 AI 导诊。 | 无直接接口调用/通过封装模块调用 |
 | `pages/role-escort/hall` | 陪诊接单大厅 | 陪诊师接单大厅，先检查资质门禁；资质待补充、未通过、过期或账号不可用时不请求待接订单并显示阻断态；待审核只显示审核中状态，不弹窗；未通过/过期/待补充只在进入接单厅时用自定义弹窗提示且同一前台会话同状态只提示一次；确认接单弹窗展示患者、服务项目、医院、服务时间和预计收入，取消/确认按钮等宽等高。 | `/attendant/profile/{...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned`<br>`/attendant/orders/waiting` |
 | `pages/role-escort/order` | 陪诊师订单 | 陪诊师订单列表，按状态查看历史和服务订单；不再因资质未通过自动弹窗，历史订单正常可见；进入页面会刷新专属派单，列表不展示无效倒计时；专属接单时段结束后改显示“专属派单已流转”，不再停留在“待确认”语义。 | `/attendant/profile/{...}`<br>`/attendant/orders`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned` |

@@ -55,7 +55,7 @@ export const uploadAvatar = async (filePath) => {
   }
 
   await put(`/api/users/${userId}`, { id: userId, avatar: avatarPath })
-  store.setUserInfo({ ...userInfo, avatar: avatarPath })
+  store.setUserInfo({ ...userInfo, avatar: avatarPath, avatarUrl: avatarPath })
   return { code: 200, data: { avatarUrl: avatarPath } }
 }
 
