@@ -287,6 +287,22 @@ const chooseCertFile = () =>
     })
   })
 
+const compressSelectedImage = (filePath) =>
+  new Promise((resolve) => {
+    if (!filePath) {
+      resolve('')
+      return
+    }
+    uni.compressImage({
+      src: filePath,
+      quality: 86,
+      compressedWidth: 1280,
+      compressedHeight: 1280,
+      success: (result) => resolve(result?.tempFilePath || filePath),
+      fail: () => resolve(filePath)
+    })
+  })
+
 const uploadByKey = async (key) => {
   if (saving.value || submitting.value) return
   const uid = userId()
@@ -302,9 +318,12 @@ const uploadByKey = async (key) => {
         ? await pickFrameIdCardFile('back')
         : await chooseCertFile()
     if (!filePath) return
+    const preparedFilePath = key === 'idCardFront' || key === 'idCardBack'
+      ? filePath
+      : await compressSelectedImage(filePath)
 
     saving.value = true
-    const uploadRes = await upload('/api/common/upload-image', filePath)
+    const uploadRes = await upload('/api/common/upload-image', preparedFilePath || filePath)
     const { originalUrl, scanUrl } = normalizeUploadResult(uploadRes)
     if (!originalUrl) {
       uni.showToast({ title: '上传返回异常', icon: 'none' })
@@ -336,7 +355,7 @@ const uploadByKey = async (key) => {
     uni.showToast({ title: '上传成功', icon: 'success' })
   } catch (error) {
     if (error?.message !== 'cancel' && !String(error?.errMsg || '').includes('cancel')) {
-      uni.showToast({ title: error?.message || '上传失败', icon: 'none' })
+      uni.showToast({ title: error?.message || error?.errMsg || error?.data?.message || '上传失败', icon: 'none' })
     }
   } finally {
     saving.value = false

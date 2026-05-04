@@ -35,6 +35,7 @@ import java.util.UUID;
 public class LocalFileStorageService implements FileStorageService {
 
     private static final long MAX_UPLOAD_SIZE = 5 * 1024 * 1024L;
+    private static final long MAX_DOCUMENT_IMAGE_UPLOAD_SIZE = 10 * 1024 * 1024L;
     private static final long MAX_AVATAR_SIZE = 10 * 1024 * 1024L;
     private static final int AVATAR_MAX_SIDE = 720;
     private static final float AVATAR_JPEG_QUALITY = 0.82f;
@@ -72,7 +73,7 @@ public class LocalFileStorageService implements FileStorageService {
     @Override
     public ImageUploadResponse storeDocumentImage(MultipartFile file) {
         try {
-            validateImage(file, MAX_UPLOAD_SIZE, "图片大小不能超过5MB");
+            validateImage(file, MAX_DOCUMENT_IMAGE_UPLOAD_SIZE, "图片大小不能超过10MB");
             ensureUploadDirExists();
 
             String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());

@@ -570,6 +570,9 @@ public class AttendantController {
         res.setAcceptTime(order.getAcceptTime());
         res.setActualDuration(order.getActualDuration());
         res.setAttendantName(order.getAttendantName());
+        if (order.getAttendantId() != null) {
+            res.setAttendantId(String.valueOf(order.getAttendantId()));
+        }
         res.setSpecialRequirements(order.getSpecialRequirements());
         res.setCustomRequirement(order.getCustomRequirement());
         if (order.getOrderStatus() != null && order.getOrderStatus() >= 2 && order.getUserId() != null) {

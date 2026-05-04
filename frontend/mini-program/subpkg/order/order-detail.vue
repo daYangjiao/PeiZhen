@@ -1281,7 +1281,7 @@ const getActualDurationDisplay = (detailOrder) => {
 };
 
 const getEstimatedDurationDisplay = (detailOrder) => {
-  const label = getOrderDurationLabel(detailOrder, '—');
+  const label = getOrderDurationLabel(detailOrder, '—', { prefer: 'estimated' });
   return label === '—' ? label : label;
 };
 

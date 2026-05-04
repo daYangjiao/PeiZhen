@@ -65,7 +65,7 @@
 | ChatController | GET | `/api/chat/contacts` | 查询最近联系人 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:116` |
 | ChatController | POST | `/api/chat/read` | 标记已读 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:127` |
 | FileUploadController | POST | `/api/common/upload` | 上传文件 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:27` |
-| FileUploadController | POST | `/api/common/upload-image` | 上传图片并生成文稿扫描预览图，返回原图和扫描图地址 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:46` |
+| FileUploadController | POST | `/api/common/upload-image` | 上传图片并生成文稿扫描预览图，返回原图和扫描图地址；资质材料图片上限放宽到 10MB 以兼容证件框选与相机照片 | 公开 | `src/main/java/org/example/controller/FileUploadController.java:46` |
 | FileUploadController | POST | `/api/common/upload-avatar` | 上传头像 | 用户 JWT | `src/main/java/org/example/controller/FileUploadController.java:65` |
 | OrderController | POST | `/api/orders` | 创建订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:32` |
 | OrderController | GET | `/api/orders/{orderId}` | 按 ID 查询订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:55` |
@@ -73,7 +73,7 @@
 | OrderController | POST | `/api/orders/{orderId}/confirm-time-fee` | 确认时长费用 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:93` |
 | OrderController | POST | `/api/orders/{orderId}/dispute-time-fee` | 申诉时长费用 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:118` |
 | OrderController | POST | `/api/orders/{orderId}/pay-balance` | 支付时长费用差额，成功后完成订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:147` |
-| OrderController | GET | `/api/orders/user-orders` | 查询当前用户订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:163` |
+| OrderController | GET | `/api/orders/user-orders` | 查询当前用户订单，列表项包含 `attendantId` 供用户端订单页点击陪诊师头像直达陪诊师主页 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:163` |
 | OrderController | PUT | `/api/orders/{orderId}/cancel` | 取消订单 | 用户 JWT | `src/main/java/org/example/controller/OrderController.java:193` |
 | OrderEvaluationController | GET | `/api/orders/{orderId}/evaluation` | 查询评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:31` |
 | OrderEvaluationController | POST | `/api/orders/{orderId}/evaluation` | 提交评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:60` |
@@ -139,7 +139,7 @@
 
 ## 上传响应约定
 
-- `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`。
+- `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`，图片大小上限为 10MB。
 - 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。陪诊师资料响应中的上传状态必须与可展示图片一致：存在原图或扫描预览图才返回已上传。
 
 ## 微信登录口径

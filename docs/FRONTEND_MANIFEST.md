@@ -17,7 +17,7 @@
 | 页面路径 | 标题 | 核心交互逻辑 | 主要接口/动作 |
 | --- | --- | --- | --- |
 | `pages/auth/login` | 登录 | 用户/陪诊师登录入口，支持账号密码和微信登录分流；微信小程序走 `uni.login` code 登录，微信内 H5 走公众号网页授权回调，未绑定时进入手机号绑定；App 微信登录代码已预留，需后续整包启用原生微信 OAuth 模块。 | `/api/users/login`<br>`/api/users/wechat/config-status`<br>`/api/users/wechat/login`<br>`/api/users/wechat/oauth-url` |
-| `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 支持待退款状态，对待支付、待确认时长、待补差额和全部显示待处理红点。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
+| `pages/role-user/order` | 我的订单 | 用户订单列表，查看订单状态、进入详情、处理待支付/服务中/评价等流程；分类 Tab 支持待退款状态，对待支付、待确认时长、待补差额和全部显示待处理红点；列表项返回 `attendantId` 后，点击陪诊师头像可直接进入陪诊师主页查看资质。 | `/api/orders/{...}`<br>`/api/orders/user-orders` |
 | `pages/role-user/message` | 消息中心 | 用户消息中心，加载聊天联系人和系统消息，监听系统消息已读并同步底部红点。 | `/api/chat/contacts` |
 | `pages/role-user/profile` | 个人中心 | 用户个人中心，展示账户信息，头像展示优先使用后端 `avatar` 并同步 `avatar/avatarUrl` 缓存，进入资料编辑、订单、消息、设置等入口；退出登录使用自定义底部确认面板。 | 无直接接口调用/通过封装模块调用 |
 | `pages/ai-triage/01-appointment-selection` | 预约类型选择 | 预约类型选择，承接首页/AI 分流，进入普通预约或 AI 导诊。 | 无直接接口调用/通过封装模块调用 |
@@ -31,7 +31,7 @@
 | `subpkg/chat/chat-escort` | 聊天 | 陪诊师侧聊天页，加载历史消息、发送文本/图片/语音并同步已读；聊天头部不展示静态在线状态和说明型副标题，只保留对象名称与身份标签。 | `/api/chat/history?targetUserId={...}&page=1&pageSize={...}`<br>`/api/chat/history?targetUserId={...}&page={...}&pageSize={...}`<br>`/api/chat/read?senderId={...}`<br>`/api/chat/send`<br>`/api/common/upload` |
 | `subpkg/system-message/system-message` | 系统消息 | 系统消息列表，进入后批量标记系统通知已读并同步用户/陪诊师底部消息红点，按消息动作跳转订单详情/评价/接单处理。 | `/ai/guide/orders/{...}/complete-info`<br>`/api/chat/system/{...}`<br>`/attendant/orders/{...}`<br>`/api/orders/{...}`<br>`/api/chat/system`<br>`/api/chat/read?senderId=0` |
 | `subpkg/system-message/escort-detail` | 系统消息详情 | 陪诊师系统消息详情，查看派单/订单相关消息并跳转订单；专属派单消息打开已流转订单时保留“曾收到过派单”的上下文。 | `/attendant/orders/{...}`<br>`/api/chat/system/{...}` |
-| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；待确认时长时展示陪诊师提交说明，确认按钮采用自适应布局避免文字裁切；确认负差额后展示待平台退款，不再直接显示已完成；补差额支付遇到登录态过期时只提示重新登录，不直接跳走当前订单页；陪诊师星级展示平均评分，按 `attendantScore + attendantEvaluationCount` 判断，无评价显示“暂无评分”。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
+| `subpkg/order/order-detail` | 订单详情 | 用户订单详情，查看订单、支付尾款、取消、申诉、确认时长费用、补差额支付、查看二维码/联系陪诊师；待确认时长时展示陪诊师提交说明，确认按钮采用自适应布局避免文字裁切；时长确认卡中的“预计时长”固定展示下单预估值/预约时段推导值，不被陪诊师提交的 `actualDuration` 覆盖；确认负差额后展示待平台退款，不再直接显示已完成；补差额支付遇到登录态过期时只提示重新登录，不直接跳走当前订单页；陪诊师星级展示平均评分，按 `attendantScore + attendantEvaluationCount` 判断，无评价显示“暂无评分”。 | `/api/orders/{...}/cancel?reason={...}`<br>`/api/orders/{...}/dispute-time-fee{...}`<br>`/api/orders/{...}/confirm-time-fee`<br>`/api/orders/{...}/pay-balance`<br>`/api/orders/{...}/evaluation`<br>`/ai/guide/orders/{...}/complete-info` |
 | `subpkg/order/escort-detail` | 订单详情（陪诊师端） | 陪诊师订单详情，专属派单可查看完整资料、确认接单或拒绝派单；专属接单时段结束后展示“曾收到过派单、已转入公共大厅”的流转态和刷新/返回操作；接单后执行开始服务、结束服务、取消、扫码核销、评价查看等；扫码内容不匹配使用自定义提示面板。 | `/attendant/orders/{...}/evaluation`<br>`/attendant/orders/{...}/evaluation/reply`<br>`/attendant/orders/{...}/service-progress?step={...}`<br>`/attendant/orders/{...}`<br>`/attendant/orders/{...}/accept?attendantId={...}`<br>`/attendant/orders/{...}/reject-assigned`<br>`/attendant/orders/{...}/scan-qr?qrCodeContent={...}`<br>`/attendant/orders/{...}/cancel` |
 | `subpkg/order/prepare` | 服务前准备清单 | 服务前准备清单，展示陪诊服务前注意事项。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/order/submit-time-fee` | 提交时长与费用 | 陪诊师提交实际服务时长、费用和说明，驱动用户确认或争议流程；说明输入框按卡片宽度对齐，不因内边距溢出。 | `/attendant/orders/{...}`<br>`/attendant/orders/{...}/end?actualDuration={...}&attendantTimeRemark={...}` |
@@ -48,14 +48,14 @@
 | `subpkg/ai-appointment/01-ai-appointment` | AI导诊 | AI 导诊对话页，结构化采集需求、追问补全、确认时间并启动匹配；日期和选项选择使用自定义底部选择面板。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/ai-appointment/02-ai-match-result` | AI推荐结果 | AI 推荐结果页，展示匹配陪诊师，选择陪诊师并创建订单；评分使用评价聚合结果，无评价显示“暂无评分”。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/attendant-detail` | 陪诊师主页 | 陪诊师主页，展示公开资料/评分/资质；平均分支持半星，无评价显示“暂无评分/暂无评价”；资质状态和查看完整资质共用同一套可展示图片判断，优先原图、缺失时兜底扫描预览图。 | 无直接接口调用/通过封装模块调用 |
-| `subpkg/profile/edit-profile` | 编辑个人资料 | 用户编辑个人资料和头像。 | 无直接接口调用/通过封装模块调用 |
+| `subpkg/profile/edit-profile` | 编辑个人资料 | 用户编辑个人资料和头像；头像使用独立圆角外壳承载描边与阴影，避免头像图片本身为圆角矩形时出现圆形阴影。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/avatar-crop` | 裁剪头像 | 头像裁剪工具页，裁剪后返回上传流程。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/id-card-crop` | 身份证框选 | 身份证正反面上传前的自定义框选页，按身份证比例裁切并输出清晰审核图。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/edit-escort` | 编辑资料 | 陪诊师编辑个人资料、擅长领域、医院和简介。 | `/attendant/profile/{...}` |
 | `subpkg/profile/withdraw-center` | 提现中心 | 提现中心入口，跳转钱包明细的提现 Tab。 | 无直接接口调用/通过封装模块调用 |
 | `subpkg/profile/wallet-detail` | 钱包明细 | 陪诊师钱包明细，优先使用后端 `attendantIncomeAmount` 展示真实收入；只展示实际到账金额大于 0 的收入记录；退款订单按 `settlementAmount` 结算，取消/超时关闭订单不产生收入。 | `/attendant/orders`<br>`/attendant/withdraw/records`<br>`/attendant/withdraw/apply` |
 | `subpkg/profile/qualification` | 资质管理 | 陪诊师资质管理，按状态总览、四项材料清单、审核记录三段展示；资质状态只表达待补充、审核中、已通过、未通过、证件过期，账号禁用不混入资质状态；驳回原因置顶高亮，已通过时不展示提交审核按钮。 | `/attendant/profile/{...}`<br>`/attendant/qualification/{...}/submit` |
-| `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期；页面按身份证、执业证、健康证三块分步展示，外层显示扫描/框选预览，点击查看原图；底部固定保存和提交审核，材料不完整时页面内提示原因。 | `/attendant/qualification/{...}`<br>`/attendant/qualification/{...}/submit`<br>`/api/common/upload-image` |
+| `subpkg/profile/qualification-upload` | 上传资质 | 上传/更新身份证、执业证、健康证和证件有效期；页面按身份证、执业证、健康证三块分步展示，外层显示扫描/框选预览，点击查看原图；身份证框选导出和普通证件图片都会先压缩再上传，避免大图直接触发上传失败；底部固定保存和提交审核，材料不完整时页面内提示原因，并优先透传后端返回的失败原因。 | `/attendant/qualification/{...}`<br>`/attendant/qualification/{...}/submit`<br>`/api/common/upload-image` |
 | `subpkg/profile/reviews` | 我的评价 | 陪诊师评价列表，查看订单评价并回复用户评价；平均评分无评价时显示“暂无评分”。 | `/attendant/orders`<br>`/attendant/orders/` |
 | `subpkg/profile/service-stats` | 服务统计 | 陪诊师服务统计，汇总已完成订单、收入和按评价数展示的好评率。 | `/attendant/orders` |
 | `subpkg/profile/platform-rules` | 平台规则 | 平台规则说明页。 | 无直接接口调用/通过封装模块调用 |

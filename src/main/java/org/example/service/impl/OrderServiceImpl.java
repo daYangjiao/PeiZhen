@@ -842,6 +842,7 @@ try {
             res.setCustomRequirement(order.getCustomRequirement());
 
             if (order.getAttendantId() != null) {
+                res.setAttendantId(String.valueOf(order.getAttendantId()));
                 User attendantUser = userMapper.findById(order.getAttendantId());
                 if (attendantUser != null) {
                     res.setAttendantName(attendantUser.getName());

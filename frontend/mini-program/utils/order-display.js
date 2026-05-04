@@ -46,12 +46,19 @@ export const formatServiceTimeSlot = (slot = '') => {
   return endTotal < startTotal ? `${start}-次日${end}` : `${start}-${end}`
 }
 
-export const getOrderDurationHours = (order = {}) => {
-  const candidates = [
-    order.actualDuration,
-    order.consultationDuration,
-    order.estimatedDuration,
-  ]
+export const getOrderDurationHours = (order = {}, options = {}) => {
+  const prefer = options.prefer === 'estimated' ? 'estimated' : 'actual'
+  const candidates = prefer === 'estimated'
+    ? [
+        order.consultationDuration,
+        order.estimatedDuration,
+        order.actualDuration,
+      ]
+    : [
+        order.actualDuration,
+        order.consultationDuration,
+        order.estimatedDuration,
+      ]
 
   for (const candidate of candidates) {
     const value = Number(candidate)
@@ -63,8 +70,8 @@ export const getOrderDurationHours = (order = {}) => {
   return null
 }
 
-export const getOrderDurationLabel = (order = {}, fallback = '—') => {
-  const duration = getOrderDurationHours(order)
+export const getOrderDurationLabel = (order = {}, fallback = '—', options = {}) => {
+  const duration = getOrderDurationHours(order, options)
   if (duration == null) return fallback
   const normalized = Number(duration)
   if (Number.isInteger(normalized)) return `${normalized}小时`

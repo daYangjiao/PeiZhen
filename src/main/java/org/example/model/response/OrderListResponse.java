@@ -80,6 +80,9 @@ public class OrderListResponse {
 
     @ApiModelProperty(value = "陪诊师姓名", example = "李四")
     private String attendantName;
+
+    @ApiModelProperty(value = "陪诊师用户ID", example = "21")
+    private String attendantId;
     
     @ApiModelProperty(value = "陪诊师头像", example = "/uploads/avatar.jpg")
     private String attendantAvatar;

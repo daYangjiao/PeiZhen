@@ -266,7 +266,7 @@ const exportFramedImage = () =>
           destWidth: canvasOutputWidth,
           destHeight: canvasOutputHeight,
           fileType: 'jpg',
-          quality: 1,
+          quality: 0.92,
           success: (result) => resolve(result.tempFilePath),
           fail: reject,
         },

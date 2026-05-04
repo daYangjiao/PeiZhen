@@ -394,4 +394,31 @@ class OrderServiceImplTest {
 
         assertThat(result).isEqualTo("无权操作该订单");
     }
+
+    @Test
+    void getUserOrdersWithPaginationShouldExposeAttendantIdForAvatarNavigation() {
+        Order order = new Order();
+        order.setOrderId(112);
+        order.setOrderNo("ORD-112");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(2);
+        order.setPaymentStatus(1);
+        order.setServiceContent("普通陪诊");
+        User attendant = new User();
+        attendant.setId(20);
+        attendant.setName("李陪诊");
+        attendant.setAvatar("/uploads/attendant-20.png");
+        OrderListQueryRequest query = new OrderListQueryRequest();
+
+        when(orderMapper.countUserOrders(10, query)).thenReturn(1);
+        when(orderMapper.findUserOrdersWithPagination(10, query, 0, 10)).thenReturn(java.util.List.of(order));
+        when(userMapper.findById(20)).thenReturn(attendant);
+
+        var response = service.getUserOrdersWithPagination(10, query);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getAttendantId()).isEqualTo("20");
+        assertThat(response.getContent().get(0).getAttendantName()).isEqualTo("李陪诊");
+    }
 }

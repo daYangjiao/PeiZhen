@@ -3,12 +3,13 @@
 		<view class="form-section">
 			<!-- 头像上传 -->
 			<view class="avatar-upload">
-				<image 
-						class="avatar-img" 
-						:src="displayAvatarUrl" 
-						mode="aspectFill"
-						@click="isEditing ? chooseAvatar : null"
-					></image>
+				<view class="avatar-shell" @click="isEditing ? chooseAvatar : null">
+					<image
+							class="avatar-img"
+							:src="displayAvatarUrl"
+							mode="aspectFill"
+						></image>
+				</view>
 				<view v-if="isEditing" class="upload-text" @click="chooseAvatar">点击更换头像</view>
 			</view>
 			
@@ -383,14 +384,22 @@ const saveProfile = async () => {
     margin: 24rpx 0 40rpx;
 }
 
-.avatar-img {
+.avatar-shell {
     width: 168rpx;
     height: 168rpx;
     border-radius: 42rpx;
     border: 4rpx solid rgba(0, 122, 255, 0.1);
     background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
     box-shadow: 0 18rpx 38rpx rgba(0, 122, 255, 0.12);
+    overflow: hidden;
     margin-bottom: 18rpx;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: inherit;
 }
 
 .upload-text {
