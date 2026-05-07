@@ -440,8 +440,7 @@ public class AttendantController {
         try {
             Integer currentUserId = AuthUtil.getCurrentUserId(request);
             String result = orderService.endService(orderId, currentUserId, actualDuration, attendantTimeRemark);
-            // 只要返回不是明显错误提示，就认为成功
-            if (result != null && result.startsWith("服务结束成功")) {
+            if (result != null && (result.startsWith("服务结束成功") || result.startsWith("服务已提交"))) {
                 return ResponseResult.success(result);
             } else {
                 return ResponseResult.error(result != null ? result : "结束服务失败");

@@ -329,13 +329,22 @@ export default {
 .step-btn {
   width: 64rpx;
   height: 64rpx;
-  line-height: 64rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
   background: #eef3f9;
   border-radius: 32rpx;
   border: none;
   font-size: 32rpx;
   color: var(--text-main);
+}
+.step-btn::after {
+  border: none;
 }
 .duration-text {
   margin: 0 16rpx;

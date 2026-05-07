@@ -334,7 +334,7 @@ onUnload(() => {
 .crop-mask {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, transparent 0 48%, rgba(15, 23, 42, 0.48) 56%);
+  background: transparent;
   pointer-events: none;
 }
 
