@@ -8,10 +8,8 @@ import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.ResponseResult;
-import org.example.model.Attendant;
-import org.example.model.User;
+import org.example.model.response.AttendantProfileResponse;
 import org.example.service.AttendantService;
-import org.example.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -28,7 +26,6 @@ import java.util.Map;
 public class UserAttendantController {
 
     private final AttendantService attendantService;
-    private final UserService userService;
 
     /**
      * 根据陪诊师ID获取详细信息
@@ -45,32 +42,41 @@ public class UserAttendantController {
             @PathVariable Integer attendantId) {
         
         try {
-            // 1. 获取基础用户信息
-            User user = userService.findById(attendantId);
-            if (user == null) {
+            AttendantProfileResponse profile = attendantService.getProfile(attendantId);
+            if (profile == null) {
                 return ResponseResult.error("陪诊师不存在");
             }
 
-            // 2. 获取陪诊师扩展信息
-            Attendant attendant = attendantService.findByUserId(attendantId);
-            
-            // 3. 组装返回数据
             Map<String, Object> detail = new HashMap<>();
-            detail.put("id", user.getId());
-            detail.put("name", user.getName());
-            detail.put("avatar", user.getAvatar());
-            detail.put("phone", user.getPhone());
-            
-            if (attendant != null) {
-                detail.put("certificate", attendant.getCertificate());
-                detail.put("score", attendant.getScore());
-                detail.put("evaluationCount", attendant.getEvaluationCount() == null ? 0 : attendant.getEvaluationCount());
-                detail.put("praiseRate", attendant.getPraiseRate() == null ? 0 : attendant.getPraiseRate());
-                detail.put("introduction", attendant.getIntroduction());
-                detail.put("professionalField", attendant.getProfessionalField());
-                detail.put("experienceYears", attendant.getExperienceYears());
-                detail.put("hospitalName", attendant.getHospitalName());
-            }
+            detail.put("id", profile.getId());
+            detail.put("name", profile.getName());
+            detail.put("avatar", profile.getAvatarUrl());
+            detail.put("avatarUrl", profile.getAvatarUrl());
+            detail.put("phone", profile.getPhone());
+            detail.put("certificate", profile.getCertificate());
+            detail.put("score", profile.getScore());
+            detail.put("evaluationCount", profile.getEvaluationCount() == null ? 0 : profile.getEvaluationCount());
+            detail.put("praiseRate", profile.getPraiseRate() == null ? 0 : profile.getPraiseRate());
+            detail.put("introduction", profile.getIntroduction());
+            detail.put("professionalField", profile.getProfessionalField());
+            detail.put("experienceYears", profile.getExperienceYears());
+            detail.put("hospitalName", profile.getHospitalName());
+            detail.put("qualificationStatusCode", profile.getQualificationStatusCode());
+            detail.put("qualificationStatusText", profile.getQualificationStatusText());
+            detail.put("idCardUploaded", profile.getIdCardUploaded());
+            detail.put("practiceCertUploaded", profile.getPracticeCertUploaded());
+            detail.put("healthCertUploaded", profile.getHealthCertUploaded());
+            detail.put("idCardFileUrl", profile.getIdCardFileUrl());
+            detail.put("idCardFrontFileUrl", profile.getIdCardFrontFileUrl());
+            detail.put("idCardFrontScanFileUrl", profile.getIdCardFrontScanFileUrl());
+            detail.put("idCardBackFileUrl", profile.getIdCardBackFileUrl());
+            detail.put("idCardBackScanFileUrl", profile.getIdCardBackScanFileUrl());
+            detail.put("practiceCertFileUrl", profile.getPracticeCertFileUrl());
+            detail.put("practiceCertScanFileUrl", profile.getPracticeCertScanFileUrl());
+            detail.put("healthCertFileUrl", profile.getHealthCertFileUrl());
+            detail.put("healthCertScanFileUrl", profile.getHealthCertScanFileUrl());
+            detail.put("practiceCertExpireDate", profile.getPracticeCertExpireDate());
+            detail.put("healthCertExpireDate", profile.getHealthCertExpireDate());
             
             return ResponseResult.success(detail);
         } catch (Exception e) {

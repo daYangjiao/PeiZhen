@@ -53,4 +53,13 @@ public class ChatMessage {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @ApiModelProperty(value = "已读截止时间")
     private Date readUpToTime;
+
+    @ApiModelProperty(value = "回复引用的消息ID")
+    private Long replyToMessageId;
+
+    @ApiModelProperty(value = "回复引用的消息内容摘要")
+    private String replyToContent;
+
+    @ApiModelProperty(value = "回复引用的发送者名称")
+    private String replyToSenderName;
 }

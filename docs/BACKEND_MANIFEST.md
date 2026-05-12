@@ -1,6 +1,6 @@
 # Backend Manifest
 
-更新时间: 2026-05-07
+更新时间: 2026-05-12
 
 本清单由 Spring Boot 控制器注解、Swagger 注解和拦截器配置整理。权限列按 `WebMvcConfig`、`AuthInterceptor`、`AdminAuthInterceptor` 推导。
 
@@ -38,7 +38,7 @@
 | AiMedicalController | GET | `/ai/medical/qa/latest` | 获取最近一次 AI 导诊会话 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:76` |
 | AiMedicalController | GET | `/ai/medical/qa/thinking/{recordId}` | 兼容旧版思考过程查询 | 用户 JWT | `src/main/java/org/example/controller/AiMedicalController.java:83` |
 | AppUpgradeController | POST | `/api/app-upgrade/check` | 检查 App 更新 | 公开 | `src/main/java/org/example/controller/AppUpgradeController.java:39` |
-| UserAttendantController | GET | `/user/attendants/{attendantId}` | 用户端查询陪诊师详情，评分、评价数、好评率按 `order_evaluation.rating` 聚合返回，兼容旧入口 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
+| UserAttendantController | GET | `/user/attendants/{attendantId}` | 用户端查询陪诊师详情，评分、评价数、好评率按 `order_evaluation.rating` 聚合返回，并返回可预览资质原图/扫描图字段，兼容旧入口 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
 | AttendantController | GET | `/attendant/profile/{userId}` | 查询陪诊师资料，收入/余额按已完成订单最终金额扣除平台服务费后的口径返回；评分、评价数、好评率只按 `order_evaluation.rating` 聚合；资质状态返回待补充/待审核/已通过/未通过，账号封禁由 `user.status` 控制；资质上传状态以可展示原图或扫描预览图为准 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:66` |
 | AttendantController | GET | `/attendant/profile/{userId}/reviews` | 查询公开评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:89` |
 | AttendantController | PUT | `/attendant/profile/{userId}` | 更新资料 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:123` |
@@ -48,8 +48,8 @@
 | AttendantController | GET | `/attendant/orders/waiting` | 查询待接订单，需资质通过且证件有效 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:311` |
 | AttendantController | POST | `/attendant/orders/{orderId}/accept` | 接单；专属派单超过15分钟会服务端释放回公共接单大厅 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:347` |
 | AttendantController | POST | `/attendant/orders/{orderId}/reject-assigned` | 拒绝专属派单 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:378` |
-| AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:400` |
-| AttendantController | POST | `/attendant/orders/{orderId}/end` | 结束服务，保存实际时长和陪诊师说明；成功时返回“服务已提交，待用户确认时长费用”并进入待确认时长费用 | 用户 JWT，仅订单所属陪诊师 | `src/main/java/org/example/controller/AttendantController.java:425` |
+| AttendantController | POST | `/attendant/orders/{orderId}/start` | 开始服务；未到预约服务日期时拒绝提前开始 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:400` |
+| AttendantController | POST | `/attendant/orders/{orderId}/end` | 结束服务或在待确认阶段重新提交时长费用，保存实际时长和陪诊师说明；成功时返回“服务已提交，待用户确认时长费用”并进入/保持待确认时长费用 | 用户 JWT，仅订单所属陪诊师 | `src/main/java/org/example/controller/AttendantController.java:425` |
 | AttendantController | POST | `/attendant/orders/{orderId}/service-progress` | 更新服务进度 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:452` |
 | AttendantController | GET | `/attendant/orders` | 查询陪诊师订单，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount`；列表项返回 `paymentTime` 供专属派单确认窗口判断 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:479` |
 | AttendantController | GET | `/attendant/orders/{orderId}` | 查询订单详情，返回统一结算字段 `settlementAmount`、`platformFeeAmount`、`attendantIncomeAmount` | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:585` |
@@ -58,7 +58,7 @@
 | AttendantController | GET | `/attendant/orders/{orderId}/evaluation` | 查询订单评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:707` |
 | AttendantController | POST | `/attendant/orders/{orderId}/evaluation/reply` | 回复评价 | 用户 JWT | `src/main/java/org/example/controller/AttendantController.java:742` |
 | AttendantController | GET | `/attendant/recommended` | 查询推荐陪诊师，评分、评价数、好评率只按 `order_evaluation.rating` 聚合 | 公开 | `src/main/java/org/example/controller/AttendantController.java:785` |
-| ChatController | POST | `/api/chat/send` | 发送聊天消息 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:37` |
+| ChatController | POST | `/api/chat/send` | 发送聊天消息，支持 `replyToMessageId` 引用当前会话内某条消息并返回引用摘要 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:37` |
 | ChatController | GET | `/api/chat/history` | 查询聊天历史 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:53` |
 | ChatController | GET | `/api/chat/system` | 查询系统消息 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:68` |
 | ChatController | GET | `/api/chat/system/{messageId}` | 查询系统消息详情 | 用户 JWT | `src/main/java/org/example/controller/ChatController.java:80` |
@@ -78,7 +78,7 @@
 | OrderEvaluationController | GET | `/api/orders/{orderId}/evaluation` | 查询评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:31` |
 | OrderEvaluationController | POST | `/api/orders/{orderId}/evaluation` | 提交评价 | 用户 JWT | `src/main/java/org/example/controller/OrderEvaluationController.java:60` |
 | PublicQrCodeController | GET | `/order-qr/{orderId}.png` | 获取订单服务核销二维码图片 | 公开 | `src/main/java/org/example/controller/PublicQrCodeController.java:28` |
-| UserAttendantController | GET | `/user/attendants/{attendantId}` | 查询陪诊师详情 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
+| UserAttendantController | GET | `/user/attendants/{attendantId}` | 查询陪诊师详情，包含公开资质预览字段 | 公开 | `src/main/java/org/example/controller/UserAttendantController.java:36` |
 | UserController | POST | `/api/users/register` | 注册用户 | 公开 | `src/main/java/org/example/controller/UserController.java:44` |
 | UserController | POST | `/api/users/login` | 登录 | 公开 | `src/main/java/org/example/controller/UserController.java:121` |
 | UserController | GET | `/api/users/wechat/config-status` | 获取微信登录配置状态 | 公开 | `src/main/java/org/example/controller/UserController.java:150` |
@@ -142,6 +142,11 @@
 - `/api/common/upload-image` 返回 `ImageUploadResponse`：`url`、`originalUrl`、`scanUrl`、`scanGenerated`，图片大小上限为 10MB。
 - 资质材料上传保存 `originalUrl` 为原始文件地址，保存 `scanUrl` 为后台审核默认预览图；扫描失败时 `scanUrl` 回退为 `originalUrl`。陪诊师资料响应中的上传状态必须与可展示图片一致：存在原图或扫描预览图才返回已上传。
 
+## 聊天消息口径
+
+- 普通聊天消息支持引用当前会话内的历史消息：客户端传 `replyToMessageId`，后端只接受发送者与接收者之间真实存在的消息，并写入 `replyToMessageId`、`replyToContent`、`replyToSenderName` 供双方聊天页展示引用卡片。
+- 图片、语音和位置消息被引用时，后端保存摘要 `[图片]`、`[语音]`、`[位置]`；文本引用摘要最多保留 80 个字符。
+
 ## 微信登录口径
 
 - 用户端微信登录统一记录到 `third_party_account`：`provider=WECHAT`，`platform` 可为 `MINI_PROGRAM`、`APP`、`WECHAT_H5`；登录时优先按 `platform + openid` 命中，存在 `unionid` 时允许同一微信开放平台主体下跨端命中。
@@ -172,7 +177,7 @@
 
 ## 订单时长争议口径
 
-- 陪诊师结束服务时只提交 `actualDuration`，后端按实际时长计算 `balanceAmount` 并把订单置为 `4=待确认时长费用`；系统消息提示“待用户确认”，不能提前提示订单已结束/已完成；当前版本不保存陪诊师提交原因。
+- 陪诊师结束服务时只提交 `actualDuration`，后端按实际时长计算 `balanceAmount` 并把订单置为 `4=待确认时长费用`；若订单已在 `4=待确认时长费用`，陪诊师仍可重新提交修正时长与说明；系统消息提示“待用户确认”，不能提前提示订单已结束/已完成。
 - 用户认可时调用确认接口：差额大于 0 进入 `9=待用户补差额`，差额小于 0 进入 `10=待平台退款`，差额等于 0 才直接完成。
 - 用户不认可时提交 `timeDisputeUserDuration` 和 `timeDisputeReason`，订单直接进入 `5=平台争议处理中`，不会打回陪诊师重新提交。
 - 管理端争议处理只允许处理状态 5，必须填写处理备注并持久化到 `order.admin_remark`；最终金额必须大于 0，高于已付金额进入 9，低于已付金额进入 10，等于已付金额才完成；若请求只提供最终时长未提供最终金额，后端按服务类型和最终时长重新计算金额兜底。

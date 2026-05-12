@@ -1,6 +1,6 @@
 # Database Map
 
-更新时间: 2026-04-27
+更新时间: 2026-05-12
 
 本文件记录当前数据库结构、迁移脚本位置和以后数据库变更规则。当前基线主要来自 `database/student.sql`，历史增量来自 `database/*.sql`，后续新增变更统一写入根目录 `db/`。
 
@@ -29,6 +29,7 @@
 | `db/20260426_split_attendant_qualification_status.sql` | 拆分陪诊师资质状态与账号封禁状态；旧 `attendant.status=2` 迁移为 `user.status=0` 且 `qualification_status=2` |
 | `db/20260426_add_order_admin_remark.sql` | 幂等补齐订单争议处理持久字段 `order.admin_remark`、`dispute_resolved_by`、`dispute_resolved_time`，避免历史库争议处理更新时报缺列 |
 | `db/20260427_split_unsubmitted_attendant_qualification.sql` | 将陪诊师未提交资质从待审核状态拆出为 `qualification_status=3`，并回填无完整材料或证件过期的历史待审记录为待补充 |
+| `db/20260512_chat_message_reply_reference.sql` | 聊天消息回复引用字段，保存被回复消息 ID、内容摘要和发送者名称 |
 | `db/.gitkeep` | 保留后续日期命名数据库脚本目录 |
 
 ## 表结构地图
@@ -47,7 +48,7 @@
 | `guide_appointment` | AI/普通导诊预约需求，保存患者、医院、症状、服务时间等。 | `id int`<br>`appointment_no varchar(64)`<br>`user_id int`<br>`patient_name varchar(50)`<br>`patient_phone varchar(20)`<br>`symptoms json`<br>`hospital_name varchar(100)`<br>`service_type_number int`<br>`service_date varchar(20)`<br>`service_start_time varchar(20)`<br>`service_end_time varchar(20)`<br>`other_requirement text`<br>`create_time datetime` |
 | `order` | 陪诊订单主表，保存用户、陪诊师、服务、支付、取消、争议、核销和结算字段；状态 5 表示平台争议处理中，9 表示待用户补差额，10 表示待平台退款。 | `order_id int`<br>`order_no varchar(64)`<br>`user_id int`<br>`attendant_id int`<br>`attendant_name varchar(50)`<br>`patient_name varchar(50)`<br>`patient_age int`<br>`patient_sex varchar(10)`<br>`contact_person varchar(50)`<br>`contact_phone varchar(20)`<br>`hospital varchar(100)`<br>`service_content varchar(100)`<br>`clinic_type int`<br>`service_date varchar(20)`<br>`service_time_slot varchar(50)`<br>`special_requirements text`<br>`custom_requirement text`<br>`order_amount decimal(10,2)`<br>`actual_duration decimal(10,2)`<br>`attendant_time_remark varchar(255)`<br>`balance_amount decimal(10,2)`<br>`refund_amount decimal(10,2)`<br>`time_dispute_reason varchar(255)`<br>`admin_remark varchar(255)`<br>`dispute_resolved_by int`<br>`dispute_resolved_time datetime`<br>... |
 | `order_evaluation` | 订单评价和陪诊师回复。 | `id int`<br>`order_id int`<br>`order_no varchar(64)`<br>`user_id int`<br>`attendant_id int`<br>`rating int`<br>`tags varchar(255)`<br>`content text`<br>`attendant_reply text`<br>`reply_time datetime`<br>`create_time datetime`<br>`update_time datetime` |
-| `chat_message` | 用户与陪诊师聊天/系统消息记录，可关联订单。 | `id bigint`<br>`sender_id int`<br>`receiver_id int`<br>`content text`<br>`order_id int`<br>`msg_type int`<br>`is_read tinyint(1)`<br>`create_time datetime` |
+| `chat_message` | 用户与陪诊师聊天/系统消息记录，可关联订单，也可引用当前会话内某条消息形成单条回复。 | `id bigint`<br>`sender_id int`<br>`receiver_id int`<br>`content text`<br>`order_id int`<br>`msg_type int`<br>`is_read tinyint(1)`<br>`create_time datetime`<br>`reply_to_message_id bigint`<br>`reply_to_content varchar(120)`<br>`reply_to_sender_name varchar(50)` |
 | `ai_medical_qa` | AI 医疗问答记录、会话、回答状态和思考过程。 | `id bigint`<br>`user_id int`<br>`conversation_id varchar(64)`<br>`question text`<br>`answer longtext`<br>`qa_status int`<br>`create_time datetime`<br>`update_time datetime`<br>`deleted tinyint(1)`<br>`thinking_process longtext` |
 | `ai_appointment_session` | AI 预约导诊会话状态、结构化需求、匹配结果和预约号。 | `id bigint`<br>`session_id varchar(64)`<br>`user_id int`<br>`status varchar(32)`<br>`processing_phase varchar(32)`<br>`thinking_process varchar(255)`<br>`assistant_reply text`<br>`assistant_intent varchar(32)`<br>`need_more_info tinyint(1)`<br>`missing_fields_json json`<br>`question_type varchar(64)`<br>`question_key varchar(64)`<br>`follow_up_type varchar(64)`<br>`time_proposal_json json`<br>`options_json json`<br>`can_match tinyint(1)`<br>`ready_for_confirm tinyint(1)`<br>`follow_up_round int`<br>... |
 | `ai_appointment_message` | AI 预约导诊会话消息明细和字段补丁。 | `id bigint`<br>`session_id varchar(64)`<br>`role varchar(16)`<br>`content text`<br>`field_patch_json json`<br>`deleted tinyint(1)`<br>`create_time datetime`<br>`update_time datetime` |
@@ -59,7 +60,7 @@
 - `order.user_id` 关联下单用户，`order.attendant_id` 关联接单陪诊师，`order.guide_appointment_id` 关联导诊预约号/记录；后台订单取消和争议处理写入 `admin_operation_log`，工作台处理前用 `admin_task_claim` 对 `ORDER_DISPUTE` 任务加领取锁。
 - 陪诊师钱包收入按后端统一结算口径读取：仅 `order_status = 6` 产生收入，`order_status = 10` 待平台退款、取消/退款/超时关闭的 `order_status = 7` 不产生收入；新流程 `order_amount` 是最终结算金额，历史退款数据在没有负数 `balance_amount` 时按 `order_amount - refund_amount` 兼容后再扣 10% 平台服务费。
 - 陪诊师待审核任务只来自 `attendant.qualification_status = 0` 的已提交记录，使用 `admin_task_claim` 对 `ATTENDANT_REVIEW` 加领取锁；新注册和未提交资料状态为 `3=待补充`，不进入待审队列；审核结果只更新 `attendant.qualification_status` 并继续写入 `attendant_qualification_audit_log` 和 `admin_operation_log`；封禁/恢复账号只更新 `user.status`。
-- `order_evaluation.order_id`、`order_evaluation.order_no` 关联订单评价；陪诊师评分、评价总数和好评率实时从 `order_evaluation.rating` 聚合，`rating >= 4` 算好评；`chat_message.order_id` 可将消息绑定到订单上下文。
+- `order_evaluation.order_id`、`order_evaluation.order_no` 关联订单评价；陪诊师评分、评价总数和好评率实时从 `order_evaluation.rating` 聚合，`rating >= 4` 算好评；`chat_message.order_id` 可将消息绑定到订单上下文，`chat_message.reply_to_message_id` 只能引用同一用户-陪诊师会话内的历史消息。
 - `ai_appointment_session.session_id` 与 `ai_appointment_message.session_id` 组成 AI 预约导诊会话和消息明细。
 - `ai_medical_qa.conversation_id` 用于 AI 医疗问答会话聚合。
 

@@ -362,8 +362,8 @@
 				<button class="action-btn secondary" @click="contactPatient">联系患者</button>
 				<!-- 待服务状态：扫码核销（未准备时点弹窗）、模拟扫码 -->
 				<template v-if="orderInfo.status === 'accepted'">
-					<button class="action-btn" :class="isPrepared ? 'primary' : 'disabled'" @click="onScanCodeClick">扫码核销</button>
-					<button class="action-btn" :class="isPrepared ? 'warning' : 'disabled'" @click="onSimulateScanClick">模拟扫码</button>
+					<button class="action-btn" :class="canVerifyServiceNow ? 'primary' : 'disabled'" @click="onScanCodeClick">{{ isBeforeServiceDate ? '未到服务日期' : '扫码核销' }}</button>
+					<button class="action-btn" :class="canVerifyServiceNow ? 'warning' : 'disabled'" @click="onSimulateScanClick">模拟扫码</button>
 				</template>
 				<!-- 服务中状态：显示结束服务 -->
 				<button v-else-if="orderInfo.status === 'in_progress'" class="action-btn primary" @click="handleEndServiceClick">结束服务</button>
@@ -554,6 +554,7 @@ import placeholderImg from '../../static/user-placeholder.png'
 import { redirectPublicSafeToHome } from '@/utils/site-mode.js'
 import { resolveAvatarUrl } from '@/utils/media.js'
 import { formatOrderDateTime, formatServiceTimeSlot, getOrderDurationLabel } from '@/utils/order-display.js'
+import { getServiceDateGateText, isBeforeServiceDate } from '@/utils/service-date-gate.mjs'
 import { calculateAttendantIncome, calculateDisplayAttendantIncome, calculatePlatformFee, normalizeFinalOrderAmount } from '@/utils/settlement.mjs'
 import { formatExclusiveDispatchCountdown, getExclusiveDispatchDisplayState, getExclusiveDispatchRemainingMs } from '@/utils/exclusive-dispatch.mjs'
 
@@ -719,6 +720,7 @@ export default {
 				patientPhone: '',
 				serviceType: '',
 				hospital: '',
+				serviceDate: '',
 				appointmentTime: '',
 				appointmentEndTime: '',
 				duration: '',
@@ -796,6 +798,15 @@ export default {
 			if (this.exclusiveDispatchEnded) return false
 			return ['assigned_waiting', 'accepted', 'in_progress'].includes(this.orderInfo.status)
 		},
+		isBeforeServiceDate() {
+			return isBeforeServiceDate(this.orderInfo?.serviceDate)
+		},
+		serviceDateGateText() {
+			return getServiceDateGateText(this.orderInfo?.serviceDate)
+		},
+		canVerifyServiceNow() {
+			return this.isPrepared && !this.isBeforeServiceDate
+		},
 		exclusiveDispatchState() {
 			return getExclusiveDispatchDisplayState({
 				orderStatus: this.orderInfo.orderStatus,
@@ -843,6 +854,7 @@ export default {
 			}
 			if (this.exclusiveDispatchEnded) return '这笔专属派单已结束单独保留，订单已进入后续流转'
 			if (status === 'accepted') {
+				if (this.isBeforeServiceDate) return this.serviceDateGateText
 				return this.isPrepared ? '准备已完成，可扫码核销开始服务' : '请先完成服务准备，再进行扫码核销'
 			}
 			if (status === 'in_progress') {
@@ -1082,6 +1094,7 @@ export default {
 						patientAvatar: showUserAvatar ? fullAvatarUrl(order.userAvatar) : '',
 						serviceType: order.serviceContent || order.serviceTypeName,
 						hospital: order.hospital,
+						serviceDate: order.serviceDate,
 						appointmentTime: buildAppointmentTime(order),
 						appointmentEndTime: buildAppointmentEndTime(order),
 						duration: getOrderDurationLabel(order, '—'),
@@ -1187,8 +1200,15 @@ export default {
 		contactPatient() {
 			this.openContactPatientModal()
 		},
+		showServiceDateGateToast() {
+			uni.showToast({ title: this.serviceDateGateText || '未到服务日期', icon: 'none' })
+		},
 		onScanCodeClick() {
 			if (this.orderInfo.status !== 'accepted') return
+			if (this.isBeforeServiceDate) {
+				this.showServiceDateGateToast()
+				return
+			}
 			if (!this.isPrepared) {
 				this.showPrepareModal = true
 				return
@@ -1197,6 +1217,10 @@ export default {
 		},
 		onSimulateScanClick() {
 			if (this.orderInfo.status !== 'accepted') return
+			if (this.isBeforeServiceDate) {
+				this.showServiceDateGateToast()
+				return
+			}
 			if (!this.isPrepared) {
 				this.showPrepareModal = true
 				return

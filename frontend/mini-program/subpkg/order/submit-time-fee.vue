@@ -22,9 +22,13 @@
         <view class="time-row">
           <text class="label">实际时长</text>
           <view class="duration-input">
-            <button class="step-btn" @click="changeDuration(-0.5)">-</button>
+            <button class="step-btn" @click="changeDuration(-0.5)">
+              <text class="step-symbol minus">-</text>
+            </button>
             <text class="duration-text">{{ actualDuration.toFixed(1) }} 小时</text>
-            <button class="step-btn" @click="changeDuration(0.5)">+</button>
+            <button class="step-btn" @click="changeDuration(0.5)">
+              <text class="step-symbol plus">+</text>
+            </button>
           </view>
         </view>
         <view class="time-row">
@@ -345,6 +349,21 @@ export default {
 }
 .step-btn::after {
   border: none;
+}
+.step-symbol {
+  width: 32rpx;
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1;
+}
+.step-symbol.minus {
+  font-size: 34rpx;
+  transform: translateY(-2rpx);
+}
+.step-symbol.plus {
+  font-size: 30rpx;
+  transform: translateY(-1rpx);
 }
 .duration-text {
   margin: 0 16rpx;

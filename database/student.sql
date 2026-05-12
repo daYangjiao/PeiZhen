@@ -261,9 +261,13 @@ CREATE TABLE `chat_message` (
   `msg_type` int NOT NULL DEFAULT 1,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `reply_to_message_id` bigint DEFAULT NULL,
+  `reply_to_content` varchar(120) DEFAULT NULL,
+  `reply_to_sender_name` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_chat_receiver_read` (`receiver_id`, `is_read`),
-  KEY `idx_chat_pair_time` (`sender_id`, `receiver_id`, `create_time`)
+  KEY `idx_chat_pair_time` (`sender_id`, `receiver_id`, `create_time`),
+  KEY `idx_chat_reply_to_message_id` (`reply_to_message_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `ai_medical_qa` (

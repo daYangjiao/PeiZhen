@@ -57,6 +57,10 @@
               <view v-if="msg.senderId === currentUserId && msg.status === 'failed'" class="fail-icon">!</view>
 
               <view class="content-bubble" :class="{'voice-bubble': msg.msgType === 3}">
+                <view v-if="msg.replyToContent" class="reply-source">
+                  <text class="reply-source-name">{{ msg.replyToSenderName || '原消息' }}</text>
+                  <text class="reply-source-text">{{ msg.replyToContent }}</text>
+                </view>
                 <!-- 文本 -->
                 <text v-if="msg.msgType === 1" class="text">{{ msg.content }}</text>
                 <!-- 图片 -->
@@ -77,6 +81,9 @@
                 <text v-else class="text">[未知消息类型]</text>
               </view>
             </view>
+            <view class="message-actions">
+              <text class="reply-action" @click.stop="selectReplyTarget(msg)">回复</text>
+            </view>
           </view>
         </view>
       </view>
@@ -86,6 +93,13 @@
 
     <!-- 底部输入区域 -->
     <view class="footer-area" :style="{ bottom: keyboardHeight + 'px' }">
+        <view v-if="replyTarget" class="reply-preview">
+            <view class="reply-preview-copy">
+                <text class="reply-preview-title">回复 {{ replyTarget.senderName }}</text>
+                <text class="reply-preview-text">{{ replyTarget.content }}</text>
+            </view>
+            <text class="reply-preview-cancel" @click="cancelReplyTarget">取消</text>
+        </view>
         <view class="input-toolbar">
             <!-- 语音切换 -->
             <view class="icon-btn" @click="switchVoiceMode">
@@ -198,6 +212,7 @@ const targetAvatar = ref(doctorAvatar)
 const messageStore = useMessageStore()
 const messages = ref([])
 const inputText = ref('')
+const replyTarget = ref(null)
 const scrollTop = ref(0)
 const scrollIntoView = ref('')
 const loadingMore = ref(false)
@@ -232,6 +247,35 @@ const parseDateTimeSafe = (value) => {
 const getTimestamp = (value) => {
   const parsed = parseDateTimeSafe(value)
   return parsed ? parsed.getTime() : 0
+}
+
+const buildReplyPreviewContent = (msg = {}) => {
+  const type = Number(msg.msgType || 1)
+  if (type === 2) return '[图片]'
+  if (type === 3) return '[语音]'
+  if (type === 4) return '[位置]'
+  const text = String(msg.content || '').trim()
+  return text.length > 60 ? `${text.slice(0, 60)}...` : text
+}
+
+const resolveReplySenderName = (msg = {}) => {
+  if (msg.senderId === currentUserId.value) return '我'
+  return msg.senderName || targetName.value || '对方'
+}
+
+const selectReplyTarget = (msg = {}) => {
+  if (!msg || isReadReceiptMessage(msg) || msg.status === 'sending' || msg.status === 'failed') return
+  replyTarget.value = {
+    id: msg.id,
+    senderName: resolveReplySenderName(msg),
+    content: buildReplyPreviewContent(msg)
+  }
+  showPanel.value = false
+  isVoiceMode.value = false
+}
+
+const cancelReplyTarget = () => {
+  replyTarget.value = null
 }
 
 const headerMeta = computed(() => buildChatHeaderMeta({ role: 'escort' }))
@@ -394,20 +438,32 @@ const applyReadReceipt = (msg) => {
 const sendMessage = async (content, type) => {
     if (isSending.value) return
     isSending.value = true
+    const activeReply = type === 1 ? replyTarget.value : null
     
     const userInfo = uni.getStorageSync('userInfo')
     const tempMsg = {
       id: 'temp-' + Date.now(), senderId: currentUserId.value, receiverId: targetUserId.value, content: content, msgType: type,
-      senderName: userInfo?.name || '我', senderAvatar: userInfo?.avatar, createTime: new Date(), status: 'sending', isRead: 0
+      senderName: userInfo?.name || '我', senderAvatar: userInfo?.avatar, createTime: new Date(), status: 'sending', isRead: 0,
+      replyToMessageId: activeReply?.id, replyToContent: activeReply?.content, replyToSenderName: activeReply?.senderName
     }
     messages.value.push(normalizeChatMessage(tempMsg))
     scrollToBottom()
     const tempIndex = messages.value.length - 1
 
     try {
-      const res = await post('/api/chat/send', { receiverId: targetUserId.value, content: content, msgType: type })
-      if (res.code === 200) messages.value[tempIndex] = normalizeChatMessage({ ...res.data, status: 'sent' })
-      else throw new Error('Failed')
+      const payload = { receiverId: targetUserId.value, content: content, msgType: type }
+      if (activeReply?.id) {
+        Object.assign(payload, {
+          replyToMessageId: activeReply.id,
+          replyToContent: activeReply.content,
+          replyToSenderName: activeReply.senderName
+        })
+      }
+      const res = await post('/api/chat/send', payload)
+      if (res.code === 200) {
+        messages.value[tempIndex] = normalizeChatMessage({ ...res.data, status: 'sent' })
+        if (activeReply?.id && replyTarget.value?.id === activeReply.id) replyTarget.value = null
+      } else throw new Error('Failed')
     } catch (e) { messages.value[tempIndex].status = 'failed' }
     finally {
       isSending.value = false
@@ -616,7 +672,9 @@ const normalizeChatMessage = (msg) => {
         : resolveAvatarUrl(msg.senderAvatar || targetAvatar.value || '', userPlaceholder)
     return {
         ...msg,
-        displayAvatar
+        displayAvatar,
+        replyToContent: msg.replyToContent || '',
+        replyToSenderName: msg.replyToSenderName || ''
     }
 }
 
@@ -780,6 +838,60 @@ $bubble-self: $primary-color;
   .image { max-width: 300rpx; border-radius: 8rpx; display: block; }
 }
 
+.reply-source {
+  min-width: 220rpx;
+  max-width: 420rpx;
+  margin-bottom: 12rpx;
+  padding: 10rpx 12rpx;
+  border-left: 5rpx solid rgba(0, 122, 255, 0.35);
+  border-radius: 10rpx;
+  background: #f2f6fb;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.self .reply-source {
+  border-left-color: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.reply-source-name {
+  font-size: 21rpx;
+  font-weight: 700;
+  color: #5c6b82;
+}
+
+.self .reply-source-name {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.reply-source-text {
+  font-size: 23rpx;
+  line-height: 1.35;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.self .reply-source-text {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.message-actions {
+  display: flex;
+  margin-top: 8rpx;
+}
+
+.self .message-actions {
+  justify-content: flex-end;
+}
+
+.reply-action {
+  font-size: 22rpx;
+  color: #7f8a9b;
+  padding: 6rpx 12rpx;
+}
+
 .voice-content {
   display: flex;
   align-items: center;
@@ -813,6 +925,46 @@ $bubble-self: $primary-color;
     padding-bottom: env(safe-area-inset-bottom);
     transition: bottom 0.1s;
     box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.reply-preview {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    padding: 14rpx 24rpx 0;
+    box-sizing: border-box;
+}
+
+.reply-preview-copy {
+    flex: 1;
+    min-width: 0;
+    padding: 12rpx 16rpx;
+    border-left: 5rpx solid $primary-color;
+    border-radius: 14rpx;
+    background: #f4f7fb;
+    display: flex;
+    flex-direction: column;
+    gap: 4rpx;
+}
+
+.reply-preview-title {
+    font-size: 22rpx;
+    font-weight: 700;
+    color: #425066;
+}
+
+.reply-preview-text {
+    font-size: 24rpx;
+    color: #7b8798;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reply-preview-cancel {
+    font-size: 24rpx;
+    color: #7b8798;
+    padding: 12rpx 8rpx;
 }
 
 .input-toolbar {

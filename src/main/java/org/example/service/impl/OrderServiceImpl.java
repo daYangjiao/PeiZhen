@@ -28,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -323,6 +326,7 @@ try {
         if (order == null) return "订单不存在";
         if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
         if (order.getOrderStatus() != 2) return "订单当前状态无法开始服务";
+        if (isBeforeScheduledServiceDate(order)) return "未到预约服务日期，暂不能开始服务";
 
         order.setOrderStatus(3);
         order.setServiceStartTime(new Date());
@@ -341,13 +345,30 @@ try {
         return "服务开始成功";
     }
 
+    private boolean isBeforeScheduledServiceDate(Order order) {
+        if (order == null || order.getServiceDate() == null || order.getServiceDate().trim().isEmpty()) {
+            return false;
+        }
+        String rawDate = order.getServiceDate().trim().replace('/', '-');
+        try {
+            LocalDate serviceDate = LocalDate.parse(rawDate);
+            LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+            return today.isBefore(serviceDate);
+        } catch (DateTimeParseException e) {
+            log.warn("解析订单服务日期失败，orderId={}, serviceDate={}", order.getOrderId(), order.getServiceDate());
+            return false;
+        }
+    }
+
     @Override
     @Transactional
     public String endService(Integer orderId, Integer attendantId, BigDecimal actualDuration, String attendantTimeRemark) {
         Order order = orderMapper.selectByPrimaryKey(orderId);
         if (order == null) return "订单不存在";
         if (!isAssignedAttendant(order, attendantId)) return "无权操作该订单";
-        if (order.getOrderStatus() == null || order.getOrderStatus() != 3) return "订单当前状态无法结束服务";
+        if (order.getOrderStatus() == null || (order.getOrderStatus() != 3 && order.getOrderStatus() != 4)) {
+            return "订单当前状态无法结束服务";
+        }
 
         // 记录结束时间与实际时长
         order.setServiceEndTime(new Date());

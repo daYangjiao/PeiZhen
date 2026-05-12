@@ -3,6 +3,7 @@ package org.example.service.impl;
 import org.example.dao.ChatMessageMapper;
 import org.example.handler.ChatWebSocketHandler;
 import org.example.model.ChatMessage;
+import org.example.model.User;
 import org.example.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,5 +56,37 @@ class ChatServiceImplTest {
                                 && "READ_RECEIPT".equals(message.getType())
                                 && Long.valueOf(88L).equals(message.getLastReadMessageId()))
         );
+    }
+
+    @Test
+    void sendMessageHydratesReplyReferenceFromConversationMessage() {
+        User sender = new User();
+        sender.setId(12);
+        sender.setName("王用户");
+        sender.setAvatar("/avatar/user.png");
+        when(userService.findById(12)).thenReturn(sender);
+
+        ChatMessage quoted = new ChatMessage();
+        quoted.setId(77L);
+        quoted.setSenderId(21);
+        quoted.setContent("明天上午九点见");
+        quoted.setMsgType(1);
+        quoted.setSenderName("李陪诊");
+        when(chatMessageMapper.findConversationMessage(77L, 12, 21)).thenReturn(quoted);
+
+        ChatMessage message = new ChatMessage();
+        message.setSenderId(12);
+        message.setReceiverId(21);
+        message.setContent("收到");
+        message.setMsgType(1);
+        message.setReplyToMessageId(77L);
+
+        chatService.sendMessage(message);
+
+        verify(chatMessageMapper).insert(argThat(inserted ->
+                Long.valueOf(77L).equals(inserted.getReplyToMessageId())
+                        && "明天上午九点见".equals(inserted.getReplyToContent())
+                        && "李陪诊".equals(inserted.getReplyToSenderName())
+        ));
     }
 }

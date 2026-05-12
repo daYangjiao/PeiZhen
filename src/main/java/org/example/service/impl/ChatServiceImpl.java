@@ -46,6 +46,8 @@ public class ChatServiceImpl implements ChatService {
         } catch (Exception e) {
             logger.warn("获取发送者信息失败: {}", e.getMessage());
         }
+
+        hydrateReplyReference(message);
         
         chatMessageMapper.insert(message);
         
@@ -53,6 +55,61 @@ public class ChatServiceImpl implements ChatService {
         webSocketHandler.sendMessageToUser(message.getReceiverId(), message);
         
         return message;
+    }
+
+    private void hydrateReplyReference(ChatMessage message) {
+        if (message == null || message.getReplyToMessageId() == null || message.getReplyToMessageId() <= 0) {
+            clearReplyReference(message);
+            return;
+        }
+
+        ChatMessage quoted = chatMessageMapper.findConversationMessage(
+                message.getReplyToMessageId(),
+                message.getSenderId(),
+                message.getReceiverId()
+        );
+        if (quoted == null) {
+            clearReplyReference(message);
+            return;
+        }
+
+        message.setReplyToMessageId(quoted.getId());
+        message.setReplyToContent(buildReplyPreview(quoted));
+        message.setReplyToSenderName(resolveReplySenderName(quoted));
+    }
+
+    private void clearReplyReference(ChatMessage message) {
+        if (message == null) {
+            return;
+        }
+        message.setReplyToMessageId(null);
+        message.setReplyToContent(null);
+        message.setReplyToSenderName(null);
+    }
+
+    private String resolveReplySenderName(ChatMessage message) {
+        if (message.getSenderName() != null && !message.getSenderName().trim().isEmpty()) {
+            return message.getSenderName().trim();
+        }
+        return "用户" + message.getSenderId();
+    }
+
+    private String buildReplyPreview(ChatMessage message) {
+        Integer type = message.getMsgType();
+        if (type != null && type == 2) {
+            return "[图片]";
+        }
+        if (type != null && type == 3) {
+            return "[语音]";
+        }
+        if (type != null && type == 4) {
+            return "[位置]";
+        }
+        String content = message.getContent() == null ? "" : message.getContent().trim();
+        if (content.length() > 80) {
+            return content.substring(0, 80) + "...";
+        }
+        return content;
     }
 
     @Override

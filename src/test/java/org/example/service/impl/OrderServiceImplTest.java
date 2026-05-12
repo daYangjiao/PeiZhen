@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -366,6 +367,46 @@ class OrderServiceImplTest {
                         && message.getContent().contains("待您确认")
                         && !message.getContent().contains("订单已完成")
                         && !message.getContent().contains("服务已结束")
+        ));
+    }
+
+    @Test
+    void startServiceShouldRejectBeforeScheduledServiceDate() {
+        Order order = new Order();
+        order.setOrderId(112);
+        order.setOrderNo("ORD-112");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(2);
+        order.setServiceDate(LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(5).toString());
+        when(orderMapper.selectByPrimaryKey(112)).thenReturn(order);
+
+        String result = service.startService(112, 20);
+
+        assertThat(result).isEqualTo("未到预约服务日期，暂不能开始服务");
+        verify(orderMapper, org.mockito.Mockito.never()).updateByPrimaryKeySelective(org.mockito.ArgumentMatchers.any(Order.class));
+    }
+
+    @Test
+    void endServiceShouldAllowResubmittingTimeFeeWhileWaitingForUserConfirmation() {
+        Order order = new Order();
+        order.setOrderId(113);
+        order.setOrderNo("ORD-113");
+        order.setUserId(10);
+        order.setAttendantId(20);
+        order.setOrderStatus(4);
+        order.setOrderAmount(new BigDecimal("110.00"));
+        order.setActualDuration(new BigDecimal("2.0"));
+        when(orderMapper.selectByPrimaryKey(113)).thenReturn(order);
+
+        String result = service.endService(113, 20, new BigDecimal("2.5"), "补充说明");
+
+        assertThat(result).startsWith("服务已提交");
+        verify(orderMapper).updateByPrimaryKeySelective(argThat(patch ->
+                Integer.valueOf(113).equals(patch.getOrderId())
+                        && Integer.valueOf(4).equals(patch.getOrderStatus())
+                        && new BigDecimal("2.5").compareTo(patch.getActualDuration()) == 0
+                        && "补充说明".equals(patch.getAttendantTimeRemark())
         ));
     }
 

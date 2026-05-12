@@ -19,6 +19,10 @@ public interface ChatMessageMapper {
 
     List<ChatMessage> findRecentContacts(@Param("userId") Integer userId);
 
+    ChatMessage findConversationMessage(@Param("id") Long id,
+                                        @Param("userId1") Integer userId1,
+                                        @Param("userId2") Integer userId2);
+
     int markAsRead(@Param("senderId") Integer senderId, @Param("receiverId") Integer receiverId);
 
     int markMessageAsRead(@Param("id") Long id, @Param("receiverId") Integer receiverId);
